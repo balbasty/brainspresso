@@ -68,7 +68,7 @@ def download(
     Parameters
     ----------
     path : str
-        Path to root of all datasets. An `OASIS-2` folder will be created.
+        Path to root of all datasets. An `OASIS-3` folder will be created.
     keys : [list of] str
         Data categories to download
     subs : [list of] int

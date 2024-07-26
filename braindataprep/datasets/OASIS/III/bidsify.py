@@ -157,7 +157,7 @@ def bidsify(
     Parameters
     ----------
     path : str
-        Path to root of all datasets. An `OASIS-2/sourcedata` folder must
+        Path to root of all datasets. An `OASIS-3/sourcedata` folder must
         exist.
     keys : [list of] str
         Only bidsify these keys (all if empty)

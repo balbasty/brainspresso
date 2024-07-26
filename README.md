@@ -287,7 +287,7 @@ Hierarchy of keys:
     • pheno :         Phenotypes
 
 ╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-2 folder will be created.  │
+│ PATH,--path     Path to root of all datasets. An OASIS-3 folder will be created.  │
 │ --keys          Data categories to download [default: ()]                         │
 │ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
 │ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
@@ -335,7 +335,7 @@ Hierarchy of keys:
     • pheno :         Phenotypes
 
 ╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-2/sourcedata folder must   │
+│ PATH,--path     Path to root of all datasets. An OASIS-3/sourcedata folder must   │
 │                 exist.                                                            │
 │ --keys          Only bidsify these keys (all if empty) [default: ()]              │
 │ --exclude-keys  Do not bidsify these keys [default: ()]                           │

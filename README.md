@@ -29,31 +29,39 @@ pip install "brainspresso[all] @ git+https://github.com/balbasty/brainspresso"
 
 # Usage
 
-After installation, the `bdp` command is available from your shell.
+After installation, the `brainspresso` command is available from your shell.
 Each known dataset is a specific command, with a set of subcommands.
-These datasets can be listed by typing `bdp`:
+These datasets can be listed by typing `brainspresso`:
 ```
-Usage: bdp COMMAND
+Usage: brainspresso COMMAND
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃           brainspresso : Download, Bidsify and Process public datasets            ┃
+┃     Brainspresso : Download, Bidsify and Process public neuroimagingdatasets      ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ ixi        Commands related to the IXI dataset                                    │
-│ oasis1     Commands related to the OASIS-I dataset                                │
-│ oasis2     Commands related to the OASIS-II dataset                               │
+ • Plantation : A public neuroimaging dataset supported brainspresso
+ • Harvest    : Download raw data
+ • Roast      : Bidsify raw data
+ • Grind      : Preprocess data with standard pipelines
+
+╭─ Help ────────────────────────────────────────────────────────────────────────────╮
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
+╰───────────────────────────────────────────────────────────────────────────────────╯
+╭─ Plantations ─────────────────────────────────────────────────────────────────────╮
+│ ixi        IXI dataset (controls)                                                 │
+│ oasis1     OASIS-1 dataset (adult lifespan, dementia)                             │
+│ oasis2     OASIS-2 dataset (longitudinal, dementia)                               │
+│ ...                                                                               │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ## IXI: Information eXtraction from Images
 
 ```
-Usage: bdp ixi COMMAND
+Usage: brainspresso ixi COMMAND
 
-Commands related to the IXI dataset
+IXI dataset (controls)
 
  • Project       Information eXtraction from Images (IXI)
  • Modalities    T1w, T2w, PD2, MRA, DTI
@@ -63,12 +71,12 @@ Commands related to the IXI dataset
 
 ╭─ Commands ────────────────────────────────────────────────────────────────────────╮
 │ harvest    Download source data for the IXI dataset.                              │
-│ roast      Convert source data into a BIDS-compliant directory                    │
+│ roast      Convert source data into a BIDS-compliant directory.                   │
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 
-Usage: bdp ixi harvest [ARGS] [OPTIONS]
+Usage: brainspresso ixi harvest [ARGS] [OPTIONS]
 
 Download source data for the IXI dataset.
 ╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
@@ -81,7 +89,7 @@ Download source data for the IXI dataset.
 │ --log        Path to log file                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 
-Usage: bdp ixi roast [ARGS] [OPTIONS]
+Usage: brainspresso ixi roast [ARGS] [OPTIONS]
 
 Convert source data into a BIDS-compliant directory
 
@@ -94,256 +102,6 @@ Convert source data into a BIDS-compliant directory
 │ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
 │ --json          Whether to write (only) sidecar JSON files                        │
 │                 [choices:yes,no,only] [default: yes]                              │
-│ --if-exists     Behaviour when a file already exists                              │
-│                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
-│ --log           Path to log file                                                  │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-```
-
-## OASIS: Open Access Series of Imaging Studies
-
-## OASIS-1: Cross-sectional data across the adult lifespan
-
-```
-Usage: bdp oasis1 COMMAND
-
-Commands related to the OASIS-I dataset
-
- • Project       Open Access Series of Imaging Studies (OASIS)
- • Subproject    Cross-sectional data across the adult lifespan (OASIS-I)
- • Modalities    T1w
- • Populations   Controls, Dementia
- • Funding       NIH: P50 AG05681, P01 AG03991, P01 AG026276, R01 AG021910,
-   P20 MH071616, U24 RR021382
- • Reference     https://doi.org/10.1162/jocn.2007.19.9.1498
-
-╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ download   Download source data for the OASIS-I dataset.                          │
-│ bidsify    Convert source data into a BIDS-compliant directory                    │
-│ --help,-h  Display this message and exit.                                         │
-│ --version  Display application version.                                           │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis1 download [ARGS] [OPTIONS]
-
-Download source data for the OASIS-I dataset.
-
-Possible keys:
- • raw          All the raw imaging data
- • fs           Data processed with FreeSurfer
- • meta         Metadata
- • reliability  Repeatability measures data sheet
- • facts        Fact sheet
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path  Path to root of all datasets. An OASIS-1 folder will be created.     │
-│ --keys       Data categories to download                                          │
-│              [default: ('raw', 'fs', 'meta', 'reliability', 'facts')]             │
-│ --discs      Discs to download [default: (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)] │
-│ --if-exists  Behaviour if a file already exists                                   │
-│              [choices: skip,overwrite,different,refresh,error] [default: skip]    │
-│ --packet     Packet size to download, in bytes [default: 8.4 MB]                  │
-│ --log        Path to log file                                                     │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis1 bidsify [ARGS] [OPTIONS]
-
-Convert source data into a BIDS-compliant directory
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-1/sourcedata folder        │
-│                 must exist.                                                       │
-│ --keys          Only bidsify these keys                                           │
-│                 [default: ('meta', 'raw', 'avg', 'tal', 'fsl', 'fs', 'fs-all')]   │
-│ --discs         Discs to bidsify.                                                 │
-│                 [default: (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)]                │
-│ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
-│ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
-│ --json          Whether to write (only) sidecar JSON files                        │
-│                 [choices: yes,no,only] [default: yes]                             │
-│ --if-exists     Behaviour when a file already exists                              │
-│                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
-│ --log           Path to log file                                                  │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-```
-
-### OASIS-2: Longitudinal MRI Data in Nondemented and Demented Older Adults
-
-```
-Usage: bdp oasis2 COMMAND
-
-Commands related to the OASIS-II dataset
-
- • Project       Open Access Series of Imaging Studies (OASIS)
- • Subproject    Longitudinal MRI Data in Nondemented and Demented Older Adults
-                 (OASIS-II)
- • Modalities    T1w
- • Populations   Controls, Dementia
- • Funding       NIH: P50 AG05681,  P01 AG03991,  P01 AG026276,
-                      R01 AG021910, P20 MH071616, U24 RR021382
- • Reference     https://doi.org/10.1162/jocn.2009.21407
-
-╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ download   Download source data for the OASIS-II dataset.                         │
-│ bidsify    Convert source data into a BIDS-compliant directory                    │
-│ --help,-h  Display this message and exit.                                         │
-│ --version  Display application version.                                           │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis2 download [ARGS] [OPTIONS]
-
-Download source data for the OASIS-II dataset.
-
-Possible keys:
- • raw          All the raw imaging data
- • fs           Data processed with FreeSurfer
- • meta         Metadata
- • reliability  Repeatability measures data sheet
- • facts        Fact sheet
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path  Path to root of all datasets. An OASIS-2 folder will be created.     │
-│ --keys       Data categories to download [default: ('raw', 'meta')]               │
-│ --parts      Parts to download [default: (1, 2)]                                  │
-│ --if-exists  Behaviour if a file already exists                                   │
-│              [choices: skip,overwrite,different,refresh,error] [default: skip]    │
-│ --packet     Packet size to download, in bytes [default: 8.4 MB]                  │
-│ --log        Path to log file                                                     │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis2 bidsify [ARGS] [OPTIONS]
-
-Convert source data into a BIDS-compliant directory
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-2/sourcedata folder must   │
-│                 exist.                                                            │
-│ --keys          Only bidsify these keys [default: ('meta', 'raw')]                │
-│ --parts         Parts to bidsify. [default: (1, 2)]                               │
-│ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
-│ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
-│ --json          Whether to write (only) sidecar JSON files                        │
-│                 [choices: yes,no,only] [default: yes]                             │
-│ --if-exists     Behaviour when a file already exists                              │
-│                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
-│ --log           Path to log file                                                  │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-```
-
-### OASIS-3: Longitudinal Multimodal Neuroimaging, Clinical, and Cognitive Dataset for Normal Aging and Alzheimer's Disease
-
-```
-Usage: bdp oasis3 COMMAND
-
-Commands related to the OASIS-III dataset
-
- • Project       Open Access Series of Imaging Studies (OASIS)
- • Subproject    Longitudinal Multimodal Neuroimaging, Clinical, and Cognitive
-                 Dataset for Normal Aging and Alzheimer's Disease (OASIS-III)
- • Modalities    T1w, T2w, TSE, FLAIR, T2star, angio, pasl, asl, bold,
-                dwi, swi, fdg, pib, av45, av1451, CT
- • Populations   Controls, Dementia
- • Funding       NIH: P30 AG066444, P50 AG00561,  P30 NS09857781, P01 AG026276,
-                      P01 AG003991, R01 AG043434, UL1 TR000448,   R01 EB009352
- • Reference     https://doi.org/10.1101/2019.12.13.19014902
-
-╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ download   Download source data for the OASIS-III dataset.                        │
-│ bidsify    Convert source data into a BIDS-compliant directory                    │
-│ --help,-h  Display this message and exit.                                         │
-│ --version  Display application version.                                           │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis3 download [ARGS] [OPTIONS]
-
-Download source data for the OASIS-III dataset.
-
-Hierarchy of keys:
- • raw :              All the raw imaging data
-    • mri :           All the MRI data
-       • anat :       All the anatomical MRI data
-          • T1w :     T1-weighted MRI scans
-          • T2w :     T2-weighted MRI scans
-          • TSE :     Turbo Spin Echo MRI scans
-          • FLAIR :   Fluid-inversion Recovery MRI scans
-          • T2star :  T2-star quantitative scans
-          • angio :   MR angiography scans
-          • swi :     All susceptibility-weighted MRI data
-       • func :       All fthe functional MRI data
-          • pasl :    Pulsed arterial spin labeling
-          • asl :     Arterial spin labelling
-          • bold :    Blood-oxygenation level dependant (fMRI) scans
-       • fmap :       All field maps
-       • dwi :        All diffusion-weighted MRI data
-    • pet :           All the PET data
-       • fdg :        Fludeoxyglucose
-       • pib :        Pittsburgh Compound B (amyloid)
-       • av45 :       18F Florpiramine (tau)
-       • av1451 :     18F Flortaucipir (tau)
-    • ct              All the CT data
- • derivatives :      All derivatives
-    • fs :            Freesurfer derivatives
-    • pup :           PET derivatives
- • meta :             All metadata
-    • pheno :         Phenotypes
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-3 folder will be created.  │
-│ --keys          Data categories to download [default: ()]                         │
-│ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
-│ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
-│ --if-exists     Behaviour if a file already exists                                │
-│                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
-│ --user          NITRC username                                                    │
-│ --password      NITRC password                                                    │
-│ --packet        Packet size to download, in bytes [default: 8.4 MB]               │
-│ --log           Path to log file                                                  │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-
-Usage: bdp oasis3 bidsify [ARGS] [OPTIONS]
-
-Convert source data into a BIDS-compliant directory
-
-Hierarchy of keys:
-
- • raw :              All the raw imaging data
-    • mri :           All the MRI data
-       • anat :       All the anatomical MRI data
-          • T1w :     T1-weighted MRI scans
-          • T2w :     T2-weighted MRI scans
-          • TSE :     Turbo Spin Echo MRI scans
-          • FLAIR :   Fluid-inversion Recovery MRI scans
-          • T2star :  T2-star quantitative scans
-          • angio :   MR angiography scans
-          • swi :     All susceptibility-weighted MRI data
-       • func :       All fthe functional MRI data
-          • pasl :    Pulsed arterial spin labeling
-          • asl :     Arterial spin labelling
-          • bold :    Blood-oxygenation level dependant (fMRI) scans
-       • fmap :       All field maps
-       • dwi :        All diffusion-weighted MRI data
-    • pet :           All the PET data
-       • fdg :        Fludeoxyglucose
-       • pib :        Pittsburgh Compound B (amyloid)
-       • av45 :       18F Florpiramine (tau)
-       • av1451 :     18F Flortaucipir (tau)
-    • ct              All the CT data
- • derivatives :      All derivatives
-    • fs :            Freesurfer derivatives
-    • fs-all :        Freesurfer derivatives (even non bidsifiable ones)
-    • pup :           PET derivatives
- • meta :             All metadata
-    • pheno :         Phenotypes
-
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An OASIS-3/sourcedata folder must   │
-│                 exist.                                                            │
-│ --keys          Only bidsify these keys (all if empty) [default: ()]              │
-│ --exclude-keys  Do not bidsify these keys [default: ()]                           │
-│ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
-│ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
-│ --json          Whether to write (only) sidecar JSON files                        │
-│                 [choices: yes,no,only] [default: yes]                             │
 │ --if-exists     Behaviour when a file already exists                              │
 │                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
 │ --log           Path to log file                                                  │

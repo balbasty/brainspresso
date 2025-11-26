@@ -1,0 +1,92 @@
+# COBRE: Center of Biomedical Research Excellence
+
+## Quotes from the original fact sheet
+
+### Summary:
+
+The Center for Biomedical Research Excellence (COBRE) is contributing raw
+anatomical and functional MR data from 72 patients with Schizophrenia and
+75 healthy controls (ages ranging from 18 to 65 in each group). All subjects
+were screened and excluded if they had; history of neurological disorder,
+history of mental retardation, history of severe head trauma with more than
+5 minutes loss of consciousness, history of substance abuse or dependence
+within the last 12 months. Diagnostic information was collected using the
+Structured Clinical Interview used for DSM Disorders (SCID).
+
+A multi-echo MPRAGE (MEMPR) sequence was used with the following parameters:
+
+* TR/TE/TI = 2530/[1.64, 3.5, 5.36, 7.22, 9.08]/900 ms
+* flip angle = 7°, FOV = 256x256 mm
+* Slab thickness = 176 mm
+* Matrix = 256x256x176
+* Voxel size =1x1x1 mm
+* Number of echos = 5
+* Pixel bandwidth =650 Hz
+* Total scan time = 6 min.
+
+With 5 echoes, the TR, TI and time to encode partitions for the MEMPR are
+similar to that of a conventional MPRAGE, resulting in similar
+GM/WM/CSF contrast.
+
+Rest data was collected with single-shot full k-space echo-planar imaging
+(EPI) with ramp sampling correction using the intercomissural line (AC-PC)
+as a reference:
+
+* TR: 2 s
+* TE: 29 ms
+* matrix size: 64x64
+* 32 slices
+* voxel size: 3x3x4 mm3
+
+### Slice Acquisition Order:
+
+* Rest scan - collected in the Axial plane - series ascending - multi slice mode - interleaved
+* MPRAGE - collected in the Sag plane - series interleaved - multi slice mode - single shot
+
+The following data are released for every participant:
+
+* Resting fMRI
+* Anatomical MRI
+* Phenotypic data for every participant including:
+  gender, age, handedness and diagnostic information.
+
+### Investigators
+
+* Cheryl Aine, PhD;
+* Vincent Calhoun, PhD;
+* Jose Canive, MD;
+* Faith Hanlon, PhD;
+* Rex Jung, PhD;
+* Kent Kiehl, PhD;
+* Andrew Mayer, PhD;
+* Nora Perrone-Bizzozero, PhD;
+* Julia Stephen, PhD; and
+* Claudia Tesche, PhD
+
+### Funding
+
+The imaging data and phenotypic information was collected and shared by
+the Mind Research Network and the University of New Mexico funded by a
+National Institute of Health Center of Biomedical Research Excellence
+(COBRE) grant 1P20RR021938-01A2
+
+### Publications
+
+The following are a selection of representative publications from the
+COBRE group:
+
+* A. R. Mayer, D. Ruhl, F. Merideth, J. Ling, F. M. Hanlon, J. Bustillo, and J. Canive,
+  "Functional imaging of the hemodynamic sensory gating response in schizophrenia,"
+  Human brain mapping, Mar 28 2012.
+* Stephen, J. M. et al. Using Joint ICA to Probe the Structure/Function
+  Relationship using MEG and DTI with Auditory and Visual Stimuli in
+  Schizophrenia. NeuroImage To be re-submitted (2012).
+* Hanlon, F. M., Houck, J. M., Pyeatt, C. J., Lundy, S. L., Euler, M. J.,
+  Weisend, M. P., Thoma, R. J., Bustillo, J. R., Miller, G. A., & Tesche, C. D. (2011).
+  Bilateral hippocampal dysfunction in schizophrenia.
+  NeuroImage, 58, 1158-1168.
+* Calhoun VD, Sui J, Kiehl KA, Turner JA, Allen EA, Pearlson GD. (2012):
+  Exploring the Psychosis Functional Connectome:
+  Aberrant Intrinsic Networks in Schizophrenia and Bipolar Disorder.
+  Frontiers in Neuro-psychiatric Imaging and Stimulation 2:1-13, PMC Journal
+  In Process.

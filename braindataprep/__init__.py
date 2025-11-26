@@ -1,14 +1,23 @@
 import logging
+from importlib import import_module
 
 logging.basicConfig(format='%(levelname)s | %(message)s', level=15)
 
 
 # discover usable datasets
-try: from .datasets import IXI
-except: pass
-try: from .datasets.OASIS import I
-except: pass
-try: from .datasets.OASIS import II
-except: pass
-try: from .datasets.OASIS import III
-except: pass
+_datasets = [
+    'ABIDE.I', 'ABIDE.II',
+    'ADHD200',
+    'ADNI.I',
+    'COBRE',
+    'CoRR',
+    'GSP',
+    'IXI',
+    'OASIS.I', 'OASIS.II', 'OASIS.III',
+    "OpenNeuro",
+]
+for _dataset in _datasets:
+    try:
+        import_module('.datasets.' + _dataset, package='braindataprep')
+    except Exception:
+        pass

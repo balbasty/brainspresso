@@ -1,0 +1,61 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Social Responsive Scale (SRS)"
+    },
+    "version": {
+        "Description": "Version",
+        "Levels": {
+            "C": "Child",
+            "A": "Adult"
+        }
+    },
+    "informant": {
+        "Description": "Informant",
+        "Levels": {
+            "1": "Mother",
+            "2": "Father",
+            "3": "Both parents",
+            "4": "Teacher",
+            "5": "Self",
+            "6": "Significant other",
+            "7": "Friend",
+            "8": "Other relative"
+        }
+    },
+    "total_raw": {
+        "Description": "Total Raw Score {0..199}"
+    },
+    "awareness_raw": {
+        "Description": "Social Awareness Total Raw {0..21}"
+    },
+    "cognition_raw": {
+        "Description": "Social Cognition Total Raw {0..32}"
+    },
+    "communication_raw": {
+        "Description": "Social Communication Total Raw {0..55}"
+    },
+    "motivation_raw": {
+        "Description": "Social Motivation Total Raw {0..32}"
+    },
+    "mannerisms_raw": {
+        "Description": "Autistic Mannerisms Total Raw {0..36}"
+    },
+    "total_t": {
+        "Description": "Total T Score"
+    },
+    "awareness_t": {
+        "Description": "Social Awareness Total T"
+    },
+    "cognition_t": {
+        "Description": "Social Cognition Total T"
+    },
+    "communication_t": {
+        "Description": "Social Communication Total T"
+    },
+    "motivation_t": {
+        "Description": "Social Motivation Total T"
+    },
+    "mannerisms_t": {
+        "Description": "Autistic Mannerisms Total T"
+    }
+}

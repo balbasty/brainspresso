@@ -10,10 +10,11 @@
     "Description": "Handedness of the participant",
     "Levels": {
       "L": "left",
-      "R": "right"
+      "R": "right",
+      "B": "ambidextrous"
     }
   },
-  "age_at_entry": {
+  "age": {
     "Description": "Age of the participant at time of *first* visit",
     "Units": "years"
   },
@@ -36,27 +37,66 @@
     }
   },
   "race": {
-    "Description": "Race.",
+    "Description": "What does the subject report as his or her race?",
     "Levels": {
+      "U": "Unknown",
+      "N": "American Indian or Alaska Native",
       "A": "Asian",
+      "H": "Native Hawaiian or Other Pacific Islander",
       "B": "Black",
-      "W": "White"
+      "W": "White",
+      "M": "More than one"
     }
   },
-  "race_mom": {
-    "Description": "Race of the mother.",
+  "race_aian": {
+    "Description": "American Indian or Alaska Native reported as a race",
     "Levels": {
-      "A": "Asian",
-      "B": "Black",
-      "W": "White"
+      "N": "No",
+      "Y": "Yes"
     }
   },
-  "race_dad": {
-    "Description": "Race of the father.",
+  "race_nhpi": {
+    "Description": "Native Hawaiian or Other Pacific Islander reported as a race",
     "Levels": {
-      "A": "Asian",
-      "B": "Black",
-      "W": "White"
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_asian": {
+    "Description": "Asian reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_black": {
+    "Description": "Black reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_white": {
+    "Description": "White reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "dadem": {
+    "Description": "Does/did subject's father have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes",
+      "U": "Unknown"
+    }
+  },
+  "momdem": {
+    "Description": "Does/did subject's mother have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes",
+      "U": "Unknown"
     }
   },
   "apoe": {

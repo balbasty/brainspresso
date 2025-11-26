@@ -1,0 +1,30 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Social Responsive Scale (SRS)"
+    },
+    "version": {
+        "Description": "Version",
+        "Levels": {
+            "C": "Child",
+            "A": "Adult"
+        }
+    },
+    "raw_total": {
+        "Description": "Total Raw Score"
+    },
+    "awareness": {
+        "Description": "Awareness Subscore Raw Total"
+    },
+    "cognition": {
+        "Description": "Cognition Subscore Raw Total"
+    },
+    "communication": {
+        "Description": "Communication Subscore Raw Total"
+    },
+    "motivation": {
+        "Description": "Motivation Subscore Raw Total"
+    },
+    "mannerisms": {
+        "Description": "Mannerisms Subscore Raw Total"
+    }
+}

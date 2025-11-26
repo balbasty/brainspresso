@@ -11,6 +11,7 @@ Commands related to the OASIS-II dataset
 * **Funding**       NIH: P50 AG05681,  P01 AG03991,  P01 AG026276,
                          R01 AG021910, P20 MH071616, U24 RR021382
 * **Reference**     https://doi.org/10.1162/jocn.2009.21407
+* **URL**           https://sites.wustl.edu/oasisbrains/home/oasis-2/
 """  # noqa: E501
 
 app.command(oasis2 := App(name="oasis2", help=oasis2_help))

@@ -79,7 +79,7 @@ OASIS-3/
                     sub-{:04d}_ses-{:04d}_T2w.{nii.gz|json}
                     sub-{:04d}_ses-{:04d}_acq-TSE_T2w.{nii.gz|json}
                     sub-{:04d}_ses-{:04d}_FLAIR.{nii.gz|json}
-                    sub-{:04d}_ses-{:04d}_T2star.{nii.gz|json}
+                    sub-{:04d}_ses-{:04d}_T2starw.{nii.gz|json}
                     sub-{:04d}_ses-{:04d}_angio.{nii.gz|json}
                     sub-{:04d}_ses-{:04d}_swi.{nii.gz|json}
                 perf/

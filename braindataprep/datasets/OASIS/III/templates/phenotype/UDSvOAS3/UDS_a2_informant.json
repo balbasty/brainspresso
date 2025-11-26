@@ -1,0 +1,13 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "ADRC Uniform Data Set v2+v3 - A2: Informant Demographics",
+    "TermURL": "https://naccdata.org/data-collection/forms-documentation/uds-2"
+  },
+  "NEWINF": {
+    "Description": "Is this a new informant?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes"
+    }
+  }
+}

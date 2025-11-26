@@ -2,6 +2,7 @@ import os
 import time
 import requests
 import logging
+from typing import BinaryIO
 from pathlib import Path
 
 from braindataprep.utils.ui import round_bytes
@@ -9,16 +10,41 @@ from braindataprep.utils.ui import round_bytes
 lg = logging.getLogger(__name__)
 
 
-def download_file(src, dst=None, packet_size=1024, makedirs=True, session=None,
-                  overwrite=True, **kwargs):
+def resolve_url(
+    url: str,
+    session: requests.Session | None = None,
+    **kwargs
+) -> str:
+    """Follow all redirections of a URL"""
+    REDIRECTION = (300, 301, 302, 303, 307, 308)
+
+    session = session or requests.Session()
+    r = session.head(url, **kwargs)
+    while r.status_code in REDIRECTION:
+        url = r.headers['Location']
+        r = session.head(url, **kwargs)
+    return url
+
+
+def download_file(
+    src: str,
+    dst: str | Path | BinaryIO | None = None,
+    packet_size: int = 1024,
+    makedirs: bool = True,
+    session: requests.Session | None = None,
+    overwrite: bool = True,
+    **kwargs
+) -> str:
     """
     Download a file
+
+    !!! warning "Deprecated"
 
     Parameters
     ----------
     src : str
         File URL.
-    dst : str or Path or  file-like
+    dst : str or Path or file-like
         Output path.
 
     Other Parameters

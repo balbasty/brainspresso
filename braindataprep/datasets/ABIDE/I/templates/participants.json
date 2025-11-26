@@ -1,0 +1,165 @@
+{
+  "site": {
+      "Description": "study site",
+      "Levels": {
+          "Caltech": "California Institute of Technology",
+          "CMU": "Carnegie Mellon University",
+          "KKI": "Kennedy Krieger Institute",
+          "Leuven": "University of Leuven",
+          "MaxMun": "Ludwig Maximilians University Munich",
+          "NYU": "NYU Langone Medical Center",
+          "OHSU": "Oregon Health and Science University",
+          "Olin": "Olin, Institute of Living at Hartford Hospital",
+          "Pitt": "University of Pittsburgh School of Medicine",
+          "SBL": "Social Brain Lab, BCN NIC UMC Groningen and Netherlands Institute for Neurosciences",
+          "SDSU": "San Diego State University",
+          "Stanford": "Stanford University",
+          "Trinity": "Trinity Centre for Health Sciences",
+          "UCLA": "University of California, Los Angeles",
+          "UM": "University of Michigan",
+          "USM": "University of Utah School of Medicine",
+          "Yale": "Yale Child Study Center"
+      }
+  },
+  "sample": {
+    "Description": "different samples within same site",
+    "Levels": {
+      "Leuven1": "",
+      "Leuven2": "",
+      "UCLA1": "",
+      "UCLA2": "",
+      "UM1": "",
+      "UM2": ""
+    }
+  },
+  "age": {
+      "Description": "Age of the participant",
+      "Units": "years"
+  },
+  "sex": {
+      "Description": "Sex of the participant as reported by the participant",
+      "Levels": {
+          "M": "male",
+          "F": "female"
+      }
+  },
+  "handedness": {
+    "Description": "Handedness of the participant",
+    "Levels": {
+      "L": "left",
+      "R": "right",
+      "B": "ambidextrous"
+    }
+  },
+  "handedness_score": {
+    "Description": ">0: right; <0: left; 0: ambidextrous"
+  },
+  "group": {
+    "Description": "Diagnostic group",
+    "Levels": {
+      "A": "autism",
+      "C": "control"
+    }
+  },
+  "dsm4": {
+    "Description": "DSM-IV diagnostic category",
+    "Levels": {
+      "0": "control",
+      "1": "autism",
+      "2": "aspergers",
+      "3": "pdd-nos",
+      "4": "aspergers or pdd-nos"
+    }
+  },
+  "fiq": {
+    "Description": "FIQ (full) standard score"
+  },
+  "viq": {
+    "Description": "FIQ (verbal) standard score"
+  },
+  "piq": {
+    "Description": "PIQ (performance) standard score"
+  },
+  "fiq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-II": "Differential Ability Scale II (DAS-II) - School age {30..170}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {50..160}",
+      "WISC": "Wechsler Intelligence Scale for Children (WISC) {50..160}",
+      "WISC-III": "Wechsler Intelligence Scale for Children (WISC) III {50..160}",
+      "WISC-III-DUTCH": "Wechsler Intelligence Scale for Children (WISC) Dutch {50..160}",
+      "WISC-IV_SUB": "Wechsler Intelligence Scale for Children (WISC) IV - 4 subtests {50..160}",
+      "WISC-IV_FULL": "Wechsler Intelligence Scale for Children (WISC) IV - full {50..160}",
+      "WAIS-III": "Wechsler Adult Intelligence Scales (WAIS) {50..160}",
+      "HAWIK-IV": "Hamburg-Wechsler Intelligence Test for Children (HAWIK-IV) {50..160}",
+      "WST": "Wortchatztest (WST) {50..160}",
+      "GIT": "Groninger Intelligence Test (GIT)"
+    }
+  },
+  "viq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-II": "Differential Ability Scale II (DAS-II) - School age {31..169}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {55..160}",
+      "WISC": "Wechsler Intelligence Scale for Children (WISC) {50..160}",
+      "WISC-III": "Wechsler Intelligence Scale for Children (WISC) III {55..160}",
+      "WISC-III-DUTCH": "Wechsler Intelligence Scale for Children (WISC) Dutch {55..160}",
+      "WISC-IV_SUB": "Wechsler Intelligence Scale for Children (WISC) IV - 4 subtests {55..160}",
+      "WISC-IV_FULL": "Wechsler Intelligence Scale for Children (WISC) IV - full {55..160}",
+      "WAIS-III": "Wechsler Adult Intelligence Scales (WAIS) {55..160}",
+      "PPVT": "Peabody Picture Vocabulary Test (PPVT) {40..160}",
+      "STANDFORD": "Stanford Binet (STANDFORD) {36..164}"
+    }
+  },
+  "piq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-II": "Differential Ability Scale II (DAS-II) - School age {31..166}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {53..160}",
+      "WISC": "Wechsler Intelligence Scale for Children (WISC) {50..160}",
+      "WISC-III": "Wechsler Intelligence Scale for Children (WISC) {53..160}",
+      "WISC-III-DUTCH": "Wechsler Intelligence Scale for Children (WISC) Dutch {53..160}",
+      "WISC-IV_SUB": "Wechsler Intelligence Scale for Children (WISC) IV - 4 subtests {53..160}",
+      "WISC-IV_FULL": "Wechsler Intelligence Scale for Children (WISC) IV - full {53..160}",
+      "WAIS-III": "Wechsler Adult Intelligence Scales (WAIS) {53..160}",
+      "RAVENS": "Raven's Standard Progressive Matrices (RAVENS) {50..160}",
+      "STANDFORD": "Stanford Binet (STANDFORD) {36..164}"
+    }
+  },
+  "scq": {
+    "Description": "Social Communication Questionnaire Total {0..39}"
+  },
+  "aq": {
+    "Description": "Total Raw Score of the Autism Quotient {0..50}"
+  },
+  "comorbidity": {
+    "Description": "Any other comorbidity?"
+  },
+  "med_status": {
+    "Description": "Currently taking medication?",
+    "Levels": {
+      "N": "no",
+      "Y": "yes"
+    }
+  },
+  "med_name": {
+    "Description": "Active ingredients of any current psychoactive medications"
+  },
+  "off_stimulant": {
+    "Description": "Off stimulants 24h before scanning?",
+    "Levels": {
+      "N": "no",
+      "Y": "yes"
+    }
+  },
+  "eye_status": {
+    "Description": "Eye status during resting state scan",
+    "Levels": {
+      "O": "Open",
+      "C": "Closed"
+    }
+  },
+  "bmi": {
+    "Description": "Body Mass Index {15..40}"
+  }
+}

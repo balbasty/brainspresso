@@ -1,0 +1,161 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "ADRC Uniform Data Set v2+v3 - A3: Subject Family History",
+    "TermURL": "https://naccdata.org/data-collection/forms-documentation/uds-2"
+  },
+  "A3CHG": {
+    "Description": "If Form A3 has been submitted previously and if there have been no changes, check this box and end form here.",
+    "Levels": {
+      "0": "Unchecked",
+      "1": "Checked"
+    }
+  },
+  "PARCHG": {
+    "Description": "If parent information has beeen previously submitted and there have been no changes, check this box and proceed to the next section.",
+    "Levels": {
+      "0": "Unchecked",
+      "1": "Checked"
+    }
+  },
+  "FAMILYID": {
+    "Description": "Family - identifier"
+  },
+  "GMOMID": {
+    "Description": "Great mother - identifier"
+  },
+  "GMOMYOB": {
+    "Description": "Great mother - year of birth",
+    "Units": "years",
+    "Levels": {
+      "9999": "Unknown"
+    }
+  },
+  "GMOMLIV": {
+    "Description": "Is subject's great mother still living?r",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Unknown"
+    }
+  },
+  "GMOMYOD": {
+    "Description": "Great mother - year of death (Blank if GMOMLIV ≠ 0)",
+    "Units": "years",
+    "Levels": {
+      "9999": "Unknown"
+    }
+  },
+  "GMOMDEM": {
+    "Description": "Does/did subject's great mother have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Unknown"
+    }
+  },
+  "GMOMONSET": {
+    "Description": "Great mother - age of onset (Blank if GMOMDEM ≠ 1)",
+    "Units": "years",
+    "Levels": {
+      "999": "Unknown"
+    }
+  },
+  "GMOMAUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "GDADID": {
+    "Description": "Great father - identifier"
+  },
+  "GDADYOB": {
+    "Description": "Great father - year of birth",
+    "Units": "years",
+    "Levels": {
+      "9999": "Unknown"
+    }
+  },
+  "GDADLIV": {
+    "Description": "Is subject's great father still living?r",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Unknown"
+    }
+  },
+  "GDADYOD": {
+    "Description": "Great father - year of death (Blank if GDADLIV ≠ 0)",
+    "Units": "years",
+    "Levels": {
+      "9999": "Unknown"
+    }
+  },
+  "GDADDEM": {
+    "Description": "Does/did subject's great father have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Unknown"
+    }
+  },
+  "GDADONSET": {
+    "Description": "Great father - age of onset (Blank if GDADDEM ≠ 1)",
+    "Units": "years",
+    "Levels": {
+      "999": "Unknown"
+    }
+  },
+  "GDADAUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "MOMID": {
+    "Description": "Mother - identifier"
+  },
+  "MOMAUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "DADID": {
+    "Description": "Father - identifier"
+  },
+  "DADAUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "SIBCHG": {
+    "Description": "If sibling information has beeen previously submitted and there have been no changes, check this box and proceed to the next section.",
+    "Levels": {
+      "0": "Unchecked",
+      "1": "Checked"
+    }
+  },
+  "SIB{d}ID": {
+    "Description": "Sibling {d} - identifier"
+  },
+  "SIB{d}AUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "SIB{d}SEX": {
+    "Description": "Sibling {d} - sex",
+    "Levels": {
+      "1": "Male",
+      "2": "Female"
+    }
+  },
+  "KIDCHG": {
+    "Description": "If children information has beeen previously submitted and there have been no changes, check this box and proceed to the next section.",
+    "Levels": {
+      "0": "Unchecked",
+      "1": "Checked"
+    }
+  },
+  "KID{d}ID": {
+    "Description": "Child {d} - identifier"
+  },
+  "KID{d}AUTO": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "RELCHG": {
+    "Description": "If  other blood relatives information has beeen previously submitted and there have been no changes, check this box and proceed to the next section.",
+    "Levels": {
+      "0": "Unchecked",
+      "1": "Checked"
+    }
+  }
+}

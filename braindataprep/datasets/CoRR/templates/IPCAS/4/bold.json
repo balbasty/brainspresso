@@ -1,0 +1,13 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Discovery MR750",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimeExcitation": 2.0,
+    "EffectiveEchoSpacing": 6.25e-05
+}

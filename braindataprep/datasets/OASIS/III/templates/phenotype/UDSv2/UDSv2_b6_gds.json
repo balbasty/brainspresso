@@ -1,0 +1,135 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "ADRC Uniform Data Set v2 - B6: Behavioral Assessment - GDS",
+    "TermURL": "https://naccdata.org/data-collection/forms-documentation/uds-2"
+  },
+  "delay": {
+    "Description": "Time to first visit",
+    "Units": "days"
+  },
+  "age": {
+    "Description": "Age of the participant at visit",
+    "Units": "years"
+  },
+  "NOGDS": {
+    "Description": "Incomplete GDS (fewer than 12 items)"
+  },
+  "SATIS": {
+    "Description": "1. Are you basically statisfied with your life?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "DROPACT": {
+    "Description": "2. Have you dropped many of your activities and interests?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "EMPTY": {
+    "Description": "3. Do you feel that your life is empty?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "BORED": {
+    "Description": "4. Do you often get bored?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "SPIRITS": {
+    "Description": "5. Are you in good spirits most of the time?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "AFRAID": {
+    "Description": "6. Are you afraid that something bad is going to happen to you?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "HAPPY": {
+    "Description": "7. Do you feel happy most of the time?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "HELPLESS": {
+    "Description": "8. Do you often feel helpless?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "STAYHOME": {
+    "Description": "9. Do you prefer to stay at home, rather than going out and doing new things?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "MEMPROB": {
+    "Description": "10. Do you feel you have more problems with memory than most?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "WONDRFUL": {
+    "Description": "11. Do you think it is wonderful to be alive now?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "WRTHLESS": {
+    "Description": "12. Do you feel pretty worthless the way you are now?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "ENERGY": {
+    "Description": "13. Do you feel full of energy?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "HOPELESS": {
+    "Description": "14. Do you feel that your situation is hopeless?",
+    "Levels": {
+      "0": "No",
+      "1": "Yes",
+      "9": "Did not answer"
+    }
+  },
+  "BETTER": {
+    "Description": "15. Do you think that most people are better off than you are?"
+  },
+  "GDS": {
+    "Description": "Total GDS"
+  }
+}

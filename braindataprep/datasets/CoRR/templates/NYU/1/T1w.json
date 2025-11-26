@@ -1,0 +1,11 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 0.00393,
+    "FlipAngle": 8.0,
+    "RepetitionTimePreparation": 2.5,
+    "InversionTime": 0.9,
+    "MRAcquisitionType": "3D"
+}

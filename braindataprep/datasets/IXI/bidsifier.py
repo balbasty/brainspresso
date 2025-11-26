@@ -10,7 +10,7 @@ from typing import Literal, Iterable, Set
 from braindataprep.utils.path import fileparts
 from braindataprep.utils.io import copy_from_buffer
 from braindataprep.utils.io import write_tsv
-from braindataprep.pyout import bidsify_tab
+from braindataprep.utils.tabular import bidsify_tab
 from braindataprep.actions import Action
 from braindataprep.actions import File
 from braindataprep.actions import CopyBytes

@@ -1,0 +1,47 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Wechsler Intelligence Scale for Children IV"
+    },
+    "vci": {
+        "Description": "Verbal Comprehension Index {3..57}"
+    },
+    "pri": {
+        "Description": "Perceptual Reasoning Index {3..57}"
+    },
+    "wmi": {
+        "Description": "Working Memory Index {2..38}"
+    },
+    "psi": {
+        "Description": "Processing Speed Index {2..38}"
+    },
+    "sim": {
+        "Description": "Sim Scaled {1..19}"
+    },
+    "vocab": {
+        "Description": "Vocabulary Scaled {1..19}"
+    },
+    "info": {
+        "Description": "Information Scaled {1..19}"
+    },
+    "blk_dsn": {
+        "Description": "Block Design Scaled {1..19}"
+    },
+    "pic_con": {
+        "Description": "Picture Concepts Scaled {1..19}"
+    },
+    "matrix": {
+        "Description": "Matrix Reasining Scaled {1..19}"
+    },
+    "digit_span": {
+        "Description": "Digit Span Scaled {1..19}"
+    },
+    "let_num": {
+        "Description": "Letter-Number Sequencing Scaled {1..19}"
+    },
+    "coding": {
+        "Description": "Coding Scaled {1..19}"
+    },
+    "sym": {
+        "Description": "Symbol Search Scaled {1..19}"
+    }
+}

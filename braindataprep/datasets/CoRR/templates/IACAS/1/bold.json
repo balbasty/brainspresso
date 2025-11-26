@@ -1,0 +1,12 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Signa HDx",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "PhaseEncodingDirection": "RL",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimeExcitation": 2.0,
+    "EffectiveEchoSpacing": 2e-06
+}

@@ -1,0 +1,60 @@
+# Autism Brain Imaging Data Exchange II (ABIDE-II)
+
+The establishment of ABIDE I demonstrated the feasibility and utility of
+aggregating MRI data across sites. However, the complexity of the connectome,
+along with the substantial heterogeneity of Autism Spectrum Disorder (ASD) and
+initial results from ABIDE I data analyses underscore the need for even larger
+and better-characterized samples. Accordingly, with support of an award from
+the National Institute of Mental Health (R21MH107045), ABIDE II was established
+to further promote discovery science on the brain connectome in ASD. To date,
+ABIDE II has aggregated over 1000 additional datasets with greater phenotypic
+characterization, particularly in regard to measures of core ASD and associated
+symptoms. In addition, two collections include longitudinal samples of data
+collected from 38 individuals at two time points (1-4 year interval). To date,
+ABIDE II involves 19 sites - ten charter institutions and seven new members -
+overall donating 1114 datasets from 521 individuals with ASD and 593 controls
+(age range: 5-64 years). These data have been openly released to the scientific
+community on June 2016. In accordance with HIPAA guidelines and 1000 Functional
+Connectomes Project / INDI protocols, all datasets are anonymous, with no
+protected health information included.
+
+## ABIDE II Credits
+
+* Project Directors
+    - Adriana Di Martino [1,4]
+    - Michael P Milham [2,3]
+* Coordination
+    - Adriana Di Martino [1,5]
+* Phenotypic Data Aggregation and Organization
+    - Bosi Chen [1]
+    - Tanmay Nath [1]
+    - Adriana Di Martino [1,4]
+* Imaging Data Aggregation and Organization
+    - David O'Connor [2,3]
+    - Michael P Milham [2,3]
+* Website Organization
+    - Tanmay Nath [1]
+    - Bosi Chen [1]
+    - Adriana Di Martino [1,4]
+    - Michael P Milham [2,3]
+* Special thanks to
+    - F. Xavier Castellanos [1,4] for his advisory role and naming of the
+     ABIDE consortium, as well as his continued support for FCP/INDI efforts.
+* Affilitions:
+  1. Affiliation at ABIDE II Release:
+      Autism Spectrum Disorder Research and Clinical Program at the Child Study Center,
+      New York University Langone Medical Center, New York, New York, United States of America.
+  2. Center for Biomedical Imaging and Neuromodulation at the Nathan S. Kline Institute for Psychiatric Research, Orangeburg, New York, United States of America.
+  3. Center for the Developing Brain, at the Child Mind Institute, New York, New York, United States of America.
+  4. Current affiliation: Autism Center, at the Child Mind Institute, New York, New York, United States of America.
+
+## ABIDE II Funding Acknowledgements
+
+Primary support for the work by Adriana Di Martino and her team was provided
+by the National Institute of Mental Health (NIMH 5R21MH107045).
+
+Primary support for the work by Michael P. Milham and his team provided by
+the National Institute of Mental Health (NIMH 5R21MH107045; Nathan S.
+Kline Institute of Psychiatric Research). Additional Support was provided
+by gifts from Joseph P. Healey, Phyllis Green and Randolph Cowen to the
+Child Mind Institute.

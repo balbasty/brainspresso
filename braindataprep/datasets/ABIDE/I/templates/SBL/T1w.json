@@ -1,0 +1,12 @@
+{
+    "Manufacturer":  "Philips",
+    "ManufacturerModelName": "Intera",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 3.5E-3,
+    "RepetitionTimeExcitation": 9E-3,
+    "RepetitionTimePreparation": 2.462,
+    "InversionTime": 1,
+    "FlipAngle": 8,
+    "MRAcquisitionType": "3D"
+  }

@@ -1,0 +1,13 @@
+{
+    "Manufacturer":  "GE",
+    "ManufacturerModelName": "MR750",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "SequenceName": "FSPGR_Anat",
+    "InversionTime": 0.6,
+    "FlipAngle": 8,
+    "MRAcquisitionType": "3D",
+    "ParallelReductionFactorInPlane": 2,
+    "ParallelReductionFactorOutOfPlane": 1,
+    "ParallelAcquisitionTechnique": "SENSE"
+  }

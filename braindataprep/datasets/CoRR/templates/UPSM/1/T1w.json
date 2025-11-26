@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "TrioTim",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 0.0034300000000000003,
+    "FlipAngle": 8.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "PhaseEncodingDirection": "RL",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimePreparation": 2.1,
+    "InversionTime": 1.05,
+    "DwellTime": 1.6276041666666666e-05,
+    "MRAcquisitionType": "3D"
+}

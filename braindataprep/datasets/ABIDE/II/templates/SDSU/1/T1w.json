@@ -1,0 +1,18 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "MR750",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "SPGR",
+    "EchoTime": 0.0031720000000000003,
+    "FlipAngle": 8.0,
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 1.0,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 172,
+    "ReconMatrixSE": 172,
+    "RepetitionTimePreparation": 0.008136,
+    "InversionTime": 0.6,
+    "PixelBandwidth": "244.141",
+    "DwellTime": 1.599997542403775e-05,
+    "MRAcquisitionType": "3D"
+}

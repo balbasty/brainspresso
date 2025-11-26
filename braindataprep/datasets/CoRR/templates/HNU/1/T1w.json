@@ -1,0 +1,16 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Discovery MR750",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "SPGR",
+    "FlipAngle": 8.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "ASSET",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "S",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimePreparation": 0.008060000000000001,
+    "InversionTime": 0.45,
+    "DwellTime": 3.2e-05,
+    "MRAcquisitionType": "3D"
+}

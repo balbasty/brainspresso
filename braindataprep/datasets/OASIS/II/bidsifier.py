@@ -1,5 +1,6 @@
 import tarfile
 import nibabel as nib
+import numpy as np
 from tempfile import TemporaryDirectory
 from logging import getLogger
 from pathlib import Path, PosixPath
@@ -8,8 +9,9 @@ from typing import Literal, Iterable, Iterator
 from braindataprep.utils.io import write_tsv
 from braindataprep.utils.io import write_from_buffer
 from braindataprep.utils.io import nibabel_convert
-from braindataprep.pyout import bidsify_tab
-from braindataprep.pyout import Status
+from braindataprep.utils.tabular import bidsify_tab
+from braindataprep.utils.tabular import Status
+from braindataprep.utils.vol import make_affine
 from braindataprep.actions import IfExists
 from braindataprep.actions import Action
 from braindataprep.actions import CopyBytes
@@ -38,6 +40,10 @@ class Bidsifier:
 
     # Folder containing template README/JSON/...
     TPLDIR = Path(__file__).parent / 'templates'
+
+    AFFINE_RAW = make_affine(
+        [256, 256, 128], [1.0, 1.0, 1.25], orient='ASL', center='x/2'
+    )
 
     # ------------------------------------------------------------------
     #   Initialise
@@ -121,6 +127,7 @@ class Bidsifier:
         tar: tarfile.TarFile,       # Opened TAR archive
         src: PosixPath,             # Member to unpack
         dst: Path,                  # Path to output nifti file
+        affine: np.ndarray | None = None,
     ) -> Action:
         tarimg = str(src.with_suffix('.img'))
         tarhdr = str(src.with_suffix('.hdr'))
@@ -134,7 +141,12 @@ class Bidsifier:
                 # (that's how they are ordered in the stream)
                 write_from_buffer(tar.extractfile(tarhdr), hdrpath)
                 write_from_buffer(tar.extractfile(tarimg), imgpath)
-                nibabel_convert(imgpath, niipath, inp_format=nib.AnalyzeImage)
+                nibabel_convert(
+                    imgpath,
+                    niipath,
+                    inp_format=nib.AnalyzeImage,
+                    affine=affine,
+                )
 
         return Action(Path(tar.name), dst, img2nii, input="path")
 
@@ -271,8 +283,8 @@ class Bidsifier:
     def _raw_get_subjects(self, tar: tarfile.TarFile) -> dict[int, list[int]]:
         """Find all subject ids and runs contained in this archive"""
         subjects = {}
-        for path in tar.getnames():
-            path = PosixPath(path)
+        for member in tar:
+            path = PosixPath(member.name)
             if self._raw_skip_path(path):
                 continue
             id, ses, run = self._raw_get_id(path)
@@ -303,7 +315,10 @@ class Bidsifier:
                 f'OAS2_RAW_PART{part}/OAS2_{id:04d}_MR{ses}/RAW'
             )
             member = member / f'mpr-{run}.nifti.img'
-            yield self.tar2nii(tar, member, base.with_suffix('.nii.gz'))
+            yield self.tar2nii(
+                tar, member, base.with_suffix('.nii.gz'),
+                affine=self.AFFINE_RAW
+            )
 
     # ------------------------------------------------------------------
     #   Write participants.tsv

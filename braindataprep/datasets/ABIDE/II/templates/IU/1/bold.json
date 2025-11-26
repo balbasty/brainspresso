@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "TriTim",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Gradient Echo EPI",
+    "EchoTime": 0.028,
+    "FlipAngle": 60.0,
+    "SliceThickness": 3.4,
+    "FatSaturation": true,
+    "AcquisitionMatrixSE": 42,
+    "ReconMatrixSE": 42,
+    "RepetitionTimeExcitation": 0.8130000000000001,
+    "BandwidthPerPixelPhaseEncode": "2604",
+    "EffectiveEchoSpacing": 6.000384024577573e-06
+}

@@ -1,0 +1,51 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Multidimensional Anxiety Scale for Children"
+    },
+    "edition": {
+        "Description": "Edition of the MASC used",
+        "Levels": {
+            "1": "MASC 1",
+            "2": "MASC 2"
+        }
+    },
+    "total": {
+        "Description": "Total T Score"
+    },
+    "physical_tr": {
+        "Description": "Physical Symptoms Tense/Restless T Score"
+    },
+    "physical_sa": {
+        "Description": "Physical Symptoms Somatic/Autonomic T Score"
+    },
+    "physical": {
+        "Description": "Physical Symptoms Total T Score"
+    },
+    "harm_perf": {
+        "Description": "Harm Avoidance Perfectionism T Score"
+    },
+    "harm_ac": {
+        "Description": "Harm Avoidance Anxious/Coping T Score"
+    },
+    "harm": {
+        "Description": "Harm Avoidance Total T Score"
+    },
+    "social_hr": {
+        "Description": "Social Anxiety Humiliation/Rejection T Score"
+    },
+    "social_perf": {
+        "Description": "Social Anxiety Performance Fears T Score"
+    },
+    "social": {
+        "Description": "Social Anxiety Total T Score"
+    },
+    "separation_panic": {
+        "Description": "Separation/Panic T Score"
+    },
+    "adi": {
+        "Description": "Anxiety Disorder Index T Sore"
+    },
+    "inconsistency_score": {
+        "Description": "C Inconsistency Score"
+    }
+}

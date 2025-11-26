@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from shutil import rmtree, copy2
 from fasteners import InterProcessReaderWriterLock
-from typing import IO, Tuple, Iterable
+from typing import IO, Tuple, Iterable, Iterator
 from logging import getLogger
 
 lg = getLogger(__name__)
@@ -67,13 +67,14 @@ class File:
 
     This means that:
 
-    | `mode` | truncates | opens at | `read`  | `write` |
-    | ------ | --------- | -------- | ------- | ------- |
-    | `'r'`  |     ✗     | start    |    ✓    |    ✗    |
-    | `'w'`  |     ✓     | start    |    ✗    |    ✓    |
-    | `'a'`  |     ✗     | end      |    ✗    |    ✓    |
-    | `'r+'` |     ✗     | start    |    ✓    |    ✓    |
-    | `'w+'` |     ✓     | start    |    ✓    |    ✓    |
+    | `mode` | creates | truncates | opens at | `read`  | `write` |
+    | ------ | ------- | --------- | -------- | ------- | ------- |
+    | `'r'`  |    ✗    |     ✗     | start    |    ✓    |    ✗    |
+    | `'w'`  |    ✓    |     ✓     | start    |    ✗    |    ✓    |
+    | `'a'`  |    ✓    |     ✗     | end      |    ✗    |    ✓    |
+    | `'r+'` |    ✗    |     ✗     | start    |    ✓    |    ✓    |
+    | `'w+'` |    ✓    |     ✓     | start    |    ✓    |    ✓    |
+    | `'a+'` |    ✓    |     ✗     | end      |    ✓    |    ✓    |
 
     """
 
@@ -216,7 +217,7 @@ class File:
                     except RuntimeError:
                         # we were not owning a read lock
                         pass
-            if exc_type is None:
+            if self.tempdir.exists():
                 rmtree(self.tempdir)
             self.lock = None
             self.safename = None
@@ -238,11 +239,27 @@ class Files:
         self._unopened = list(files)
         self._opened = []
 
+    def __len__(self) -> int:
+        return len(self.files)
+
+    def __getitem__(self, index: int) -> File:
+        if self._opened:
+            return self._opened[index]
+        else:
+            return self.files[index]
+
+    def __iter__(self) -> Iterator[File]:
+        if self._opened:
+            return iter(self._opened)
+        else:
+            return iter(self.files)
+
     def __enter__(self):
         while self._unopened:
             file = self._unopened.pop(0)
             file.__enter__()
             self._opened.append(file)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         while self._opened:

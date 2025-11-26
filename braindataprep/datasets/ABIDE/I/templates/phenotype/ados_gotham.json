@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Standardized ADOS [Gotham et al (2009)]"
+    },
+    "soc_affect": {
+        "Description": "Social Affect Total Subscore for Gotham Algorithm of the ADOS {0..20}"
+    },
+    "rrb": {
+        "Description": "Restricted and Repetitive Behaviors Total Subscore for Gotham Algorithm of the ADOS {0..8}"
+    },
+    "total": {
+        "Description": "Social Affect + Restricted and Repetitive Behaviors {0..28}"
+    },
+    "severity": {
+        "Description": "Individually Calibrated Severity Score for Gotham Algorithm of the ADOS {1..10}"
+    }
+}

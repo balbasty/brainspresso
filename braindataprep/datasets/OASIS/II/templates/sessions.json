@@ -1,12 +1,14 @@
 {
   "delay": {
-  "Description": "Time to first visit",
-  "Units": "days"
+    "Description": "Time to first visit",
+    "Units": "days"
   },
   "pathology": {
-    "N": "nondemented",
-    "D": "demented",
-    "C": "converted"
+    "Levels": {
+      "N": "nondemented",
+      "D": "demented",
+      "C": "converted"
+    }
   },
   "age": {
     "Description": "Age of the participant",

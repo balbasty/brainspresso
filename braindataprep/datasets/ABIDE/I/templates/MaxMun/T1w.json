@@ -1,0 +1,18 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "SequenceName": "tfl",
+    "EchoTime": 3.06E-3,
+    "RepetitionTimePreparation": 1.8,
+    "RepetitionTimeExcitation": 7.3E-3,
+    "InversionTime": 0.9,
+    "FlipAngle": 9,
+    "MRAcquisitionType": "3D",
+    "ParallelReductionFactorInPlane": 2,
+    "ParallelReductionFactorOutOfPlane": 1,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "CoilCombinationMethod": "Sum of Squares"
+  }

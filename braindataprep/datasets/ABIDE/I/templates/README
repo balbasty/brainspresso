@@ -1,0 +1,110 @@
+# Autism Brain Imaging Data Exchange I (ABIDE-I)
+
+The Autism Brain Imaging Data Exchange I (ABIDE I) represents the first ABIDE
+initiative. Started as a grass roots effort, ABIDE I involved 17 international
+sites, sharing previously collected resting state functional magnetic resonance
+imaging (R-fMRI), anatomical and phenotypic datasets made available for data
+sharing with the broader scientific community. This effort yielded 1112 dataset,
+including 539 from individuals with ASD and 573 from typical controls (ages 7-64
+years, median 14.7 years across groups). This aggregate was released in August 2012.
+Its establishment demonstrated the feasibility of aggregating resting state fMRI
+and structural MRI data across sites; the rate of these data use and resulting
+publications (see Manuscripts) have shown its utility for capturing whole brain
+and regional properties of the brain connectome in Autism Spectrum Disorder (ASD).
+In accordance with HIPAA guidelines and 1000 Functional Connectomes Project / INDI
+protocols, all datasets have been anonymized, with no protected health information
+included. Below, are the specific types of information included in ABIDE I, the
+data usage agreement, sign up and data download links.
+
+## ABIDE I Credits
+
+* Consortium Founders
+    - Adriana Di Martino [1,5]
+    - Stewart Mostofsky [2]
+* Project Coordinator
+    - Adriana Di Martino [1,5]
+* Phenotypic Data Aggregation and Organization
+    - Adriana Di Martino [1,5]
+    - Erin Denio [1]
+    - Michael P. Milham [3,4]
+* Imaging Data Aggregation and Organization
+    - The INDI Team:
+    - Qingyang Li [3]
+    - Ranjit Khanuja [3]
+    - Sharad Sikka [1,4]
+    - Chao-Gan Yan [4]
+    - Cameron Craddock [3]
+    - Michael P. Milham [3,4]
+* Website Design
+    - Brett Lullo [1]
+    - Adriana Di Martino [1,5]
+* Website Updates
+    - David O'Connor [3]
+    - Andrea Devoto [1]
+* Additional Website Support
+    - Daniel Lurie [3]
+    - Anna Rachlin [3]
+    - Emily Brady [1]
+* ABIDE Design Element
+    - Dawn Thomsen [3]
+    - Nancy Duan [3]
+    - Adriana Di Martino [1,5]
+* Special thanks to
+    - F. Xavier Castellanos [1,4] for his advisory role and naming of the
+     ABIDE consortium, as well as his continued support for FCP/INDI efforts.
+* Affilitions:
+  1. Affiliation at ABIDE I Release:
+     Phyllis Green and Randolph Cowen Institute for Pediatric Neuroscience at the NYU Child Study Center,
+     New York University Langone Medical Center, New York, New York, United States of America.
+  2. Laboratory for Neurocognitive and Imaging Research, Kennedy Krieger Institute, Baltimore, Maryland, United States of America.
+  3. Center for the Developing Brain, Child Mind Institute, New York, New York, United States of America.
+  4. Nathan S. Kline Institute for Psychiatric Research, Orangeburg, New York, United States of America.
+  5. Current affiliation: Autism Center,at the Child Mind Institute, New York, New York, United States of America.
+
+## Usage Agreement
+
+Consistent with the policies of the 1000 Functional Connectomes Project,
+data usage is unrestricted for non-commercial research purposes. We kindly
+request that the specific datasets included in analyses be specified appropriately,
+and that their funding sources be acknowledged. As per INDI protocol, we simply
+require that users register with the NITRC and 1000 Functional Connectomes
+Project to gain access.
+(Creative Commons, Attribution-NonCommercial-Share Alike License)
+
+
+## ABIDE I Downloads
+
+* Phenotypic data
+    - [Composite Phenotypic File](http://www.nitrc.org/frs/downloadlink.php/4912)
+    - [Phenotypic Data Legend](https://fcon_1000.projects.nitrc.org/indi/abide/ABIDE_LEGEND_V1.02.pdf)
+* Imaging data
+    - See individual site profiles to the right for MRI protocol information and imaging files available for download through NITRC.
+
+
+## ABIDE I Database Initiative
+
+In addition to distributing ABIDE datasets in .tar and .csv file formats
+via NITRC as is customary for the FCP, the INDI team has recruited the
+efforts of leading informatics platforms. Now available :
+
+* [COINS](http://coins.trendscenter.org/) (Scott et al., 2011)
+* [LORIS](https://abide.loris.ca/) (Das et al., 2012)
+* [LONI IDA](http://ida.loni.usc.edu/)
+* [NITRC-IR](http://www.nitrc.org/ir)
+* [NIDB](http://nitrc.org/projects/nidb) (Book et al., 2013)
+* [BIRN HID](http://www.nitrc.org/projects/fbirn/)
+
+Each informatics platform has agreed to simultaneously host the ABIDE datasets
+prepared by the INDI team. Such coordination will give users an unprecedented
+opportunity to sample emerging technologies and explore the value of these
+diverse platforms not only for accessing shared data, but also potentially for
+their own internal infrastructure needs.
+
+## ABIDE I Funding Acknowledgements
+
+Primary support for the work by Adriana Di Martino was provided by the
+(NIMH K23MH087770) and the Leon Levy Foundation.
+
+Primary support for the work by Michael P. Milham and the INDI team was
+provided by gifts from Joseph P. Healy and the Stavros Niarchos Foundation
+to the Child Mind Institute, as well as by an NIMH award to MPM (NIMH R03MH096321).

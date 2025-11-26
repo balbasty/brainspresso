@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "Achieva",
+    "MagneticFieldStrength": 1.5,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 0.0056,
+    "FlipAngle": 30.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 1.0,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 170,
+    "ReconMatrixSE": 170,
+    "RepetitionTimePreparation": 0.025,
+    "MRAcquisitionType": "3D"
+}

@@ -1,14 +1,29 @@
+__all__ = ['IncompleteFile']
+# stdlib
+import asyncio
 import hashlib
 import time
 from pathlib import Path
 from shutil import rmtree
-from fasteners import InterProcessLock
 from typing import IO, Literal
 from logging import getLogger
+from functools import partial
 
-from braindataprep.digests import get_digester
+# externals
+import aiofiles
+import aiofiles.os as aos
+from fasteners import InterProcessLock
+
+# internals
+from braindataprep.utils.digests import get_digester
 
 lg = getLogger(__name__)
+aop = aos.path
+
+
+async def run_async(func, *args, **kwargs):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, partial(func, **kwargs), *args)
 
 
 class IncompleteFile:
@@ -30,11 +45,11 @@ class IncompleteFile:
     # Apache License Version 2.0
 
     def __init__(
-            self,
-            filename: str | Path,
-            checksum: str | None = None,
-            checkalgo: str | None = None,
-            ifnochecksum: Literal['restart', 'continue'] = 'restart',
+        self,
+        filename: str | Path,
+        checksum: str | None = None,
+        checkalgo: str | None = None,
+        ifnochecksum: Literal['restart', 'continue'] = 'restart',
     ):
         """
         Parameters
@@ -82,31 +97,33 @@ class IncompleteFile:
         else:
             return None
 
-    def __enter__(self) -> "IncompleteFile":
+    async def __aenter__(self) -> "IncompleteFile":
         self.filename.parent.mkdir(parents=True, exist_ok=True)
 
         # Acquire lock
-        self.lock = InterProcessLock(str(self.lockname))
-        if not self.lock.acquire(blocking=False):
+        self.lock = await run_async(InterProcessLock, str(self.lockname))
+        lg.debug(f"acquiring lock... {self.lockname}")
+        if not await run_async(self.lock.acquire, blocking=False):
             raise RuntimeError(
                 f'Could not acquire download lock for {self.filename}'
             )
+        lg.debug(f"acquired lock: {self.lockname}")
 
         # Check if a file was already being downloaded, and if we should
         # continue from where we left off
         try:
-            with self.checkname.open('rt') as f:
-                checksum = f.read()
+            async with aiofiles.open(self.checkname, 'rt') as f:
+                checksum = await f.read()
         except (FileNotFoundError, ValueError):
             checksum = None
 
         # Compute checksum on the fly
         self._digest = None
         if self.checkalgo:
-            self.digester = hashlib.new(self.checkalgo)
+            self.digester = await run_async(hashlib.new, self.checkalgo)
 
         # Check whether we should keep the existing partial file
-        cont = self.tempname.exists()
+        cont = await aop.exists(self.tempname)
         cont = cont and ((self.checksum and self.checksum == checksum) or
                          (not self.checksum and self.ifnochecksum == 'c'))
         if cont:
@@ -121,11 +138,12 @@ class IncompleteFile:
                     'Download file exists; resuming download'
                 )
             if self.digest:
-                with self.tempname.open('rb') as f:
-                    self.digester = get_digester(f, self.checkalgo)
+                self.digester = await run_async(
+                    get_digester, self.tempname, self.checkalgo
+                )
         else:
             mode = 'wb'
-            if self.tempname.exists():
+            if await aop.exists(self.tempname):
                 if self.checksum:
                     lg.debug(
                         'Download file found, but checksum does not match; '
@@ -138,23 +156,27 @@ class IncompleteFile:
             else:
                 lg.debug('Starting new download')
             # Remove existing file
-            self.tempname.unlink(missing_ok=True)
+            await run_async(self.tempname.unlink, missing_ok=True)
 
         # Open file
-        self.file = self.tempname.open(mode)
-        self.offset = self.file.tell()
+        lg.debug(f"opening file ({mode}) ... {self.tempname}")
+        self.file = await aiofiles.open(self.tempname, mode)
+        self.offset = await self.file.tell()
+        lg.debug(f"opened file ({mode}): {self.tempname}")
 
         # Write expected checksum
         if self.checksum:
-            with self.checkname.open("w") as f:
-                f.write(self.checksum)
+            async with aiofiles.open(self.checkname, "w") as f:
+                await f.write(self.checksum)
 
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         # Close file
+        lg.debug(f"closing file...  {self.tempname}")
         assert self.file is not None
-        self.file.close()
+        await self.file.close()
+        lg.debug(f"closed file: {self.tempname}")
 
         # Rename temporary filename to output filename
         # Note that we only rename the file to its final name and
@@ -162,47 +184,63 @@ class IncompleteFile:
         # the context was not interrupted by an exception)
         try:
             if exc_type is None:
+                lg.debug(
+                    f"renaming file...  {self.tempname} -> {self.filename}"
+                )
                 try:
-                    self.tempname.replace(self.filename)
+                    await aos.rename(self.tempname, self.filename)
+                    # await run_async(self.tempname.replace, self.filename)
                 except IsADirectoryError:
-                    rmtree(self.filename)
-                    self.tempname.replace(self.filename)
+                    await run_async(rmtree, self.filename)
+                    await aos.rename(self.tempname, self.filename)
+                    # await run_async(self.tempname.replace, self.filename)
+                lg.debug(f"renamed file:  {self.tempname} -> {self.filename}")
                 if self.digester:
-                    self._digest = self.digester.hexdigest()
+                    lg.debug(f"saving digest...  {self.filename}")
+                    self._digest = await run_async(self.digester.hexdigest)
+                    lg.debug(f"saved digest:  {self.filename}")
         finally:
             # Release lock and delete existing files
             assert self.lock is not None
-            self.lock.release()
+            lg.debug(f"releasing lock...  {self.lockname}")
+            await run_async(self.lock.release)
+            lg.debug(f"released lock:  {self.lockname}")
             if exc_type is None:
-                self.tempname.unlink(missing_ok=True)
-                self.lockname.unlink(missing_ok=True)
-                self.checkname.unlink(missing_ok=True)
+                lg.debug(f"deleting file...  {self.tempname}")
+                await run_async(self.tempname.unlink, missing_ok=True)
+                lg.debug(f"deleted file:  {self.tempname}")
+                lg.debug(f"deleting file...  {self.lockname}")
+                await run_async(self.lockname.unlink, missing_ok=True)
+                lg.debug(f"deleted file:  {self.lockname}")
+                lg.debug(f"deleting file...  {self.checkname}")
+                await run_async(self.checkname.unlink, missing_ok=True)
+                lg.debug(f"deleted file:  {self.checkname}")
             self.lock = None
             self.file = None
             self.offset = None
 
-    def append(self, blob: bytes) -> "IncompleteFile":
+    async def append(self, blob: bytes) -> "IncompleteFile":
         if self.file is None:
             raise ValueError(
                 'IncompleteFile.append() called outside of context manager'
             )
         if self.digest:
-            self.digest.update(blob)
+            await run_async(self.digest.update, blob)
         tic = time.time()
-        self.file.write(blob)
+        await self.file.write(blob)
         toc = time.time()
 
         # timing
         new = len(blob)
-        old = self.file.tell() - new
+        old = await self.file.tell() - new
         self._update_speed(old, new, toc-tic)
         return self
 
-    def write(self, blob: bytes) -> "IncompleteFile":
-        return self.append(blob)
+    async def write(self, blob: bytes) -> "IncompleteFile":
+        return await self.append(blob)
 
-    def __add__(self, blob: bytes) -> "IncompleteFile":
-        return self.append(blob)
+    async def __add__(self, blob: bytes) -> "IncompleteFile":
+        return await self.append(blob)
 
     def _update_speed(self, total, nbytes, time):
         if not time:

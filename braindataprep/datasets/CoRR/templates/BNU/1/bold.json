@@ -1,0 +1,13 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "TrioTim",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimeExcitation": 2.0,
+    "EffectiveEchoSpacing": 6.200396825396825e-06
+}

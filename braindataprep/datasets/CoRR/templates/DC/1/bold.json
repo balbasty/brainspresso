@@ -1,0 +1,14 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "N/A",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.035,
+    "FlipAngle": 90.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "A",
+    "RepetitionTimeExcitation": 2.5,
+    "EffectiveEchoSpacing": 3.4482758620689654e-06
+}

@@ -1,0 +1,14 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "SoftwareVersions": "syngo MR 2004A",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "SequenceName": "tfl",
+    "EchoTime": 3.25E-3,
+    "RepetitionTimePreparation": 2.53,
+    "RepetitionTimeExcitation": 7.4E-3,
+    "InversionTime": 1.1,
+    "FlipAngle": 7,
+    "MRAcquisitionType": "3D"
+  }

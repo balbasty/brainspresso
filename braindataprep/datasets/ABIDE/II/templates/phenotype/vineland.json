@@ -1,0 +1,64 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Vineland Adaptive Behavior Scales 2nd Edition (Vineland-II)"
+    },
+    "receptive": {
+        "Description": "Receptive Language V Scaled Score {1..24}"
+    },
+    "expressive": {
+        "Description": "Expressive Language V Scaled Score {1..24}"
+    },
+    "written": {
+        "Description": "Written Language V Scaled Score {1..24}"
+    },
+    "communication": {
+        "Description": "Communication Standard Score {20..160}"
+    },
+    "personal": {
+        "Description": "Personal Daily Living Skills V Scaled Score {1..24}"
+    },
+    "domestic": {
+        "Description": "Domestic Daily Living Skills V Scaled Score {1..24}"
+    },
+    "community": {
+        "Description": "Community Daily Living Skills V Scaled Score {1..24}"
+    },
+    "dailylvng": {
+        "Description": "Daily Living Standard Score {20..160}"
+    },
+    "interpersonal": {
+        "Description": "Interpersonal Relationships V Scaled Score {1..24}"
+    },
+    "play": {
+        "Description": "Play and Leisure Time V Scaled Score {1..24}"
+    },
+    "coping": {
+        "Description": "Coping Skills V Scaled Score {1..24}"
+    },
+    "social": {
+        "Description": "Socialization Standard Score {20..160}"
+    },
+    "gross": {
+        "Description": "Gross Motor V Scaled Score"
+    },
+    "fine": {
+        "Description": "Fine Motor V Scaled Score"
+    },
+    "motor": {
+        "Description": "Motor Skills Standard Scor"
+    },
+    "sum": {
+        "Description": "Sum of Standard Scores (Communication + Daily Living Skills + Socialization + Motor Skills)) {76..480}"
+    },
+    "abc": {
+        "Description": "Adaptive Behavior Composite Standard Score {20..160}"
+    },
+    "informant": {
+        "Description": "Informant",
+        "Levels": {
+            "P": "Parent",
+            "S": "Self",
+            "O": "Other"
+        }
+    }
+}

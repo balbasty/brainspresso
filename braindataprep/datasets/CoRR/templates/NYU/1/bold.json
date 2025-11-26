@@ -1,0 +1,9 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.025,
+    "FlipAngle": 90.0,
+    "RepetitionTimeExcitation": 2.0
+}

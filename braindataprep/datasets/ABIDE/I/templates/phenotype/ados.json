@@ -1,0 +1,27 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Autism Diagnostic Observation Schedule (ADOS)"
+    },
+    "module": {
+        "Description": "Module {1..4}"
+    },
+    "total": {
+        "Description": "Classic ADOS Total Score (Communication subscore + Social Interation subscore) {0..22}"
+    },
+    "comm": {
+        "Description": "Communication Total Subscore of the classic ADOS {0..8}"
+    },
+    "social": {
+        "Description": "Social Total Subscore of the classic ADOS {0.14}"
+    },
+    "stereo_behav": {
+        "Description": "Stereotyped Behaviors and Restricted Interests Subscore of the classic ADOS {0..8}"
+    },
+    "reliable": {
+        "Description": "Was ADOS scored and administered by research reliable personnel",
+        "Levels": {
+          "N": "no",
+          "Y": "yes"
+        }
+    }
+}

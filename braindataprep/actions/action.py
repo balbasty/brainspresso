@@ -1,6 +1,7 @@
 import datetime
 import os
 import time
+import traceback
 from logging import getLogger
 from os.path import lexists
 from enum import Enum as _Enum
@@ -8,12 +9,16 @@ from typing import Iterable, Iterator, Generator, Literal, Callable, IO
 from pathlib import Path
 from types import GeneratorType
 
-from braindataprep.digests import sort_digests, get_digest
+from braindataprep.utils.digests import sort_digests, get_digest
 from braindataprep.actions.file import File, Files
 
 lg = getLogger(__name__)
 
 IfExistsChoice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
+FilenameLike = str | os.PathLike
+FileLike = FilenameLike | IO
+FilenamesLike = Iterable[FilenameLike] | FilenameLike
+FilesLike = Iterable[FileLike] | FileLike
 
 
 class IfExists:
@@ -105,9 +110,9 @@ class Action:
 
     def __init__(
         self,
-        src: Iterable[str | Path] | str | Path,
-        dst: str | Path,
-        action: Callable[[str | Path | IO], GeneratorType | None],
+        src: FilenamesLike | None,
+        dst: FilenamesLike,
+        action: Callable[[FilesLike], GeneratorType | None],
         *,
         mode: str = 'wb',
         input: Literal['file', 'path', 'str'] = 'file',
@@ -119,9 +124,9 @@ class Action:
         """
         Parameters
         ----------
-        src : str | Path | sequence[str | Path]
+        src : [sequence of] str | Path | None
             Input files
-        dst : str | Path
+        dst : [sequence of] str | Path
             Output file
         action : Callable[[IO|str|Path],Generator|None]
             Function that takes an opened file object as input and writes
@@ -147,7 +152,7 @@ class Action:
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
         """
-        self.src = src
+        self.src = src or []
         self.dst = dst
         self.action = action
         self.input = input
@@ -173,9 +178,12 @@ class Action:
         return self.run()
 
     def _should_overwrite(self) -> Generator[dict, None, bool]:
-        if not lexists(self.dst):
-            lg.info(f'File {self.dst!s} does not exist: write it')
-            return True
+        dst = self.dst
+        if isinstance(dst, (str, Path)):
+            dst = [dst]
+        dst = list(map(Path, dst))
+
+        exists = list(map(lexists, dst))
 
         # Use value set in environment (if there is one)
         ifexists = IfExists.current or self.ifexists
@@ -184,52 +192,82 @@ class Action:
         else:
             lg.debug(f'IfExists from object: {self.ifexists!r}')
 
-        if ifexists is IfExists.ERROR:
-            lg.error(f'File {self.dst!s} already exists: error')
+        if ifexists is IfExists.ERROR and any(exists):
+            dst = [f for f, e in zip(dst, exists) if e]
+            lg.error(f'File {dst[0]!s} already exists: error')
             raise FileExistsError(f'File {self.dst!r} already exists')
 
-        elif ifexists is IfExists.SKIP:
-            lg.info(f'File {self.dst!s} already exists: skip')
+        elif ifexists is IfExists.SKIP and all(exists):
+            lg.info(f'File {dst[0]!s} already exists: skip')
             yield {'status': 'skipped', 'message': 'already exists'}
             return False
 
-        elif ifexists is IfExists.OVERWRITE:
-            lg.info(f'File {self.dst!s} already exists: overwrite')
+        elif ifexists is IfExists.OVERWRITE and any(exists):
+            dst = [d for d, e in zip(dst, exists) if e]
+            lg.info(f'File {dst[0]!s} already exists: overwrite')
             return True
 
         elif ifexists is IfExists.DIFFERENT:
-            if (
-                self.size is not None and
-                self.size != os.stat(self.dst.resolve()).st_size
-            ):
+
+            # does not exist -> different
+            if not all(exists):
+                dst = [d for d, e in zip(dst, exists) if e]
+                lg.info(f'File {dst[0]!s} does not exist; reprocessing')
+                return True
+
+            # different size -> different
+            is_different = [
+                (
+                    self.size is not None and
+                    self.size != os.stat(dst1.resolve()).st_size
+                )
+                for dst1 in dst
+            ]
+            if any(is_different):
+                dst = [f for f, d in zip(dst, is_different) if d]
                 lg.info(
-                    'Size of %s does not match size on server; '
-                    'reprocessing', self.dst
+                    f'Size of {dst[0]!s} does not match expected size; '
+                    f'reprocessing'
                 )
                 return True
 
+            # different checksum -> different
             if self.digests:
                 checkalgo, checksum = next(iter(self.digests.items()))
-                local_checksum = get_digest(self.dst, checkalgo)
-                if checksum == local_checksum:
-                    yield {'status': 'skipped', 'message': 'already exists'}
-                    return False
-                else:
-                    lg.info(
-                        'Checksum of %s does not match expected checksum; '
-                        'reprocessing', self.dst
+                is_different = [
+                    (
+                        get_digest(dst1, checkalgo) != checksum
                     )
+                    for dst1 in dst
+                ]
+                if any(is_different):
+                    dst = [f for f, d in zip(dst, is_different) if d]
+                    lg.info(
+                        f'Checksum of {dst[0]!s} does not match expected '
+                        f'checksum; reprocessing'
+                    )
+                    return True
 
-            return True
+            # all identical -> skip
+            lg.info(f'File {dst[0]!s} is identical: skip')
+            yield {'status': 'skipped', 'message': 'already exists'}
+            return False
 
         elif ifexists is IfExists.REFRESH:
+
+            # does not exist -> different
+            if not all(exists):
+                dst = [d for d, e in zip(dst, exists) if e]
+                lg.info(f'File {dst[0]!s} does not exist; reprocessing')
+                return True
+
             # NOTE: It's unlikely we can get an expected output size
             #       I am simply checking whether the mtime of the output
             #       file matches the (most recent) mtime of the input
             #       file(s).
             if self.mtime is None:
                 lg.warning(
-                    f'{self.dst!s} - no mtime in the record, '
+                    f'{dst[0]!s} - no mtime in the record, '
                     f'reprocessing'
                 )
                 return True
@@ -239,14 +277,22 @@ class Action:
             #         f'reprocessing'
             #     )
             #     return True
-            lg.info(f'File {self.dst!s} is recent enough: skip')
-            local_stat = os.stat(self.dst.resolve())
-            # local_size = local_stat.st_size
-            local_mtime = datetime.datetime.fromtimestamp(local_stat.st_mtime)
-            local_mtime = local_mtime.astimezone(datetime.timezone.utc)
-            if local_mtime == self.mtime:  # and local_size == self.size:
+            same_time = [
+                datetime.datetime.fromtimestamp(
+                    os.stat(dst1.resolve()).st_mtime
+                ).astimezone(datetime.timezone.utc) == self.mtime
+                for dst1 in dst
+            ]
+            # same_size = [
+            #     os.stat(dst1.resolve()).st_size == self.size
+            #     for dst1 in dst
+            # ]
+            if all(same_time):  # and all(same_size):
                 yield {'status': 'skipped', 'message': 'already exists'}
                 return False
+
+            dst = [f for f, s in zip(dst, same_time) if not s]
+            lg.info(f'File {dst[0]!s} is recent enough: skip')
 
         return True
 
@@ -259,10 +305,15 @@ class Action:
             with Files(*[File(src1, "r") for src1 in src]):
                 yield from self._iter()
         except Exception as e:
-            lg.error(str(e))
+            lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
 
     def _iter(self) -> Iterator[dict]:
+        dst = self.dst
+        if isinstance(dst, (str, Path)):
+            dst = [dst]
+        dst = list(map(Path, dst))
+
         # --------------------------------------------------------------
         # Read (most recent) mtime from source(s)
         # --------------------------------------------------------------
@@ -276,6 +327,7 @@ class Action:
                         os.stat(Path(src1).resolve()).st_mtime
                     ).astimezone(datetime.timezone.utc)
                     for src1 in src
+                    if Path(src1).exists()
                 ])
 
         # --------------------------------------------------------------
@@ -293,24 +345,28 @@ class Action:
             else:
                 checksum = checkalgo = None
 
-            with File(
-                self.dst,
-                self.mode,
-            ) as local_file:
+            def get_tmp_files(*paths: Path) -> Files:
+                return Files(*[File(path, self.mode) for path in paths])
+
+            with get_tmp_files(*dst) as tmp_files:
 
                 # Action input is an opened file-object
                 if self.input == 'file':
-                    with local_file.open() as f:
-                        action = self.action(f)
+                    files = [tmp_file.open() for tmp_file in tmp_files]
+                    try:
+                        action = self.action(*files)
                         if isinstance(action, GeneratorType):
                             yield from action
+                    finally:
+                        for f in files:
+                            f.close()
 
                 # Action input is a path to a file
                 else:
-                    dst = local_file.safename
+                    files = [tmp_file.safename for tmp_file in tmp_files]
                     if self.input == 'str':
-                        dst = str(dst)
-                    action = self.action(dst)
+                        files = map(str, files)
+                    action = self.action(*files)
                     if isinstance(action, GeneratorType):
                         yield from action
 
@@ -319,28 +375,30 @@ class Action:
             # ----------------------------------------------------------
 
             if checksum:
-                outchecksum = get_digest(self.dst, checkalgo)
+                if isinstance(checksum, str):
+                    checksum = [checksum] * len(dst)
 
-                if outchecksum != checksum:
-                    msg = (
-                        f'{checkalgo}: '
-                        f'output {outchecksum} != {checksum}'
-                    )
-                    yield {
-                        'checksum': 'differs',
-                        'status': 'error',
-                        'message': msg,
-                    }
-                    lg.debug(
-                        '%s is different: %s.', self.dst, msg
-                    )
-                    return
-                else:
-                    yield {'checksum': 'ok'}
-                    lg.debug(
-                        'Verified that %s has correct %s %s',
-                        self.dst, checkalgo, outchecksum
-                    )
+                for dst1, checksum1 in zip(dst, checksum):
+                    outchecksum = get_digest(dst1, checkalgo)
+
+                    if outchecksum != checksum1:
+                        msg = (
+                            f'{checkalgo}: '
+                            f'output {outchecksum} != {checksum1}'
+                        )
+                        yield {
+                            'checksum': 'differs',
+                            'status': 'error',
+                            'message': msg,
+                        }
+                        lg.debug(f'{dst1!s} is different: {msg}.')
+                        return
+                    else:
+                        yield {'checksum': 'ok'}
+                        lg.debug(
+                            f'Verified that {dst1!s} has correct '
+                            f'{checkalgo}: {outchecksum}'
+                        )
 
             else:
                 yield {'checksum': '-'}
@@ -348,7 +406,8 @@ class Action:
             yield {'status': 'setting mtime'}
             atime = time.time()
             mtime = self.mtime.timestamp() if self.mtime else atime
-            os.utime(self.dst, (atime, mtime))
+            for dst1 in dst:
+                os.utime(dst1, (atime, mtime))
 
             yield {'status': 'done'}
 
@@ -360,7 +419,7 @@ class Action:
         # provided invalid parameters (e.g., an invalid URL), and so
         # retrying won't change anything.
         except Exception as e:
-            lg.error(str(e))
+            lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
 
 

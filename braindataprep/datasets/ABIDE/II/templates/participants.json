@@ -1,0 +1,197 @@
+{
+  "site": {
+      "Description": "study site",
+      "Levels": {
+          "BNI": "Barrow Neurological Institute",
+          "EMC": "Erasmus University Medical Center",
+          "ETH": "ETH Zurich",
+          "GU": "Georgetown University",
+          "IU": "Indiana University",
+          "IP": "Institut Pasteur and Robert Debré Hospital",
+          "KUL": "Katholieke Universiteit Leuven",
+          "KKI": "Kennedy Krieger Institute",
+          "NYU": "New York University Langone Medical Center",
+          "ONRC": "Olin Neuropsychiatry Research Center, Institute of Living at Hartford Hospital",
+          "OHSU": "Oregon Health and Science University",
+          "TCD": "Trinity Centre for Health Sciences, Trinity College Dublin",
+          "SDSU": "San Diego State University",
+          "SU": "Stanford University",
+          "UCD": "University of California, Davis",
+          "UCLA": "University of California, Los Angeles",
+          "UMia": "University of Miami",
+          "USM": "University of Utah School of Medicine",
+          "UPSM": "University of Pittsburgh School of Medicine"
+      }
+  },
+  "sample": {
+    "Description": "different samples within same site",
+    "Levels": {
+      "UCLA1": "",
+      "UCLA2": "",
+      "UCLALong": ""
+    }
+  },
+  "ndar_guid": {
+    "Description": "National Database for Autism Research Global Unique Identifier of the participant"
+  },
+  "sex": {
+      "Description": "Sex of the participant as reported by the participant",
+      "Levels": {
+          "M": "male",
+          "F": "female"
+      }
+  },
+  "age": {
+      "Description": "Age of the participant",
+      "Units": "years"
+  },
+  "handedness": {
+    "Description": "Handedness of the participant",
+    "Levels": {
+      "L": "left",
+      "R": "right",
+      "B": "mixed"
+    }
+  },
+  "handedness_score": {
+    "Description": "{50..100}: right; {-100..-50}: left; {-49..49}: mixed"
+  },
+  "group": {
+    "Description": "Diagnostic group",
+    "Levels": {
+      "A": "autism",
+      "C": "control"
+    }
+  },
+  "dsm4": {
+    "Description": "DSM-IV diagnostic category",
+    "Levels": {
+      "0": "control",
+      "1": "autism",
+      "2": "aspergers",
+      "3": "pdd-nos",
+      "4": "aspergers or pdd-nos"
+    }
+  },
+  "dsm5": {
+    "Description": "Whether the participants is categorized as ASD by DSM-V",
+    "Levels": {
+      "0": "no",
+      "1": "yes"
+    }
+  },
+  "fiq": {
+    "Description": "FIQ (full) standard score"
+  },
+  "viq": {
+    "Description": "VIQ (verbal) standard score"
+  },
+  "piq": {
+    "Description": "PIQ (performance) standard score"
+  },
+  "fiq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-S": "Differential Ability Scale (DAS) - School age {30..170}",
+      "DAS-PS": "Differential Ability Scale (DAS) - Pre school age {30..170}",
+      "DAS-2-SA": "Differential Ability Scale II (DAS-II) - School age {30..170}",
+      "DAS-2-EY": "Differential Ability Scale II (DAS-II) - Early years {30..170}",
+      "KBIT-2": "Kaufman Brief Intelligence Test, Second Edition (KBIT-2) {40..160}",
+      "WAIS-3": "Wechsler Adult Intelligence Scales (WAIS) III {45..155}",
+      "WAIS-4": "Wechsler Adult Intelligence Scales (WAIS) IV {45..155}",
+      "WAIS-4-NL": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland {45..155}",
+      "WAIS-4-NL_SUB3": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (3 subtests) {45..155}",
+      "WAIS-4-NL_SUB10": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (10 subtests) {45..155}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {40..160}",
+      "WASI-2": "Wechsler Abbreviated Scales of Intelligence II (WASI-II) {40..160}",
+      "WISC-3": "Wechsler Intelligence Scale for Children (WISC) III {40..160}",
+      "WISC-4": "Wechsler Intelligence Scale for Children (WISC) IV {40..160}",
+      "WISC-5": "Wechsler Intelligence Scale for Children (WISC) V {40..160}",
+      "WPPSI-3": "Wechsler Preschool and Primary Scale of Intelligence (WPPSI) III {40..160}"
+    }
+  },
+  "viq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-S": "Differential Ability Scale (DAS) - School age {30..170}",
+      "DAS-PS": "Differential Ability Scale (DAS) - Pre school age {30..170}",
+      "DAS-2-SA": "Differential Ability Scale II (DAS-II) - School age {30..170}",
+      "DAS-2-EY": "Differential Ability Scale II (DAS-II) - Early years {30..170}",
+      "WAIS-3": "Wechsler Adult Intelligence Scales (WAIS) III {45..155}",
+      "WAIS-4": "Wechsler Adult Intelligence Scales (WAIS) IV {45..155}",
+      "WAIS-4-NL": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland {45..155}",
+      "WAIS-4-NL_SUB3": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (3 subtests) {45..155}",
+      "WAIS-4-NL_SUB10": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (10 subtests) {45..155}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {40..160}",
+      "WASI-2": "Wechsler Abbreviated Scales of Intelligence II (WASI-II) {40..160}",
+      "WISC-3": "Wechsler Intelligence Scale for Children (WISC) III {40..160}",
+      "WISC-4": "Wechsler Intelligence Scale for Children (WISC) IV {40..160}",
+      "WISC-5": "Wechsler Intelligence Scale for Children (WISC) V {40..160}",
+      "WPPSI-3": "Wechsler Preschool and Primary Scale of Intelligence (WPPSI) III {40..160}"
+    }
+  },
+  "piq_type": {
+    "Description": "Type of IQ test administered for Full Scale IQ",
+    "Levels": {
+      "DAS-S": "Differential Ability Scale (DAS) - School age {30..170}",
+      "DAS-PS": "Differential Ability Scale (DAS) - Pre school age {30..170}",
+      "DAS-2-SA": "Differential Ability Scale II (DAS-II) - School age {30..170}",
+      "DAS-2-EY": "Differential Ability Scale II (DAS-II) - Early years {30..170}",
+      "RAVEN": "Raven's Progressive Matrices {60..140}",
+      "SON-R": "Snijders-Oomen Nonverbal Intelligence Test - Revised (SON-R) {30..170}",
+      "WAIS-3": "Wechsler Adult Intelligence Scales (WAIS) III {45..155}",
+      "WAIS-4": "Wechsler Adult Intelligence Scales (WAIS) IV {45..155}",
+      "WAIS-4-NL": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland {45..155}",
+      "WAIS-4-NL_SUB3": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (3 subtests) {45..155}",
+      "WAIS-4-NL_SUB10": "Wechsler Adult Intelligence Scales (WAIS) IV Netherland (10 subtests) {45..155}",
+      "WASI": "Wechsler Abbreviated Scales of Intelligence (WASI) {40..160}",
+      "WASI-2": "Wechsler Abbreviated Scales of Intelligence II (WASI-II) {40..160}",
+      "WISC-3": "Wechsler Intelligence Scale for Children (WISC) III {40..160}",
+      "WISC-4": "Wechsler Intelligence Scale for Children (WISC) IV {40..160}",
+      "WISC-5": "Wechsler Intelligence Scale for Children (WISC) V {40..160}",
+      "WPPSI-3": "Wechsler Preschool and Primary Scale of Intelligence (WPPSI) III {40..160}"
+    }
+  },
+  "scq_version": {
+    "Description": "Social Communication Questionnaire Version"
+  },
+  "scq": {
+    "Description": "Social Communication Questionnaire Total {0..39}"
+  },
+  "aq": {
+    "Description": "Total Raw Score of the Autism Quotient {0..50}"
+  },
+  "nonasd_psydx_icd9code": {
+    "Description": "International Classification of Diseases 9th Revision Code for Non-ASD Psychiatric Disorders "
+  },
+  "nonasd_psydx_label": {
+    "Description": "Non-ASD Psychiatric Disorders Label"
+  },
+  "med_status": {
+    "Description": "Currently taking medication?",
+    "Levels": {
+      "N": "no",
+      "Y": "yes"
+    }
+  },
+  "med_name": {
+    "Description": "Active ingredients of any current psychoactive medications"
+  },
+  "off_stimulant": {
+    "Description": "Off stimulants 24h before scanning?",
+    "Levels": {
+      "N": "no",
+      "Y": "yes"
+    }
+  },
+  "eye_status": {
+    "Description": "Eye status during resting state scan",
+    "Levels": {
+      "O": "Open",
+      "C": "Closed"
+    }
+  },
+  "bmi": {
+    "Description": "Body Mass Index {12..30}"
+  }
+}

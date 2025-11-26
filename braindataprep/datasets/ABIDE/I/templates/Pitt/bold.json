@@ -1,0 +1,12 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "SoftwareVersions": "syngo MR A30",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "Gradient Echo EPI",
+    "SequenceName": "ep2d_bold",
+    "EchoTime": 25E-3,
+    "RepetitionTimeExcitation": 1.5,
+    "FlipAngle": 70,
+    "MRAcquisitionType": "2D"
+  }

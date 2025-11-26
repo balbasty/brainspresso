@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Discovery",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "SPGR",
+    "EchoTime": 0.0031360000000000003,
+    "FlipAngle": 8.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "ASSET",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "S",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimePreparation": 8.068,
+    "InversionTime": 0.45,
+    "DwellTime": 0.000128,
+    "MRAcquisitionType": "3D"
+}

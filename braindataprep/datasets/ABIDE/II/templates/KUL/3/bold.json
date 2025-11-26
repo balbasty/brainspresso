@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "Achieva Ds",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Gradient Echo EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 2.7,
+    "FatSaturation": true,
+    "AcquisitionMatrixSE": 45,
+    "ReconMatrixSE": 45,
+    "RepetitionTimeExcitation": 2.5,
+    "BandwidthPerPixelPhaseEncode": "2188",
+    "EffectiveEchoSpacing": 5.859466554164909e-06
+}

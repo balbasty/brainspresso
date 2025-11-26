@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Magentom",
+    "MagneticFieldStrength": 7,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.017,
+    "FlipAngle": 70.0,
+    "ParallelReductionFactorInPlane": 3.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimeExcitation": 3.0,
+    "EffectiveEchoSpacing": 7.000448028673835e-06
+}

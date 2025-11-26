@@ -1,0 +1,13 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.015,
+    "FlipAngle": 90.0,
+    "PhaseEncodingDirection": "RL",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimeExcitation": 2.0,
+    "EffectiveEchoSpacing": 3.200204813108039e-06
+}

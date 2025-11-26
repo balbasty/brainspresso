@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "Achieva",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "T1-TFE",
+    "FlipAngle": 8.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelReductionFactorOutOfPlane": 2.5,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "PhaseEncodingDirection": "RL",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Sequential Ascending",
+    "RepetitionTimePreparation": 2.375,
+    "InversionTime": 0.9,
+    "DwellTime": 2.175805047867711e-05,
+    "MRAcquisitionType": "3D"
+}

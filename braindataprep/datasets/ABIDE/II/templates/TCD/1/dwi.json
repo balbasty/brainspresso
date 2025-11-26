@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "Achieva",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Spin Echo EPI",
+    "EchoTime": 0.079,
+    "FlipAngle": 90.0,
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 2.0,
+    "AcquisitionMatrixSE": 65,
+    "ReconMatrixSE": 65,
+    "RepetitionTimeExcitation": 20.244,
+    "BandwidthPerPixelPhaseEncode": "2590.6",
+    "EffectiveEchoSpacing": 3.1129916347688794e-06
+}

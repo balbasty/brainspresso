@@ -1,0 +1,18 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "TriTim",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "TFL",
+    "EchoTime": 0.0035800000000000003,
+    "FlipAngle": 10.0,
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 1.1,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 160,
+    "ReconMatrixSE": 160,
+    "RepetitionTimePreparation": 2.3000000000000003,
+    "InversionTime": 0.9,
+    "PixelBandwidth": "180",
+    "DwellTime": 2.170138888888889e-05,
+    "MRAcquisitionType": "3D"
+}

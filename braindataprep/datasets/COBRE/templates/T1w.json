@@ -1,0 +1,16 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "TrioTim",
+    "DeviceSerialNumber": "35245",
+    "SoftwareVersions": "syngo MR B15",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": ["GR", "IR"],
+    "SequenceVariant": ["SP", "MP"],
+    "ScanOptions": "IR",
+    "SequenceName": "tfl3d5_ns",
+    "MRAcquisitionType": "3D",
+    "EchoTime": 1.64E-3,
+    "RepetitionTimeExcitation": 2.53,
+    "FlipAngle": 7
+  }

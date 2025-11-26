@@ -1,0 +1,11 @@
+{
+    "Manufacturer":  "GE",
+    "ManufacturerModelName": "Signa",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "Spoiled Gradient Echo",
+    "SequenceName": "ANAT T1",
+    "EchoTime": 1.8E-3,
+    "RepetitionTimeExcitation": 8.4E-3,
+    "FlipAngle": 15,
+    "MRAcquisitionType": "3D"
+  }

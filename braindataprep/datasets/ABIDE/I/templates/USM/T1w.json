@@ -1,0 +1,15 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "TrioTim",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "SequenceName": "tfl",
+    "EchoTime": 2.91E-3,
+    "RepetitionTimePreparation": 2.3,
+    "RepetitionTimeExcitation": 6.8E-3,
+    "InversionTime": 0.9,
+    "FlipAngle": 9,
+    "MRAcquisitionType": "3D",
+    "CoilCombinationMethod": "Sum of Squares"
+  }

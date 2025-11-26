@@ -1,0 +1,24 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "Autism Diagnostic Interview - Revised (ADI-R)"
+  },
+  "social": {
+    "Description": "Reciprocal Social Interaction Subscore (A) total for Autism Diagnostic Interview-Revised {0..30}"
+  },
+  "verbal": {
+    "Description": "Abnormalities in Comunication Subscore (B) total for Autism Diagnostic Interview-Revised {0..26}"
+  },
+  "rrb": {
+    "Description": "Restricted, Repetitive, and Stereotyped Patterns of Behavior Subscore (C) total for Autism Diagnostic Interview-Revised {0..12}"
+  },
+  "onset": {
+    "Description": "Abnormalities of Development Evident at or Before 36 Months Subscore (D) total for Autism Diagnostic Interview-Revised {0..5}"
+  },
+  "reliable": {
+    "Description": "Was ADI scored and administered by research reliable personnel",
+    "Levels": {
+      "N": "no",
+      "Y": "yes"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Behavior Rating Inventory of Executive Function (BRIEF)"
+    },
+    "version": {
+        "Description": "Version",
+        "Levels": {
+            "C": "Child",
+            "A": "Adult"
+        }
+    },
+    "informant": {
+        "Description": "Informant",
+        "Levels": {
+            "1": "Mother",
+            "2": "Father",
+            "3": "Both parents",
+            "4": "Teacher",
+            "5": "Self",
+            "6": "Significant other",
+            "7": "Friend",
+            "8": "Mother or Father",
+            "9": "Other relative"
+        }
+    },
+    "inhibit": {
+        "Description": "Inhibit T Score "
+    },
+    "shift": {
+        "Description": "Shift T Score"
+    },
+    "emotional": {
+        "Description": "Emotional Control T Score"
+    },
+    "bri": {
+        "Description": "Behavioral Regulation Index T Score"
+    },
+    "initiate": {
+        "Description": " Initiate T Score "
+    },
+    "working": {
+        "Description": "Working Memory T Score"
+    },
+    "plan": {
+        "Description": "Plan/Organize T Score"
+    },
+    "organization": {
+        "Description": "Organization of Materials T Score"
+    },
+    "monitor": {
+        "Description": "Monitor T Score"
+    },
+    "mi": {
+        "Description": "Metacognition Index T Score"
+    },
+    "gec": {
+        "Description": "Global Executive Composite T Score "
+    },
+    "inconsistency_score": {
+        "Description": "Inconsistency Score"
+    },
+    "negativity_score": {
+        "Description": "Negativity Score"
+    }
+}

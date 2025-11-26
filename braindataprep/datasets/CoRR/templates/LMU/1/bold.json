@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturerModelName": "Achieva",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "ParallelReductionFactorInPlane": 3.0,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "A",
+    "SliceTiming": "Sequential Ascending",
+    "RepetitionTimeExcitation": 2.5,
+    "EffectiveEchoSpacing": 6.475341898052217e-06
+}

@@ -1,0 +1,13 @@
+{
+    "Manufacturer":  "Siemens",
+    "ManufacturerModelName": "TrioTim",
+    "SoftwareVersions": "syngo MR B15",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "Gradient Echo EPI",
+    "SequenceName": "ep2d_bold",
+    "EchoTime": 28E-3,
+    "RepetitionTimeExcitation": 3,
+    "FlipAngle": 90,
+    "MRAcquisitionType": "2D",
+    "CoilCombinationMethod": "Sum of Squares"
+  }

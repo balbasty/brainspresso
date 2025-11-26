@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Magnetom",
+    "MagneticFieldStrength": 7,
+    "PulseSequenceType": "MP2RAGE",
+    "EchoTime": 0.0024500000000000004,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "PhaseEncodingDirection": "AP",
+    "SliceEncodingDirection": "S",
+    "SliceTiming": "Interleaved Ascending",
+    "RepetitionTimePreparation": 5.0,
+    "DwellTime": 1.25e-05,
+    "MRAcquisitionType": "3D"
+}

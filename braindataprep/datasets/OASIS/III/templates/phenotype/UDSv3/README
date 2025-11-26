@@ -1,0 +1,11 @@
+This folder contains BIDS-compliant phenotype description files for
+the ADRC Uniform Data Set v3, as described in
+
+    https://naccdata.org/data-collection/forms-documentation/uds-3
+    https://files.alz.washington.edu/documentation/uds3-ivp-ded.pdf
+
+Note that the file `UDSv3_a3_family_history.json` has "generic" fields
+"SIB{d}*", "KID{d}*", "REL{d}*". These fields must be replaced by
+their enumerated versions "SIB1*", "SIB2*", etc. Siblings fields (SIB)
+should be enumerated between 1 and 20, and Children (KID) and relatives
+(REL) fields should be enumerated between 1 and 15.

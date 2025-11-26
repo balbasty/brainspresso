@@ -1,0 +1,30 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Generic Autism Diagnostic Observation Schedule (ADOS-G)"
+    },
+    "module": {
+        "Description": "Autism Diagnostic Observation Schedule Module {1..4}"
+    },
+    "total": {
+        "Description": "ADOS Generic or ADOS-2 Module 4 Total Score {0..23}"
+    },
+    "comm": {
+        "Description": "ADOS-G or ADOS-2 Module 4 Communication Total {0..10}"
+    },
+    "social": {
+        "Description": "ADOS-G or ADOS-2 Module 4 Reciprocal Social Interaction Total {0..14}"
+    },
+    "stereo_behav": {
+        "Description": "ADOS-G or ADOS-2 Module 4 Stereotyped Behaviors and Restricted Interest Total {0..6}"
+    },
+    "creativity": {
+        "Description": "ADOS-G or ADOS-2 Module 4 Imagination/Creativity Total  {0..2}"
+    },
+    "reliable": {
+        "Description": "Was ADOS scored and administered by research reliable personnel",
+        "Levels": {
+          "N": "no",
+          "Y": "yes"
+        }
+    }
+}

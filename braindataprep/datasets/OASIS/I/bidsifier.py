@@ -14,8 +14,8 @@ from braindataprep.utils.io import write_from_buffer
 from braindataprep.utils.io import nibabel_convert
 from braindataprep.utils.vol import make_affine
 from braindataprep.utils.vol import relabel as vol_relabel
-from braindataprep.pyout import bidsify_tab
-from braindataprep.pyout import Status
+from braindataprep.utils.tabular import bidsify_tab
+from braindataprep.utils.tabular import Status
 from braindataprep.actions import IfExists
 from braindataprep.actions import Action
 from braindataprep.actions import CopyBytes

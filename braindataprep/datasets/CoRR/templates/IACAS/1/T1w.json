@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Signa HDx",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "BRAVO",
+    "EchoTime": 0.002984,
+    "FlipAngle": 7.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "ASSET",
+    "PhaseEncodingDirection": "RL",
+    "SliceEncodingDirection": "S",
+    "SliceTiming": "Sequential Ascending",
+    "RepetitionTimePreparation": 0.007788000000000001,
+    "InversionTime": 1.1,
+    "DwellTime": 3.201844262295082e-05,
+    "MRAcquisitionType": "3D"
+}

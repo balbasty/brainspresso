@@ -1,0 +1,19 @@
+This folder contains variants of BIDS-compliant phenotype description
+files for the ADRC Uniform Data Set metrics provided by the OASIS-III dataset.
+
+The files provided here contain only fields that are present in the
+OASIS-III dataset but not in either the UDS v2 or v3 forms.
+
+In particular, file `UDS_c2_neuropsy` stems from the Knight ADRC form, which
+incorporates elements from the UDSv3 c2 form, but also adds other tests
+that are not part of UDS. The file provided here only includes non-UDS fields.
+
+    https://knightadrc.wustl.edu/wp-content/uploads/2021/07/Psychometric-Codebook-7-22-19.pdf
+
+The finalised JSON files must be built programaticaly by adding fields
+from the UDSv2 or UDSv3 JSON files, as necessary. This is done
+programatically when using `bdp oasis3 bidsify --keys pheno`.
+
+Note that the file `UDS_b4_cdr.json` has "generic" fields
+"DX{d}" and "DX{d}_CODE". These fields must be replaced by
+their enumerated versions "DX1", "DX2", ...,  "DX5".

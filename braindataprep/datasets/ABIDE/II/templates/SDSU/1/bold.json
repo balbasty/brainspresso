@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "MR750",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Gradient Echo EPI",
+    "EchoTime": 0.03,
+    "FlipAngle": 90.0,
+    "ParallelAcquisitionTechnique": "ASSET",
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 3.4,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 42,
+    "ReconMatrixSE": 42,
+    "RepetitionTimeExcitation": 2.0,
+    "BandwidthPerPixelPhaseEncode": "7812.5",
+    "EffectiveEchoSpacing": 2e-06
+}

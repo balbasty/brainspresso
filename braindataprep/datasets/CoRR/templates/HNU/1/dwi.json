@@ -1,0 +1,7 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "Discovery MR750",
+    "MagneticFieldStrength": 3,
+    "PhaseEncodingDirection": "RL",
+    "SliceTiming": "Interleaved Ascending"
+}

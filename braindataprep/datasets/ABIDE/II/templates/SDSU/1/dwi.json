@@ -1,0 +1,12 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturerModelName": "MR750",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Spin Echo EPI",
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 2.0,
+    "FatSaturation": true,
+    "AcquisitionMatrixSE": 68,
+    "ReconMatrixSE": 68,
+    "RepetitionTimeExcitation": 8.5
+}

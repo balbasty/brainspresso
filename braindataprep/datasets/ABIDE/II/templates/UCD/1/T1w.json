@@ -1,0 +1,20 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "TriTim",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 0.00316,
+    "FlipAngle": 8.0,
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 1.0,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 192,
+    "ReconMatrixSE": 192,
+    "RepetitionTimePreparation": 2.0,
+    "InversionTime": 1.05,
+    "PixelBandwidth": "220",
+    "DwellTime": 1.7755681818181817e-05,
+    "MRAcquisitionType": "3D"
+}

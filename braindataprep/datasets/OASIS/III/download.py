@@ -5,14 +5,14 @@ from humanize import naturalsize
 from braindataprep.utils.ui import human2bytes
 from braindataprep.utils.path import get_tree_path
 from braindataprep.utils.log import setup_filelog
+from braindataprep.utils.keys import flatten_keys
+from braindataprep.utils.keys import compat_keys
 from braindataprep.download import DownloadManager
 from braindataprep.download import IfExists
 from braindataprep.download import CHUNK_SIZE
-from braindataprep.xnat import XNAT
+from braindataprep.sources.xnat import XNAT
 from braindataprep.datasets.OASIS.III.command import oasis3
 from braindataprep.datasets.OASIS.III.keys import allkeys
-from braindataprep.datasets.OASIS.III.keys import flatten_keys
-from braindataprep.datasets.OASIS.III.keys import compat_keys
 
 from logging import getLogger
 lg = getLogger(__name__)
@@ -23,12 +23,13 @@ def download(
     path: str | None = None,
     *,
     keys: Iterable[str] = tuple(),
-    subs: Iterable[int] | None = tuple(),
-    exclude_subs: Iterable[int] | None = tuple(),
+    subs: Iterable[int | str] | None = tuple(),
+    exclude_subs: Iterable[int | str] | None = tuple(),
     if_exists: IfExists.Choice = "skip",
     user: str | None = None,
     password: str | None = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
+    jobs: int | None = 1,
     log: str | None = None,
 ):
     """
@@ -83,6 +84,8 @@ def download(
         NITRC password
     packet : int
         Packet size to download, in bytes
+    jobs : int
+        Number of parallel downloaders
     log : str
         Path to log file
 
@@ -95,13 +98,31 @@ def download(
     xnat = XNAT(user, password, open=True)
 
     # Format subjects
+    def expand_sub_range(subs):
+        for i, sub in enumerate(subs):
+            if isinstance(sub, str) and ':' in sub:
+                sub = sub.split(':')
+                start, stop = sub[0], sub[1]
+                step = sub[2] if len(sub) > 2 else ''
+                step = int(step) if step else 1
+                if step < 1:
+                    raise ValueError('Subject range: step must be positive')
+                start = int(start) if start else 0
+                stop = int(stop) if stop else None
+                if stop is None:
+                    raise ValueError('Subject range: Stop must be provided')
+                subs = subs[:i] + list(range(start, stop, step)) + subs[i+1:]
+        return subs
+
     if isinstance(subs, (int, str)):
         subs = [subs]
     subs = list(subs or [])
+    subs = expand_sub_range(subs)
 
     if isinstance(exclude_subs, int):
         exclude_subs = [exclude_subs]
-    exclude_subs = set(exclude_subs or [])
+    exclude_subs = list(set(exclude_subs or []))
+    exclude_subs = set(expand_sub_range(exclude_subs))
 
     # Get subject IDs
     if not subs:
@@ -137,19 +158,19 @@ def download(
                 # early filter on experiment type
                 experiment_type = experiment.split('_')[1]
                 if experiment_type == 'MR':
-                    if not (keys & compat_keys("mri")):
+                    if not (keys & (compat_keys("mri") | compat_keys("fs"))):
                         continue
                 elif experiment_type == "CT":
                     if not (keys & compat_keys("ct")):
                         continue
                 elif experiment_type == "FDG":
-                    if not (keys & compat_keys("fdg")):
+                    if not (keys & (compat_keys("fdg") | compat_keys("pup"))):
                         continue
                 elif experiment_type == "PIB":
-                    if not (keys & compat_keys("pib")):
+                    if not (keys & (compat_keys("pib") | compat_keys("pup"))):
                         continue
                 elif experiment_type == "AV45":
-                    if not (keys & compat_keys("av45")):
+                    if not (keys & (compat_keys("av45") | compat_keys("pup"))):
                         continue
                 else:
                     continue
@@ -198,5 +219,10 @@ def download(
                         )
 
     # Download all
-    DownloadManager(all_downloaders(), ifexists=if_exists, path='full').run()
+    DownloadManager(
+        all_downloaders(),
+        ifexists=if_exists,
+        path='full',
+        jobs=jobs,
+    ).run()
     xnat.close()

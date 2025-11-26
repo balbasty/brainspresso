@@ -1,0 +1,50 @@
+{
+  "age": {
+      "Description": "Age of the participant",
+      "Units": "years"
+  },
+  "sex": {
+      "Description": "Sex of the participant as reported by the participant",
+      "Levels": {
+          "M": "male",
+          "F": "female"
+      }
+  },
+  "handedness": {
+    "Description": "Handedness of the participant",
+    "Levels": {
+      "L": "left",
+      "R": "right"
+    }
+  },
+  "patient": {
+    "Description": "The subject is a patient (has schizophrenia)",
+    "Levels": {
+        "N": "No",
+        "Y": "Yes"
+    }
+  },
+  "icd9": {
+      "Description": "Specific diagnosis (ICD-9-CM code)",
+      "Levels": {
+        "": "Nothing diagnosed",
+        "295.1": "Disorganized type schizophrenia",
+        "295.2": "Catatonic type schizophrenia",
+        "295.3": "Paranoid type schizophrenia unspecified state",
+        "295.6": "Residual schizophrenia",
+        "295.7": "Schizo-affective type schizophrenia",
+        "295.70": "Schizoaffective disorder, unspecified",
+        "295.9": "Unspecified schizophrenia",
+        "295.92": "Unspecified type schizophrenia chronic state",
+        "296.26": "Major depressive affective disorder single episode in full remission",
+        "296.4": "Bipolar I disorder, most recent episode (or current) manic",
+        "311": "Depressive disorder not elsewhere classified"
+      }
+  },
+  "icd9_subtype": {
+    "Description": "Specific diagnosis subtype (ICD-9-CM)",
+        "": "No subtype",
+        "depressed": "Schizoaffective disorder, depressed type (schizodepressive)",
+        "bipolar": "Schizoaffective disorder, bipolar type (schizomanic)"
+  }
+}

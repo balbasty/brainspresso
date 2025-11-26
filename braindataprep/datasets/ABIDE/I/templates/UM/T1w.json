@@ -1,0 +1,11 @@
+{
+    "Manufacturer":  "GE",
+    "ManufacturerModelName": "Signa",
+    "MagneticFieldStrength": 3,
+    "PulseSequenceType": "MPRAGE",
+    "SequenceName": "T1spgr",
+    "EchoTime": 1.8E-3,
+    "InversionTime": 0.5,
+    "FlipAngle": 15,
+    "MRAcquisitionType": "3D"
+  }

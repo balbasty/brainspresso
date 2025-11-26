@@ -1,0 +1,19 @@
+{
+  "Name": "COBRE",
+  "BIDSVersion": "1.8.0",
+  "LICENSE": "CC BY-SA",
+  "Authors": [
+    "Aine, C",
+    "Calhoun, V",
+    "Canive, J",
+    "Hanlon, F",
+    "Jung, R",
+    "Kiehl, K",
+    "Mayer, A",
+    "Perrone-Bizzozero, N",
+    "Stephen, J",
+    "Tesche, C"
+  ],
+  "Funding": ["P20 RR021938"],
+  "Acknowledgements": "https://fcon_1000.projects.nitrc.org/indi/retro/cobre.html"
+}

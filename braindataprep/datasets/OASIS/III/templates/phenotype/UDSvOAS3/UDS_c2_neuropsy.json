@@ -1,0 +1,126 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "Knight ADRC Psychometric Test.\nIncorporates ADRC Uniform Data Set v3 - C2: Neuropsychological Battery Scores",
+    "TermURL": "https://knightadrc.wustl.edu/wp-content/uploads/2021/07/Psychometric-Codebook-7-22-19.pdf"
+  },
+  "PSY019": {
+    "Description": "Wechsler Adult Intelligence Scale (WAIS) [Wechsler (1955)] - Information\nThe participant answers a series of questions about factual information. {0..29}"
+  },
+  "PSY021": {
+    "Description": "Wechsler Adult Intelligence Scale (WAIS) [Wechsler (1955)] - Block Design\nThe participant replicates models or pictures of two-color designs with blocks. {0..48}"
+  },
+  "SIM": {
+    "Description": "WAIS-III Similarities [Wechsler (1997)]\nThe participant replicates models or pictures of two-color designs with blocks. {0..68}"
+  },
+  "MENTCONT": {
+    "Description": "Wechsler Memory Scale (WMS) - Mental Control [Wechsler & Stone (1973)]\nPSY003 (count back from 20) + PSY072 (alphabet) + PSY078 (serial couting by 3) {0..9}"
+  },
+  "ASSCMEM": {
+    "Description": "Wechsler Memory Scale (WMS) - Associate Learning [Wechsler & Stone (1973)]\n 0.5 * PSY010 (easy recall: sum of correctly recalled easy pairs over 3 trials) + PSY011 (hard recall: sum of correctly recalled hard pairs over 3 trials)"
+  },
+  "SRTFREE": {
+    "Description": "Free and Cued Selective Reminding Test - Free Recall [Grober et al (1988)] {0..48}"
+  },
+  "SRTTOTAL": {
+    "Description": "Free and Cued Selective Reminding Test - Free & Cued Recall [Grober et al (1988)] {0..48}"
+  },
+  "DIGFOR": {
+    "Description": "WMS Digit Span - Forward {0..8}"
+  },
+  "DIGBACK": {
+    "Description": "WMS Digit Span - Backward {0..8}"
+  },
+  "DIGSYM": {
+    "Description": "WAIS-R Digit Symbol {0..93}"
+  },
+  "TMA": {
+    "Description": "Trailmaking A [Armitage (1945)]\nThe score is the number of seconds spent in connecting 25 numbered circles in sequential order. A maximum of 180 seconds is allowed. {0..180}"
+  },
+  "TMB": {
+    "Description": "Trailmaking B [Armitage (1945)]\nThe score is the number of seconds spent in connecting numbered circles (1-13) to lettered circles (A-L) in alternating sequential order. A maximum of 180 seconds is allowed. Time noted during the 300-s administration in the UDS. {0..180}"
+  },
+  "BNT": {
+    "Description": "Boston Naming Test [Kaplan et al (1983)] {0..60}"
+  },
+  "MEMUNITS": {
+    "Description": "Logical Memory IIA - Delayed {0..25}"
+  },
+  "LETTNUM": {
+    "Description": "WMS III - Letter Number Sequencing [Wechsler (1997)]\nThe participant is read a combination of numbers and letters and is asked to repeat them, saying the numbers first in ascending order and then the letters in alphabetical order. {0..21}"
+  },
+  "SIMON": {
+    "Description": "Simon Task [Simon (1969)]\nPercentage correct responses on all 120 trials. {0..100}"
+  },
+  "SIMONNUMBER": {
+    "Description": "Simon Task [Simon (1969)]\nNumber of correct responses on all 120 trials. {0..120}"
+  },
+  "SWITCHCV": {
+    "Description": "Switching Task - CV [Rogers & Monsell (1995)]\nNumber of correct responses on consonant/vowel choice block out of 40 trials. {0..40}"
+  },
+  "SWITCHMIXED": {
+    "Description": "Switching Task - Mixed [Rogers & Monsell (1995)]\nNumber of correct responses on mixed consonant/vowel and even/odd block out of 52 trials. {0..52}"
+  },
+  "SWITCH": {
+    "Description": "Switching Task - Total [Rogers & Monsell (1995)]\nPercentage correct responses out of total 132 trials. {0..100}"
+  },
+  "INFORM": {
+    "Description": "WAIS-III - Information\nThe participant answers a series of questions about factual information. {0..28}"
+  },
+  "LOGMEM": {
+    "Description": "WMS-III - Logical Memory Immediate\nThe participant is read two short stories and is asked to recall them. {0..50}"
+  },
+  "PAIRS": {
+    "Description": "WMS-III - Verbal Paired Associates\nThe participant learns eight paired associates of low association over 4 trials. {0..32}"
+  },
+  "BLOCK": {
+    "Description": "WAIS-III Block Design\nThe participant replicates models or pictures of two-color designs with blocks. {0..68}"
+  },
+  "LMDELAY": {
+    "Description": "WMS-III Logical Memory Delayed {0..50} "
+  },
+  "LINE": {
+    "Description": "Benton Judgment of Line Orientation [Benton et al (1983)]\nParticipant judges which two lines drawn at different angles on a response card correspond to the placement of two lines drawn at different angles on a stimulus card. {0..30}"
+  },
+  "SLOSSON": {
+    "Description": "Slosson Oral Reading Test [Richard & Nicholson (1990)] {0..200}"
+  },
+  "DIGIF": {
+    "Description": "WMS-R - Digit Span Forward [Wechsler (1987)]\nTotal number of trials correct prior to two consecutive errors at the same digit length. {0..12}"
+  },
+  "DIGIB": {
+    "Description": "WMS-R - Digit Span Backward [Wechsler (1987)]\nTotal number of trials correct prior to two consecutive errors at the same digit length. {0..12}"
+  },
+  "PSY003": {
+    "Description": "Wechsler Memory Scale (WMS) - Mental Control [Wechsler & Stone (1973)]\nCount back from 20. {0..3}"
+  },
+  "PLACE_R": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "NUMSYM": {
+    "Description": "[WARNING] Unknown phenotype"
+  },
+  "TRIGRAM": {
+    "Description": "Auditory Consonant Trigrams [Brown (1958) & Petterson (1959)]\nThree consonants are read to the participant followed immediately by a random number. The participant is asked to count out loud backwards from that number by threes for either 9, 18, or 36 seconds determined randomly. The participant then recalls the consonant trigram. The score is the sum of the number of consonants recalled correctly over 20 trials. {0..60}."
+  },
+  "SPATIAL": {
+    "Description": "Woodcock-Johnson Spatial Relations [Woodcock et al (2001)]\nParticipant looks at a series of “whole” shapes with interior lines dividing the shape into regular and irregular pieces. Next to the whole shape is a group of six shape pieces, labeled with letters of the alphabet. The participant indicates which of the shape pieces would be needed to make up the “whole” shape. The 33 test items are presented in order of ascending difficulty and require two or three responses. The score is the number of correctly identified pieces. {0..81}"
+  },
+  "SRT1F": {
+    "Description": "Free & Cued SRT: Trial 1 Free Recall {0..16}"
+  },
+  "SRT1C": {
+    "Description": "Free & Cued SRT: Trial 1 Cued Recall {0..16}"
+  },
+  "SRT2F": {
+    "Description": "Free & Cued SRT: Trial 2 Free Recall {0..16}"
+  },
+  "SRT2C": {
+    "Description": "Free & Cued SRT: Trial 2 Cued Recall {0..16}"
+  },
+  "SRT3F": {
+    "Description": "Free & Cued SRT: Trial 3 Free Recall {0..16}"
+  },
+  "SRT3C": {
+    "Description": "Free & Cued SRT: Trial 3 Cued Recall {0..16}"
+  }
+}

@@ -1,0 +1,32 @@
+{
+    "Manufacturer": "Philips",
+    "MagneticFieldStrength": 3.0,
+    "ReconMatrixPE": 192,
+    "ReconMatrixFE": 192,
+    "ReconMatrixSE": 48,
+    "AcquisitionMatrixSE": 48,
+    "AcquisitionMatrixFE": 92,
+    "AcquisitionMatrixPE": 90,
+    "SpacingBetweenSlices": 0,
+    "FreqEncodingDirection": "AP",
+    "SliceEncodingDirection": "SI",
+    "PhaseEncodingDirection": "RL",
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 2,
+    "MRAcquisitionType": "2D",
+    "PulseSequenceType": "Spin Echo EPI",
+    "FlipAngle": 90,
+    "EchoTime": 0.101,
+    "PixelBandwidth": 36.2,
+    "WaterFatShift": 11.988,
+    "FatSaturation": true,
+    "RepetitionTimeExcitation": 0.101,
+    "BandwidthPerPixelPhaseEncode": 2621.1,
+    "EffectiveEchoSpacing": 0.00014138489711829105,
+    "TotalReadoutTime": 0.02700451534959359,
+    "DiffusionDelta": [
+        50.7,
+        29.8
+    ],
+    "DwellTime": 0.013236648250460404
+}

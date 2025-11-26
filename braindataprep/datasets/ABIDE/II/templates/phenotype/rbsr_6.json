@@ -1,0 +1,26 @@
+{
+    "MeasurementToolMetadata": {
+      "Description": "Repetitive Behaviors Scale-Revised 6 Subscales Scoring System S"
+    },
+    "stereotyped": {
+        "Description": "Stereotyped Behavior Subscale Raw Score"
+    },
+    "self_injurious": {
+        "Description": " Self-Injurious Behavior Subscale Raw Score "
+    },
+    "compulsive": {
+        "Description": "Compulsive Behavior Subscale Raw Score "
+    },
+    "ritualistic": {
+        "Description": "Ritualistic Behavior Subscale Raw Score"
+    },
+    "sameness": {
+        "Description": "Sameness Behavior Subscale Raw Score"
+    },
+    "restricted": {
+        "Description": "Restricted Interests Subscale Raw Score"
+    },
+    "total": {
+        "Description": "Total Raw Score "
+    }
+}

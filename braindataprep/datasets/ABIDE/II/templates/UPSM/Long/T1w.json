@@ -1,0 +1,18 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturerModelName": "Allegra",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "MPRAGE",
+    "EchoTime": 0.00393,
+    "FlipAngle": 7.0,
+    "SliceEncodingDirection": "A",
+    "SliceThickness": 1.05,
+    "FatSaturation": false,
+    "AcquisitionMatrixSE": 176,
+    "ReconMatrixSE": 176,
+    "RepetitionTimePreparation": 2.1,
+    "InversionTime": 1.0,
+    "PixelBandwidth": "130",
+    "DwellTime": 3.0048076923076925e-05,
+    "MRAcquisitionType": "3D"
+}

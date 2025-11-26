@@ -1,0 +1,9 @@
+{
+  "MeasurementToolMetadata": {
+    "Description": "ADRC Uniform Data Set v2+v3 - B9: Clinician Judgment of Symptoms",
+    "TermURL": "https://naccdata.org/data-collection/forms-documentation/uds-2"
+  },
+  "B9CHG": {
+    "Description": "[WARNING] Unknown phenotype"
+  }
+}

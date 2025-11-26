@@ -15,6 +15,7 @@ Commands related to the OASIS-III dataset
                          P01 AG026276, P01 AG003991, R01 AG043434,
                          UL1 TR000448, R01 EB009352
 * **Reference**     https://doi.org/10.1101/2019.12.13.19014902
+* **URL**           https://sites.wustl.edu/oasisbrains/home/oasis-3/
 """  # noqa: E501
 
 app.command(oasis3 := App(name="oasis3", help=oasis3_help))

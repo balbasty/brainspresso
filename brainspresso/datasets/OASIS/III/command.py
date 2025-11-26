@@ -2,12 +2,12 @@ from cyclopts import App
 from brainspresso.cli import app
 
 oasis3_help = """
-Commands related to the OASIS-III dataset
+OASIS-3 dataset (longitudinal, pet, dementia)
 
 * **Project**       Open Access Series of Imaging Studies (OASIS)
 * **Subproject**    Longitudinal Multimodal Neuroimaging, Clinical,
                     and Cognitive Dataset for Normal Aging and
-                    Alzheimer's Disease (OASIS-III)
+                    Alzheimer's Disease (OASIS-3)
 * **Modalities**    T1w, T2w, TSE, FLAIR, T2star, angio, pasl, asl, bold,
                     dwi, swi, fdg, pib, av45, av1451
 * **Populations**   Controls, Dementia
@@ -18,4 +18,6 @@ Commands related to the OASIS-III dataset
 * **URL**           https://sites.wustl.edu/oasisbrains/home/oasis-3/
 """  # noqa: E501
 
-app.command(oasis3 := App(name="oasis3", help=oasis3_help))
+app.command(
+    oasis3 := App(name="oasis3", help=oasis3_help)
+)

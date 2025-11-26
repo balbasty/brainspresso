@@ -8,13 +8,13 @@ logging.basicConfig(format='%(levelname)s | %(message)s', level=15)
 _datasets = [
     'ABIDE.I', 'ABIDE.II',
     'ADHD200',
-    'ADNI.I',
+    # 'ADNI.I',
     'COBRE',
     'CoRR',
     'GSP',
     'IXI',
     'OASIS.I', 'OASIS.II', 'OASIS.III',
-    "OpenNeuro",
+    # "OpenNeuro",
 ]
 for _dataset in _datasets:
     try:

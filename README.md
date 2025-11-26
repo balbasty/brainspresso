@@ -1,6 +1,7 @@
-# brainspresso
+# Brainspresso
 
-A single application to download, bidsify and preprocess public datasets
+A single application to **harvest** (download), **roast** (bidsify)
+and **grid** (preprocess) public datasets.
 
 This is a very early work in progress.
 
@@ -35,7 +36,7 @@ These datasets can be listed by typing `bdp`:
 Usage: bdp COMMAND
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃           brainspresso : Download, Bidsify and Process public datasets           ┃
+┃           brainspresso : Download, Bidsify and Process public datasets            ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 ╭─ Commands ────────────────────────────────────────────────────────────────────────╮
@@ -61,13 +62,13 @@ Commands related to the IXI dataset
  • License       CC BY-SA 3.0
 
 ╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ download   Download source data for the IXI dataset.                              │
-│ bidsify    Convert source data into a BIDS-compliant directory                    │
+│ harvest    Download source data for the IXI dataset.                              │
+│ roast      Convert source data into a BIDS-compliant directory                    │
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 
-Usage: bdp ixi download [ARGS] [OPTIONS]
+Usage: bdp ixi harvest [ARGS] [OPTIONS]
 
 Download source data for the IXI dataset.
 ╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
@@ -80,7 +81,7 @@ Download source data for the IXI dataset.
 │ --log        Path to log file                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 
-Usage: bdp ixi bidsify [ARGS] [OPTIONS]
+Usage: bdp ixi roast [ARGS] [OPTIONS]
 
 Convert source data into a BIDS-compliant directory
 

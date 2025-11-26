@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 adni1_help = """
-Commands related to the CoRR dataset
+ADNI-1 dataset (Alzheimer's Disease)
 
 * **Project**       Alzheimer's Disease Neuroimaging Initiative (ADNI)
 * **Subproject**    ADNI-1

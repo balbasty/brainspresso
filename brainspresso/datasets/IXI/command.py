@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 ixi_help = """
-Commands related to the IXI dataset
+IXI dataset (controls)
 
 * **Project**       Information eXtraction from Images (IXI)
 * **Modalities**    T1w, T2w, PD2, MRA, DTI

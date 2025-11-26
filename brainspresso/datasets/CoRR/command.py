@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 corr_help = """
-Commands related to the CoRR dataset
+CoRR dataset (controls)
 
 * **Project**       Consortium for Reliability and Reproducibility (CoRR)
 * **Modalities**    T1w, rest, DWI, CBF, ASL

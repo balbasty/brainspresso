@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 cobre_help = """
-Commands related to the COBRE dataset
+COBRE dataset (schizophrenia)
 
 * **Project**       Center for Biomedical Research Excellence (COBRE)
 * **Modalities**    T1w, rest

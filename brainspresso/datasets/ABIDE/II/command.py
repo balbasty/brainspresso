@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 abide2_help = """
-Commands related to the ABIDE-II dataset
+ABIDE-II dataset (autism spectrum disorders)
 
 * **Project**       Autism Brain Imaging Data Exchange (ABIDE)
 * **Subproject**    ABIDE II (additional 19 sites)
@@ -13,4 +13,6 @@ Commands related to the ABIDE-II dataset
 * **URL**           https://fcon_1000.projects.nitrc.org/indi/abide/abide_II.html
 """  # noqa: E501
 
-app.command(abide2 := App(name="abide2", help=abide2_help))
+app.command(
+    abide2 := App(name="abide2", help=abide2_help)
+)

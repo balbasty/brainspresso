@@ -2,10 +2,10 @@ from cyclopts import App
 from brainspresso.cli import app
 
 oasis2_help = """
-Commands related to the OASIS-II dataset
+OASIS-2 dataset (longitudinal, dementia)
 
 * **Project**       Open Access Series of Imaging Studies (OASIS)
-* **Subproject**    Longitudinal MRI Data in Nondemented and Demented Older Adults (OASIS-II)
+* **Subproject**    Longitudinal MRI Data in Nondemented and Demented Older Adults (OASIS-2)
 * **Modalities**    T1w
 * **Populations**   Controls, Dementia
 * **Funding**       NIH: P50 AG05681,  P01 AG03991,  P01 AG026276,
@@ -14,4 +14,6 @@ Commands related to the OASIS-II dataset
 * **URL**           https://sites.wustl.edu/oasisbrains/home/oasis-2/
 """  # noqa: E501
 
-app.command(oasis2 := App(name="oasis2", help=oasis2_help))
+app.command(
+    oasis2 := App(name="oasis2", help=oasis2_help)
+)

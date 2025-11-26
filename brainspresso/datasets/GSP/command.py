@@ -2,7 +2,7 @@ from cyclopts import App
 from brainspresso.cli import app
 
 gsp_help = """
-Commands related to the GSP dataset
+GSP dataset (controls, genomics)
 
 * **Project**       Brain Genomics Superstruct Project (CoRR)
 * **Modalities**    T1w, rest

@@ -2,10 +2,10 @@ from cyclopts import App
 from brainspresso.cli import app
 
 oasis1_help = """
-Commands related to the OASIS-I dataset
+OASIS-1 dataset (adult lifespan, dementia)
 
 * **Project**       Open Access Series of Imaging Studies (OASIS)
-* **Subproject**    Cross-sectional data across the adult lifespan (OASIS-I)
+* **Subproject**    Cross-sectional data across the adult lifespan (OASIS-1)
 * **Modalities**    T1w
 * **Populations**   Controls, Dementia
 * **Funding**       NIH: P50 AG05681, P01 AG03991, P01 AG026276,
@@ -14,4 +14,6 @@ Commands related to the OASIS-I dataset
 * **URL**           https://sites.wustl.edu/oasisbrains/home/oasis-1/
 """
 
-app.command(oasis1 := App(name="oasis1", help=oasis1_help))
+app.command(
+    oasis1 := App(name="oasis1", help=oasis1_help)
+)

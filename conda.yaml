@@ -1,4 +1,4 @@
-name: braindataprep
+name: brainspresso
 channels:
   - conda-forge
 dependencies:

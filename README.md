@@ -1,4 +1,4 @@
-# BrainDataPrep
+# brainspresso
 
 A single application to download, bidsify and preprocess public datasets
 
@@ -13,17 +13,17 @@ Royal Society (NIF\R1\232460).
 # Installation
 
 ```shell
-pip install "braindataprep @ git+https://github.com/balbasty/braindataprep"
+pip install "brainspresso @ git+https://github.com/balbasty/brainspresso"
 ```
 
 Specific datasets may require additional dependencies. To install the
 dependencies to a specific dataset, use the corresponding tag. For example:
 ```shell
-pip install "braindataprep[ixi] @ git+https://github.com/balbasty/braindataprep"
+pip install "brainspresso[ixi] @ git+https://github.com/balbasty/brainspresso"
 ```
 To install all possible dependencies, use the `all` tag:
 ```shell
-pip install "braindataprep[all] @ git+https://github.com/balbasty/braindataprep"
+pip install "brainspresso[all] @ git+https://github.com/balbasty/brainspresso"
 ```
 
 # Usage
@@ -35,7 +35,7 @@ These datasets can be listed by typing `bdp`:
 Usage: bdp COMMAND
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃           BrainDataPrep : Download, Bidsify and Process public datasets           ┃
+┃           brainspresso : Download, Bidsify and Process public datasets           ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 ╭─ Commands ────────────────────────────────────────────────────────────────────────╮

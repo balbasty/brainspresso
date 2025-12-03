@@ -1,7 +1,7 @@
 # Brainspresso
 
 A single application to **harvest** (download), **roast** (bidsify)
-and **grid** (preprocess) public datasets.
+and **grind** (preprocess) public datasets.
 
 This is a very early work in progress.
 

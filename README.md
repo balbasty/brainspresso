@@ -75,7 +75,8 @@ IXI dataset (controls)
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
-
+```
+```
 Usage: brainspresso ixi harvest [ARGS] [OPTIONS]
 
 Download source data for the IXI dataset.
@@ -88,7 +89,8 @@ Download source data for the IXI dataset.
 │ --packet     Packet size to download, in bytes [default: 8.4 MB]                  │
 │ --log        Path to log file                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
-
+```
+```
 Usage: brainspresso ixi roast [ARGS] [OPTIONS]
 
 Convert source data into a BIDS-compliant directory

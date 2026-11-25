@@ -19,5 +19,9 @@ _datasets = [
 for _dataset in _datasets:
     try:
         import_module('.datasets.' + _dataset, package='brainspresso')
-    except Exception:
-        pass
+    except Exception as _e:
+        # Do not crash the whole CLI, but say why the command is missing
+        logging.getLogger(__name__).warning(
+            f'Dataset {_dataset} is unavailable '
+            f'[{type(_e).__name__}: {_e}]'
+        )

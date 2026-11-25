@@ -1,14 +1,16 @@
 """
-Girder backend and the UNC-Wisconsin dataset, against a fake Girder
-server modelled on data.kitware.com.
+Girder backend and the Girder-backed datasets (UNC-Wisconsin, Bullitt),
+against a fake Girder server modelled on data.kitware.com.
 """
 import asyncio
+import contextlib
 import hashlib
 import io
 import itertools
 import json
 import socket
 import threading
+import zlib
 from pathlib import Path, PurePosixPath
 
 import numpy as np
@@ -173,9 +175,9 @@ class FakeGirder:
         return app
 
 
-@pytest.fixture(scope="module")
-def server():
-    fake = FakeGirder(TREE)
+@contextlib.contextmanager
+def serve(tree):
+    fake = FakeGirder(tree)
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))
     port = sock.getsockname()[1]
@@ -195,6 +197,12 @@ def server():
     fake.api = f"http://127.0.0.1:{port}/api/v1"
     yield fake
     loop.call_soon_threadsafe(loop.stop)
+
+
+@pytest.fixture(scope="module")
+def server():
+    with serve(TREE) as fake:
+        yield fake
 
 
 def files(root: Path) -> set[str]:
@@ -393,6 +401,13 @@ def test_uncwisc_roast_derivatives(uncwisc, tmp_path):
             f"{base}/dwi/sub-001_ses-{ses}_"
             f"model-tensor_param-fa_desc-autoqc_dwimap.nii.gz" in out
         )
+        # required derivative metadata
+        sidecar = json.loads((drv / (
+            f"{base}/anat/sub-001_ses-{ses}_space-{SPACE}_T1w.json"
+        )).read_text())
+        assert sidecar["SkullStripped"] is False
+        assert "SpatialReference" in sidecar
+    assert ".bidsignore" in out
     # raw data was not harvested
     assert not (root / "rawdata" / "sub-001" / "ses-12months").exists()
     description = json.loads((drv / "dataset_description.json").read_text())
@@ -401,3 +416,154 @@ def test_uncwisc_roast_derivatives(uncwisc, tmp_path):
     assert _age_months("12months") == "12"
     assert _age_months("02weeks") == "0.46"
     assert _age_months("unknown") == "n/a"
+
+
+# ----------------------------------------------------------------------
+#   Bullitt
+# ----------------------------------------------------------------------
+
+def mha_bytes(value) -> bytes:
+    data = np.full((4, 3, 2), value, np.int16)
+    raw = zlib.compress(data.T.tobytes())
+    head = (
+        "ObjectType = Image\nNDims = 3\nBinaryData = True\n"
+        "BinaryDataByteOrderMSB = False\nCompressedData = True\n"
+        f"CompressedDataSize = {len(raw)}\n"
+        "TransformMatrix = 1 0 0 0 1 0 0 0 1\nOffset = 0 0 0\n"
+        "ElementSpacing = 1 1 1\nDimSize = 4 3 2\n"
+        "ElementType = MET_SHORT\nElementDataFile = LOCAL\n"
+    )
+    return head.encode() + raw
+
+
+def normal(n, t1="T1-Flash", mprage="T1-MPRage"):
+    folders = {
+        t1: {"items": {f"Normal{n}-T1-Flash.mha": mha_bytes(1)}},
+        "T2": {"items": {f"Normal{n}-T2.mha": mha_bytes(2)}},
+        "MRA": {"items": {f"Normal{n}-MRA.mha": mha_bytes(3)}},
+        "DTI": {"items": {f"Normal{n}-DTI.mha": mha_bytes(4)}},
+        "AuxillaryData": {"items": {
+            "SkullStripped-T1-Flash.mha": mha_bytes(5),
+            "VascularNetwork.tre": b"ObjectType = Scene\n",
+            "Something-else.txt": b"not harvested",
+        }},
+    }
+    if mprage:
+        folders[mprage] = {"items": {f"Normal{n}-MPRage.mha": mha_bytes(6)}}
+    return {"folders": folders}
+
+
+BULLITT_TREE = {
+    "folders": {
+        "Normal-001": normal("001"),
+        "Normal-002": normal("002", t1="T!-Flash", mprage=None),
+        "Normal-003": normal("003", mprage="MPRage"),
+        "Administration": {"items": {"NormalDatabase2.pdf": b"%PDF"}},
+        "Phantoms": {"items": {"phantom.mha": mha_bytes(7)}},
+    },
+}
+
+
+@pytest.fixture(scope="module")
+def bullitt_server():
+    with serve(BULLITT_TREE) as fake:
+        yield fake
+
+
+@pytest.fixture
+def bullitt(bullitt_server, monkeypatch):
+    from brainspresso.datasets.Bullitt import download as dl
+    monkeypatch.setattr(dl, "KITWARE", bullitt_server.api)
+    monkeypatch.setattr(dl, "ROOT", bullitt_server.root)
+    return dl
+
+
+def test_bullitt_subject_labels():
+    from brainspresso.datasets.Bullitt.download import _labels, subject_label
+    assert subject_label("Normal-042") == "042"
+    assert subject_label("Administration") is None
+    assert _labels(["1", "sub-2", "003"], "sub-") == {"001", "002", "003"}
+
+
+def test_bullitt_harvest(bullitt, tmp_path):
+    bullitt.download(tmp_path, subs=["1", "2"])
+    src = tmp_path / "Bullitt" / "sourcedata"
+    assert files(src) == {
+        "Administration/NormalDatabase2.pdf",
+        *(f"Normal-001/{x}" for x in (
+            "T1-Flash/Normal001-T1-Flash.mha",
+            "T1-MPRage/Normal001-MPRage.mha",
+            "T2/Normal001-T2.mha", "MRA/Normal001-MRA.mha",
+            "DTI/Normal001-DTI.mha",
+            "AuxillaryData/SkullStripped-T1-Flash.mha",
+            "AuxillaryData/VascularNetwork.tre",
+        )),
+        *(f"Normal-002/{x}" for x in (
+            "T!-Flash/Normal002-T1-Flash.mha",
+            "T2/Normal002-T2.mha", "MRA/Normal002-MRA.mha",
+            "DTI/Normal002-DTI.mha",
+            "AuxillaryData/SkullStripped-T1-Flash.mha",
+            "AuxillaryData/VascularNetwork.tre",
+        )),
+    }
+
+
+def test_bullitt_harvest_keys(bullitt, tmp_path):
+    bullitt.download(tmp_path, keys=["mprage", "vessels", "phantoms"])
+    src = tmp_path / "Bullitt" / "sourcedata"
+    assert files(src) == {
+        "Normal-001/T1-MPRage/Normal001-MPRage.mha",
+        "Normal-003/MPRage/Normal003-MPRage.mha",
+        *(f"Normal-{n}/AuxillaryData/VascularNetwork.tre"
+          for n in ("001", "002", "003")),
+        "Phantoms/phantom.mha",
+    }
+
+
+def test_bullitt_roast(bullitt, tmp_path):
+    import nibabel as nib
+    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    bullitt.download(tmp_path, exclude_subs=["003"])
+    root = tmp_path / "Bullitt"
+    Bidsifier(root).run()
+    out = files(root)
+
+    for name in ("README", "dataset_description.json",
+                 "participants.json", "participants.tsv"):
+        assert name in out
+    anat = "rawdata/sub-001/anat/sub-001"
+    for suffix in ("acq-flash_T1w", "acq-mprage_T1w", "T2w", "angio"):
+        assert {f"{anat}_{suffix}.nii.gz", f"{anat}_{suffix}.json"} <= out
+    # "T!-Flash" typo on the server; no MPRAGE for this subject
+    assert "rawdata/sub-002/anat/sub-002_acq-flash_T1w.nii.gz" in out
+    assert not any("sub-002_acq-mprage" in p for p in out)
+    # DTI is not converted
+    assert not any("/dwi/" in p for p in out if p.startswith("rawdata"))
+
+    t2 = nib.load(root / f"{anat}_T2w.nii.gz")
+    assert t2.shape == (4, 3, 2)
+    assert np.all(np.asarray(t2.dataobj) == 2)
+    assert nib.aff2axcodes(t2.affine) == ("L", "P", "S")
+    sidecar = json.loads((root / f"{anat}_T2w.json").read_text())
+    assert sidecar["MagneticFieldStrength"] == 3
+
+    drv = "derivatives/bullitt"
+    for name in ("README", "dataset_description.json", ".bidsignore"):
+        assert f"{drv}/{name}" in out
+    brain = f"{drv}/sub-001/anat/sub-001_acq-flash_desc-brain_T1w"
+    assert {f"{brain}.nii.gz", f"{brain}.json"} <= out
+    assert json.loads((root / f"{brain}.json").read_text()) == {
+        "SkullStripped": True
+    }
+    assert f"{drv}/sub-002/anat/sub-002_desc-vessels_tubes.tre" in out
+
+
+def test_bullitt_roast_keys(bullitt, tmp_path):
+    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    bullitt.download(tmp_path, subs=["001"])
+    root = tmp_path / "Bullitt"
+    Bidsifier(root, keys=["T2w"], json="no").run()
+    assert files(root / "rawdata") == {
+        "sub-001/anat/sub-001_T2w.nii.gz"
+    }
+    assert not (root / "derivatives").exists()

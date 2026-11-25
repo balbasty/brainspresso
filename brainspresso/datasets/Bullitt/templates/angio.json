@@ -1,0 +1,25 @@
+{
+  "Manufacturer": "SIEMENS",
+  "ManufacturerModelName": "Allegra",
+  "SoftwareVersions": "syngo MR 2002B 4VA21A",
+  "SequenceName": "*fl3d1r_tm",
+  "ScanningSequence": "GR",
+  "SequenceVariant": [
+    "TOF",
+    "MTC",
+    "SP"
+  ],
+  "ScanOptions": "MT",
+  "MRAcquisitionType": "3D",
+  "ProtocolName": "tof3d_multi_slab",
+  "SeriesDescription": "tof3d_multi_slab",
+  "MagneticFieldStrength": 3,
+  "RepetitionTime": 0.035,
+  "EchoTime": 0.00356,
+  "FlipAngle": 22,
+  "PixelBandwidth": 205,
+  "EchoTrainLength": 1,
+  "ImagingFrequency": 123.30017,
+  "SliceThickness": 0.80000001,
+  "SidecarSource": "Sample DICOM header (dicom_header_MRA.txt) distributed with the dataset; may differ for individual subjects."
+}

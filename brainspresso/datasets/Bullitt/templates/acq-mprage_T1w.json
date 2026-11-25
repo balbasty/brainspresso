@@ -1,0 +1,28 @@
+{
+  "Manufacturer": "SIEMENS",
+  "ManufacturerModelName": "Allegra",
+  "SoftwareVersions": "syngo MR 2002B 4VA21A",
+  "SequenceName": "*tfl3d1",
+  "ScanningSequence": [
+    "IR",
+    "GR"
+  ],
+  "SequenceVariant": [
+    "SP",
+    "MP"
+  ],
+  "ScanOptions": "IR",
+  "MRAcquisitionType": "3D",
+  "ProtocolName": "t1_mprage_ax",
+  "SeriesDescription": "t1_mprage_ax",
+  "MagneticFieldStrength": 3,
+  "RepetitionTime": 1.7,
+  "EchoTime": 0.00438,
+  "InversionTime": 0.9,
+  "FlipAngle": 8,
+  "PixelBandwidth": 130,
+  "EchoTrainLength": 1,
+  "ImagingFrequency": 123.30017,
+  "SliceThickness": 1,
+  "SidecarSource": "Sample DICOM header (dicom_header_T1_mprage.txt) distributed with the dataset; may differ for individual subjects."
+}

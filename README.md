@@ -159,5 +159,30 @@ bx unc-wisconsin roast /data
 ```
 
 The full database is ~260 GB; `--keys` selects `raw` (`anat`, `dwi`),
-`meta`, or `derivatives` (`reg`, `dti-qc`, `dti-proc`; downloaded but
-not converted yet). Please cite https://doi.org/10.3389/fnins.2017.00029.
+`meta`, or `derivatives` (`reg`, `dti-qc`, `dti-proc`). Derivatives are
+written to `derivatives/unc-wisconsin`: atlas-registered T1w/T2w
+(`space-UNCEmoryWisconsin12mo`), brain masks, skull-stripped images,
+the QC'd DWI series and its DTI maps (FA, MD, b0, iDWI; BEP016
+`*_dwimap` names, listed in `.bidsignore`).
+Please cite https://doi.org/10.3389/fnins.2017.00029.
+
+## Bullitt: MR brain images of healthy volunteers (CASILab, UNC)
+
+T1w (FLASH and MPRAGE), T2w and MR angiography of 109 healthy adults
+(18 to 72 years), hosted on https://data.kitware.com (Girder; no login).
+The source files are MetaImage (`.mha`): `roast` converts them to NIfTI,
+with sidecars built from the sample DICOM headers distributed with the
+data, and writes `participants.tsv` (age, sex, race, handedness, notes)
+transcribed from the dataset's demographics PDF.
+
+```shell
+bx bullitt harvest /data --subs 1 2 3
+bx bullitt roast /data
+```
+
+`--keys` selects `raw` (`flash`, `mprage`, `T2w`, `angio`, `dwi`),
+`meta`, `derivatives` (`skullstripped`, `vessels`) or `phantoms`.
+Derivatives go to `derivatives/bullitt`: skull-stripped FLASH T1w and
+the segmented vascular networks (TubeTK `.tre`, listed in
+`.bidsignore`). The DTI series are downloaded but not converted: they
+have no gradient table, and their volumes are stacked along z.

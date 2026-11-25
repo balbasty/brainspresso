@@ -1,0 +1,12 @@
+{
+  "Name": "Designed Database of MR Brain Images of Healthy Volunteers - auxiliary data",
+  "BIDSVersion": "1.8.0",
+  "DatasetType": "derivative",
+  "GeneratedBy": [
+    {"Name": "CASILab (UNC)", "Description": "Skull-stripped T1 images and vascular trees distributed with the dataset ('AuxillaryData')."},
+    {"Name": "brainspresso", "Description": "Conversion from MetaImage to BIDS (NIfTI).", "CodeURL": "https://github.com/balbasty/brainspresso"}
+  ],
+  "SourceDatasets": [
+    {"URL": "https://data.kitware.com/#collection/591086ee8d777f16d01e0724"}
+  ]
+}

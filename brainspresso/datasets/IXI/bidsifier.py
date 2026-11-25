@@ -1,4 +1,3 @@
-import tarfile
 import nibabel as nib
 import numpy as np
 from logging import getLogger
@@ -8,11 +7,11 @@ from pathlib import Path, PosixPath
 from typing import Literal, Iterable, Set
 
 from brainspresso.utils.path import fileparts
+from brainspresso.utils.archive import open_archive
 from brainspresso.utils.io import copy_from_buffer
 from brainspresso.utils.io import write_tsv
 from brainspresso.utils.tabular import bidsify_tab
 from brainspresso.actions import Action
-from brainspresso.actions import File
 from brainspresso.actions import CopyBytes
 from brainspresso.actions import CopyJSON
 from brainspresso.actions import WrapAction
@@ -111,16 +110,34 @@ class Bidsifier:
     # ------------------------------------------------------------------
     #   Helpers
     # ------------------------------------------------------------------
+    def open(self, ixi_key: str):
+        """
+        Open the images of a modality (e.g. "T1"): either the original
+        tarball `sourcedata/IXI-T1.tar` or a folder `sourcedata/IXI-T1/`
+        (harvested from NITRC-IR). Returns None if neither exists.
+        """
+        return open_archive(
+            self.src / f'IXI-{ixi_key}.tar', self.src / f'IXI-{ixi_key}'
+        )
+
+    def find(self, name: str) -> Path | None:
+        """Find a metadata file in `sourcedata/`, or shipped templates"""
+        for folder in (self.src, self.TPLDIR):
+            if (folder / name).exists():
+                return folder / name
+        return None
+
     @staticmethod
-    def get_sites(tarpath: Path) -> dict:
+    def get_sites(archive) -> dict:
         """Get all available sites"""
         sitemap = {}
-        with File(tarpath, "r") as f:
-            with tarfile.open(str(f.safename)) as tar:
-                for member in tar.getmembers():
-                    ixi_id, site, *_ = member.name.split('-')
-                    ixi_id = int(ixi_id[3:])
-                    sitemap[ixi_id] = site
+        for member in archive.getmembers():
+            name = PosixPath(member.name).name
+            if not name.startswith('IXI'):
+                continue
+            ixi_id, site, *_ = name.split('-')
+            ixi_id = int(ixi_id[3:])
+            sitemap[ixi_id] = site
         return sitemap
 
     def fixstatus(self, status: dict, fname: str):
@@ -141,15 +158,15 @@ class Bidsifier:
         # The mapping from subject to site is only available through
         # individual filenames. We therefore need to first parse one of
         # the tar to build this mapping.
-        # TODO: read-protect tar archive using `File`
         sites = None
         for key in ['T1', 'T2', 'PD', 'MRA', 'DTI']:
-            tarpath = self.src / f'IXI-{key}.tar'
-            if tarpath.exists():
-                sites = self.get_sites(tarpath)
+            archive = self.open(key)
+            if archive is not None:
+                with archive:
+                    sites = self.get_sites(archive)
                 break
         if sites is None:
-            lg.error("No tar file available. Cannot compute sites.")
+            lg.error("No IXI images available. Cannot compute sites.")
 
         # Define future actions
         opt = dict(ifexists=self.ifexists)
@@ -174,7 +191,7 @@ class Bidsifier:
                 ),
             'participants.tsv':
                 WrapAction(
-                    self.src / 'IXI.xls',
+                    self.find('IXI.xls') or self.src / 'IXI.xls',
                     self.root / 'participants.tsv',
                     partial(self.make_participants, sites=sites),
                     mode="t", input="path",
@@ -195,16 +212,14 @@ class Bidsifier:
     # ------------------------------------------------------------------
     def make_modality(self, key: str):
         # Check that archive is available, and open it
-        tarpath = self.src / f'IXI-{self.BIDS2IXI[key]}.tar'
-        # if tar is None:
-        if not tarpath.exists():
-            lg.warning(f'IXI-{self.BIDS2IXI[key]}.tar not found')
+        archive = self.open(self.BIDS2IXI[key])
+        if archive is None:
+            lg.warning(f'IXI-{self.BIDS2IXI[key]}(.tar) not found')
             return
-        with tarfile.open(tarpath) as tar:
-            yield from self._make_modality(key, tar)
+        with archive:
+            yield from self._make_modality(key, archive)
 
     def _make_modality(self, key: str, tar):
-        tarpath = self.src / f'IXI-{self.BIDS2IXI[key]}.tar'
         opt = dict(ifexists=self.ifexists)
 
         def skip_subject(id):
@@ -234,7 +249,7 @@ class Bidsifier:
             if self.json != 'only':
                 fname = name + '.nii.gz'
                 for status in Action(
-                    tarpath, dst / fname,
+                    tar.sources(member.name), dst / fname,
                     lambda fp: copy_from_buffer(tar.extractfile(member), fp),
                     **opt
                 ):
@@ -265,43 +280,30 @@ class Bidsifier:
     # ------------------------------------------------------------------
     def make_dwi(self):
         # Check that archive is available, and open it
-        tarpath = self.src / 'IXI-DTI.tar'
-        if not tarpath.exists():
-            lg.warning('IXI-DTI.tar not found')
+        archive = self.open('DTI')
+        if archive is None:
+            lg.warning('IXI-DTI(.tar) not found')
             return
-        with tarfile.open(tarpath) as tar:
-            yield from self._make_dwi(tar)
+        with archive:
+            yield from self._make_dwi(archive)
 
     def _make_dwi(self, tar):
-        tarpath = self.src / 'IXI-DTI.tar'
         opt = dict(ifexists=self.ifexists)
 
         # First, copy bvals/bvecs.
-        # They are common to all subjects so we place them at the top of
-        # the tree (under "rawdata/")
-
-        fname = 'dwi.bval'
-        if not (self.src / 'bvals.txt').exists():
-            lg.error('bvals not found')
-            yield from self.fixstatus(
-                {'status': 'error', 'message': 'file not found'}, fname
-            )
-        else:
-            for status in CopyBytes(
-                self.src / 'bvals.txt', self.raw / fname, **opt
-            ):
-                yield from self.fixstatus(status, fname)
-
-        fname = 'dwi.bvec'
-        if not (self.src / 'bvecs.txt').exists():
-            lg.error('bvecs not found')
-            yield from self.fixstatus(
-                {'status': 'error', 'message': 'file not found'}, fname
-            )
-        else:
-            for status in CopyBytes(
-                self.src / 'bvecs.txt', self.raw / fname,  **opt
-            ):
+        # The original release has a single bvals.txt/bvecs.txt, common
+        # to all subjects, that we place at the top of the tree (under
+        # "rawdata/"). NITRC-IR has one pair per subject (harvested as
+        # `IXI-DTI/<IXI###-Site-####>-{bvals,bvecs}.txt`), written next
+        # to each subject's dwi file below.
+        common = {}
+        for fname, source in (('dwi.bval', 'bvals.txt'),
+                              ('dwi.bvec', 'bvecs.txt')):
+            path = self.find(source)
+            if path is None:
+                continue
+            common[source] = path
+            for status in CopyBytes(path, self.raw / fname, **opt):
                 yield from self.fixstatus(status, fname)
 
         # Process individual subjects
@@ -401,10 +403,27 @@ class Bidsifier:
 
             name = basename + '.nii.gz'
             for status in Action(
-                tarpath, dst / name, cat_action,
+                tar.sources(*ids[id]), dst / name, cat_action,
                 ifexists=self.ifexists, input='path',
             ):
                 yield from self.fixstatus(status, name)
+
+            # Per-subject b-values/vectors (NITRC-IR)
+            prefix = '-'.join(PosixPath(ids[id][0]).name.split('-')[:3])
+            for ext, source in (('bval', 'bvals.txt'), ('bvec', 'bvecs.txt')):
+                if source in common:
+                    continue
+                path = self.src / 'IXI-DTI' / f'{prefix}-{source}'
+                fname = f'{basename}.{ext}'
+                if not path.exists():
+                    lg.error(f'{source} not found for sub-{id:03d}')
+                    yield from self.fixstatus(
+                        {'status': 'error', 'message': f'no {source}'},
+                        fname,
+                    )
+                    continue
+                for status in CopyBytes(path, dst / fname, **opt):
+                    yield from self.fixstatus(status, fname)
 
             yield {'progress': 100*isub/nsub}
 

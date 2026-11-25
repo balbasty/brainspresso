@@ -36,7 +36,7 @@ jobs:
           ref: ${{ inputs.tag }}
       # Python >= 3.12 is needed for the sys.monitoring tracer below
       - name: Setup Python ${{ inputs.python-version || '3.12' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version || '3.12' }}
           cache: pip

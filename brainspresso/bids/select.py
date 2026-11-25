@@ -111,8 +111,10 @@ class Selection:
     folders: Sequence[str] = ()     # subset of OPTIONAL_FOLDERS
 
     def __post_init__(self):
-        strip = (lambda x, p: str(x)[len(p):] if str(x).startswith(p)
-                 else str(x))
+        def strip(x, prefix):
+            x = str(x)
+            return x[len(prefix):] if x.startswith(prefix) else x
+
         self.subs = {strip(s, "sub-") for s in self.subs}
         self.exclude_subs = {strip(s, "sub-") for s in self.exclude_subs}
         self.sessions = {strip(s, "ses-") for s in self.sessions}

@@ -26,7 +26,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Iterable, Iterator
 
-from brainspresso.actions import Action, CopyBytes, CopyJSON
+from brainspresso.actions import Action, CopyBytes, CopyJSON, WriteJSON
 from brainspresso.utils.nrrd import nrrd_to_nifti
 from brainspresso.utils.tabular import bidsify_tab
 
@@ -38,6 +38,7 @@ ANAT = {"T1": "T1w", "T2": "T2w"}
 # Derivatives -> derivatives/unc-wisconsin/
 DERIV_NAME = "unc-wisconsin"
 SPACE = "UNCEmoryWisconsin12mo"     # UNC-Emory-Wisconsin 12 month atlas
+ATLAS_URL = "https://www.nitrc.org/projects/primate_atlas/"
 # (key, folder in session, file stem after "<sub>_<ses>_", datatype,
 #  output entities+suffix, is_dwi)
 DERIVATIVES = [
@@ -77,6 +78,18 @@ DERIVATIVES = [
      "dwi", "desc-brain_mask", False),
 ]
 DERIV_KEYS = {"reg", "dti-qc", "dti-proc"}
+
+
+def deriv_sidecar(suffix: str) -> dict:
+    """Required BIDS derivative metadata for an output file"""
+    out = {}
+    if "space-" in suffix:
+        out["SpatialReference"] = ATLAS_URL
+    if suffix.endswith("_mask"):
+        out["Type"] = "Brain"
+    else:
+        out["SkullStripped"] = "desc-brain" in suffix
+    return out
 
 
 class Bidsifier:
@@ -177,6 +190,10 @@ class Bidsifier:
             actions["derivatives/README"] = CopyBytes(
                 self.TPLDIR / "derivatives_README",
                 self.drv / "README", **opt
+            )
+            actions["derivatives/.bidsignore"] = CopyBytes(
+                self.TPLDIR / "derivatives_bidsignore",
+                self.drv / ".bidsignore", **opt
             )
         if meta:
             actions["participants.tsv"] = Action(
@@ -306,10 +323,13 @@ class Bidsifier:
             dst = self.drv / f"sub-{sub}" / f"ses-{ses}" / datatype
             name = f"{base}_{suffix}"
             if is_dwi:
+                # b-values/vectors are named without `desc` so that they
+                # validate (BIDS inheritance makes them apply to the
+                # single derivative DWI series of the session)
                 yield Action(
                     src,
-                    [dst / f"{name}.nii.gz", dst / f"{name}.bval",
-                     dst / f"{name}.bvec"],
+                    [dst / f"{name}.nii.gz", dst / f"{base}_dwi.bval",
+                     dst / f"{base}_dwi.bvec"],
                     lambda nii, bval, bvec, src=src: nrrd_to_nifti(
                         src, nii, bval=bval, bvec=bvec
                     ),
@@ -321,6 +341,10 @@ class Bidsifier:
                     lambda path, src=src: nrrd_to_nifti(src, path),
                     **opt,
                 ), key
+            yield WriteJSON(
+                deriv_sidecar(suffix), dst / f"{name}.json", src=src,
+                ifexists=self.ifexists,
+            ), key
 
 
 def _age_months(label: str) -> str:

@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 import aiohttp
 
-from brainspresso.download.constants import TIMEOUT
+from brainspresso.download.session import new_session
 from brainspresso.sources.s3 import S3Bucket
 
 lg = getLogger(__name__)
@@ -119,7 +119,7 @@ class OpenNeuroAPI:
         session = self.session
         own = session is None or session.closed
         if own:
-            session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(
+            session = new_session(timeout=aiohttp.ClientTimeout(
                 total=None, sock_connect=20, sock_read=180,
             ))
         try:
@@ -254,7 +254,7 @@ async def list_s3(
 
 async def _read_tag(url: str) -> str | None:
     try:
-        async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
+        async with new_session() as session:
             headers = {"Range": "bytes=0-1023"}
             async with session.get(url, headers=headers) as r:
                 r.raise_for_status()

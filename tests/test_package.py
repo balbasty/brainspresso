@@ -20,7 +20,6 @@ import pytest
 import brainspresso
 from brainspresso import _datasets
 from brainspresso.cli import app
-from brainspresso.utils.deps import available
 
 
 def all_modules():
@@ -32,9 +31,7 @@ def all_modules():
 # Optional dependencies that are not part of the `test` extra. A module
 # that fails to import *only* because one of them is missing is skipped;
 # any other import error fails.
-OPTIONAL_DEPENDENCIES = {
-    "datalad", "xlrd", "openpyxl", "fsspec", "s3fs", "pymupdf",
-}
+OPTIONAL_DEPENDENCIES = {"datalad", "xlrd", "openpyxl", "pymupdf"}
 
 
 def import_or_skip(module):
@@ -59,18 +56,16 @@ def test_dataset_import(dataset):
 def test_cli_commands():
     commands = set(app._commands)
     expected = {
-        "abide1", "abide2", "cobre", "corr", "gsp", "ixi",
+        "abide1", "abide2", "adhd200", "cobre", "corr", "gsp", "ixi",
         "oasis1", "oasis2", "oasis3", "openneuro",
     }
-    if available("fsspec", "s3fs"):
-        expected.add("adhd200")
     assert expected <= commands
 
 
 # Run in a fresh interpreter, with optional dependencies made unimportable
 HIDE_DEPS = """
 import sys, json
-for name in ("xlrd", "openpyxl", "fsspec", "s3fs"):
+for name in ("xlrd", "openpyxl"):
     sys.modules[name] = None
 from brainspresso.cli import app
 from brainspresso.utils.deps import UNAVAILABLE
@@ -92,16 +87,16 @@ def test_missing_optional_dependencies():
     assert out.stderr == ""
     info = json.loads(out.stdout)
     # Commands whose dependencies are missing are not registered...
-    assert "adhd200" not in info["commands"]
     assert "roast" not in info["ixi"] and "harvest" in info["ixi"]
     assert "roast" not in info["oasis1"] and "harvest" in info["oasis1"]
     # ... but other commands still are
-    assert {"ixi", "oasis1", "openneuro", "corr"} <= set(info["commands"])
+    assert {"ixi", "oasis1", "openneuro", "corr", "adhd200"} <= set(
+        info["commands"]
+    )
     # ... and they are recorded, with a hint
     unavailable = {u[0]: u for u in info["unavailable"]}
     assert unavailable["ixi roast"][1] == ["xlrd"]
     assert unavailable["ixi roast"][2] == "pip install 'brainspresso[ixi]'"
-    assert unavailable["adhd200 harvest"][1] == ["fsspec", "s3fs"]
     assert {"oasis1 roast", "oasis2 roast"} <= set(unavailable)
 
 

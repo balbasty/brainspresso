@@ -12,6 +12,7 @@ from brainspresso.datasets.ABIDE.I.command import abide1
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.datasets.ABIDE.I.download_nitrc import download_nitrc
 from brainspresso.datasets.ABIDE.I.download_xnat import download_xnat
+from brainspresso.datasets.ABIDE.I.download_s3 import download_s3
 
 
 lg = getLogger(__name__)
@@ -41,11 +42,13 @@ KEYS = flatten_keys(allkeys)
 SiteChoice = Enum("SiteChoice", [(site, site) for site in SITES], type=str)
 KeyChoice = Enum("KeyChoice", [(site, site) for site in KEYS], type=str)
 SourceChoice = Enum(
-    "SourceChoice", [("nitrc", "nitrc"), ("xnat", "xnat")], type=str
+    "SourceChoice",
+    [("s3", "s3"), ("nitrc", "nitrc"), ("xnat", "xnat")],
+    type=str,
 )
 
-GroupNITRC = Parameter(group="nitrc")
-GroupXNAT = Parameter(group="xnat")
+# Options that only apply to some sources
+GroupNITRC = Parameter(group="nitrc/xnat (login required)")
 
 
 @abide1.command(name="harvest")
@@ -53,15 +56,15 @@ def download(
     path: str | None = None,
     *,
     keys: Iterable[KeyChoice] = KeyChoice.all,
-    sites: Annotated[Iterable[SiteChoice], GroupNITRC] = SITES,
-    subs:  Annotated[Iterable[int | str] | None, GroupXNAT] = tuple(),
-    exclude_subs: Annotated[Iterable[int | str] | None, GroupXNAT] = tuple(),
+    sites: Iterable[SiteChoice] = SITES,
+    subs: Iterable[int | str] | None = tuple(),
+    exclude_subs: Iterable[int | str] | None = tuple(),
     if_exists: IfExists.Choice = "skip",
-    source: SourceChoice = SourceChoice.nitrc,
-    user: str | None = None,
-    password: str | None = None,
+    source: SourceChoice = SourceChoice.s3,
+    user: Annotated[str | None, GroupNITRC] = None,
+    password: Annotated[str | None, GroupNITRC] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = 1,
+    jobs: int | None = None,
     log: str | None = None,
 ):
     """
@@ -95,27 +98,47 @@ def download(
     keys : [list of] str
         Data categories to download
     sites : [list of] str
-        Only download these sites.
+        Only download these sites (s3, nitrc).
     subs : [list of] int
-        Only download these subjects (all if empty).
+        Only download these subjects (s3, xnat; all if empty).
     exclude_subs : [list of] int
-        Do not download these subjects
+        Do not download these subjects (s3, xnat)
     if_exists : {"error", "skip", "overwrite", "different", "refresh"}
         Behaviour if a file already exists
-    source : {"nitrc", "xnat"}
-        Source to download from.
+    source : {"s3", "nitrc", "xnat"}
+        Source to download from:
+
+        * s3: public INDI bucket (s3://fcp-indi), no login. Raw data
+          and phenotypes only.
+        * nitrc: NITRC tarballs (login required).
+        * xnat: NITRC-IR (login required), including derivatives.
     user : str
         NITRC username
     password : str
         NITRC password
     packet : int
         Packet size to download, in bytes
+    jobs : int
+        Number of parallel downloads (default: 4 with s3, 1 otherwise)
     log : str
         Path to log file
 
     """  # noqa: E501
     setup_filelog(log)
 
+    if source == "s3":
+        return download_s3(
+            path,
+            keys=keys,
+            sites=sites if set(sites) != set(SITES) else (),
+            subs=subs,
+            exclude_subs=exclude_subs,
+            if_exists=if_exists,
+            packet=packet,
+            jobs=jobs,
+            log=log,
+        )
+    jobs = jobs or 1
     if source == "nitrc":
         return download_nitrc(
             path,

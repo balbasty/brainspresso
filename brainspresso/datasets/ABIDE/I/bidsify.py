@@ -46,7 +46,9 @@ from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
 DATASET = 'ABIDE-1'
 
 SourceChoice = Enum(
-    "SourceChoice", [("nitrc", "nitrc"), ("xnat", "xnat")], type=str
+    "SourceChoice",
+    [("s3", "s3"), ("nitrc", "nitrc"), ("xnat", "xnat")],
+    type=str,
 )
 
 
@@ -60,7 +62,7 @@ def bidsify(
     exclude_subs: Iterable[int] | None = tuple(),
     json: Literal["yes", "no", "only"] | bool = "yes",
     if_exists: IfExists.Choice = "skip",
-    source: SourceChoice = SourceChoice.nitrc,
+    source: SourceChoice = SourceChoice.s3,
     log: str | None = None,
     level: str = "info",
 ):
@@ -105,6 +107,10 @@ def bidsify(
         Whether to write (only) sidecar JSON files
     if_exists : {"error", "skip", "overwrite", "different", "refresh"}
         Behaviour when a file already exists
+    source : {"s3", "nitrc", "xnat"}
+        Source the data was harvested from. "s3" and "nitrc" share the
+        same layout: both NITRC tarballs and `sourcedata/RawData/` (from
+        s3://fcp-indi) are converted.
     log : str
         Path to log file
     level
@@ -139,7 +145,12 @@ def bidsify(
     root = get_tree_path(path) / DATASET
 
     # Bidsify
-    Bidsifier = {"xnat": BidsifierXNAT, "nitrc": BidsifierNITRC}[source]
+    # s3 and nitrc share the same (FCP) layout
+    Bidsifier = {
+        "xnat": BidsifierXNAT,
+        "nitrc": BidsifierNITRC,
+        "s3": BidsifierNITRC,
+    }[source]
     Bidsifier(
         root,
         keys=keys,

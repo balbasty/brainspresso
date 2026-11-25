@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 adni1_help = """
 ADNI-1 dataset (Alzheimer's Disease)
@@ -12,3 +13,5 @@ ADNI-1 dataset (Alzheimer's Disease)
 """  # noqa: E501
 
 app.command(adni1 := App(name="adni1", help=adni1_help))
+
+add_compost(adni1, "ADNI-1")

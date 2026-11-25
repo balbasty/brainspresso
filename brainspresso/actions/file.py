@@ -95,7 +95,7 @@ class File:
         mode : {'r', 'w', 'x', 'a', 'b', 't', '+'} | None
             Protection & opening mode.
             By default, no protection is applied until a file-object is
-            opened, in which case approprite protection is applied.
+            opened, in which case appropriate protection is applied.
         """
         # assign
         self.mode = mode
@@ -193,7 +193,7 @@ class File:
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Rename temporary filename to output filename
         # Note that we only rename the file to its final name and
-        # remove temporary file if the download was succesful (i.e.
+        # remove temporary file if the download was successful (i.e.
         # the context was not interrupted by an exception)
         try:
             if exc_type is None and self.tempname.exists():

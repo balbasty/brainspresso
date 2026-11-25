@@ -248,7 +248,7 @@ def read_gcs(path):
     def icno_to_nvert(icno):
         # a regular icosahedron has 12 vertices, 30 edges, 20 faces
         # at each refinement level, one vertex is added to each edge,
-        # each edge therfore gives rise to 2 new edges, and each face
+        # each edge therefore gives rise to 2 new edges, and each face
         # gives rise to 3 additional edges (and 3 faces)
         def refine(v, e, f):
             v = v + e

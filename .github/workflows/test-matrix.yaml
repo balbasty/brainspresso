@@ -1,0 +1,31 @@
+name: Run matrix of tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Commit / Branch / Tag / SHA to checkout
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      tag:
+        description: Commit / Branch / Tag / SHA to checkout
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest supported (python_requires) and newest released Python
+        python-version: ["3.10", "3.14"]
+    uses: ./.github/workflows/test.yaml
+    with:
+      tag: ${{ inputs.tag }}
+      python-version: ${{ matrix.python-version }}

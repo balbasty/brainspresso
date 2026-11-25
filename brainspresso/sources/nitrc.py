@@ -55,7 +55,7 @@ def get_credentials(
 
 
 class nitrc_authentifier:
-    """Generate an authentification function for NITRC"""
+    """Generate an authentication function for NITRC"""
     # Must be pickable so is a class
 
     def __init__(
@@ -74,7 +74,7 @@ class nitrc_authentifier:
 
 
 class nitrc_authentifier_async(nitrc_authentifier):
-    """Generate an authentification function for NITRC"""
+    """Generate an authentication function for NITRC"""
     # Must be pickable so is a class
 
     def __init__(

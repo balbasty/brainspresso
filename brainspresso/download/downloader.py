@@ -105,13 +105,13 @@ class Downloader:
         }
     * error status:
         {
-            'status': 'error',  # An error happended
+            'status': 'error',  # An error happened
             'message': str,     # Description of the error
         }
     * file finished downloading but checksum differs:
         {
             'checksum': 'differs',  # Checksum if not the same as expected
-            'status': 'error',      # An error happended
+            'status': 'error',      # An error happened
             'message': msg,         # Description of the error
         }
     * file finished downloading and checksum matches:

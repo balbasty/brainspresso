@@ -50,7 +50,7 @@ def download(
             * func :       All fthe functional MRI data
                 * pasl :    Pulsed arterial spin labeling
                 * asl :     Arterial spin labelling
-                * bold :    Blood-oxygenation level dependant (fMRI) scans
+                * bold :    Blood-oxygenation level dependent (fMRI) scans
             * fmap :       All field maps
             * dwi :        All diffusion-weighted MRI data
         * pet :           All the PET data

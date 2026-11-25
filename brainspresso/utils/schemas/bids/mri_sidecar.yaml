@@ -388,7 +388,7 @@ BIDS:
       properly computed, it is just EffectiveEchoSpacing * (ReconMatrixPE - 1).
   # MRITimingParameters
   EchoTime:
-    level: {unwarp: required, asl: required, me: requried, "": recommended}
+    level: {unwarp: required, asl: required, me: required, "": recommended}
     type: [number, array]
     items: number
     unit: s
@@ -506,7 +506,7 @@ BIDS:
     type: [number, array]
     items: number
     unit: s
-    decription: |
+    description: |
       The interval, in seconds, that it takes a preparation pulse block
       to re-appear at the beginning of the succeeding (essentially identical)
       pulse sequence block. The data type number may apply to files from any

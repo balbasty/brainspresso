@@ -240,7 +240,7 @@ class Bidsifier:
     # NOTE
     #   There are two different ages in the csv: AGE_AT_SCAN and
     #   AGE_AT_MPRAGE. I am only keeping one of both for now (hopefully
-    #   they are not too far appart)
+    #   they are not too far apart)
 
     class ParticipantsMapper(ABIDE2Mapper):
 

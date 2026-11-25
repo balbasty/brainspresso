@@ -13,7 +13,7 @@ from brainspresso.download import DownloadManager
 sessions = {}
 default_server = 'https://www.nitrc.org/ir/'
 # It used to be https://central.xnat.org, but XNAT has been
-# decomissioned in May 2024, and the platform was moved to NITRC
+# decommissioned in May 2024, and the platform was moved to NITRC
 # I believe that the whole framework (for OASIS) is the same -- we
 # just need to point to the new server and use NITRC credentials.
 

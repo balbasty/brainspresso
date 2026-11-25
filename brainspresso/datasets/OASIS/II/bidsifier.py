@@ -227,7 +227,7 @@ class Bidsifier:
             ):
                 yield from self.fixstatus(status, ses.name)
 
-        # Make invididual scans
+        # Make individual scans
         # We iterate tar members rather than subject in the hope that
         # we can follow the gzip stream and be more efficient
         nscans = sum(map((lambda ses: sum(map(len, ses.values()))),

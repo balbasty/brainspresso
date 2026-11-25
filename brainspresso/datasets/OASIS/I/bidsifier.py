@@ -25,13 +25,7 @@ from brainspresso.actions import WriteJSON
 from brainspresso.actions import WrapAction
 
 lg = getLogger(__name__)
-try:
-    import openpyxl
-except ImportError:
-    lg.error(
-        'Cannot find `openpyxl`. Did you install with [oasis] flag? '
-        'Try `pip install brainspresso[oasis]`.'
-    )
+import openpyxl  # noqa: E402  (extra: brainspresso[oasis])
 
 KeyChoice = Literal[
     "meta", "raw", "avg", "tal", "fsl", "fs", "fs-all"

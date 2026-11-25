@@ -18,13 +18,7 @@ from brainspresso.actions import CopyJSON
 from brainspresso.actions import WrapAction
 
 lg = getLogger(__name__)
-try:
-    import xlrd
-except ImportError:
-    lg.error(
-        'Cannot find `xlrd`. Did you install with [ixi] flag? '
-        'Try `pip install brainspresso[ixi]`.'
-    )
+import xlrd  # noqa: E402  (extra: brainspresso[ixi])
 
 KeyChoice = Literal["meta", "T1w", "T2w", "PDw", "angio", "dwi"]
 IfExists = Literal["error", "skip", "overwrite", "different", "refresh"]

@@ -31,7 +31,7 @@ def all_modules():
 # Optional dependencies that are not part of the `test` extra. A module
 # that fails to import *only* because one of them is missing is skipped;
 # any other import error fails.
-OPTIONAL_DEPENDENCIES = {"datalad", "xlrd", "openpyxl", "pymupdf"}
+OPTIONAL_DEPENDENCIES = {"datalad", "xlrd", "openpyxl", "pymupdf", "nrrd"}
 
 
 def import_or_skip(module):
@@ -57,7 +57,7 @@ def test_cli_commands():
     commands = set(app._commands)
     expected = {
         "abide1", "abide2", "adhd200", "cobre", "corr", "gsp", "ixi",
-        "oasis1", "oasis2", "oasis3", "openneuro",
+        "oasis1", "oasis2", "oasis3", "openneuro", "unc-wisconsin",
     }
     assert expected <= commands
 

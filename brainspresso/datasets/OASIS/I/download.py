@@ -11,7 +11,7 @@ from brainspresso.download import Downloader
 from brainspresso.download import DownloadManager
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.download import IfExists
-from braindataprep.datasets.OASIS.I.command import oasis1
+from brainspresso.datasets.OASIS.I.command import oasis1
 
 
 URLDATA = 'https://download.nrg.wustl.edu/data'

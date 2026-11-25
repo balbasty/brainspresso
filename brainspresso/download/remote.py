@@ -1,33 +1,59 @@
 # std
 import time
-from inspect import iscoroutinefunction
+import inspect
 from typing import Callable
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse, ParseResult
+from logging import getLogger
 
 # externals
 import requests
 import aiohttp
 
 # internals
-from brainspresso.download.constants import CHUNK_SIZE
+from brainspresso.download.constants import CHUNK_SIZE, TIMEOUT
+
+lg = getLogger(__name__)
+
+
+def _normalize_request_options(opt: dict | None) -> dict:
+    """
+    Convert `requests`-style options into `aiohttp` options.
+
+    Dataset modules historically passed `verify=False` (requests) or
+    `verify_ssl=False` (deprecated in aiohttp). aiohttp expects `ssl=False`.
+    """
+    opt = dict(opt or {})
+    for key in ("verify", "verify_ssl"):
+        if key in opt:
+            value = opt.pop(key)
+            if value is False:
+                opt["ssl"] = False
+    return opt
 
 
 class RemoteFile:
     """
     This object represents a remote file, whose bytes are downloaded.
-    It is used as a context manager.
+    It is used as an async context manager.
 
     ```python
-    with RemoteFile(url) as f:
+    async with RemoteFile(url) as f:
         obj = b''
-        for chunk in f:
+        async for chunk in f:
             obj += chunk
     ```
+
+    When `offset > 0`, a `Range` request is sent. If the server does not
+    honor it (status 200 instead of 206) -- or if `if_range` is provided
+    and the remote file has changed -- the full file is sent and
+    `self.offset` is reset to 0. The caller must then restart writing from
+    the beginning. If the requested range starts at the end of the file
+    (status 416), `self.complete` is True and no bytes are yielded.
     """
 
     Session = aiohttp.ClientSession | requests.Session
-    REDIRECTION = (300, 301, 302, 303, 307, 308)
+    AUTH_STATUSES = (401, 403)
 
     def __init__(
             self,
@@ -37,6 +63,7 @@ class RemoteFile:
             chunk_size: int = CHUNK_SIZE,
             offset: int = 0,
             get_opt: dict = {},
+            if_range: str | None = None,
     ):
         """
         Parameters
@@ -47,166 +74,214 @@ class RemoteFile:
             Opened session, or function that returns a session, or
             dictionary of arguments passed to `aiohttp.ClientSession`.
         auth : callable[[Session], None]
-            Authentification function
+            Authentification function. May be sync or async.
+            It is called if the server answers 401 or 403.
         chunk_size : int
             Number of bytes to read at once
         offset : int
             Number of bytes to skip
         get_opt : dict
             Options passed to `get`
+        if_range : str
+            Validator (ETag or Last-Modified) of the partial file.
+            If the remote file does not match it anymore, the server
+            sends the full file.
         """
         if not isinstance(url, ParseResult):
             url = urlparse(url)
         self.url = url
-        self._session = session or self._default_session
+        self._session = session
         self.session = None
-        self.session_is_mine = session is None
-        self._auth = auth or (lambda x: None)
+        self.session_is_mine = False
+        self._auth = auth
         self.chunk_size = chunk_size
-        self.get_opt = get_opt or {}
-        self._has_range = None
+        self.get_opt = _normalize_request_options(get_opt)
         self.offset = offset
+        self.if_range = if_range
+        self.complete = False
         self.response = None
         self.iterator = None
-        self.buffer = None
         self.last_speed = None
         self.mean_speed = 0
+        self.total = 0
+        self._head = None
 
-    async def auth(self, *args, **kwargs):
-        if iscoroutinefunction(self._auth.__call__):
-            return await self._auth(*args, **kwargs)
-        else:
-            return self._auth(*args, **kwargs)
+    # ------------------------------------------------------------------
+    #   Session / auth
+    # ------------------------------------------------------------------
 
-    async def _default_session(self, *args, **kwargs) -> Session:
-        return aiohttp.ClientSession(*args, **kwargs)
+    async def auth(self, session) -> None:
+        if self._auth is None:
+            return
+        result = self._auth(session)
+        if inspect.isawaitable(result):
+            await result
 
-    async def _get_or_make_session(self) -> Session:
+    async def _get_or_make_session(self) -> aiohttp.ClientSession:
         session = self._session
+        if isinstance(session, aiohttp.ClientSession) and not session.closed:
+            return session
         if isinstance(session, dict):
-            session = await self._default_session(**session)
-        elif iscoroutinefunction(session):
-            session = await session()
+            session = aiohttp.ClientSession(**{"timeout": TIMEOUT, **session})
         elif callable(session):
             session = session()
-        elif session is None:
-            session = await self._default_session()
+            if inspect.isawaitable(session):
+                session = await session
+        else:
+            # None, a closed session, or a `requests.Session` (which
+            # cannot be used in an async context)
+            session = aiohttp.ClientSession(timeout=TIMEOUT)
+            self.session_is_mine = True
         if not isinstance(session, aiohttp.ClientSession):
             raise TypeError(
                 f"Expected a `aiohttp.ClientSession` but got: {session}"
             )
-        # await self.auth(session)
         return session
 
-    @property
-    async def has_range(self) -> bool:
-        if self._has_range is None:
-            self._has_range = await self._check_has_range()
-        return self._has_range
+    async def _request(
+        self, method: str, headers: dict | None = None
+    ) -> aiohttp.ClientResponse:
+        """
+        Send a request, (re)authenticate if needed, and raise on error.
 
-    async def _check_has_range(self):
-        answer = False
-        try:
-            h = {'Range': 'bytes=0-0'}
-            r = await self._try_head(self.url.geturl(), headers=h)
-            answer = (r.status == 206)
-        finally:
-            return answer
+        The returned response must be released by the caller.
+        """
+        if self.session is None:
+            self.session = await self._get_or_make_session()
+        opt = dict(self.get_opt)
+        headers = {**opt.pop("headers", {}), **(headers or {})}
+        opt.setdefault("allow_redirects", True)
+        url = self.url.geturl()
 
-    @property
-    async def size(self):
-        """Try to guess the file size from remote"""
-        if self.response:
-            if 'Content-Range' in self.response.headers:
-                return int(
-                    self.response.headers['Content-Range'].split('/')[-1]
-                )
-            elif 'Content-Length' in self.response.headers:
-                return int(self.response.headers['Content-Length'])
-            else:
-                return None
-        else:
-            size = None
+        r = await self.session.request(method, url, headers=headers, **opt)
+        if r.status in self.AUTH_STATUSES and self._auth is not None:
+            r.release()
+            lg.debug(f"{r.status} on {url}: authenticating")
+            await self.auth(self.session)
+            r = await self.session.request(method, url, headers=headers, **opt)
+        if r.status == 416:
+            # Requested range not satisfiable: let the caller decide
+            return r
+        if r.status >= 400:
+            r.release()
+            r.raise_for_status()
+        return r
+
+    # ------------------------------------------------------------------
+    #   Metadata
+    # ------------------------------------------------------------------
+
+    async def _head_once(self) -> aiohttp.ClientResponse | None:
+        """Single HEAD request, cached. Returns None on failure."""
+        if self._head is None:
             try:
-                r = await self._try_head(self.url.geturl())
-                if r.status == 200 and 'Content-Length' in r.headers:
-                    size = int(r.headers['Content-Length'])
+                r = await self._request("HEAD")
+                r.release()
+                self._head = r
+            except Exception as e:
+                lg.debug(f"HEAD failed on {self.url.geturl()}: {e}")
+                self._head = False
             finally:
-                return size
+                if self.response is None and self.session_is_mine:
+                    await self.session.close()
+                    self.session = None
+                    self.session_is_mine = False
+        return self._head or None
+
+    @staticmethod
+    def _size_from(r: aiohttp.ClientResponse, offset: int = 0) -> int | None:
+        if "Content-Range" in r.headers:
+            total = r.headers["Content-Range"].rpartition("/")[2]
+            if total.isdigit():
+                return int(total)
+        if r.status in (200, 206) and "Content-Length" in r.headers:
+            length = int(r.headers["Content-Length"])
+            return length + (offset if r.status == 206 else 0)
+        return None
+
+    @property
+    async def size(self) -> int | None:
+        """Size of the remote file (from the GET response if available)"""
+        if self.response is not None:
+            return self._size_from(self.response, self.offset)
+        r = await self._head_once()
+        return self._size_from(r) if r else None
 
     @property
     async def mtime(self):
-        """Try to guess the "last-modified" time from remote"""
-        if self.response:
-            if 'Last-Modified' in self.response.headers:
-                return parsedate_to_datetime(
-                    self.response.headers['Last-Modified']
-                )
-            else:
-                return None
-        else:
-            mtime = None
+        """Last-modified time of the remote file"""
+        r = self.response if self.response is not None else (
+            await self._head_once()
+        )
+        if r and "Last-Modified" in r.headers:
             try:
-                r = await self._try_head(self.url.geturl())
-                if r.status == 200 and 'Last-Modified' in r.headers:
-                    mtime = parsedate_to_datetime(r.headers['Last-Modified'])
-            finally:
-                return mtime
+                return parsedate_to_datetime(r.headers["Last-Modified"])
+            except (TypeError, ValueError):
+                return None
+        return None
 
-    async def _try_get(self, url, *args, **kwargs):
-        kwargs.update(self.get_opt)
-        if self.session is None:
-            self.session = await self._get_or_make_session()
-        r = await self.session.head(url, *args, **kwargs)
-        if r.status in self.REDIRECTION:
-            url = urlparse(r.headers['Location'])
-            r = self.session.head(url, *args, **kwargs)
-        if r.status not in (200, 206) and self.auth:
-            await self.auth(self.session)
-            r = await self.session.head(url, *args, **kwargs)
-        r = await self.session.get(url, *args, **kwargs)
-        return r
+    @property
+    def validator(self) -> str | None:
+        """Strong ETag, or Last-Modified, usable in an `If-Range` header"""
+        if self.response is None:
+            return None
+        etag = self.response.headers.get("ETag", "")
+        if etag and not etag.startswith("W/"):
+            return etag
+        return self.response.headers.get("Last-Modified", None)
 
-    async def _try_head(self, url, *args, **kwargs):
-        kwargs.update(self.get_opt)
-        if self.session is None:
-            self.session = await self._get_or_make_session()
-        r = await self.session.head(url, *args, **kwargs)
-        if r.status in self.REDIRECTION:
-            url = urlparse(r.headers['Location'])
-            r = self.session.head(url, *args, **kwargs)
-        if r.status not in (200, 206) and self.auth:
-            await self.auth(self.session)
-            r = await self.session.head(url, *args, **kwargs)
-        return r
+    # ------------------------------------------------------------------
+    #   Context manager
+    # ------------------------------------------------------------------
 
     async def __aenter__(self):
-        # open session
-        if self.session is None:
-            self.session = await self._get_or_make_session()
-        # open content streamer
         h = {}
-        if self.offset and (await self.has_range):
-            h['Range'] = f'bytes={self.offset}-'
-        self.response = await self._try_get(self.url.geturl(), headers=h)
-        # get content chunk iterator
-        self.iterator = self._timed_iterator(
-            self.response.content.iter_chunked(self.chunk_size)
-        )
-        # skip offset if range not available
-        if self.offset and not (await self.has_range):
-            await self._skip(self.offset)
+        if self.offset:
+            h["Range"] = f"bytes={self.offset}-"
+            if self.if_range:
+                h["If-Range"] = self.if_range
+        self.response = await self._request("GET", headers=h)
+
+        if self.response.status == 416:
+            # The partial file is (at least) as large as the remote file.
+            size = self._size_from(self.response)
+            self.complete = (size is not None and size == self.offset)
+            if not self.complete:
+                self.response.release()
+                raise aiohttp.ClientResponseError(
+                    self.response.request_info, (),
+                    status=416, message="Range Not Satisfiable",
+                    headers=self.response.headers,
+                )
+            self.iterator = _empty()
         else:
-            self.total = 0
+            if self.offset and self.response.status != 206:
+                # Range ignored, or remote file changed: restart
+                lg.info(
+                    f"{self.url.geturl()}: server sent full file, "
+                    f"restarting from 0"
+                )
+                self.offset = 0
+            self.iterator = self._timed_iterator(
+                self.response.content.iter_chunked(self.chunk_size)
+            )
+        self.total = 0
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.response is not None:
+            if exc_type is None:
+                self.response.release()
+            else:
+                # Body not fully read: do not put the connection back
+                # in the pool.
+                self.response.close()
         self.iterator = None
         self.response = None
-        self.buffer = None
-        if self.session_is_mine:
+        if self.session_is_mine and self.session is not None:
             await self.session.close()
             self.session = None
+            self.session_is_mine = False
 
     async def _timed_iterator(self, iterator):
         tic = time.time()
@@ -218,26 +293,8 @@ class RemoteFile:
             yield chunk
             tic = toc
 
-    async def _skip(self, nbytes):
-        self.buffer = None
-        self.total = 0
-        try:
-            while nbytes > 0:
-                chunk = await anext(self.iterator)
-                nbytes -= len(chunk)
-        except StopIteration:
-            pass
-        if nbytes < 0:
-            self.buffer = chunk[nbytes:]
-
     def __aiter__(self):
-        return self.iter()
-
-    async def iter(self):
-        if self.buffer is not None:
-            yield self.buffer
-        async for chunk in self.iterator:
-            yield chunk
+        return self.iterator
 
     def _update_speed(self, nbytes, time):
         if not time:
@@ -252,3 +309,8 @@ class RemoteFile:
             mean_speed = new_speed
         self.mean_speed = mean_speed
         self.last_speed = new_speed
+
+
+async def _empty():
+    return
+    yield

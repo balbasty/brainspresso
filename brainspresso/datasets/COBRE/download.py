@@ -12,7 +12,7 @@ from brainspresso.download import Downloader
 from brainspresso.download import DownloadManager
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.download import IfExists
-from brainspresso.sources.nitrc import nitrc_authentifier
+from brainspresso.sources.nitrc import nitrc_authentifier_async
 from brainspresso.datasets.COBRE.command import cobre
 
 
@@ -63,7 +63,7 @@ def download(
         Path to log file
     """
     setup_filelog(log)
-    auth = nitrc_authentifier(user, password)
+    auth = nitrc_authentifier_async(user, password)
     keys = keys or URLS.keys()
     keys = list({key: None for key in keys}.keys())  # remove duplicates
     path: Path = Path(get_tree_path(path))
@@ -77,7 +77,7 @@ def download(
             ifexists=if_exists,
             chunk_size=human2bytes(packet),
             auth=auth,
-            get_opt=dict(verify=False),
+            get_opt=dict(ssl=False),
         )
         for key in keys
         for url in URLS[key]),

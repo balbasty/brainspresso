@@ -84,7 +84,7 @@ def bidsify(
           * dparsf        Data Processing Assistant for Resting-State fMRI
           * fs            FreeSurfer
           * niak          NeuroImaging Analysis Kit
-        * qa              All quality assesment
+        * qa              All quality assessment
           * qa-man        Manual QA
           * qa-pcp        Preprocessed Connectomes Project
 
@@ -108,7 +108,7 @@ def bidsify(
     log : str
         Path to log file
     level
-        Loggin level
+        Logging level
     """
     setup_filelog(log, level=level)
 

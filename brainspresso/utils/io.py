@@ -99,7 +99,7 @@ def write_json(src, dst, makedirs=True, **kwargs):
     Parameters
     ----------
     src : dict
-        Serializable nested strucutre
+        Serializable nested structure
     dst : str or Path or file-like
         Output path
 

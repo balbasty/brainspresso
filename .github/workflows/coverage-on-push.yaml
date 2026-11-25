@@ -1,0 +1,33 @@
+name: Coverage on push
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - brainspresso/**
+      - tests/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/coverage*.yaml
+  pull_request:
+    paths:
+      - brainspresso/**
+      - tests/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/coverage*.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    uses: ./.github/workflows/coverage.yaml

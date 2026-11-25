@@ -194,7 +194,7 @@ class IncompleteFile:
 
         # Rename temporary filename to output filename
         # Note that we only rename the file to its final name and
-        # remove temporary file if the download was succesful (i.e.
+        # remove temporary file if the download was successful (i.e.
         # the context was not interrupted by an exception)
         success = exc_type is None and not self._discard
         try:

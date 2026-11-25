@@ -23,7 +23,9 @@ URLBASE = 'https://fcon_1000.projects.nitrc.org/indi/CoRR/html/_static/scan_para
 URLS = {
     SITE: {
         SAMP:
-            f'{URLBASE}/{SITE}{"_" + str(SAMP) if SAMP and SAMP != "TRT" else SAMP}_scantable.pdf'
+            f'{URLBASE}/{SITE}'
+            f'{"_" + str(SAMP) if SAMP and SAMP != "TRT" else SAMP}'
+            f'_scantable.pdf'
         for SAMP in SAMPLES
     }
     for SITE, SAMPLES in SITES.items()

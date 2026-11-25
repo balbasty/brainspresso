@@ -109,7 +109,7 @@ def download_nitrc(
     log
         Path to log file
     level
-        Loggin level
+        Logging level
     """
     setup_filelog(log, level=level)
     path = Path(get_tree_path(path))

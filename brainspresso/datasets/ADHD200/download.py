@@ -62,7 +62,7 @@ def download(
           * mindboggle    Mindboggle workflow
           * cpa           Configurable Pipeline for the Analysis of Connectomes
           * fs            FreeSurfer
-        * qa               All quality assesment
+        * qa               All quality assessment
           * mriqc         Automated QC
 
     Parameters
@@ -209,7 +209,8 @@ def download(
                 if not fnames:
                     continue
 
-                # path: fcp-indi/data/Projects/ADHD200/surfaces/freesurfer/5.3/{sub}/...
+                # path: fcp-indi/data/Projects/ADHD200/surfaces/
+                #       freesurfer/5.3/{sub}/...
                 splitpath = dirpath.split("/")
                 if len(splitpath) < 8:
                     continue

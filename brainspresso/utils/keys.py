@@ -112,7 +112,7 @@ def flatten_keys(x, superkey: str | None = None) -> set[str]:
     """
     Return the set of all keys.
 
-    If `superkey`, only keys that are below this super-key are inluded.
+    If `superkey`, only keys that are below this super-key are included.
     """
     if isinstance(x, dict):
         if superkey:

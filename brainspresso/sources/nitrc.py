@@ -91,5 +91,6 @@ class nitrc_authentifier_async(nitrc_authentifier):
         if isinstance(session, Session):
             session.post(self.url, verify=False)
         else:
-            await session.post(self.url, verify_ssl=False)
+            async with session.post(self.url, ssl=False) as r:
+                await r.read()
         return session

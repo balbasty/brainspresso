@@ -94,7 +94,7 @@ def download(
                     URLBASE + id,
                     src / fname,
                     chunk_size=human2bytes(packet),
-                    get_opt=dict(verify_ssl=False, headers=auth),
+                    get_opt=dict(ssl=False, headers=auth),
                     ifnodigest="continue",
                 )
 

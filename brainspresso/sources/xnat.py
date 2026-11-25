@@ -127,16 +127,19 @@ class XNAT:
         ) as r:
             return await r.read()
 
-    def login(self) -> None:
+    def login(self, force: bool = False) -> None:
+        """
+        Authenticate (once). The JSESSIONID cookie is then reused by all
+        requests; `get`/`head` call `login(force=True)` if the server
+        answers 401/403.
+        """
+        if self.jsessionid is not None and not force:
+            return
         exc = None
         for _ in range(2):
             for __ in range(1, 3):
                 try:
-                    jsessionid = self.session.get(
-                        f'{self.server}/data/JSESSION'
-                    )
-                    if jsessionid != self.jsessionid:
-                        self.jsessionid = self.auth(self.session)
+                    self.jsessionid = self.auth(self.session)
                     return
                 except requests.exceptions.ConnectionError as e:
                     exc = e
@@ -155,11 +158,19 @@ class XNAT:
 
     def get(self, *args, **kwargs) -> requests.Response:
         self.login()
-        return self.session.get(*args, **kwargs)
+        r = self.session.get(*args, **kwargs)
+        if r.status_code in (401, 403):
+            self.login(force=True)
+            r = self.session.get(*args, **kwargs)
+        return r
 
     def head(self, *args, **kwargs) -> requests.Response:
         self.login()
-        return self.session.head(*args, **kwargs)
+        r = self.session.head(*args, **kwargs)
+        if r.status_code in (401, 403):
+            self.login(force=True)
+            r = self.session.head(*args, **kwargs)
+        return r
 
     def open(self, keep_open: bool | None = None):
         if keep_open is not None:
@@ -518,7 +529,7 @@ class XNAT:
                f'{type}s/{scan}/files?format=tar.gz')
 
         return Downloader(
-            src, dst, session=self.session, auth=self.auth, **kwargs
+            src, dst, auth=self.async_auth, **kwargs
         )
 
     def get_all_downloaders(
@@ -583,7 +594,7 @@ class XNAT:
 
     def download_all(self, *args, **kwargs) -> Path:
         downloaders = list(self.get_all_downloaders(*args, **kwargs))
-        DownloadManager(*downloaders).run()
+        DownloadManager(downloaders).run()
         return [x.dst for x in downloaders]
 
 

@@ -64,8 +64,8 @@ class IncompleteFile:
             Behaviour if incomplete file exists but no checksum is provided
         """
         # checks
-        if checkalgo and not hasattr(checkalgo, hashlib):
-            raise ValueError('Unknown hashing algorithm')
+        if checkalgo and checkalgo not in hashlib.algorithms_available:
+            raise ValueError(f'Unknown hashing algorithm: {checkalgo}')
         # assign
         self.filename: Path = Path(filename)
         self.tempname: Path = self.filename.with_name(
@@ -77,6 +77,13 @@ class IncompleteFile:
         self.checkname: Path = self.filename.with_name(
             self.filename.name + '.checksum'
         )
+        self.validname: Path = self.filename.with_name(
+            self.filename.name + '.validator'
+        )
+        # ETag or Last-Modified of the remote file when the partial
+        # download was started (sent as `If-Range` when resuming)
+        self.validator: str | None = None
+        self._discard: bool = False
         self.lock: InterProcessLock | None = None
         self.file: IO[bytes] | None = None
         self.offset: int | None = None
@@ -137,10 +144,15 @@ class IncompleteFile:
                 lg.debug(
                     'Download file exists; resuming download'
                 )
-            if self.digest:
+            if self.checkalgo:
                 self.digester = await run_async(
                     get_digester, self.tempname, self.checkalgo
                 )
+            try:
+                async with aiofiles.open(self.validname, 'rt') as f:
+                    self.validator = (await f.read()).strip() or None
+            except (FileNotFoundError, ValueError):
+                self.validator = None
         else:
             mode = 'wb'
             if await aop.exists(self.tempname):
@@ -157,6 +169,8 @@ class IncompleteFile:
                 lg.debug('Starting new download')
             # Remove existing file
             await run_async(self.tempname.unlink, missing_ok=True)
+            await run_async(self.validname.unlink, missing_ok=True)
+            self.validator = None
 
         # Open file
         lg.debug(f"opening file ({mode}) ... {self.tempname}")
@@ -182,8 +196,9 @@ class IncompleteFile:
         # Note that we only rename the file to its final name and
         # remove temporary file if the download was succesful (i.e.
         # the context was not interrupted by an exception)
+        success = exc_type is None and not self._discard
         try:
-            if exc_type is None:
+            if success:
                 lg.debug(
                     f"renaming file...  {self.tempname} -> {self.filename}"
                 )
@@ -205,7 +220,7 @@ class IncompleteFile:
             lg.debug(f"releasing lock...  {self.lockname}")
             await run_async(self.lock.release)
             lg.debug(f"released lock:  {self.lockname}")
-            if exc_type is None:
+            if success or self._discard:
                 lg.debug(f"deleting file...  {self.tempname}")
                 await run_async(self.tempname.unlink, missing_ok=True)
                 lg.debug(f"deleted file:  {self.tempname}")
@@ -215,17 +230,19 @@ class IncompleteFile:
                 lg.debug(f"deleting file...  {self.checkname}")
                 await run_async(self.checkname.unlink, missing_ok=True)
                 lg.debug(f"deleted file:  {self.checkname}")
+                await run_async(self.validname.unlink, missing_ok=True)
             self.lock = None
             self.file = None
             self.offset = None
+            self._discard = False
 
     async def append(self, blob: bytes) -> "IncompleteFile":
         if self.file is None:
             raise ValueError(
                 'IncompleteFile.append() called outside of context manager'
             )
-        if self.digest:
-            await run_async(self.digest.update, blob)
+        if self.digester:
+            await run_async(self.digester.update, blob)
         tic = time.time()
         await self.file.write(blob)
         toc = time.time()
@@ -235,6 +252,33 @@ class IncompleteFile:
         old = await self.file.tell() - new
         self._update_speed(old, new, toc-tic)
         return self
+
+    async def truncate(self) -> "IncompleteFile":
+        """Discard all bytes written so far (restart from 0)"""
+        if self.file is None:
+            raise ValueError(
+                'IncompleteFile.truncate() called outside of context manager'
+            )
+        await self.file.seek(0)
+        await self.file.truncate()
+        self.offset = 0
+        if self.checkalgo:
+            self.digester = await run_async(hashlib.new, self.checkalgo)
+        await self.set_validator(None)
+        return self
+
+    async def set_validator(self, validator: str | None) -> None:
+        """Save the remote validator (ETag/Last-Modified) of this file"""
+        self.validator = validator
+        if validator:
+            async with aiofiles.open(self.validname, 'wt') as f:
+                await f.write(validator)
+        else:
+            await run_async(self.validname.unlink, missing_ok=True)
+
+    def discard(self) -> None:
+        """Delete the partial file on exit instead of renaming it"""
+        self._discard = True
 
     async def write(self, blob: bytes) -> "IncompleteFile":
         return await self.append(blob)

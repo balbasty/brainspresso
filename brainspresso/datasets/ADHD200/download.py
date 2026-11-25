@@ -154,7 +154,7 @@ def download(
             urls = fs.glob(f"{DATA}/*.csv")
             for url in urls:
                 name = url.split('/')[-1]
-                yield Downloader(f"{S3URL}/url", src / name, **opt)
+                yield Downloader(f"{S3URL}/{url}", src / name, **opt)
 
         # Get downloaders for image data
         if (keys & compat_keys("raw", allkeys)):

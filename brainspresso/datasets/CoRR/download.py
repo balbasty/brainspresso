@@ -238,7 +238,7 @@ def download(
                         url, src / Path(urlparse(url).path).name,
                         chunk_size=human2bytes(packet),
                         auth=auth,
-                        get_opt=dict(verify_ssl=False),
+                        get_opt=dict(ssl=False),
                         ifnodigest="continue",
                     )
 

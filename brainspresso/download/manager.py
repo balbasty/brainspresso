@@ -1,21 +1,24 @@
 __all__ = ["DownloadManager", "DownloadTable"]
 import asyncio
+import time
+import warnings
 from pathlib import Path
 from collections import Counter
 from logging import getLogger
 from typing import Literal, Iterable
-from queue import Queue, Empty
-from multiprocessing import Manager, Pool, cpu_count
-from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
 
 from brainspresso.utils.tabular import LogSafeTabular, get_style
 from brainspresso.utils.log import HideLoggingStream
+from brainspresso.download.constants import TIMEOUT
 from brainspresso.download.downloader import IfExists
 from brainspresso.download.downloader import Downloader
 
 lg = getLogger(__name__)
+
+# Keys of "progress" statuses, which are rate-limited before display
+_PROGRESS_KEYS = frozenset({"done", "done%", "dspeed", "wspeed", "tspeed"})
 
 
 class DownloadTable(LogSafeTabular):
@@ -40,19 +43,23 @@ class DownloadTable(LogSafeTabular):
 
 class DownloadManager:
     """
-    A class that manages is list of downloads.
+    A class that manages a list of downloads.
 
-    It runs them one at a time and display their status in a table.
+    It runs up to `jobs` downloads concurrently in a single event loop,
+    sharing one HTTP session, and displays their status in a table.
 
     ```python
-    manager = DownloadManager(
+    manager = DownloadManager([
         Downloader(url1, fname1),
         Downloader(url2, fname2),
         Downloader(url3, fname3),
-    )
+    ], jobs=2)
     manager.run()
     ```
     """
+
+    # Minimum delay between two progress updates of the same file
+    REFRESH_INTERVAL: float = 0.25
 
     def __init__(
             self,
@@ -60,14 +67,16 @@ class DownloadManager:
             ifexists: IfExists.Choice | None = None,
             on_error: Literal["yield", "raise"] = "yield",
             path: Literal["name", "full", "abs", "short"] = "name",
-            jobs: int | None = 1,
+            jobs: int | None = None,
             tabular_jobs: int | None = None,
+            jobs_per_host: int | None = None,
     ):
         """
         Parameters
         ----------
-        *downloaders : Downloader
-            A list of downloaders
+        downloaders : iterable[Downloader]
+            An iterable of downloaders. It may be a (slow) generator:
+            it is consumed in a background thread while downloads run.
 
         Other Parameters
         ----------------
@@ -83,118 +92,121 @@ class DownloadManager:
             * "abs"   : absolute path
             * "short" : hide common prefix
         jobs : int
-            Number of parallel downloaders. Default: cpu_count/2
+            Number of concurrent downloads. Default: 4
         tabular_jobs : int
             Number of parallel printing jobs. Default: jobs
+        jobs_per_host : int
+            Maximum number of concurrent connections to a single host.
+            Default: jobs
         """
+        if isinstance(downloaders, Downloader):
+            downloaders = [downloaders]
         self.downloaders = downloaders
 
         self.ifexists = IfExists.from_any(ifexists)
         self.on_error = on_error
         self.path = path
-        self.jobs = max(1, jobs or (cpu_count()//2))
+        self.jobs = max(1, jobs or 4)
+        self.jobs_per_host = max(1, jobs_per_host or self.jobs)
         self.out = DownloadTable(max_workers=tabular_jobs or self.jobs)
 
-    def run(self, mode="async"):
-        if mode == "async":
-            return asyncio.run(self.run_async())
-        else:
-            return self.run_threaded()
-
-    def run_threaded(self):
+    def run(self, mode: Literal["async", "threaded"] = "async"):
         """Run all downloads"""
-        guard = {'yield': _Guard, 'raise': lambda x: x}[self.on_error]
-        jobs = Queue()
-        manager = Manager()
-        statuses = manager.Queue()
+        if mode != "async":
+            warnings.warn(
+                "DownloadManager.run: the 'threaded' mode has been removed. "
+                "Downloads now run concurrently in a single event loop.",
+                DeprecationWarning, stacklevel=2,
+            )
+        return asyncio.run(self.run_async())
 
-        def unpack_jobs():
-            while True:
-                try:
-                    job = jobs.get_nowait()
-                    if not job.ready():
-                        jobs.put_nowait(job)
-                    unpack_statuses(forever=True)
-                except Empty:
-                    break
-
-        def unpack_statuses(forever: bool = False):
-            while forever or (jobs.qsize() > self.jobs):
-                # unpack top of the queue
-                try:
-                    status = statuses.get_nowait()
-                    self.out(status)
-                except Exception:
-                    break
-                # check if a job has finished
-                if not forever:
-                    try:
-                        job = jobs.get_nowait()
-                        if not job.ready():
-                            jobs.put_nowait(job)
-                    except Empty:
-                        break
-
-        with (
-            self.out,
-            IfExists(self.ifexists),
-            Pool(self.jobs) as pool
-        ):
-
-            if self.path[0] == 's':
-                # Shorten path, but we need to access all downloaders which
-                # might be slow is the input is a looooong generator
-                self.downloaders = list(self.downloaders)
-                paths = self.shortpath([dl.dst for dl in self.downloaders])
-
-                for path, downloader in zip(paths, self.downloaders):
-                    jobs.put_nowait(pool.apply_async(
-                        _run, (guard(downloader), path, statuses)
-                    ))
-                    unpack_statuses()
-                unpack_jobs()
-
-            else:
-                # Just yield from the generator
-                for downloader in self.downloaders:
-                    path = str(self.repath(downloader.dst))
-                    jobs.put_nowait(pool.apply_async(
-                        _run, (guard(downloader), path, statuses)
-                    ))
-                    unpack_statuses()
-                unpack_jobs()
+    def _iter_jobs(self):
+        """Yield (display path, downloader) pairs"""
+        if self.path[0] == 's':
+            # Shorten path, but we need to access all downloaders which
+            # might be slow is the input is a looooong generator
+            self.downloaders = list(self.downloaders)
+            paths = self.shortpath([dl.dst for dl in self.downloaders])
+            yield from zip(map(str, paths), self.downloaders)
+        else:
+            for downloader in self.downloaders:
+                yield str(self.repath(downloader.dst)), downloader
 
     async def run_async(self):
         guard = {'yield': _Guard, 'raise': lambda x: x}[self.on_error]
-        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue(maxsize=4 * self.jobs)
+        last_emit: dict[str, float] = {}
+        pending: dict[str, dict] = {}
 
-        async with aiohttp.ClientSession() as session:
+        def emit(path, status):
+            # Progress statuses are rate-limited: rendering the table
+            # at every chunk would slow down the downloads.
+            now = time.monotonic()
+            if _PROGRESS_KEYS.issuperset(status):
+                if now - last_emit.get(path, 0) < self.REFRESH_INTERVAL:
+                    pending[path] = status
+                    return
+            else:
+                status = {**pending.pop(path, {}), **status}
+            pending.pop(path, None)
+            last_emit[path] = now
+            self.out({"path": path, **status})
 
-            with (
-                self.out,
-                IfExists(self.ifexists),
-                ThreadPoolExecutor() as pool
-            ):
-                if self.path[0] == 's':
-                    # Shorten path, but we need to access all downloaders which
-                    # might be slow is the input is a looooong generator
-                    self.downloaders = list(self.downloaders)
-                    paths = self.shortpath([dl.dst for dl in self.downloaders])
+        async def producer():
+            # The iterable may perform blocking network calls (listing),
+            # so it is consumed in a thread.
+            iterator = self._iter_jobs()
+            sentinel = object()
+            try:
+                while True:
+                    item = await asyncio.to_thread(next, iterator, sentinel)
+                    if item is sentinel:
+                        break
+                    await queue.put(item)
+            finally:
+                for _ in range(self.jobs):
+                    await queue.put(None)
 
-                    for path, downloader in zip(paths, self.downloaders):
-                        downloader.session = session
-                        downloader = guard(downloader)
-                        async for status in _run_async(downloader, path):
-                            await loop.run_in_executor(pool, self.out, status)
+        async def worker(session):
+            while (item := await queue.get()) is not None:
+                path, downloader = item
+                if not (
+                    isinstance(downloader.session, aiohttp.ClientSession)
+                    and not downloader.session.closed
+                ):
+                    downloader.session = session
+                try:
+                    async for status in guard(downloader):
+                        emit(path, status)
+                finally:
+                    if path in pending:
+                        self.out({"path": path, **pending.pop(path)})
+                    last_emit.pop(path, None)
 
-                else:
-                    # Just yield from the generator
-                    for downloader in self.downloaders:
-                        downloader.session = session
-                        downloader = guard(downloader)
-                        path = str(self.repath(downloader.dst))
-                        async for status in _run_async(downloader, path):
-                            await loop.run_in_executor(pool, self.out, status)
+        connector = aiohttp.TCPConnector(
+            limit=max(2 * self.jobs, 10),
+            limit_per_host=self.jobs_per_host,
+        )
+        async with aiohttp.ClientSession(
+            connector=connector, timeout=TIMEOUT
+        ) as session:
+            with self.out, IfExists(self.ifexists), HideLoggingStream():
+                tasks = [asyncio.create_task(producer())]
+                tasks += [
+                    asyncio.create_task(worker(session))
+                    for _ in range(self.jobs)
+                ]
+                try:
+                    done, _ = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_EXCEPTION
+                    )
+                    for task in done:
+                        if task.exception() is not None:
+                            raise task.exception()
+                finally:
+                    for task in tasks:
+                        task.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
 
     def shortpath(self, paths):
         if len(paths) == 1:
@@ -234,75 +246,14 @@ class DownloadManager:
             return None
 
 
-reusable_session = None
-
-
-async def _make_session():
-    return aiohttp.ClientSession()
-
-
-async def _make_reusable_session():
-    global reusable_session
-    reusable_session = await _make_session()
-    yield reusable_session
-    reusable_session.close()
-
-
-async def _get_reusable_session():
-    global reusable_session
-    if reusable_session is None:
-        _make_reusable_session()
-    return reusable_session
-
-
-async def _run_async(downloader, path):
-    if not isinstance(downloader.session, aiohttp.ClientSession):
-        async with aiohttp.ClientSession() as session:
-            downloader = session
-            await _run_async(downloader, path)
-        return
-    with HideLoggingStream():
-        async for status in downloader:
-            status = {"path": path, **status}
-            yield status
-
-
-async def _run_async_queue(downloader, path, statuses):
-    # if downloader.session is None:
-    #     downloader.session = await _get_reusable_session()
-    downloader.session = await _get_reusable_session()
-    with HideLoggingStream():
-        async for status in downloader:
-            status = {"path": path, **status}
-            statuses.put_nowait(status)
-
-
-def _run(downloader, path, statuses):
-    asyncio.run(_run_async_queue(downloader, path, statuses))
-
-
 class _Guard:
     # Convert exception to status
-    # Must be pickable since it is passed to multiprocessing
 
     def __init__(self, downloader):
         self.downloader = downloader
 
     def __getattr__(self, name):
-        if name in ("session", "dst"):
-            return getattr(self.downloader, name)
-        return super().__getattr__(name)
-        # if name == "downloader":
-        #     return super().__getattr__(name)
-        # return getattr(self.downloader, name)
-
-    def __setattr__(self, name, value):
-        if name in ("session", "dst"):
-            return setattr(self.downloader, name, value)
-        return super().__setattr__(name, value)
-        # if name == "downloader":
-        #     return super().__setattr__(name, value)
-        # return setattr(self.downloader, name, value)
+        return getattr(self.downloader, name)
 
     def __aiter__(self):
         return self.iter()

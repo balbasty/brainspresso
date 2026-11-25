@@ -173,6 +173,6 @@ def show_download_progress(size, total_size=None, time=None, end='\r'):
         tb, tb_unit = round_bytes(packet_size / max(toc - tic, 1e-9))
         db, db_unit = round_bytes(packet_size / max(tac - tic, 1e-9))
         wb, wb_unit = round_bytes(packet_size / max(toc - tac, 1e-9))
-        print(f' [dowload: {db:7.3f} {db_unit}/s'
+        print(f' [download: {db:7.3f} {db_unit}/s'
               f' | write: {wb:7.3f} {wb_unit}/s'
               f' | total: {tb:7.3f} {tb_unit}/s]', end='')

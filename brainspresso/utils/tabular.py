@@ -294,7 +294,7 @@ class LogSafeTabular(pyout.Tabular):
 
 class MemorizingTabular(LogSafeTabular):
     """
-    A Tabular environement that memorizes certain status
+    A Tabular environment that memorizes certain status
 
     It adds the `memorize` option, which takes a string or list of
     strings. If the "status" value of an update is one of these keys,

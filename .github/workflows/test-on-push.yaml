@@ -1,0 +1,33 @@
+name: Test on push
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - brainspresso/**
+      - tests/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/test*.yaml
+  pull_request:
+    paths:
+      - brainspresso/**
+      - tests/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/test*.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    uses: ./.github/workflows/test-matrix.yaml

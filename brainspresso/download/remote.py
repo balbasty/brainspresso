@@ -74,7 +74,7 @@ class RemoteFile:
             Opened session, or function that returns a session, or
             dictionary of arguments passed to `aiohttp.ClientSession`.
         auth : callable[[Session], None]
-            Authentification function. May be sync or async.
+            Authentication function. May be sync or async.
             It is called if the server answers 401 or 403.
         chunk_size : int
             Number of bytes to read at once

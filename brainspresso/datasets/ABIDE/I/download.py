@@ -84,7 +84,7 @@ def download(
           * dparsf        Data Processing Assistant for Resting-State fMRI
           * fs            FreeSurfer
           * niak          NeuroImaging Analysis Kit
-        * qa               All quality assesment
+        * qa               All quality assessment
           * qa-man        Manual QA
           * qa-pcp        Preprocessed Connectomes Project
 

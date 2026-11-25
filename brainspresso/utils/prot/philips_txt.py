@@ -78,7 +78,7 @@ def parse_philipps_txt(path: str | Path, field_strength: float) -> dict:
         for key, value in prot.items()
     }
 
-    # TODO: Converstion to BIDS
+    # TODO: Conversion to BIDS
     if 'FLAIR' in prot.get('Fast 3D VIEW', ''):
         return _parse_philips_txt_flair(prot, field_strength)
     if prot.get('Diffusion mode', 'no') != 'no':

@@ -1,3 +1,8 @@
+"""
+Manual check: download the IXI metadata file into a temporary folder.
+
+    python -m brainspresso.download.test
+"""
 
 import tempfile
 from .manager import DownloadManager
@@ -17,14 +22,15 @@ URLS = {
     'meta': [f'{URLBASE}/IXI.xls'],
 }
 
-odir = tempfile.gettempdir()
-print(odir)
+if __name__ == "__main__":
+    odir = tempfile.gettempdir()
+    print(odir)
 
-manager = DownloadManager(
-    # Downloader(URLS['T1w'][0], odir, ifnochecksum='continue'),
-    # Downloader(URLS['T2w'][0], odir, ifnochecksum='continue'),
-    Downloader(URLS['meta'][0], odir, ifnodigest='continue'),
-    on_error='raise',
-    ifexists='refresh',
-)
-manager.run()
+    manager = DownloadManager(
+        # Downloader(URLS['T1w'][0], odir, ifnochecksum='continue'),
+        # Downloader(URLS['T2w'][0], odir, ifnochecksum='continue'),
+        Downloader(URLS['meta'][0], odir, ifnodigest='continue'),
+        on_error='raise',
+        ifexists='refresh',
+    )
+    manager.run()

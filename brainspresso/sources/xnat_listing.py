@@ -19,7 +19,8 @@ from typing import Callable
 
 import aiohttp
 
-from brainspresso.download.constants import RETRY_STATUSES, TIMEOUT
+from brainspresso.download.constants import RETRY_STATUSES
+from brainspresso.download.session import new_session
 
 lg = getLogger(__name__)
 
@@ -92,7 +93,7 @@ async def list_project_files_async(
     files : list[XNATFile]
     """
     server = server.rstrip("/")
-    async with aiohttp.ClientSession(timeout=TIMEOUT, auth=auth) as session:
+    async with new_session(auth=auth) as session:
         data = await _get_json(
             session, f"{server}/data/projects/{project}/experiments"
         )

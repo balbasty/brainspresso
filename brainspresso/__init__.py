@@ -14,7 +14,7 @@ _datasets = [
     'GSP',
     'IXI',
     'OASIS.I', 'OASIS.II', 'OASIS.III',
-    # "OpenNeuro",
+    "OpenNeuro",
 ]
 for _dataset in _datasets:
     try:

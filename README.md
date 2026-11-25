@@ -109,3 +109,37 @@ Convert source data into a BIDS-compliant directory
 │ --log           Path to log file                                                  │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+## OpenNeuro: any dataset, or a filtered subset of it
+
+OpenNeuro datasets are already in BIDS, so `harvest` downloads them
+directly into a BIDS root (`<path>/OpenNeuro/<dataset>/`, or `--out`).
+Filters select *data* files; the metadata that applies to them (sidecars,
+`events.tsv`, `scans.tsv`/`sessions.tsv`, top-level files, `phenotype/`)
+is added automatically, following the BIDS inheritance principle.
+
+```shell
+# What is in a dataset, and what would a selection download?
+bx openneuro info ds000224
+bx openneuro harvest ds000224 --datatypes anat --dry-run
+
+# Anatomical scans of two subjects, from snapshot 1.0.4
+bx openneuro harvest ds000224 /data --tag 1.0.4 --subs MSC01 MSC02 --datatypes anat
+
+# Filter participants on participants.tsv columns
+bx openneuro harvest ds000224 /data --suffixes T1w T2w --where "age>=30" "gender==M"
+```
+
+Useful options: `--sessions`, `--suffixes`, `--tasks`, `--include`/`--exclude`
+(globs on paths relative to the dataset root), `--folders derivatives`,
+`--jobs`, `--list`. By default, `participants.tsv`, `*_sessions.tsv` and
+`*_scans.tsv` are rewritten to only list what is present locally (the
+untouched copies are kept in `.brainspresso/orig/`; disable with
+`--no-trim`). Each run is recorded in `.brainspresso/manifest.json`
+(snapshot, filters, files, URLs and checksums).
+
+Files are listed through the OpenNeuro API, which pins the exact snapshot
+and provides SHA256 checksums for annexed files. If the API cannot be
+reached, the listing falls back to the public `s3://openneuro.org` bucket,
+which only holds the latest snapshot (checksums: MD5 from S3 ETags).
+Use `--source graphql|s3` to choose explicitly.

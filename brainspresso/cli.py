@@ -8,6 +8,7 @@ Brainspresso : Harvest, Roast and Grind public neuroimaging datasets
 * Harvest    : Download raw data
 * Roast      : Bidsify raw data
 * Grind      : Preprocess data with standard pipelines
+* Compost    : Delete source data, or data outside a filter
 """
 
 main = app = cyclopts.App(

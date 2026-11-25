@@ -23,24 +23,29 @@ def all_modules():
         yield info.name
 
 
-# Modules (and their submodules) that need a dependency which is not
-# part of the `test` extra.
-OPTIONAL = {
-    "brainspresso.datasets.OpenNeuro": "datalad",
-}
+# Optional dependencies that are not part of the `test` extra. A module
+# that fails to import *only* because one of them is missing is skipped;
+# any other import error fails.
+OPTIONAL_DEPENDENCIES = {"datalad"}
+
+
+def import_or_skip(module):
+    try:
+        return importlib.import_module(module)
+    except ModuleNotFoundError as e:
+        if (e.name or "").split(".")[0] in OPTIONAL_DEPENDENCIES:
+            pytest.skip(f"{module} needs {e.name}")
+        raise
 
 
 @pytest.mark.parametrize("module", sorted(all_modules()))
 def test_import(module):
-    for prefix, dependency in OPTIONAL.items():
-        if module == prefix or module.startswith(prefix + "."):
-            pytest.importorskip(dependency)
-    importlib.import_module(module)
+    import_or_skip(module)
 
 
 @pytest.mark.parametrize("dataset", _datasets)
 def test_dataset_import(dataset):
-    importlib.import_module(f"brainspresso.datasets.{dataset}")
+    import_or_skip(f"brainspresso.datasets.{dataset}")
 
 
 def test_cli_commands():

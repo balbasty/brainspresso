@@ -10,7 +10,9 @@ from brainspresso.datasets.UNCWisconsin.command import uncwisc
 from brainspresso.datasets.UNCWisconsin.bidsifier import Bidsifier
 from brainspresso.datasets.UNCWisconsin.download import DATASET, _labels
 
-KeyChoice = Literal["meta", "T1w", "T2w", "dwi"]
+KeyChoice = Literal[
+    "meta", "T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc"
+]
 Many = Parameter(consume_multiple=True)
 
 
@@ -34,7 +36,8 @@ def bidsify(
         Path to root of all datasets. An `UNC-Wisconsin/sourcedata`
         folder must exist.
     keys
-        Only convert these keys
+        Only convert these keys. Raw data: T1w, T2w, dwi; metadata: meta;
+        derivatives (-> derivatives/unc-wisconsin): reg, dti-qc, dti-proc
     subs
         Only convert these subjects (e.g. 001 002)
     exclude_subs

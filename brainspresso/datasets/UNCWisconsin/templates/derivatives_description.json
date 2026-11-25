@@ -1,0 +1,30 @@
+{
+  "Name": "UNC-Wisconsin Rhesus Macaque Neurodevelopment Database - processed data",
+  "BIDSVersion": "1.8.0",
+  "DatasetType": "derivative",
+  "GeneratedBy": [
+    {
+      "Name": "AutoSeg",
+      "Description": "Structural MRI: bias field correction, rigid registration to the UNC-Emory-Wisconsin 12 month atlas, resampling to 0.273mm isotropic, Atlas Based Classification (ABC); brain masks manually corrected.",
+      "CodeURL": "https://www.nitrc.org/projects/autoseg/"
+    },
+    {
+      "Name": "DTIPrep",
+      "Description": "Diffusion MRI quality control: motion and eddy current correction (affine registration to the iteratively averaged b0 image)."
+    },
+    {
+      "Name": "DTIProcess",
+      "Description": "Diffusion tensor estimation (weighted least squares) and diffusion maps (FA, MD).",
+      "CodeURL": "https://www.nitrc.org/projects/dtiprocess"
+    },
+    {
+      "Name": "brainspresso",
+      "Description": "Conversion from NRRD to BIDS (NIfTI).",
+      "CodeURL": "https://github.com/balbasty/brainspresso"
+    }
+  ],
+  "SourceDatasets": [
+    {"URL": "https://data.kitware.com/#collection/54b582c38d777f4362aa9cb3"}
+  ],
+  "HowToAcknowledge": "Please cite: The UNC-Wisconsin Rhesus Macaque Neurodevelopment Database: A Structural MRI and DTI Database of Early Postnatal Development. Frontiers in Neuroscience, 2017. https://doi.org/10.3389/fnins.2017.00029"
+}

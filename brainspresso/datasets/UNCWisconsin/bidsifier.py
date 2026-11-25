@@ -35,6 +35,49 @@ lg = getLogger(__name__)
 SPECIES = "Macaca mulatta"
 ANAT = {"T1": "T1w", "T2": "T2w"}
 
+# Derivatives -> derivatives/unc-wisconsin/
+DERIV_NAME = "unc-wisconsin"
+SPACE = "UNCEmoryWisconsin12mo"     # UNC-Emory-Wisconsin 12 month atlas
+# (key, folder in session, file stem after "<sub>_<ses>_", datatype,
+#  output entities+suffix, is_dwi)
+DERIVATIVES = [
+    ("reg", "sMRI/Reg2Atlas", "T1_Reg2Atlas",
+     "anat", f"space-{SPACE}_T1w", False),
+    ("reg", "sMRI/Reg2Atlas", "T2_Reg2Atlas",
+     "anat", f"space-{SPACE}_T2w", False),
+    ("reg", "sMRI/Reg2Atlas/AUTO_MASK", "Reg2Atlas_AutoMask",
+     "anat", f"space-{SPACE}_desc-auto_mask", False),
+    ("reg", "sMRI/Reg2Atlas/Manual_Brain_Mask", "Reg2Atlas_ManualBrainMask",
+     "anat", f"space-{SPACE}_desc-brain_mask", False),
+    ("reg", "sMRI/Reg2Atlas/Manual_Stripped",
+     "T1_Reg2Atlas_ManualBrainMask_Stripped",
+     "anat", f"space-{SPACE}_desc-brain_T1w", False),
+    ("reg", "sMRI/Reg2Atlas/Manual_Stripped",
+     "T2_RegT1_Reg2Atlas_ManualBrainMask_Stripped",
+     "anat", f"space-{SPACE}_desc-brain_T2w", False),
+    ("dti-qc", "DTI/AUTOQC", "AutoQCed_DWI",
+     "dwi", "desc-autoqc_dwi", True),
+    ("dti-qc", "DTI/AUTOQC", "AutoQCed_Baseline",
+     "dwi", "param-b0_desc-autoqc_dwimap", False),
+    ("dti-qc", "DTI/AUTOQC", "AutoQCed_IDWI",
+     "dwi", "param-idwi_desc-autoqc_dwimap", False),
+    ("dti-qc", "DTI/AUTOQC", "AutoQCed_DTI_FA",
+     "dwi", "model-tensor_param-fa_desc-autoqc_dwimap", False),
+    ("dti-qc", "DTI/AUTOQC", "AutoQCed_DTI_MD",
+     "dwi", "model-tensor_param-md_desc-autoqc_dwimap", False),
+    ("dti-proc", "DTI/PROCESSED", "B0_antsManualBM",
+     "dwi", "param-b0_desc-brain_dwimap", False),
+    ("dti-proc", "DTI/PROCESSED", "IDWI_antsManualBM",
+     "dwi", "param-idwi_desc-brain_dwimap", False),
+    ("dti-proc", "DTI/PROCESSED", "FA_antsManualBM",
+     "dwi", "model-tensor_param-fa_desc-brain_dwimap", False),
+    ("dti-proc", "DTI/PROCESSED", "MD_antsManualBM",
+     "dwi", "model-tensor_param-md_desc-brain_dwimap", False),
+    ("dti-proc", "DTI/MASKMANUAL", "brainmask_final",
+     "dwi", "desc-brain_mask", False),
+]
+DERIV_KEYS = {"reg", "dti-qc", "dti-proc"}
+
 
 class Bidsifier:
 
@@ -44,7 +87,9 @@ class Bidsifier:
         self,
         root: Path,
         *,
-        keys: Iterable[str] = ("meta", "T1w", "T2w", "dwi"),
+        keys: Iterable[str] = (
+            "meta", "T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc"
+        ),
         subs: Iterable[str] = (),
         exclude_subs: Iterable[str] = (),
         sessions: Iterable[str] = (),
@@ -58,6 +103,7 @@ class Bidsifier:
         self.ifexists = ifexists
         self.src = self.root / "sourcedata"
         self.raw = self.root / "rawdata"
+        self.drv = self.root / "derivatives" / DERIV_NAME
         self.nb_errors = 0
         self.nb_skipped = 0
 
@@ -123,6 +169,15 @@ class Bidsifier:
                 self.root / "sessions.json", **opt
             ),
         }
+        if self.keys & DERIV_KEYS:
+            actions["derivatives/dataset_description.json"] = CopyJSON(
+                self.TPLDIR / "derivatives_description.json",
+                self.drv / "dataset_description.json", **opt
+            )
+            actions["derivatives/README"] = CopyBytes(
+                self.TPLDIR / "derivatives_README",
+                self.drv / "README", **opt
+            )
         if meta:
             actions["participants.tsv"] = Action(
                 self.src / "folders.json", self.root / "participants.tsv",
@@ -173,12 +228,11 @@ class Bidsifier:
             ses = parts[1]
             if not self.keep_session(ses):
                 continue
-            age = re.match(r"(\d+)\s*months?$", str(m.get("scan_age", "")))
             weight = m.get("scan_weight_kg")
             rows.append({
                 "session_id": f"ses-{ses}",
                 "acq_time": m.get("scan_date") or "n/a",
-                "age": age.group(1) if age else "n/a",
+                "age": _age_months(m.get("scan_age") or ses),
                 "weight": weight if weight not in (None, "") else "n/a",
             })
         _write_tsv(path, rows, ["session_id", "acq_time", "age", "weight"])
@@ -204,7 +258,7 @@ class Bidsifier:
                         yield from self.fixstatus(
                             status, Path(_first(action.dst)).name, mod
                         )
-        for mod in ("T1w", "T2w", "dwi"):
+        for mod in ("T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc"):
             if mod in self.keys:
                 yield {"status": "done", "message": "", "modality": mod}
 
@@ -242,6 +296,42 @@ class Bidsifier:
                     **opt,
                 ), "dwi"
                 break
+
+        for key, folder, stem, datatype, suffix, is_dwi in DERIVATIVES:
+            if key not in self.keys:
+                continue
+            src = sesdir / folder / f"{sub}_{ses}_{stem}.nrrd"
+            if not src.exists():
+                continue
+            dst = self.drv / f"sub-{sub}" / f"ses-{ses}" / datatype
+            name = f"{base}_{suffix}"
+            if is_dwi:
+                yield Action(
+                    src,
+                    [dst / f"{name}.nii.gz", dst / f"{name}.bval",
+                     dst / f"{name}.bvec"],
+                    lambda nii, bval, bvec, src=src: nrrd_to_nifti(
+                        src, nii, bval=bval, bvec=bvec
+                    ),
+                    **opt,
+                ), key
+            else:
+                yield Action(
+                    src, dst / f"{name}.nii.gz",
+                    lambda path, src=src: nrrd_to_nifti(src, path),
+                    **opt,
+                ), key
+
+
+def _age_months(label: str) -> str:
+    """'12months' -> '12'; '02weeks' -> '0.46' (in months)"""
+    m = re.match(r"(\d+(?:\.\d+)?)\s*(month|week|day)s?$", str(label))
+    if not m:
+        return "n/a"
+    value = float(m.group(1))
+    value = {"month": value, "week": value * 7 / 30.4375,
+             "day": value / 30.4375}[m.group(2)]
+    return f"{value:g}" if value == int(value) else f"{value:.2f}"
 
 
 def _first(x):

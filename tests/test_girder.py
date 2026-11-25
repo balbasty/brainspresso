@@ -372,3 +372,32 @@ def _folder_path(server, fid):
         parts.append(server.folders[fid]["name"])
         fid = server.folders[fid]["parentId"]
     return "/".join(reversed(parts))
+
+
+def test_uncwisc_roast_derivatives(uncwisc, tmp_path):
+    from brainspresso.datasets.UNCWisconsin.bidsifier import (
+        Bidsifier, SPACE, _age_months,
+    )
+    uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"])
+    root = tmp_path / "UNC-Wisconsin"
+    Bidsifier(root).run()
+    drv = root / "derivatives" / "unc-wisconsin"
+    out = files(drv)
+    assert {"README", "dataset_description.json"} <= out
+    for ses in ("12months", "16months"):
+        base = f"sub-001/ses-{ses}"
+        assert (
+            f"{base}/anat/sub-001_ses-{ses}_space-{SPACE}_T1w.nii.gz" in out
+        )
+        assert (
+            f"{base}/dwi/sub-001_ses-{ses}_"
+            f"model-tensor_param-fa_desc-autoqc_dwimap.nii.gz" in out
+        )
+    # raw data was not harvested
+    assert not (root / "rawdata" / "sub-001" / "ses-12months").exists()
+    description = json.loads((drv / "dataset_description.json").read_text())
+    assert description["DatasetType"] == "derivative"
+
+    assert _age_months("12months") == "12"
+    assert _age_months("02weeks") == "0.46"
+    assert _age_months("unknown") == "n/a"

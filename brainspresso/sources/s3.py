@@ -32,7 +32,8 @@ from xml.etree import ElementTree
 
 import aiohttp
 
-from brainspresso.download.constants import TIMEOUT, RETRY_STATUSES
+from brainspresso.download.constants import RETRY_STATUSES
+from brainspresso.download.session import new_session
 
 lg = getLogger(__name__)
 
@@ -158,7 +159,7 @@ class S3Bucket:
         session = self.session
         own = session is None or session.closed
         if own:
-            session = aiohttp.ClientSession(timeout=TIMEOUT)
+            session = new_session()
         try:
             params = {"list-type": "2", "prefix": prefix}
             if delimiter:

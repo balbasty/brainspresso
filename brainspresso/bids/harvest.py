@@ -16,14 +16,13 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterable
 
-import aiohttp
 from humanize import naturalsize
 
 from brainspresso.bids.select import BidsName, Selection
 from brainspresso.bids.tables import is_trimmable, query_participants
 from brainspresso.bids.tables import trim_tables
 from brainspresso.download import Downloader, DownloadManager, IfExists
-from brainspresso.download.constants import TIMEOUT
+from brainspresso.download.session import new_session
 
 lg = getLogger(__name__)
 
@@ -43,7 +42,7 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
         raise ValueError("--where requires a participants.tsv file")
 
     async def fetch():
-        async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
+        async with new_session() as session:
             async with session.get(table.url) as r:
                 r.raise_for_status()
                 return await r.text()

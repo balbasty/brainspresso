@@ -424,3 +424,14 @@ def test_action_writes_new_files(tmp_path):
     # Same file again: skipped
     statuses = list(Action(tmp_path / "in.json", out, write))
     assert statuses[-1]["status"] == "skipped"
+
+
+def test_sessions_honour_proxy_settings():
+    # aiohttp ignores HTTP(S)_PROXY unless trust_env=True
+    from brainspresso.download import new_session
+
+    async def check():
+        async with new_session() as session:
+            return session.trust_env, session.timeout.total
+
+    assert asyncio.run(check()) == (True, None)

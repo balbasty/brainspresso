@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 cobre_help = """
 COBRE dataset (schizophrenia)
@@ -13,3 +14,5 @@ COBRE dataset (schizophrenia)
 """
 
 app.command(cobre := App(name="cobre", help=cobre_help))
+
+add_compost(cobre, "COBRE")

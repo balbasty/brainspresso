@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 ixi_help = """
 IXI dataset (controls)
@@ -13,3 +14,5 @@ IXI dataset (controls)
 """
 
 app.command(ixi := App(name="ixi", help=ixi_help))
+
+add_compost(ixi, "IXI")

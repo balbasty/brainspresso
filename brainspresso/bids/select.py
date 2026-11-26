@@ -21,12 +21,14 @@ Selection rules
    not sidecars, and `phenotype/` are always kept. Top-level sidecars
    (`T1w.json`, `task-rest_bold.json`) follow rule 2.
 4. `derivatives/`, `sourcedata/`, `code/`, `stimuli/` are skipped unless
-   requested. Hidden files and folders (`.datalad/`, `.gitattributes`...)
-   are always skipped.
+   requested. When requested, the subject and session filters still
+   apply to their files. Hidden files and folders (`.datalad/`,
+   `.gitattributes`...) are always skipped.
 """
 from __future__ import annotations
 
 import fnmatch
+import re
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Iterable, Sequence
@@ -153,6 +155,23 @@ class Selection:
             return False
         return label not in self.exclude_subs
 
+    def keep_folder_file(self, path: str) -> bool:
+        """
+        Subject and session filters, applied to files of optional
+        folders (e.g. `derivatives/<pipeline>/sub-01/...`). Files that
+        do not belong to a subject (or session) are kept.
+        """
+        entities = {}
+        for key, value in re.findall(
+            r"(?:^|[/_])(sub|ses)-([A-Za-z0-9]+)", path
+        ):
+            entities.setdefault(key, value)
+        if "sub" in entities and not self.keep_subject(entities["sub"]):
+            return False
+        if self.sessions and "ses" in entities:
+            return entities["ses"] in self.sessions
+        return True
+
     # ------------------------------------------------------------------
     def select(self, paths: Iterable[str]) -> list[str]:
         """Return the subset of `paths` to download (sorted)"""
@@ -168,7 +187,7 @@ class Selection:
                 continue
             top = parts[0]
             if len(parts) > 1 and top in OPTIONAL_FOLDERS:
-                if top in self.folders:
+                if top in self.folders and self.keep_folder_file(path):
                     folder_files.append(path)
                 continue
             name = BidsName.parse(path)

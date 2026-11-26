@@ -190,6 +190,22 @@ class S3Bucket:
             for elem in page.iter(f"{_NS}Contents"):
                 yield _parse_object(elem)
 
+    async def ls(self, prefix: str = "") -> tuple[list[S3Object], list[str]]:
+        """
+        List a "directory" in one pass: the objects directly under
+        `prefix` and its subdirectories (common prefixes, with a
+        trailing slash).
+        """
+        if prefix and not prefix.endswith("/"):
+            prefix += "/"
+        objects, dirs = [], []
+        async for page in self._iter_pages(prefix, "/"):
+            for elem in page.iter(f"{_NS}Contents"):
+                objects.append(_parse_object(elem))
+            for elem in page.iter(f"{_NS}CommonPrefixes"):
+                dirs.append(elem.findtext(f"{_NS}Prefix"))
+        return objects, dirs
+
     async def dirs(self, prefix: str = "") -> AsyncIterator[str]:
         """List "subdirectories" (common prefixes) under a prefix"""
         if prefix and not prefix.endswith("/"):

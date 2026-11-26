@@ -604,6 +604,10 @@ class LocalExecutor:
     callable) in a "spawn" process pool. `resources` (CPUs, memory...
     for the grind backends) are accepted and ignored.
 
+    Workers take the shared run locks that the main process holds
+    (`actions.runlock`), so that a worker that outlives it still
+    protects the dataset from compost.
+
     Parameters
     ----------
     jobs : int
@@ -611,8 +615,10 @@ class LocalExecutor:
     """
 
     def __init__(self, jobs: int):
+        from brainspresso.actions.runlock import held_states, hold_shared
         self.pool = ProcessPoolExecutor(
-            jobs, mp_context=multiprocessing.get_context("spawn")
+            jobs, mp_context=multiprocessing.get_context("spawn"),
+            initializer=hold_shared, initargs=(held_states(),),
         )
 
     def submit(self, task: Callable[[], Any],

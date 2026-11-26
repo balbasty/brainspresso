@@ -17,23 +17,10 @@ Volunteers" of the collection):
 
 Harvested into `Bullitt/sourcedata/` with the same layout.
 """
-from pathlib import Path, PurePosixPath
-from typing import Annotated, Iterable
+from pathlib import PurePosixPath
 
-from cyclopts import Parameter
-from humanize import naturalsize
 
-from brainspresso.bids.harvest import record_run
-from brainspresso.bids.layout import LayoutChoice, resolve_layout
-from brainspresso.bids.select import Selection
-from brainspresso.download import CHUNK_SIZE, IfExists
-from brainspresso.sources.base import DownloadOptions, Wants
 from brainspresso.sources.girder import GirderSource, KITWARE
-from brainspresso.utils.log import setup_filelog
-from brainspresso.utils.path import get_tree_path
-from brainspresso.utils.ui import human2bytes
-from brainspresso.datasets.Bullitt.command import bullitt
-from brainspresso.datasets.Bullitt.keys import allkeys
 
 DATASET = "Bullitt"
 COLLECTION = "591086ee8d777f16d01e0724"
@@ -48,7 +35,6 @@ FOLDER_KEYS = {
 # AuxillaryData file name prefix -> key
 AUX_KEYS = {"SkullStripped": "skullstripped", "VascularNetwork": "vessels"}
 
-Many = Parameter(consume_multiple=True)
 
 
 def subject_label(folder: str) -> str | None:
@@ -104,75 +90,3 @@ class Girder(GirderSource):
         return True
 
 
-@bullitt.command(name="harvest")
-def download(
-    path: str | None = None,
-    *,
-    keys: Annotated[Iterable[str], Many] = ("raw", "meta", "derivatives"),
-    subs: Annotated[Iterable[str], Many] = (),
-    exclude_subs: Annotated[Iterable[str], Many] = (),
-    if_exists: IfExists.Choice = "skip",
-    token: str | None = None,
-    packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = None,
-    layout: LayoutChoice | None = None,
-    log: str | None = None,
-):
-    """
-    Download the Bullitt healthy MR database (MetaImage files, ~6 GB).
-
-    **Keys:**
-    * all
-      * meta              Administration folder (demographics PDF,
-                          sample DICOM headers)
-      * raw
-        * anat
-          * T1w          flash, mprage
-          * T2w
-          * angio        MRA
-        * dwi            DTI (downloaded but not converted by roast)
-      * derivatives
-        * skullstripped  Skull-stripped T1 (FLASH)
-        * vessels        Vascular networks (.tre)
-      * phantoms          BrainWeb and SPL phantoms
-
-    Parameters
-    ----------
-    path
-        Path to root of all datasets. A `Bullitt` folder will be created.
-    keys
-        Data categories to download (default: raw, meta, derivatives)
-    subs
-        Only download these subjects (e.g. 1 2 or 001 002)
-    exclude_subs
-        Do not download these subjects
-    if_exists
-        Behaviour if a file already exists
-    token
-        Girder API token (not needed: the collection is public)
-    packet
-        Packet size to download, in bytes
-    jobs
-        Number of parallel downloads
-    layout
-        Layout of the dataset (where source data does not move, but
-        later commands reuse it): "study" (raw dataset in
-        `rawbids/`) or "flat" (raw dataset at the root). Default:
-        the layout of an existing dataset, else "study".
-    log
-        Path to log file
-    """
-    setup_filelog(log)
-    keys = {str(getattr(k, "value", k)) for k in (
-        [keys] if isinstance(keys, str) else keys
-    )} or {"raw", "meta", "derivatives"}
-    subs = _labels(subs, "sub-")
-    exclude_subs = _labels(exclude_subs, "sub-")
-    dataset = resolve_layout(Path(get_tree_path(path)) / DATASET, layout)
-    record_run(dataset, "harvest", {"dataset": dataset.root.name})
-    Girder().configure(token=token).harvest(
-        dataset, Selection(subs=subs, exclude_subs=exclude_subs),
-        Wants(keys, allkeys),
-        DownloadOptions(ifexists=if_exists, jobs=jobs,
-                        chunk_size=human2bytes(packet)),
-    )

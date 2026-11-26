@@ -214,9 +214,9 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_adhd200_harvest_s3(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from brainspresso.datasets.ADHD200.harvest import download
-    download(tmp_path, keys=["raw", "meta"], sites=["Brown"], jobs=2,
-             layout=layout)
+    from cli_utils import bx
+    bx("adhd200", "harvest", tmp_path, "--keys", "raw", "meta", "--sites",
+       "Brown", "--jobs", 2, "--layout", layout)
     root = tmp_path / "ADHD-200"
     raw = Layout.detect(root).raw
     assert raw == {"study": root / "rawbids", "flat": root}[layout]

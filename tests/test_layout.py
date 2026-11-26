@@ -338,7 +338,7 @@ def test_resolve_layout_sites_conflict(tmp_path):
     record_run(lay.child("A"), "harvest")
     record_run(lay, "harvest")
     assert resolve_layout(tmp_path, "sites", child_kind="flat") == lay
-    with pytest.raises(LayoutError, match="--site-layout study"):
+    with pytest.raises(LayoutError, match="--layout sites:study"):
         resolve_layout(tmp_path, "sites", child_kind="study")
     with pytest.raises(LayoutError):
         resolve_layout(tmp_path, "study")

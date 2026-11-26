@@ -1,23 +1,12 @@
 from pathlib import Path
-from enum import Enum
-from typing import Annotated, Iterable, Literal
-from humanize import naturalsize
-from cyclopts import Parameter
 
-from brainspresso.bids.harvest import record_run
-from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
-from brainspresso.utils.path import get_tree_path
-from brainspresso.utils.log import setup_filelog
 from brainspresso.sources.base import (
-    DownloadOptions, Wants, configure_sources, harvest_sources,
-    numeric_labels, subject_selection,
+    DownloadOptions, Wants, numeric_labels, subject_selection,
 )
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC
 from brainspresso.download import IfExists
-from brainspresso.download import CHUNK_SIZE
-from brainspresso.datasets.CoRR.command import corr
 
 
 SITES = (
@@ -26,8 +15,6 @@ SITES = (
 )
 KEYS = ("raw", "meta")
 
-SiteChoice = Enum("SiteChoice", [(site, site) for site in SITES], type=str)
-KeyChoice = Enum("KeyChoice", [("raw", "raw"), ("meta", "meta")], type=str)
 
 URLBASE = 'https://fcon_1000.projects.nitrc.org/indi/CoRR/Data'
 SITES = {
@@ -181,7 +168,6 @@ URLS['NKI']['raw'] = [
 ]
 
 
-GroupNITRC = Parameter(group="nitrc (login required)")
 
 # Subject labels: `0003001` (host) <-> `3001` (BIDS)
 LABELS = numeric_labels()
@@ -258,89 +244,6 @@ def _aslist(x) -> list:
     return list(x)
 
 
-@corr.command(name="harvest")
-def download(
-    path: str | None = None,
-    *,
-    keys: Iterable[KeyChoice] = KEYS,
-    sites: Iterable[SiteChoice] = SITES,
-    subs: Iterable[int] = (),
-    exclude_subs: Iterable[int] = (),
-    if_exists: IfExists.Choice = "skip",
-    source: Literal["s3", "nitrc"] | None = None,
-    user: Annotated[str | None, GroupNITRC] = None,
-    password: Annotated[str | None, GroupNITRC] = None,
-    packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = None,
-    layout: LayoutChoice | None = None,
-    log: str | None = None,
-    level: str = "info",
-):
-    """
-    Download source data for the CoRR dataset.
-
-    **Possible keys:**
-    * **raw**          All the raw imaging data
-    * **meta**         Metadata
-
-    With the default source (s3), files are saved as
-    `CoRR/sourcedata/RawData/<Site>_<n>/<id>/session_<n>/<mod>_<n>/*`
-    and the phenotypes in
-    `CoRR/sourcedata/CoRR_AggregatedPhenotypicData.csv`.
-
-    Parameters
-    ----------
-    path
-        Path to root of all datasets. A `CoRR` folder will be created.
-    keys
-        Data categories to download
-    sites
-        Sites to download
-    subs
-        Only download these subjects (s3 only; all if empty)
-    exclude_subs
-        Do not download these subjects (s3 only)
-    if_exists
-        Behaviour if a file already exists
-    source
-        Source to download from (default: s3, and nitrc if s3 is
-        unavailable):
-
-        * s3: public INDI bucket (s3://fcp-indi), no login.
-        * nitrc: NITRC tarballs (login required).
-    user
-        NITRC username
-    password
-        NITRC password
-    packet
-        Packet size to download, in bytes
-    jobs
-        Number of parallel downloads (default: 4 with s3, 1 with nitrc)
-    layout
-        Layout of the dataset (where source data does not move, but
-        later commands reuse it): "study" (raw dataset in
-        `rawbids/`) or "flat" (raw dataset at the root). Default:
-        the layout of an existing dataset, else "study".
-    log
-        Path to log file
-
-    """
-    setup_filelog(log, level=level)
-    path = Path(get_tree_path(path))
-    keys = {_value(k) for k in _aslist(keys)} or set(KEYS)
-    sites = {_value(s) for s in _aslist(sites)} or set(SITES)
-    dataset = resolve_layout(path / 'CoRR', layout)
-    record_run(dataset, "harvest", {"dataset": "CoRR"})
-    harvest_sources(
-        configure_sources(sources(), sites=frozenset(sites), user=user,
-                          password=password),
-        DEFAULTS, dataset,
-        selection=subject_selection(subs, exclude_subs),
-        keys=Wants(keys),
-        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
-                                chunk_size=human2bytes(packet)),
-        override=_value(source) if source else None,
-    )
 
 
 def download_s3(

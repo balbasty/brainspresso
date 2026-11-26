@@ -1,26 +1,16 @@
 import json
 from pathlib import Path
-from humanize import naturalsize
-from typing import Annotated, Literal, Iterable
 
 import aiohttp
-from cyclopts import Parameter
 
-from brainspresso.bids.harvest import record_run
-from brainspresso.bids.layout import LayoutChoice, resolve_layout
-from brainspresso.utils.path import get_tree_path
-from brainspresso.utils.log import setup_filelog
-from brainspresso.utils.ui import human2bytes
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.download import IfExists
 from brainspresso.sources.base import (
     DownloadOptions, LabelMap, LocalSource, RemoteEntry, Source,
-    SourceUnavailable, StaticURLs, Wants, configure_sources,
-    harvest_sources, subject_selection,
+    SourceUnavailable, StaticURLs, Wants, subject_selection,
 )
 from brainspresso.sources.credentials import XnatAuth
 from brainspresso.sources.xnat_listing import list_project_files
-from brainspresso.datasets.IXI.command import ixi
 
 # ----------------------------------------------------------------------
 #   NITRC-IR (XNAT project "ixi"), the current host
@@ -51,8 +41,6 @@ URLS = {
 }
 IMAGES = ("T1w", "T2w", "PDw", "angio", "dwi")
 
-KeyChoice = Literal["T1w", "T2w", "PDw", "angio", "dwi", "meta"]
-GroupLogin = Parameter(group="nitrc login (optional)")
 
 
 def experiment_subject(label: str) -> int | None:
@@ -186,85 +174,6 @@ def sources() -> dict:
 
 DEFAULTS = {**{key: ["nitrc", "imperial"] for key in IMAGES},
             "meta": ["bundled"]}
-
-
-@ixi.command(name="harvest")
-def download(
-    path: str | None = None,
-    *,
-    keys: Iterable[KeyChoice] = tuple(URLS.keys()),
-    subs: Iterable[int] = (),
-    exclude_subs: Iterable[int] = (),
-    if_exists: IfExists.Choice = "skip",
-    source: Literal["nitrc", "imperial"] | None = None,
-    user: Annotated[str | None, GroupLogin] = None,
-    password: Annotated[str | None, GroupLogin] = None,
-    packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = None,
-    layout: LayoutChoice | None = None,
-    log: str | None = None,
-) -> None:
-    """
-    Download source data for the IXI dataset.
-
-    With the default source (NITRC-IR), images are saved under
-    `IXI/sourcedata/IXI-{T1,T2,PD,MRA,DTI}/`, with the same file names
-    as in the original tarballs, and the b-values/vectors of each
-    subject as `IXI-DTI/<IXI###-Site-####>-{bvals,bvecs}.txt`.
-    NITRC-IR does not host `IXI.xls` (demographics): `roast` uses the
-    copy shipped with brainspresso if there is none in `sourcedata/`.
-
-    Parameters
-    ----------
-    path : str
-        Path to root of all datasets. An `IXI` folder will be created.
-    keys : [list of] {"T1w", "T2w", "PDw", "angio", "dwi", "meta"}
-        Modalities to download
-    subs : [list of] int
-        Only download these subjects (nitrc only; all if empty)
-    exclude_subs : [list of] int
-        Do not download these subjects (nitrc only)
-    if_exists : {"error", "skip", "overwrite", "different", "refresh"}
-        Behaviour if a file already exists
-    source : {"nitrc", "imperial"}
-        Default: nitrc for images (imperial if nitrc is unavailable),
-        the bundled `IXI.xls` for metadata.
-
-        * nitrc: NITRC-IR, project "ixi" (no login needed).
-        * imperial: original tarballs (brain-development.org; offline).
-    user : str
-        NITRC username (only if anonymous access is refused)
-    password : str
-        NITRC password (only if anonymous access is refused)
-    packet : int
-        Packet size to download, in bytes
-    jobs : int
-        Number of parallel downloads
-    layout : {"study", "flat"}
-        Layout of the dataset (where source data does not move, but
-        later commands reuse it): "study" (raw dataset in
-        `rawbids/`) or "flat" (raw dataset at the root). Default:
-        the layout of an existing dataset, else "study".
-    log : str
-        Path to log file
-    """
-    setup_filelog(log)
-    if isinstance(keys, str):
-        keys = [keys]
-    keys = list({key: None for key in keys or URLS}.keys())
-    root: Path = Path(get_tree_path(path)) / 'IXI'
-    dataset = resolve_layout(root, layout)
-    record_run(dataset, "harvest", {"dataset": dataset.root.name})
-    Path(dataset.source).mkdir(parents=True, exist_ok=True)
-    harvest_sources(
-        configure_sources(sources(), user=user, password=password),
-        DEFAULTS, dataset,
-        selection=subject_selection(subs, exclude_subs, width=3),
-        keys=Wants(keys),
-        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
-                                chunk_size=human2bytes(packet)),
-        override=source,
-    )
 
 
 def nitrc_downloaders(

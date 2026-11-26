@@ -1,27 +1,17 @@
 """
-`compost` command, shared by all datasets.
+Body of the `compost` command, shared by all datasets.
 
-```python
-from brainspresso.datasets.compost import add_compost
-add_compost(ixi, "IXI")
-```
+`Dataset.compost` calls `run_compost`; the options are those of
+`datasets.options.CompostOptions`, `SelectionOptions`, `SessionOptions`
+and `FilterOptions`.
 """
-import functools
-import sys
 from pathlib import Path
-from typing import Annotated, Callable, Iterable
-
-from cyclopts import App, Parameter
+from typing import Iterable
 
 from brainspresso.bids.compost import compost
-from brainspresso.bids.layout import Layout, LayoutChoice, SitesLayout
-from brainspresso.bids.layout import resolve_layout
+from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
 from brainspresso.bids.select import Selection
-from brainspresso.utils.log import setup_filelog
-from brainspresso.utils.path import get_tree_path
-
-# Options that accept several values after a single flag (`--subs 01 02`)
-Many = Parameter(consume_multiple=True)
+from brainspresso.errors import UsageError
 
 SUMMARY = """
 Delete source data that has been roasted, or BIDS data outside a filter.
@@ -32,10 +22,12 @@ is deleted instead (and source data is kept, unless `--sourcedata` is
 used). Filters describe what is kept, exactly as in `harvest`: the
 metadata that still applies to a kept file is kept, dataset-level files
 are never deleted, and participants/sessions/scans tables are rewritten
-to only list what is left.
+to only list what is left. A dataset with one dataset per site is
+composted site by site (`--sites`: only these sites).
 
 The files to delete are always listed (`--dry-run`) or confirmed first
-(`--yes` to skip the confirmation).
+(`--yes` to skip the confirmation). Compost fails while a harvest or
+roast of the dataset runs (`--wait`).
 """
 
 EXAMPLES = """
@@ -50,195 +42,88 @@ bx {cmd} compost /data --where "age>=60" --derivatives
 ```
 """
 
-PARAMETERS = """
-sourcedata
-    Delete source data. Default: only if no BIDS filter is given.
-nested
-    Also delete `derivatives/*/sourcedata/` (raw files unpacked
-    while roasting, e.g. FreeSurfer outputs)
-keep
-    Do not delete source files matching these glob patterns
-    (relative to the dataset folder, `*` matches `/`), e.g. `"*.xls"`
-subs
-    Only keep these subjects (labels, with or without `sub-`)
-exclude_subs
-    Delete these subjects
-sessions
-    Only keep these sessions
-datatypes
-    Only keep these datatypes (anat, func, dwi, fmap, perf...)
-suffixes
-    Only keep these suffixes (T1w, T2w, bold, dwi...)
-tasks
-    Only keep these tasks
-include
-    Only keep data files matching these glob patterns
-    (relative to the BIDS root, e.g. `"sub-*/anat/*"`)
-exclude
-    Delete files matching these glob patterns (relative to the BIDS root)
-where
-    Only keep participants matching these queries on participants.tsv
-    columns, e.g. `"age>=60"` or `"sex==F"` (all queries must match)
-derivatives
-    Apply subject and session filters to `derivatives/*/` too
-layout
-    Expected layout of the dataset: "study" (raw dataset in
-    `rawbids/`) or "flat" (raw dataset at the root). Default: the
-    layout recorded in `.brainspresso/manifest.json` or detected from
-    the files. A dataset harvested with `--layout sites` is composted
-    site by site.
-trim
-    Rewrite participants/sessions/scans tables so that they only list
-    what is left
-force
-    Delete source data even if no BIDS subject is found
-    (i.e., if the dataset does not seem to have been roasted)
-yes
-    Do not ask for confirmation
-dry_run
-    Print the files that would be deleted, then exit
-list
-    Print the files to delete before asking for confirmation
-log
-    Path to log file
-level
-    Logging level
-"""
-
-
-def user_errors(func):
-    """Print user-facing errors without a traceback"""
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (KeyError, ValueError, FileNotFoundError,
-                PermissionError) as e:
-            message = e.args[0] if isinstance(e, KeyError) else e
-            print(f"Error: {message}", file=sys.stderr)
-            sys.exit(1)
-    return wrapper
-
 
 def run_compost(
-    root: Path | Layout,
+    root: str | Path | Layout,
     *,
-    sourcedata, nested, keep,
-    subs, exclude_subs, sessions, datatypes, suffixes, tasks,
-    include, exclude, where, derivatives,
-    trim, force, yes, dry_run, list, log, level, layout=None,
+    sourcedata: bool | None = None,
+    nested: bool = False,
+    keep: Iterable[str] = (),
+    subs: Iterable[str] = (),
+    exclude_subs: Iterable[str] = (),
+    sessions: Iterable[str] = (),
+    datatypes: Iterable[str] = (),
+    suffixes: Iterable[str] = (),
+    tasks: Iterable[str] = (),
+    include: Iterable[str] = (),
+    exclude: Iterable[str] = (),
+    where: Iterable[str] = (),
+    derivatives: bool = False,
+    trim: bool = True,
+    force: bool = False,
+    yes: bool = False,
+    dry_run: bool = False,
+    list: bool = False,
+    layout: str | None = None,
+    sites: Iterable[str] = (),
 ):
     """
-    Common implementation of all `compost` commands. `root` is a dataset
-    folder or a `Layout`; a "sites" layout is composted site by site.
-    """
-    setup_filelog(log, level=level)
-    found = resolve_layout(root, layout)
-    if isinstance(found, SitesLayout):
-        datasets = [d for d in found.datasets() if Path(d.root).is_dir()]
-        if not datasets:
-            raise ValueError(f"No site dataset found in {found.root}")
-        plans = []
-        for dataset in datasets:
-            print(f"--- {dataset.root.name}")
-            plans.append(run_compost(
-                dataset,
-                sourcedata=sourcedata, nested=nested, keep=keep,
-                subs=subs, exclude_subs=exclude_subs, sessions=sessions,
-                datatypes=datatypes, suffixes=suffixes, tasks=tasks,
-                include=include, exclude=exclude, where=where,
-                derivatives=derivatives, trim=trim, force=force, yes=yes,
-                dry_run=dry_run, list=list, log=None, level=level,
-            ))
-        return plans
-    selection = Selection(
-        subs=subs,
-        exclude_subs=exclude_subs,
-        sessions=sessions,
-        datatypes=datatypes,
-        suffixes=suffixes,
-        tasks=tasks,
-        include=include,
-        exclude=exclude,
-    )
-    return compost(
-        found,
-        sourcedata=sourcedata,
-        nested=nested,
-        keep=keep,
-        selection=selection,
-        where=where,
-        derivatives=derivatives,
-        trim=trim,
-        force=force,
-        yes=yes,
-        dry_run=dry_run,
-        listing=list,
-    )
-
-
-def make_doc(cmd: str, root_params: str) -> str:
-    return (
-        SUMMARY
-        + EXAMPLES.format(cmd=cmd)
-        + "\nParameters\n----------"
-        + root_params
-        + PARAMETERS
-    )
-
-
-def add_compost(app: App, folder: str) -> Callable:
-    """
-    Register a `compost` command in a dataset app.
+    Compost a dataset (a "sites" layout: site by site).
 
     Parameters
     ----------
-    app : App
-        Dataset command (e.g. `ixi`)
-    folder : str
-        Name of the dataset folder under the root of all datasets
-        (e.g. "IXI")
+    root : path | Layout
+        Dataset folder, or its layout
+    sourcedata, nested, keep, derivatives, trim, force, yes, dry_run, list
+        `CompostOptions`
+    subs, exclude_subs, sessions, datatypes, suffixes, tasks, include,
+    exclude, where
+        Filters (what is kept)
+    layout : str, optional
+        Expected layout
+    sites : list[str]
+        Only these sites (a "sites" layout only)
+
+    Returns
+    -------
+    CompostPlan | list[CompostPlan]
+        The plan (one per site)
     """
-
-    @user_errors
-    def compost_(
-        path: str | None = None,
-        *,
-        sourcedata: bool | None = None,
-        nested: bool = False,
-        keep: Annotated[Iterable[str], Many] = (),
-        subs: Annotated[Iterable[str], Many] = (),
-        exclude_subs: Annotated[Iterable[str], Many] = (),
-        sessions: Annotated[Iterable[str], Many] = (),
-        datatypes: Annotated[Iterable[str], Many] = (),
-        suffixes: Annotated[Iterable[str], Many] = (),
-        tasks: Annotated[Iterable[str], Many] = (),
-        include: Annotated[Iterable[str], Many] = (),
-        exclude: Annotated[Iterable[str], Many] = (),
-        where: Annotated[Iterable[str], Many] = (),
-        derivatives: bool = False,
-        layout: LayoutChoice | None = None,
-        trim: bool = True,
-        force: bool = False,
-        yes: Annotated[bool, Parameter(name=["--yes", "-y"])] = False,
-        dry_run: bool = False,
-        list: bool = False,
-        log: str | None = None,
-        level: str = "info",
-    ):
-        run_compost(
-            get_tree_path(path) / folder,
-            sourcedata=sourcedata, nested=nested, keep=keep,
-            subs=subs, exclude_subs=exclude_subs, sessions=sessions,
-            datatypes=datatypes, suffixes=suffixes, tasks=tasks,
-            include=include, exclude=exclude, where=where,
-            derivatives=derivatives, trim=trim, force=force, yes=yes,
-            dry_run=dry_run, list=list, log=log, level=level,
-            layout=layout,
+    found = resolve_layout(root, layout)
+    sites = [str(s) for s in sites or ()]
+    options = dict(
+        sourcedata=sourcedata, nested=nested, keep=keep, subs=subs,
+        exclude_subs=exclude_subs, sessions=sessions, datatypes=datatypes,
+        suffixes=suffixes, tasks=tasks, include=include, exclude=exclude,
+        where=where, derivatives=derivatives, trim=trim, force=force,
+        yes=yes, dry_run=dry_run, list=list,
+    )
+    if isinstance(found, SitesLayout):
+        datasets = [d for d in found.datasets() if Path(d.root).is_dir()]
+        if sites:
+            names = {s.lower() for s in sites}
+            datasets = [d for d in datasets
+                        if Path(d.root).name.lower() in names]
+        if not datasets:
+            raise UsageError(f"No site dataset found in {found.root}")
+        plans = []
+        for dataset in datasets:
+            print(f"--- {Path(dataset.root).name}")
+            plans.append(run_compost(dataset, **options))
+        return plans
+    if sites:
+        raise UsageError(
+            f"--sites only applies to a dataset harvested with one "
+            f"dataset per site (--layout sites); {found.root} has layout "
+            f"{found.kind!r}"
         )
-
-    compost_.__doc__ = make_doc(app.name[0], f"""
-path
-    Path to root of all datasets (which contains `{folder}/`)""")
-    app.command(compost_, name="compost")
-    return compost_
+    selection = Selection(
+        subs=subs, exclude_subs=exclude_subs, sessions=sessions,
+        datatypes=datatypes, suffixes=suffixes, tasks=tasks,
+        include=include, exclude=exclude,
+    )
+    return compost(
+        found, sourcedata=sourcedata, nested=nested, keep=keep,
+        selection=selection, where=where, derivatives=derivatives,
+        trim=trim, force=force, yes=yes, dry_run=dry_run, listing=list,
+    )

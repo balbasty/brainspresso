@@ -32,6 +32,7 @@ from urllib.parse import quote
 
 import aiohttp
 
+from brainspresso.errors import UsageError
 from brainspresso.download.session import new_session
 from brainspresso.sources.base import (
     DownloadOptions, RemoteEntry, Source, SourceUnavailable,
@@ -52,7 +53,7 @@ _ANNEX_ALGO = {"SHA256": "sha256", "SHA512": "sha512",
 _VERSION = re.compile(r"^\s*(\d+\.\d+\.\d+)\b")
 
 
-class OpenNeuroError(RuntimeError):
+class OpenNeuroError(UsageError):
     """An error of the OpenNeuro API."""
 
 
@@ -444,6 +445,7 @@ class OpenNeuro(Source):
             jobs=options.jobs or self.jobs, dry_run=options.dry_run,
             listing=listing, repair=repair, insecure=bool(options.insecure),
             provenance=provenance or self.provenance(),
+            chunk_size=options.chunk_size,
         )
 
     def harvest(self, layout, selection=None, keys=None, options=None,

@@ -48,6 +48,10 @@ lg = getLogger(__name__)
 
 LayoutChoice = Literal["study", "flat"]
 SitesLayoutChoice = Literal["study", "flat", "sites"]
+#: Values of `--layout` (`sites:<kind>`: the layout of each site)
+LayoutValue = Literal["study", "flat", "sites", "sites:study", "sites:flat"]
+#: `--layout` values of a dataset with one layout per site
+ALL_LAYOUTS = ("study", "flat", "sites", "sites:study", "sites:flat")
 
 #: Layout of new datasets (when `--layout` is not given)
 DEFAULT_LAYOUT: LayoutChoice = "study"
@@ -78,6 +82,42 @@ class LayoutError(ValueError):
 
 def _path(path: str | os.PathLike) -> Path:
     return Path(os.fspath(path))
+
+
+def parse_layout(value: str | None) -> tuple[str | None, str | None]:
+    """
+    Split a `--layout` value.
+
+    Parameters
+    ----------
+    value : {"study", "flat", "sites", "sites:study", "sites:flat"} | None
+        `sites` is one dataset per site, each with the layout of the
+        existing sites (else `DEFAULT_LAYOUT`); `sites:<kind>` sets it.
+
+    Returns
+    -------
+    kind : {"study", "flat", "sites"} | None
+        Layout of the dataset
+    child_kind : {"study", "flat"} | None
+        Layout of each site (`sites:<kind>` only)
+
+    Raises
+    ------
+    LayoutError
+        If the value is not a layout
+    """
+    if value is None:
+        return None, None
+    value = str(getattr(value, "value", value))
+    kind, _, child = value.partition(":")
+    if kind not in ("study", "flat", "sites") or (
+        child and (kind != "sites" or child not in ("study", "flat"))
+    ):
+        raise LayoutError(
+            f"Unknown layout {value!r}. Choose from: "
+            f"{', '.join(ALL_LAYOUTS)}"
+        )
+    return kind, child or None
 
 
 def relative_url(target: Path, start: Path) -> str:
@@ -681,7 +721,7 @@ def resolve_layout(
         if other:
             raise LayoutError(
                 f"Sites of {root} have layout {sorted(other)}, which "
-                f"conflicts with --site-layout {kind}"
+                f"conflicts with --layout sites:{kind}"
             )
         found.child_kind = kind
     return found

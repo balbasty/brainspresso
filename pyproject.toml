@@ -23,7 +23,7 @@ convention = "numpy"
 # package, in the packages ported to the new architecture only; extend
 # this one (negated) pattern as packages comply (two negated patterns
 # would exempt every file): docs/design/architecture.md, "Conventions".
-"!brainspresso/{actions,bids,download,roast,sources}/**" = ["D"]
+"!brainspresso/{actions/**,bids/**,download/**,roast/**,sources/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,cli.py,errors.py,__main__.py}" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

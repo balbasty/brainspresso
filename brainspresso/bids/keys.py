@@ -44,6 +44,11 @@ T2w, before `T2w`). `KeySelection.keeps` then decides:
 5. Claims (`partial=True`) are judged against the wanted keys only:
    a key set with no BIDS key (`--keys meta`) answers False for every
    claim of a subject folder, so that no archive is opened for them.
+6. Exclusions only (`--exclude-keys` without `--keys`): files that
+   match no key are kept (data files that follow no scans, metadata
+   that no key describes); unclassified files that follow the scans of
+   excluded keys only are dropped. Claims are never answered False on
+   keys alone (files of no key may be inside).
 """
 from __future__ import annotations
 
@@ -104,12 +109,16 @@ class KeySelection:
         Leaves wanted (BIDS keys and categories); None: everything
     filtered : bool
         Whether the BIDS keys are filtered (rules 3-5 apply)
+    exclude_only : bool
+        Only `--exclude-keys` was given: files that match no key are
+        kept (unless they follow the scans of an excluded key)
     """
 
     base: Selection = field(default_factory=Selection)
     predicates: tuple = ()
     wanted: frozenset | None = None
     filtered: bool = False
+    exclude_only: bool = False
 
     @property
     def keys(self) -> frozenset | None:
@@ -148,18 +157,24 @@ class KeySelection:
         if kind == _DATA:
             if index is not None:
                 return self._wanted_index(index)
-            return any(
-                key.scans is not None and key.name in self.wanted
+            follows = [
+                key.name in self.wanted for key in self.predicates
+                if key.scans is not None
                 and key.scans._check(name, key.scans._filters(), False)
-                for key in self.predicates
-            )
+            ]
+            if self.exclude_only:
+                # kept unless it follows the scans of excluded keys only
+                return not follows or any(follows)
+            return any(follows)
         # metadata: a wanted key, up to its own class, may describe it
         stop = len(self.predicates) if index is None else index + 1
-        return any(
-            key.name in self.wanted
-            and key.bare._check(name, key.bare._filters(), missing=True)
-            for key in self.predicates[:stop]
-        )
+        describes = [
+            key.name in self.wanted for key in self.predicates[:stop]
+            if key.bare._check(name, key.bare._filters(), missing=True)
+        ]
+        if self.exclude_only and not describes:
+            return True             # metadata of no key
+        return any(describes)
 
     def keeps(self, relpath: str, partial: bool = False) -> bool | None:
         """`Selection.keeps` on a path of the raw dataset (or a claim)."""
@@ -192,7 +207,8 @@ class KeySelection:
             k.scans_branch.keeps(relpath, partial=True) is not False
         ]
         if all(v is False for v in verdicts):
-            return False
+            # (with exclusions only, files of no key may be inside)
+            return None if self.exclude_only else False
         if True in verdicts and all(
             k.branch.keeps(relpath, partial=True) is False for k in other
         ):
@@ -389,4 +405,5 @@ class KeyAliases:
         return KeySelection(
             base, predicates, frozenset(wanted),
             filtered=not set(self.bids) <= wanted,
+            exclude_only=not keys and bool(exclude_keys),
         )

@@ -1,24 +1,14 @@
 # stdlib
 import json
 from pathlib import Path
-from typing import Iterable
 from logging import getLogger
 
 # externals
-from humanize import naturalsize
 
 # internals
-from brainspresso.bids.harvest import record_run
-from brainspresso.bids.layout import LayoutChoice, resolve_layout
-from brainspresso.utils.ui import human2bytes
-from brainspresso.utils.path import get_tree_path
-from brainspresso.utils.log import setup_filelog
-from brainspresso.download import IfExists
-from brainspresso.download import CHUNK_SIZE
-from brainspresso.datasets.ADHD200.command import adhd200
 from brainspresso.datasets.ADHD200.keys import allkeys
 from brainspresso.sources.base import (
-    DownloadOptions, RemoteEntry, Wants, numeric_labels, subject_selection,
+    RemoteEntry, Wants, numeric_labels,
 )
 from brainspresso.sources.fcp import FCP
 
@@ -157,92 +147,3 @@ class S3(FCP):
         return Path(layout.source) / path
 
 
-@adhd200.command(name="harvest")
-def download(
-    path: str | None = None,
-    *,
-    keys: Iterable[str] = ("all",),
-    subs: Iterable[int | str] | None = tuple(),
-    exclude_subs: Iterable[int | str] | None = tuple(),
-    sites: Iterable[str] | None = tuple(),
-    exclude_sites: Iterable[str] | None = tuple(),
-    if_exists: IfExists.Choice = "skip",
-    bidsify: bool = True,
-    packet: int | str = naturalsize(CHUNK_SIZE),
-    layout: LayoutChoice | None = None,
-    log: str | None = None,
-    jobs: int | None = None
-):
-    """
-    Download source data for the ADHD-200 dataset.
-
-    Data are listed and downloaded from the public INDI bucket
-    (s3://fcp-indi/data/Projects/ADHD200); no login is needed.
-
-    **Key hierarchy:**
-
-    * all
-      * meta                Metadata
-      * raw                 All raw data
-        * anat             Anatomical T1w scans
-        * rest             Resting-state fMRI
-      * derivatives         All derivatives
-        * proc             All processed data
-          * denoise       Denoised
-          * fmriprep      fmriPrep workflow
-          * mindboggle    Mindboggle workflow
-          * cpa           Configurable Pipeline for the Analysis of Connectomes
-          * fs            FreeSurfer
-        * qa               All quality assessment
-          * mriqc         Automated QC
-
-    Parameters
-    ----------
-    path : str
-        Path to root of all datasets. An `ABIDE-1` folder will be created.
-    keys : [list of] str
-        Data categories to download
-    subs : [list of] int
-        Only download these subjects (all if empty)
-    exclude_subs : [list of] int
-        Do not download these subjects
-    sites : [list of] {Brown, KKI, NYU, NeuroIMAGE, OHSU, Peking, Pittsburg, WashU}
-        Only download these sites (all if empty)
-    exclude_sites : [list of] str
-        Do not download these sites
-    if_exists : {"error", "skip", "overwrite", "different", "refresh"}
-        Behaviour if a file already exists
-    bidsify : bool
-        If True, download and organize data directly in the raw BIDS
-        dataset (`rawbids/`, or the dataset folder with `--layout flat`).
-        Otherwise, download data into `sourcedata`.
-    packet : int
-        Packet size to download, in bytes
-    layout : {"study", "flat"}
-        Layout of the dataset: "study" (raw dataset in `rawbids/`)
-        or "flat" (raw dataset at the root). Default:
-        the layout of an existing dataset, else "study".
-    log : str
-        Path to log file
-    jobs : int
-        Number of parallel jobs
-
-    """  # noqa: E501
-    setup_filelog(log)
-    dataset = resolve_layout(Path(get_tree_path(path)) / 'ADHD-200', layout)
-    record_run(dataset, "harvest", {"dataset": "ADHD-200"})
-    if isinstance(sites, str):
-        sites = [sites]
-    if isinstance(exclude_sites, str):
-        exclude_sites = [exclude_sites]
-    source = S3().configure(
-        sites=frozenset(sites or ()),
-        exclude_sites=frozenset(exclude_sites or ()),
-        bidsify=bidsify,
-    )
-    source.harvest(
-        dataset, subject_selection(subs, exclude_subs, width=7),
-        Wants([keys] if isinstance(keys, str) else keys, allkeys),
-        DownloadOptions(ifexists=if_exists, jobs=jobs, path="full",
-                        chunk_size=human2bytes(packet), on_error="raise"),
-    )

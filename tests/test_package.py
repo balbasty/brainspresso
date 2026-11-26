@@ -1,12 +1,14 @@
 """
 Smoke tests for the installed package: every module imports, every
-dataset command is registered, and package data is shipped.
+dataset of the catalog loads and is registered, and package data is
+shipped.
 
-`brainspresso/__init__.py` skips datasets that fail to import (with a
-warning) so that one broken dataset does not break the CLI; these tests
-make such failures fail CI (e.g. subpackages or template files missing
-from a wheel). Commands whose optional dependencies are missing are not
-registered (see `brainspresso.utils.deps`).
+The command line turns a dataset that fails to import into a stub
+command (with a warning) so that one broken dataset does not break the
+CLI; these tests make such failures fail CI (e.g. subpackages or
+template files missing from a wheel). Commands whose optional
+dependencies are missing are stubs that print the hint (see
+`brainspresso.utils.deps`).
 """
 import importlib
 import json
@@ -18,8 +20,8 @@ from pathlib import Path
 import pytest
 
 import brainspresso
-from brainspresso import _datasets
 from brainspresso.cli import app
+from brainspresso.datasets.catalog import CATALOG, load
 
 
 def all_modules():
@@ -48,9 +50,11 @@ def test_import(module):
     import_or_skip(module)
 
 
-@pytest.mark.parametrize("dataset", _datasets)
+@pytest.mark.parametrize("dataset", sorted(CATALOG))
 def test_dataset_import(dataset):
-    import_or_skip(f"brainspresso.datasets.{dataset}")
+    module = CATALOG[dataset][0].partition(":")[0]
+    import_or_skip(module)
+    assert load(dataset).name == dataset
 
 
 def test_cli_commands():
@@ -72,11 +76,19 @@ for name in ("xlrd", "openpyxl"):
     sys.modules[name] = None
 from brainspresso.cli import app
 from brainspresso.utils.deps import UNAVAILABLE
+import contextlib, io
+out = io.StringIO()
+with contextlib.redirect_stderr(out):
+    try:
+        app(["ixi", "roast", "--keys", "T1w"])
+    except SystemExit as e:
+        code = e.code
 print(json.dumps({
     "commands": sorted(app._commands),
     "ixi": sorted(app["ixi"]._commands),
     "oasis1": sorted(app["oasis1"]._commands),
     "unavailable": [[u.command, list(u.missing), u.hint] for u in UNAVAILABLE],
+    "stub": [code, out.getvalue()],
 }))
 """
 
@@ -89,9 +101,12 @@ def test_missing_optional_dependencies():
     # Nothing is logged about missing extras
     assert out.stderr == ""
     info = json.loads(out.stdout)
-    # Commands whose dependencies are missing are not registered...
-    assert "roast" not in info["ixi"] and "harvest" in info["ixi"]
-    assert "roast" not in info["oasis1"] and "harvest" in info["oasis1"]
+    # Commands whose dependencies are missing are stubs...
+    assert "roast" in info["ixi"] and "harvest" in info["ixi"]
+    assert "roast" in info["oasis1"] and "harvest" in info["oasis1"]
+    code, err = info["stub"]
+    assert code == 1
+    assert "pip install 'brainspresso[ixi]'" in err
     # ... but other commands still are
     assert {"ixi", "oasis1", "openneuro", "corr", "adhd200"} <= set(
         info["commands"]

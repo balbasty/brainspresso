@@ -35,6 +35,7 @@ from typing import Callable, Iterable
 
 from humanize import naturalsize
 
+from brainspresso.errors import DatasetNotFound, UsageError
 from brainspresso.bids.harvest import _filters, record_run
 from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
 from brainspresso.bids.select import BidsName, Selection, TOP_LEVEL_FILES
@@ -152,7 +153,7 @@ def restrict_participants(
         return selection
     table = find_participants(layout)
     if table is None:
-        raise ValueError("--where requires a participants.tsv file")
+        raise UsageError("--where requires a participants.tsv file")
     matching = query_participants(table.read_text(), where)
     if selection.subs:
         matching &= set(selection.subs)
@@ -248,10 +249,10 @@ def plan_compost(
         Expected layout (default: detected)
     """
     if not isinstance(root, Layout) and not Path(root).is_dir():
-        raise FileNotFoundError(f"Dataset folder not found: {root}")
+        raise DatasetNotFound(f"Dataset folder not found: {root}")
     layout = resolve_layout(root, layout)
     if isinstance(layout, SitesLayout):
-        raise ValueError(
+        raise UsageError(
             f"{layout.root} holds one dataset per site: compost each "
             f"site (`layout.datasets()`)"
         )
@@ -269,7 +270,7 @@ def plan_compost(
             files += list_files(folder, root)
         files = [f for f in files if not _matches(f, keep)]
         if files and not force and not has_subjects(bids):
-            raise ValueError(
+            raise UsageError(
                 f"No BIDS subject found in {bids}: the dataset does not "
                 f"seem to have been roasted, and deleting its source "
                 f"data would delete the only copy. Use --force to "
@@ -383,7 +384,7 @@ def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
 def confirm(message: str, ask: Callable[[str], str] = input) -> bool:
     """Ask the user for confirmation (refuse if not interactive)."""
     if ask is input and not sys.stdin.isatty():
-        raise ValueError(
+        raise UsageError(
             "Refusing to delete files without confirmation in a "
             "non-interactive session. Use --yes to confirm."
         )
@@ -455,7 +456,7 @@ def compost(
     if sourcedata is None:
         sourcedata = not filtering
     if not sourcedata and not filtering:
-        raise ValueError(
+        raise UsageError(
             "Nothing to compost: source data is disabled and no BIDS "
             "filter was given."
         )

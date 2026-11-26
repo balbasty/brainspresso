@@ -15,5 +15,6 @@
     "ParallelReductionFactorInPlane": 3.0,
     "SliceThickness": 1.5,
     "SpacingBetweenSlices": 1.5,
-    "AcquisitionMatrixPE": 128
+    "AcquisitionMatrixPE": 128,
+    "PhaseEncodingDirection": "j-"
 }

@@ -6,7 +6,9 @@
     "sidecars": {
         "BNI/1/FLAIR.json": {
             "printout": "BNI_1/3DFLAIR.txt",
-            "sha256": "ae786894d066b6530eba2ba90e4388f9e50198bd13caa883ea13572ae7390c4c"
+            "sha256": "ae786894d066b6530eba2ba90e4388f9e50198bd13caa883ea13572ae7390c4c",
+            "nii": "BNI_1/nii/FLAIR.nii",
+            "nii_sha256": "731613650a26dfab0e216cfd08acbecbae74593aeb7a2548afac35f44f3112fc"
         },
         "BNI/1/T1w.json": {
             "printout": "BNI_1/anat.txt",
@@ -58,7 +60,9 @@
         },
         "GU/1/bold.json": {
             "printout": "GU_1/bold.pdf",
-            "sha256": "d90bbcf973444692ca1a7529b279269f7b37e1e55499f95b3addb36fabdfe7d4"
+            "sha256": "d90bbcf973444692ca1a7529b279269f7b37e1e55499f95b3addb36fabdfe7d4",
+            "nii": "GU_1/nii/bold.nii",
+            "nii_sha256": "25b83ccb8fca86627a5b7e53aca0c9ba00625c9d98ecc4bea41185a3c771a006"
         },
         "IP/1/T1w.json": {
             "printout": "IP_1/T1w.pdf",
@@ -147,7 +151,7 @@
         "OHSU/1/bold.json": {
             "printout": "OHSU_1/bold.pdf",
             "sha256": "ec877cfe3cb15c92ac3f193ae75b48a15d53c829bf756361d53781c858fd514c",
-            "select": "REST1",
+            "select": "0",
             "nii": "OHSU_1/nii/bold.nii",
             "nii_sha256": "afe31133fb136097db3e65bf680bec877d7ab399fd99d0c0367c55cedc01c192"
         },
@@ -165,7 +169,9 @@
         },
         "SDSU/1/dwi.json": {
             "printout": "SDSU_1/dwi.pdf",
-            "sha256": "41710119a54026b12054cf003e71da3721b4b56bdede3e270302cf1b669d04dc"
+            "sha256": "41710119a54026b12054cf003e71da3721b4b56bdede3e270302cf1b669d04dc",
+            "nii": "SDSU_1/nii/dwi.nii",
+            "nii_sha256": "c480001f3d284db95ad411fb271a87861c648bda1ac577f14a306a68950245d9"
         },
         "TCD/1/T1w.json": {
             "printout": "TCD_1/T1w.txt",
@@ -256,6 +262,54 @@
             "sha256": "b194e280b13be2e1a21203f60608f6187f157dfda8155eb8f33ad97929b81b7c",
             "nii": "USM_1/nii/bold.nii",
             "nii_sha256": "f6c15e2983d64170e50d6a132a716f431bf0fa6e6de3e1e7bc6b9877ba71f7dd"
+        },
+        "KKI/1/acq-rc8chan_T1w.json": {
+            "printout": "KKI_1/acq-rc8chan_T1w.pdf",
+            "sha256": "650aabec8bd142d4f6d4a71f0bcaa1b63ccdd2fbc6fa80b6e5c88c0aa702059f",
+            "nii": "KKI_1/nii/acq-rc8chan_T1w.nii",
+            "nii_sha256": "423fa7df8134344befa2cf5ee6e533dde60d785a812db50324f66202491d0f8b"
+        },
+        "KKI/1/acq-rc8chan_bold.json": {
+            "printout": "KKI_1/bold.pdf",
+            "sha256": "b53806c708d17241bec452b731b8f97c23d757a47494ee469b5e537890953882",
+            "nii": "KKI_1/nii/acq-rc8chan_bold.nii",
+            "nii_sha256": "b254552ad034e0fa55a4a8aaae5e177166deff74716ab201481bc4b1f8279390"
+        },
+        "KKI/1/acq-rc32chan_T1w.json": {
+            "printout": "KKI_1/acq-rc32chan_T1w.pdf",
+            "sha256": "cd6983b76f2641ed454f3bf0772d0ae9edc69364d70e0a2660d3572a17c8c76e",
+            "nii": "KKI_1/nii/acq-rc32chan_T1w.nii",
+            "nii_sha256": "221d482d521b3f8810e1f50ce2df56a691f2c305467c65890a2ba01a996127d5"
+        },
+        "KKI/1/acq-rc32chan_bold.json": {
+            "printout": "KKI_1/bold.pdf",
+            "sha256": "b53806c708d17241bec452b731b8f97c23d757a47494ee469b5e537890953882",
+            "nii": "KKI_1/nii/acq-rc32chan_bold.nii",
+            "nii_sha256": "edbb14302b33051aba6ad0be08f238cf06be1db5cf0be38c430a73efe24d1ec8"
+        },
+        "NYU/1/fieldmap.json": {
+            "printout": "NYU_1/fieldmap.pdf",
+            "sha256": "b3b82d9d8f52f7ae5cbc66fa1a0bf361b802e1b21c52d29ab4514513fe6a851a",
+            "nii": "NYU_1/nii/fieldmap.nii",
+            "nii_sha256": "4121ad3e94aca69168f5fbd0133fe249b7c90e30f4aebb6d78420e8d4e836a9c"
+        },
+        "NYU/2/fieldmap.json": {
+            "printout": "NYU_2/fieldmap.pdf",
+            "sha256": "b3b82d9d8f52f7ae5cbc66fa1a0bf361b802e1b21c52d29ab4514513fe6a851a",
+            "nii": "NYU_2/nii/fieldmap.nii",
+            "nii_sha256": "f5d1043dfa52a21ebd2244140bce1df1bc1349409dc9f77ee97cceccfa237a32"
+        },
+        "ONRC/2/T1w.json": {
+            "printout": "ONRC_2/T1w.pdf",
+            "sha256": "787508c356a5ad64b04259bb2102c9cb89cb54f952001d6c88d120bfa0a6056f",
+            "nii": "ONRC_2/nii/T1w.nii",
+            "nii_sha256": "a83539e81d80ee00085a8ccc601b66dad23430c4b056d06526e4dd8cb3eff203"
+        },
+        "ONRC/2/bold.json": {
+            "printout": "ONRC_2/bold.pdf",
+            "sha256": "7e462589a30406e6868f6dfbcffa9623d2c5f1baffe248fedab1e837e74b0a5e",
+            "nii": "ONRC_2/nii/bold.nii",
+            "nii_sha256": "eea7f851c1e206b28fafb071e6251528ab92bd5942536c0ee9744e8eb2742136"
         }
     }
 }

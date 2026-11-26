@@ -11,5 +11,6 @@
     "FlipAngle": 7.0,
     "PixelBandwidth": 190.0,
     "SliceThickness": 1.3,
-    "AcquisitionMatrixPE": 192
+    "AcquisitionMatrixPE": 192,
+    "PhaseEncodingDirection": "j-"
 }

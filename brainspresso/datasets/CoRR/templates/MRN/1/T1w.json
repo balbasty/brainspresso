@@ -13,5 +13,6 @@
     "ParallelAcquisitionTechnique": "GRAPPA",
     "ParallelReductionFactorInPlane": 2.0,
     "SliceThickness": 1.0,
-    "AcquisitionMatrixPE": 256
+    "AcquisitionMatrixPE": 256,
+    "PhaseEncodingDirection": "j-"
 }

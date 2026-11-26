@@ -12,5 +12,6 @@
     "PixelBandwidth": 180.0,
     "PartialFourier": 0.75,
     "SliceThickness": 1.0,
-    "AcquisitionMatrixPE": 256
+    "AcquisitionMatrixPE": 256,
+    "PhaseEncodingDirection": "j-"
 }

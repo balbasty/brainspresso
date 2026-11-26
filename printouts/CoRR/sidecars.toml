@@ -13,6 +13,15 @@
 #   assigns   (optional) table of BIDS keys that override protocol2bids
 #   manual    true if no printout is available: the sidecar is kept as is
 #   note      (optional) free-text comment
+#   previous  (optional) older template (relative to templates/) that a
+#             new sidecar is diffed against in report.md/known_issues.md
+#
+# Mapping: protocol2bids `datasets/convert_CoRR.sh` for BMB_1, BNU_1-3,
+# IACAS, IPCAS_5, NKI_TRT, NYU_2, UM, Utah_1-2 and XHCUMS; scantables
+# elsewhere. Several protocols of one sample use BIDS-like names:
+# BNU/2/ses-{1,2}_{T1w,bold}.json (test/retest sessions),
+# NKI/TRT/acq-{645,1400,2500}_bold.json (TR in ms), *fieldmap.json.
+# CoRR has no roast yet: nothing reads these templates.
 
 [[sidecar]]
 output = "BMB/1/T1w.json"
@@ -38,18 +47,6 @@ nii = "BNU_1/nii/rest.nii"
 output = "BNU/1/dwi.json"
 printout = "BNU_1/dti.pdf"
 nii = "BNU_1/nii/dti.nii"
-
-[[sidecar]]
-output = "BNU/2/T1w.json"
-printout = "BNU_2/anat1.pdf"
-nii = "BNU_2/nii/anat1.nii"
-note = "BNU_2 test session printout (anat1)"
-
-[[sidecar]]
-output = "BNU/2/bold.json"
-printout = "BNU_2/rest1.pdf"
-nii = "BNU_2/nii/rest1.nii"
-note = "BNU_2 test session printout (rest1)"
 
 [[sidecar]]
 output = "BNU/3/T1w.json"
@@ -80,16 +77,19 @@ select = "*Rest"
 output = "HNU/1/T1w.json"
 printout = "HNU_1/scantable.pdf"
 select = "*Anatomical"
+nii = "HNU_1/nii/anat.nii"
 
 [[sidecar]]
 output = "HNU/1/bold.json"
 printout = "HNU_1/scantable.pdf"
 select = "*Rest"
+nii = "HNU_1/nii/rest.nii"
 
 [[sidecar]]
 output = "HNU/1/dwi.json"
 printout = "HNU_1/scantable.pdf"
 select = "*DTI"
+nii = "HNU_1/nii/dti.nii"
 
 [[sidecar]]
 output = "IACAS/1/T1w.json"
@@ -105,61 +105,73 @@ nii = "IACAS_1/nii/rest.nii"
 output = "IBA/TRT/T1w.json"
 printout = "IBA_TRT/scantable.pdf"
 select = "*Anatomical"
+nii = "IBA_TRT/nii/anat.nii"
 
 [[sidecar]]
 output = "IBA/TRT/bold.json"
 printout = "IBA_TRT/scantable.pdf"
 select = "*Rest"
+nii = "IBA_TRT/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/1/T1w.json"
 printout = "IPCAS_1/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_1/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/1/bold.json"
 printout = "IPCAS_1/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_1/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/1/dwi.json"
 printout = "IPCAS_1/scantable.pdf"
 select = "*DTI"
+nii = "IPCAS_1/nii/dti.nii"
 
 [[sidecar]]
 output = "IPCAS/2/T1w.json"
 printout = "IPCAS_2/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_2/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/2/bold.json"
 printout = "IPCAS_2/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_2/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/2/dwi.json"
 printout = "IPCAS_2/scantable.pdf"
 select = "*DTI"
+nii = "IPCAS_2/nii/dti.nii"
 
 [[sidecar]]
 output = "IPCAS/3/T1w.json"
 printout = "IPCAS_3/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_3/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/3/bold.json"
 printout = "IPCAS_3/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_3/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/4/T1w.json"
 printout = "IPCAS_4/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_4/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/4/bold.json"
 printout = "IPCAS_4/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_4/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/5/T1w.json"
@@ -177,101 +189,121 @@ nii = "IPCAS_5/nii/rest.nii"
 output = "IPCAS/6/T1w.json"
 printout = "IPCAS_6/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_6/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/6/bold.json"
 printout = "IPCAS_6/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_6/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/7/T1w.json"
 printout = "IPCAS_7/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_7/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/7/bold.json"
 printout = "IPCAS_7/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_7/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/8/T1w.json"
 printout = "IPCAS_8/scantable.pdf"
 select = "*Anatomical"
+nii = "IPCAS_8/nii/anat.nii"
 
 [[sidecar]]
 output = "IPCAS/8/bold.json"
 printout = "IPCAS_8/scantable.pdf"
 select = "*Rest"
+nii = "IPCAS_8/nii/rest.nii"
 
 [[sidecar]]
 output = "IPCAS/8/dwi.json"
 printout = "IPCAS_8/scantable.pdf"
 select = "*DTI"
+nii = "IPCAS_8/nii/dti.nii"
 
 [[sidecar]]
 output = "JHNU/1/T1w.json"
 printout = "JHNU_1/scantable.pdf"
 select = "*Anatomical"
+nii = "JHNU_1/nii/anat.nii"
 
 [[sidecar]]
 output = "JHNU/1/bold.json"
 printout = "JHNU_1/scantable.pdf"
 select = "*Rest"
+nii = "JHNU_1/nii/rest.nii"
 
 [[sidecar]]
 output = "LMU/1/T1w.json"
 printout = "LMU_1/scantable.pdf"
 select = "*Anatomical"
+nii = "LMU_1/nii/anat.nii"
 
 [[sidecar]]
 output = "LMU/1/bold.json"
 printout = "LMU_1/scantable.pdf"
 select = "*Rest"
+nii = "LMU_1/nii/rest.nii"
 
 [[sidecar]]
 output = "LMU/2/T1w.json"
 printout = "LMU_2/scantable.pdf"
 select = "*Anatomical"
+nii = "LMU_2/nii/anat.nii"
 
 [[sidecar]]
 output = "LMU/2/bold.json"
 printout = "LMU_2/scantable.pdf"
 select = "*Rest"
+nii = "LMU_2/nii/rest.nii"
 
 [[sidecar]]
 output = "LMU/3/T1w.json"
 printout = "LMU_3/scantable.pdf"
 select = "*Anatomical"
+nii = "LMU_3/nii/anat.nii"
 
 [[sidecar]]
 output = "LMU/3/bold.json"
 printout = "LMU_3/scantable.pdf"
 select = "*Rest"
+nii = "LMU_3/nii/rest.nii"
 
 [[sidecar]]
 output = "MPG/1/T1w.json"
 printout = "MPG_1/scantable.pdf"
 select = "*Anatomical"
+nii = "MPG_1/nii/anat.nii"
 
 [[sidecar]]
 output = "MPG/1/bold.json"
 printout = "MPG_1/scantable.pdf"
 select = "*Rest"
+nii = "MPG_1/nii/rest.nii"
 
 [[sidecar]]
 output = "MRN/1/T1w.json"
 printout = "MRN_1/scantable.pdf"
 select = "*Anatomical"
+nii = "MRN_1/nii/anat.nii"
 
 [[sidecar]]
 output = "MRN/1/bold.json"
 printout = "MRN_1/scantable.pdf"
 select = "*Rest"
+nii = "MRN_1/nii/rest.nii"
 
 [[sidecar]]
 output = "MRN/1/dwi.json"
 printout = "MRN_1/scantable.pdf"
 select = "*DTI"
+nii = "MRN_1/nii/dti.nii"
 
 [[sidecar]]
 output = "NKI/2/T1w.json"
@@ -302,11 +334,13 @@ select = "*DTI"
 output = "NYU/1/T1w.json"
 printout = "NYU_1/scantable.pdf"
 select = "*Anatomical"
+nii = "NYU_1/nii/anat.nii"
 
 [[sidecar]]
 output = "NYU/1/bold.json"
 printout = "NYU_1/scantable.pdf"
 select = "*Rest"
+nii = "NYU_1/nii/rest.nii"
 
 [[sidecar]]
 output = "NYU/2/T1w.json"
@@ -322,46 +356,55 @@ nii = "NYU_2/nii/rest.nii"
 output = "SWU/1/T1w.json"
 printout = "SWU_1/scantable.pdf"
 select = "*Anatomical"
+nii = "SWU_1/nii/anat.nii"
 
 [[sidecar]]
 output = "SWU/1/bold.json"
 printout = "SWU_1/scantable.pdf"
 select = "*Rest"
+nii = "SWU_1/nii/rest.nii"
 
 [[sidecar]]
 output = "SWU/2/T1w.json"
 printout = "SWU_2/scantable.pdf"
 select = "*Anatomical"
+nii = "SWU_2/nii/anat.nii"
 
 [[sidecar]]
 output = "SWU/2/bold.json"
 printout = "SWU_2/scantable.pdf"
 select = "*Rest"
+nii = "SWU_2/nii/rest.nii"
 
 [[sidecar]]
 output = "SWU/3/T1w.json"
 printout = "SWU_3/scantable.pdf"
 select = "*Anatomical"
+nii = "SWU_3/nii/anat.nii"
 
 [[sidecar]]
 output = "SWU/3/bold.json"
 printout = "SWU_3/scantable.pdf"
 select = "*Rest"
+nii = "SWU_3/nii/rest.nii"
 
 [[sidecar]]
 output = "SWU/4/T1w.json"
 printout = "SWU_4/scantable.pdf"
 select = "*Anatomical"
+nii = "SWU_4/nii/anat.nii"
 
 [[sidecar]]
 output = "SWU/4/bold.json"
 printout = "SWU_4/scantable.pdf"
 select = "*Rest"
+nii = "SWU_4/nii/rest.nii"
 
 [[sidecar]]
 output = "SWU/4/dwi.json"
 printout = "SWU_4/scantable.pdf"
 select = "*DTI"
+nii = "SWU_4/nii/dti.nii"
 
 [[sidecar]]
 output = "UM/1/T1w.json"
@@ -379,11 +422,13 @@ nii = "UM_1/nii/rest.nii"
 output = "UPSM/1/T1w.json"
 printout = "UPSM_1/scantable.pdf"
 select = "*Anatomical"
+nii = "UPSM_1/nii/anat.nii"
 
 [[sidecar]]
 output = "UPSM/1/bold.json"
 printout = "UPSM_1/scantable.pdf"
 select = "*Rest"
+nii = "UPSM_1/nii/rest.nii"
 
 [[sidecar]]
 output = "Utah/1/T1w.json"
@@ -404,3 +449,80 @@ nii = "Utah_2/nii/anat.nii"
 output = "Utah/2/bold.json"
 printout = "Utah_2/rest.pdf"
 nii = "Utah_2/nii/rest.nii"
+
+[[sidecar]]
+output = "BNU/2/ses-1_T1w.json"
+printout = "BNU_2/anat1.pdf"
+nii = "BNU_2/nii/anat1.nii"
+previous = "BNU/2/T1w.json"
+note = "test session (anat1 in convert_CoRR.sh)"
+
+[[sidecar]]
+output = "BNU/2/ses-1_bold.json"
+printout = "BNU_2/rest1.pdf"
+nii = "BNU_2/nii/rest1.nii"
+previous = "BNU/2/bold.json"
+note = "test session (rest1 in convert_CoRR.sh)"
+
+[[sidecar]]
+output = "BNU/2/ses-2_T1w.json"
+printout = "BNU_2/anat2.pdf"
+nii = "BNU_2/nii/anat2.nii"
+previous = "BNU/2/T1w.json"
+note = "retest session (anat2 in convert_CoRR.sh)"
+
+[[sidecar]]
+output = "BNU/2/ses-2_bold.json"
+printout = "BNU_2/rest2.pdf"
+nii = "BNU_2/nii/rest2.nii"
+previous = "BNU/2/bold.json"
+note = "retest session (rest2 in convert_CoRR.sh)"
+
+[[sidecar]]
+output = "NKI/TRT/dwi.json"
+printout = "NKI_TRT/dti.pdf"
+nii = "NKI_TRT/nii/dti.nii"
+
+[[sidecar]]
+output = "NKI/TRT/acq-645_bold.json"
+printout = "NKI_TRT/rest_645.pdf"
+nii = "NKI_TRT/nii/rest_645.nii"
+note = "rest_645 in convert_CoRR.sh (TR = 645 ms)"
+
+[[sidecar]]
+output = "NKI/TRT/acq-1400_bold.json"
+printout = "NKI_TRT/rest_1400.pdf"
+nii = "NKI_TRT/nii/rest_1400.nii"
+note = "rest_1400 in convert_CoRR.sh (TR = 1400 ms)"
+
+[[sidecar]]
+output = "NKI/TRT/acq-2500_bold.json"
+printout = "NKI_TRT/rest_2500.pdf"
+nii = "NKI_TRT/nii/rest_2500.nii"
+note = "rest_2500 in convert_CoRR.sh (TR = 2500 ms)"
+
+[[sidecar]]
+output = "Utah/2/fieldmap.json"
+printout = "Utah_2/fieldmap.pdf"
+nii = "Utah_2/nii/fieldmap.nii"
+
+[[sidecar]]
+output = "XHCUMS/1/T1w.json"
+printout = "XHCUMS/all.pdf"
+select = "1"
+nii = "XHCUMS/nii/anat.nii"
+note = "protocol index 1 of all.pdf (convert_CoRR.sh)"
+
+[[sidecar]]
+output = "XHCUMS/1/dwi.json"
+printout = "XHCUMS/all.pdf"
+select = "3"
+nii = "XHCUMS/nii/dti.nii"
+note = "protocol index 3 of all.pdf (convert_CoRR.sh)"
+
+[[sidecar]]
+output = "XHCUMS/1/bold.json"
+printout = "XHCUMS/all.pdf"
+select = "4"
+nii = "XHCUMS/nii/rest.nii"
+note = "protocol index 4 of all.pdf (convert_CoRR.sh)"

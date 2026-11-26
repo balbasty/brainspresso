@@ -14,5 +14,6 @@
     "PixelBandwidth": 2442.0,
     "SliceThickness": 3.6,
     "SpacingBetweenSlices": 3.96,
-    "AcquisitionMatrixPE": 64
+    "AcquisitionMatrixPE": 64,
+    "PhaseEncodingDirection": "j-"
 }

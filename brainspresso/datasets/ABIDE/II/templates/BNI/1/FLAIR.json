@@ -12,5 +12,5 @@
     "ParallelReductionFactorOutOfPlane": 2.0,
     "AcquisitionMatrixPE": 240,
     "ReconMatrixPE": 256,
-    "PhaseEncodingAxis": "i"
+    "PhaseEncodingAxis": "j"
 }

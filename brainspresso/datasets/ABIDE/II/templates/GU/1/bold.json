@@ -22,6 +22,7 @@
     "NumberShots": 1,
     "ParallelReductionFactorInPlane": 2,
     "ParallelAcquisitionTechnique": "GRAPPA",
+    "PhaseEncodingDirection": "j-",
     "EffectiveEchoSpacing": 0.000245,
     "TotalReadoutTime": 0.015434999999999999,
     "EchoTime": 0.03,
@@ -70,6 +71,7 @@
         1.953488,
         0.976744
     ],
+    "SliceEncodingDirection": "k",
     "DwellTime": 3.199e-06,
     "FlipAngle": 90.0,
     "RepetitionTime": 2.0,

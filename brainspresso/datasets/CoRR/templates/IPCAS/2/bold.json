@@ -15,6 +15,7 @@
     "SliceThickness": 3.0,
     "SpacingBetweenSlices": 3.99,
     "AcquisitionMatrixPE": 64,
+    "PhaseEncodingDirection": "j-",
     "SliceTiming": [
         1.25,
         0.0,

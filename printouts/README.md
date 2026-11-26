@@ -100,10 +100,10 @@ Per site:
 
 | site | moved from brainspresso | copied from protocol2bids corpus | nii headers |
 |---|---|---|---|
-| BNI_1 | `3DFLAIR.txt` (was `ABIDEII-BNI_1_3DFLAIR.txt`), `anat.txt` (was `ABIDEII-BNI_1_anat.txt`), `dti.txt` (was `ABIDEII-BNI_1_dti.txt`), `rest.txt` (was `ABIDEII-BNI_1_rest.txt`), `scantable.pdf` (was `ABIDEII-BNI_1_scantable.pdf`) | - | 3 |
+| BNI_1 | `3DFLAIR.txt` (was `ABIDEII-BNI_1_3DFLAIR.txt`), `anat.txt` (was `ABIDEII-BNI_1_anat.txt`), `dti.txt` (was `ABIDEII-BNI_1_dti.txt`), `rest.txt` (was `ABIDEII-BNI_1_rest.txt`), `scantable.pdf` (was `ABIDEII-BNI_1_scantable.pdf`) | - | 4 |
 | EMC_1 | `anat.pdf` (was `ABIDEII-EMC_1_anat.pdf`), `rest.pdf` (was `ABIDEII-EMC_1_rest.pdf`), `scantable.pdf` (was `ABIDEII-EMC_1_scantable.pdf`) | - | 2 |
 | ETH_1 | `anat.txt` (was `ABIDEII-ETH_1_anat.txt`), `rest.txt` (was `ABIDEII-ETH_1_rest.txt`), `scantable.pdf` (was `ABIDEII-ETH_1_scantable.pdf`) | - | 2 |
-| GU_1 | `scantable.pdf` (was `ABIDEII-GU_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf` | 1 |
+| GU_1 | `scantable.pdf` (was `ABIDEII-GU_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf` | 2 |
 | IP_1 | `scantable.pdf` (was `ABIDEII-IP_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf`, `dwi.pdf` | 3 |
 | IU_1 | `scantable.pdf` (was `ABIDEII-IU_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf` | 2 |
 | KKI_1 | - | `acq-rc32chan_T1w.pdf`, `acq-rc8chan_T1w.pdf`, `bold.pdf` | 4 |
@@ -114,7 +114,7 @@ Per site:
 | OHSU_1 | `scantable.pdf` (was `ABIDEII-OHSU_1_scantable.pdf`) | `T1w.pdf`, `all.pdf`, `bold.pdf` | 2 |
 | OILH_2 | - | `scantable.pdf` | 0 |
 | ONRC_2 | - | `T1w.pdf`, `bold.pdf` | 2 |
-| SDSU_1 | `scantable.pdf` (was `ABIDEII-SDSU_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf`, `dwi.pdf` | 2 |
+| SDSU_1 | `scantable.pdf` (was `ABIDEII-SDSU_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf`, `dwi.pdf` | 3 |
 | SU_2 | - | `T1w.pdf`, `bold.pdf` | 0 |
 | TCD_1 | `scantable.pdf` (was `ABIDEII-TCD_1_scantable.pdf`) | `T1w.txt`, `bold.txt`, `dwi.txt` | 3 |
 | UCD_1 | `scantable.pdf` (was `ABIDEII-UCD_1_scantable.pdf`) | `T1w.pdf`, `bold.pdf`, `sub-30004_bold.pdf` | 2 |
@@ -132,33 +132,33 @@ Per site:
 | BNU_2 | `scantable_retest.pdf` (was `BNU_2_Retest_scantable.pdf`), `scantable_test.pdf` (was `BNU_2_Test_scantable.pdf`) | `anat1.pdf`, `anat2.pdf`, `rest1.pdf`, `rest2.pdf` | 4 |
 | BNU_3 | `scantable.pdf` (was `BNU_3_scantable.pdf`) | `anat.pdf`, `dti.pdf`, `rest.pdf` | 3 |
 | DC_1 | `scantable.pdf` (was `DC_1_scantable.pdf`) | - | 0 |
-| HNU_1 | `scantable.pdf` (was `HNU_1_scantable.pdf`) | - | 0 |
+| HNU_1 | `scantable.pdf` (was `HNU_1_scantable.pdf`) | - | 3 |
 | IACAS_1 | `scantable.pdf` (was `IACAS_1_scantable.pdf`) | `anat.pdf`, `rest.pdf` | 2 |
-| IBA_TRT | `scantable.pdf` (was `IBATRT_scantable.pdf`) | - | 0 |
-| IPCAS_1 | `scantable.pdf` (was `IPCAS_1_scantable.pdf`) | - | 0 |
-| IPCAS_2 | `scantable.pdf` (was `IPCAS_2_scantable.pdf`) | - | 0 |
-| IPCAS_3 | `scantable.pdf` (was `IPCAS_3_scantable.pdf`) | - | 0 |
-| IPCAS_4 | `scantable.pdf` (was `IPCAS_4_scantable.pdf`) | - | 0 |
+| IBA_TRT | `scantable.pdf` (was `IBATRT_scantable.pdf`) | - | 2 |
+| IPCAS_1 | `scantable.pdf` (was `IPCAS_1_scantable.pdf`) | - | 3 |
+| IPCAS_2 | `scantable.pdf` (was `IPCAS_2_scantable.pdf`) | - | 3 |
+| IPCAS_3 | `scantable.pdf` (was `IPCAS_3_scantable.pdf`) | - | 2 |
+| IPCAS_4 | `scantable.pdf` (was `IPCAS_4_scantable.pdf`) | - | 2 |
 | IPCAS_5 | `scantable.pdf` (was `IPCAS_5_scantable.pdf`) | `all.pdf` | 2 |
-| IPCAS_6 | `scantable.pdf` (was `IPCAS_6_scantable.pdf`) | - | 0 |
-| IPCAS_7 | `scantable.pdf` (was `IPCAS_7_scantable.pdf`) | - | 0 |
-| IPCAS_8 | `scantable.pdf` (was `IPCAS_8_scantable.pdf`) | - | 0 |
-| JHNU_1 | `scantable.pdf` (was `JHNU_1_scantable.pdf`) | - | 0 |
-| LMU_1 | `scantable.pdf` (was `LMU_1_scantable.pdf`) | - | 0 |
-| LMU_2 | `scantable.pdf` (was `LMU_2_scantable.pdf`) | - | 0 |
-| LMU_3 | `scantable.pdf` (was `LMU_3_scantable.pdf`) | - | 0 |
-| MPG_1 | `scantable.pdf` (was `MPG_1_scantable.pdf`) | - | 0 |
-| MRN_1 | `scantable.pdf` (was `MRN_1_scantable.pdf`) | - | 0 |
+| IPCAS_6 | `scantable.pdf` (was `IPCAS_6_scantable.pdf`) | - | 2 |
+| IPCAS_7 | `scantable.pdf` (was `IPCAS_7_scantable.pdf`) | - | 2 |
+| IPCAS_8 | `scantable.pdf` (was `IPCAS_8_scantable.pdf`) | - | 3 |
+| JHNU_1 | `scantable.pdf` (was `JHNU_1_scantable.pdf`) | - | 2 |
+| LMU_1 | `scantable.pdf` (was `LMU_1_scantable.pdf`) | - | 2 |
+| LMU_2 | `scantable.pdf` (was `LMU_2_scantable.pdf`) | - | 2 |
+| LMU_3 | `scantable.pdf` (was `LMU_3_scantable.pdf`) | - | 2 |
+| MPG_1 | `scantable.pdf` (was `MPG_1_scantable.pdf`) | - | 2 |
+| MRN_1 | `scantable.pdf` (was `MRN_1_scantable.pdf`) | - | 3 |
 | NKI_2 | `scantable.pdf` (was `NKI_2_scantable.pdf`) | - | 0 |
 | NKI_TRT | `dti.pdf` (was `nki_DTI.pdf`), `rest_1400.pdf` (was `nki_rest_1400.pdf`), `rest_2500.pdf` (was `nki_rest_2500.pdf`), `rest_645.pdf` (was `nki_rest_645.pdf`) | - | 5 |
-| NYU_1 | `scantable.pdf` (was `NYU_1_scantable.pdf`) | - | 0 |
+| NYU_1 | `scantable.pdf` (was `NYU_1_scantable.pdf`) | - | 2 |
 | NYU_2 | `scantable.pdf` (was `NYU_2_scantable.pdf`) | `anat.pdf`, `dti.pdf`, `rest.pdf` | 2 |
-| SWU_1 | `scantable.pdf` (was `SWU_1_scantable.pdf`) | - | 0 |
-| SWU_2 | `scantable.pdf` (was `SWU_2_scantable.pdf`) | - | 0 |
-| SWU_3 | `scantable.pdf` (was `SWU_3_scantable.pdf`) | - | 0 |
-| SWU_4 | `scantable.pdf` (was `SWU_4_scantable.pdf`) | - | 0 |
+| SWU_1 | `scantable.pdf` (was `SWU_1_scantable.pdf`) | - | 2 |
+| SWU_2 | `scantable.pdf` (was `SWU_2_scantable.pdf`) | - | 2 |
+| SWU_3 | `scantable.pdf` (was `SWU_3_scantable.pdf`) | - | 2 |
+| SWU_4 | `scantable.pdf` (was `SWU_4_scantable.pdf`) | - | 3 |
 | UM_1 | `scantable.pdf` (was `UM_1_scantable.pdf`) | `all.pdf` | 2 |
-| UPSM_1 | `scantable.pdf` (was `UPSM_1_scantable.pdf`) | - | 0 |
+| UPSM_1 | `scantable.pdf` (was `UPSM_1_scantable.pdf`) | - | 2 |
 | Utah_1 | `scantable.pdf` (was `Utah_1_scantable.pdf`) | `anat.pdf`, `fieldmap.pdf`, `rest.pdf` | 2 |
 | Utah_2 | `scantable.pdf` (was `Utah_2_scantable.pdf`) | `anat.pdf`, `fieldmap.pdf`, `rest.pdf` | 3 |
 | XHCUMS | `all.pdf` (was `beijing_li_all.pdf`) | - | 3 |
@@ -187,13 +187,44 @@ manual = true                     # no printout: kept as is
 The richest printout available is used for each sidecar (vendor exports
 over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
 
-- ABIDE-I templates are per site while the corpus is per sample: `CMU` uses
-  `CMU_b`, `Leuven` uses `Leuven_1`, `MaxMun` uses `MaxMun_a`, `UCLA` uses
-  `UCLA_1`, `UM` uses `UM_1`.
-- CoRR `BNU/2` uses the test-session exports (`anat1.pdf`, `rest1.pdf`);
-  `NKI/2` uses the `NKI_2/scantable.pdf` table (the `NKI_TRT` exports are
-  kept but not used: CoRR lists NKI_TRT as its own sample and it is not certain they match NKI_2).
-- ABIDE-II `UCLA/2` and `UPSM/1` have no printout and are `manual`.
+- ABIDE-I follows the owner's per-sample mapping of protocol2bids
+  `datasets/convert_ABIDE1.sh`: sites with samples get one template folder
+  per sample (`CMU_a/`, `CMU_b/`, `Leuven_1/`, `Leuven_2/`, `MaxMun_a/`..
+  `MaxMun_d/`, `UCLA_1/`, `UCLA_2/`, `UM_1/`, `UM_2/`). The roast uses
+  `templates/<Site>_<sample>/<suffix>.json` when the site name of the data
+  (S3 `RawData/<Site>_<sample>/`, NITRC `<Site>_<sample>.tgz`) carries a
+  sample, else `templates/<Site>/<suffix>.json` (`CMU/T1w.json` is kept as
+  the fallback of `CMU_a`, which has no anatomical printout; NITRC parts
+  such as `NYU_a` fall back to `NYU/`). `UCLA_{1,2}/acq-hires_T1w.json` is
+  the high-resolution anatomical (`anat_hires`, protocol 1 of `anat.pdf`),
+  not read by the roast yet.
+- ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
+  exports (`*.txt`) are kept over the scantable for BNI_1, ETH_1, KUL_3 and
+  TCD_1 (more keys: parallel imaging, readout, slice timing). New templates
+  `KKI/1/acq-rc{8,32}chan_{T1w,bold}.json`, `NYU/{1,2}/fieldmap.json` and
+  `ONRC/2/{T1w,bold}.json` are not read by the roast yet. `UCLA/2` and
+  `UPSM/1` have no printout and are `manual`.
+- CoRR follows `convert_CoRR.sh` for BMB_1, BNU_1-3, IACAS, IPCAS_5,
+  NKI_TRT, NYU_2, UM, Utah_1-2 and XHCUMS (scantables elsewhere). Several
+  protocols of one sample use BIDS-like names: `BNU/2/ses-{1,2}_{T1w,bold}.json`
+  (test/retest), `NKI/TRT/acq-{645,1400,2500}_bold.json` (+ `dwi.json`),
+  `Utah/2/fieldmap.json`, `XHCUMS/1/{T1w,dwi,bold}.json`. `NKI/2` keeps the
+  `NKI_2/scantable.pdf` table. CoRR has no roast yet.
+
+## NIfTI headers
+
+Every converted entry has a `nii` header (protocol2bids needs it to map
+phase-encoding/slice directions to voxel axes), except CoRR `DC/1/*` and
+`NKI/2/*`, which have no matching scan on S3 (`CORR/RawData/` has no `DC_1`
+or `NKI_2` folder). Headers come from the protocol2bids corpus
+(`datasets/nii/`), or were fetched from the public `fcp-indi` bucket with
+`scripts/fetch_nii_headers.py` (first 64 KiB, header kept, data stripped):
+
+| header | source key (under `s3://fcp-indi/data/Projects/`) |
+|---|---|
+| `ABIDE2/BNI_1/nii/FLAIR.nii` | `ABIDE2/RawData/ABIDEII-BNI_1/sub-29015/ses-1/anat/sub-29015_ses-1_run-1_FLAIR.nii.gz` |
+| `ABIDE2/GU_1/nii/bold.nii` | `ABIDE2/RawData/ABIDEII-GU_1/sub-28742/ses-1/func/sub-28742_ses-1_task-rest_run-1_bold.nii.gz` |
+| `ABIDE2/SDSU_1/nii/dwi.nii` | `ABIDE2/RawData/ABIDEII-SDSU_1/sub-28853/ses-1/dwi/sub-28853_ses-1_run-1_dwi.nii.gz` |
 
 ## Regenerating
 
@@ -211,7 +242,16 @@ indent, protocol2bids key order, trailing newline). It never adds
 non-BIDS keys to sidecars; provenance (printout SHA-256, selector, NIfTI
 header SHA-256, protocol2bids version and commit) goes to
 `sidecars.lock.json`. `report.md` lists, per sidecar, the keys added,
-removed and changed compared to git `HEAD`, preceded by `known_issues.md`.
+removed and changed compared to git `HEAD` (or `--baseline REF`),
+preceded by `known_issues.md`. `known_issues.md` is generated (do not edit):
+it classifies every difference into renames (`ManufacturerModelName` ->
+`ManufacturersModelName`: the old key was misspelt), (a) old-template
+errors corrected by protocol2bids (invalid values: non-`i`/`j`/`k`
+directions, text `SliceTiming`, `SliceTiming` in anatomical sidecars,
+implausible `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in bold
+sidecars...), (b) suspected protocol2bids issues, and non-BIDS keys of the
+old templates. The committed reports use `--baseline aa3e2f1` (the
+hand-parsed templates).
 
 Do not hand-fix values in the generated sidecars: fix protocol2bids (or, for
 genuinely missing information, add `defaults`/`assigns`) and re-run.

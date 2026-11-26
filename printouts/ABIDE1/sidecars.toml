@@ -13,19 +13,18 @@
 #   assigns   (optional) table of BIDS keys that override protocol2bids
 #   manual    true if no printout is available: the sidecar is kept as is
 #   note      (optional) free-text comment
+#   previous  (optional) older template (relative to templates/) that a
+#             new sidecar is diffed against in report.md/known_issues.md
+#
+# Mapping: protocol2bids `datasets/convert_ABIDE1.sh` (owner's per-sample
+# choice of printout and protocol index). Sites with samples get one
+# template folder per sample (`<Site>_<sample>/`, e.g. `MaxMun_a/`), read
+# by the roast when the data's site folder/tarball carries that sample;
+# otherwise it falls back to the site folder (`<Site>/`).
+# `acq-hires_T1w.json` is the high-resolution anatomical of UCLA
+# (`anat_hires` in convert_ABIDE1.sh, protocol index 1 of anat.pdf); it is
+# not read by the roast yet.
 
-[[sidecar]]
-output = "CMU/T1w.json"
-printout = "CMU_b/anat.pdf"
-nii = "CMU_b/nii/anat.nii"
-note = "ABIDE-I CMU template; uses the CMU_b printouts"
-
-[[sidecar]]
-output = "CMU/bold.json"
-printout = "CMU_b/rest.pdf"
-select = "1"
-nii = "CMU_b/nii/rest.nii"
-note = "ABIDE-I CMU template; uses the CMU_b printouts"
 
 [[sidecar]]
 output = "Caltech/T1w.json"
@@ -38,6 +37,26 @@ printout = "Caltech/rest.pdf"
 nii = "Caltech/nii/rest.nii"
 
 [[sidecar]]
+output = "CMU_a/bold.json"
+printout = "CMU_a/rest.pdf"
+select = "0"
+nii = "CMU_a/nii/rest.nii"
+previous = "CMU/bold.json"
+
+[[sidecar]]
+output = "CMU_b/T1w.json"
+printout = "CMU_b/anat.pdf"
+nii = "CMU_b/nii/anat.nii"
+previous = "CMU/T1w.json"
+
+[[sidecar]]
+output = "CMU_b/bold.json"
+printout = "CMU_b/rest.pdf"
+select = "1"
+nii = "CMU_b/nii/rest.nii"
+previous = "CMU/bold.json"
+
+[[sidecar]]
 output = "KKI/T1w.json"
 printout = "KKI/anat.pdf"
 nii = "KKI/nii/anat.nii"
@@ -48,29 +67,80 @@ printout = "KKI/rest.pdf"
 nii = "KKI/nii/rest.nii"
 
 [[sidecar]]
-output = "Leuven/T1w.json"
+output = "Leuven_1/T1w.json"
 printout = "Leuven_1/anat.pdf"
 nii = "Leuven_1/nii/anat.nii"
-note = "ABIDE-I Leuven template; uses the Leuven_1 printouts"
+previous = "Leuven/T1w.json"
 
 [[sidecar]]
-output = "Leuven/bold.json"
+output = "Leuven_1/bold.json"
 printout = "Leuven_1/rest.pdf"
 nii = "Leuven_1/nii/rest.nii"
-note = "ABIDE-I Leuven template; uses the Leuven_1 printouts"
+previous = "Leuven/bold.json"
 
 [[sidecar]]
-output = "MaxMun/T1w.json"
+output = "Leuven_2/T1w.json"
+printout = "Leuven_2/anat.pdf"
+nii = "Leuven_2/nii/anat.nii"
+previous = "Leuven/T1w.json"
+
+[[sidecar]]
+output = "Leuven_2/bold.json"
+printout = "Leuven_2/rest.pdf"
+nii = "Leuven_2/nii/rest.nii"
+previous = "Leuven/bold.json"
+
+[[sidecar]]
+output = "MaxMun_a/T1w.json"
 printout = "MaxMun_a/anat.pdf"
 nii = "MaxMun_a/nii/anat.nii"
-note = "ABIDE-I MaxMun template; uses the MaxMun_a printouts"
+previous = "MaxMun/T1w.json"
 
 [[sidecar]]
-output = "MaxMun/bold.json"
+output = "MaxMun_a/bold.json"
 printout = "MaxMun_a/rest.pdf"
 select = "0"
 nii = "MaxMun_a/nii/rest.nii"
-note = "ABIDE-I MaxMun template; uses the MaxMun_a printouts"
+previous = "MaxMun/bold.json"
+
+[[sidecar]]
+output = "MaxMun_b/T1w.json"
+printout = "MaxMun_b/anat.pdf"
+nii = "MaxMun_b/nii/anat.nii"
+previous = "MaxMun/T1w.json"
+
+[[sidecar]]
+output = "MaxMun_b/bold.json"
+printout = "MaxMun_b/rest.pdf"
+select = "1"
+nii = "MaxMun_b/nii/rest.nii"
+previous = "MaxMun/bold.json"
+
+[[sidecar]]
+output = "MaxMun_c/T1w.json"
+printout = "MaxMun_c/anat.pdf"
+nii = "MaxMun_c/nii/anat.nii"
+previous = "MaxMun/T1w.json"
+
+[[sidecar]]
+output = "MaxMun_c/bold.json"
+printout = "MaxMun_c/rest.pdf"
+select = "2"
+nii = "MaxMun_c/nii/rest.nii"
+previous = "MaxMun/bold.json"
+
+[[sidecar]]
+output = "MaxMun_d/T1w.json"
+printout = "MaxMun_d/anat.pdf"
+nii = "MaxMun_d/nii/anat.nii"
+previous = "MaxMun/T1w.json"
+
+[[sidecar]]
+output = "MaxMun_d/bold.json"
+printout = "MaxMun_d/rest.pdf"
+select = "3"
+nii = "MaxMun_d/nii/rest.nii"
+previous = "MaxMun/bold.json"
 
 [[sidecar]]
 output = "NYU/T1w.json"
@@ -153,30 +223,70 @@ printout = "Trinity/rest.pdf"
 nii = "Trinity/nii/rest.nii"
 
 [[sidecar]]
-output = "UCLA/T1w.json"
+output = "UCLA_1/T1w.json"
 printout = "UCLA_1/anat.pdf"
 select = "0"
 nii = "UCLA_1/nii/anat.nii"
-note = "ABIDE-I UCLA template; uses the UCLA_1 printouts"
+previous = "UCLA/T1w.json"
 
 [[sidecar]]
-output = "UCLA/bold.json"
+output = "UCLA_1/acq-hires_T1w.json"
+printout = "UCLA_1/anat.pdf"
+select = "1"
+nii = "UCLA_1/nii/anat_hires.nii"
+note = "high-resolution T1w (`anat_hires` in convert_ABIDE1.sh)"
+
+[[sidecar]]
+output = "UCLA_1/bold.json"
 printout = "UCLA_1/rest.pdf"
 nii = "UCLA_1/nii/rest.nii"
-note = "ABIDE-I UCLA template; uses the UCLA_1 printouts"
+previous = "UCLA/bold.json"
 
 [[sidecar]]
-output = "UM/T1w.json"
+output = "UCLA_2/T1w.json"
+printout = "UCLA_2/anat.pdf"
+select = "0"
+nii = "UCLA_2/nii/anat.nii"
+previous = "UCLA/T1w.json"
+
+[[sidecar]]
+output = "UCLA_2/acq-hires_T1w.json"
+printout = "UCLA_2/anat.pdf"
+select = "1"
+nii = "UCLA_2/nii/anat_hires.nii"
+note = "high-resolution T1w (`anat_hires` in convert_ABIDE1.sh)"
+
+[[sidecar]]
+output = "UCLA_2/bold.json"
+printout = "UCLA_2/rest.pdf"
+nii = "UCLA_2/nii/rest.nii"
+previous = "UCLA/bold.json"
+
+[[sidecar]]
+output = "UM_1/T1w.json"
 printout = "UM_1/anat.pdf"
 select = "1"
 nii = "UM_1/nii/anat.nii"
-note = "ABIDE-I UM template; uses the UM_1 printouts"
+previous = "UM/T1w.json"
 
 [[sidecar]]
-output = "UM/bold.json"
+output = "UM_1/bold.json"
 printout = "UM_1/rest.pdf"
 nii = "UM_1/nii/rest.nii"
-note = "ABIDE-I UM template; uses the UM_1 printouts"
+previous = "UM/bold.json"
+
+[[sidecar]]
+output = "UM_2/T1w.json"
+printout = "UM_2/anat.pdf"
+select = "1"
+nii = "UM_2/nii/anat.nii"
+previous = "UM/T1w.json"
+
+[[sidecar]]
+output = "UM_2/bold.json"
+printout = "UM_2/rest.pdf"
+nii = "UM_2/nii/rest.nii"
+previous = "UM/bold.json"
 
 [[sidecar]]
 output = "USM/T1w.json"
@@ -198,3 +308,9 @@ nii = "Yale/nii/anat.nii"
 output = "Yale/bold.json"
 printout = "Yale/rest.pdf"
 nii = "Yale/nii/rest.nii"
+
+[[sidecar]]
+output = "CMU/T1w.json"
+printout = "CMU_b/anat.pdf"
+nii = "CMU_b/nii/anat.nii"
+note = "site fallback (used by CMU_a, which has no anatomical printout); uses the CMU_b printout"

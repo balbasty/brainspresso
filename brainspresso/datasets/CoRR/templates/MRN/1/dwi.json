@@ -16,5 +16,6 @@
     "PartialFourier": 0.75,
     "SliceThickness": 2.0,
     "SpacingBetweenSlices": 2.0,
-    "AcquisitionMatrixPE": 128
+    "AcquisitionMatrixPE": 128,
+    "PhaseEncodingDirection": "j-"
 }

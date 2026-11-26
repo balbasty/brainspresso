@@ -1,10 +1,11 @@
-import os
 import csv
 import json
 import logging
+import os
+from pathlib import Path
+
 import nibabel
 import numpy as np
-from pathlib import Path
 
 from brainspresso.utils.log import LoggingOutputSuppressor
 from brainspresso.utils.path import fileparts

@@ -16,12 +16,12 @@ import nibabel as nib
 import numpy as np
 import pytest
 from aiohttp import web
+from cli_utils import bx
+from roast_utils import LAYOUTS
 
 from brainspresso.bids.layout import Layout
-from brainspresso.download import DownloadManager
 from brainspresso.datasets.IXI import roaster
-from roast_utils import LAYOUTS
-from cli_utils import bx
+from brainspresso.download import DownloadManager
 
 # Templates of the installed package (CI tests the installed package)
 TEMPLATES = roaster.TEMPLATES

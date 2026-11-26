@@ -42,7 +42,10 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 from brainspresso.actions.locks import (
-    FileLock, LockError, LockTimeout, locks_enabled,
+    FileLock,
+    LockError,
+    LockTimeout,
+    locks_enabled,
 )
 
 RUN_FILE = "run"

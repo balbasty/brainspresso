@@ -31,22 +31,23 @@ COBRE/
 With `--layout flat`, the content of `rawbids/` is in `COBRE/` itself
 (and `sourcedata/`, `derivatives/` stay where they are).
 """
-import tarfile
 import csv
+import tarfile
 from logging import getLogger
 from pathlib import Path, PosixPath
-from typing import Literal, Iterable, Set
+from typing import Iterable, Literal, Set
 
+from brainspresso.actions import (
+    Action,
+    CopyBytes,
+    CopyJSON,
+    IfExists,
+    WrapAction,
+)
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
-from brainspresso.utils.io import copy_from_buffer
-from brainspresso.utils.io import write_tsv
+from brainspresso.utils.io import copy_from_buffer, write_tsv
 from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.actions import Action
-from brainspresso.actions import IfExists
-from brainspresso.actions import CopyBytes
-from brainspresso.actions import CopyJSON
-from brainspresso.actions import WrapAction
 
 lg = getLogger(__name__)
 

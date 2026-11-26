@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
 from warnings import filterwarnings
+
 from urllib3.exceptions import InsecureRequestWarning
 
 from brainspresso.download import Downloader, DownloadManager
 from brainspresso.utils.prot.fcon import parse_fcon_summary
-from brainspresso.utils.prot.philips_txt import parse_philipps_txt
 from brainspresso.utils.prot.ge_dicom_printout import parse_ge_dicom
-
+from brainspresso.utils.prot.philips_txt import parse_philipps_txt
 
 DOWNLOAD = False
 PARSE = True

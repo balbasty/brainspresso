@@ -41,26 +41,20 @@ ABIDE-2/
 With `--layout flat`, the content of `rawbids/` is in `ABIDE-2/` itself
 (and `sourcedata/`, `derivatives/` stay where they are).
 """
-import tarfile
 import csv
+import tarfile
 from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Iterable, Iterator, Literal
 
+from brainspresso.actions import Action, CopyBytes, CopyJSON, IfExists
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
-from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.utils.tabular import Status
-from brainspresso.utils.io import write_tsv
-from brainspresso.utils.io import write_from_buffer
+from brainspresso.datasets.ABIDE.II.keys import allkeys, allleaves
+from brainspresso.utils.io import write_from_buffer, write_tsv
+from brainspresso.utils.keys import compat_keys, lower_keys
+from brainspresso.utils.tabular import Status, bidsify_tab
 from brainspresso.utils.tsv import TableMapper
-from brainspresso.utils.keys import compat_keys
-from brainspresso.utils.keys import lower_keys
-from brainspresso.actions import IfExists
-from brainspresso.actions import Action
-from brainspresso.actions import CopyJSON
-from brainspresso.actions import CopyBytes
-from brainspresso.datasets.ABIDE.II.keys import allleaves, allkeys
 
 lg = getLogger(__name__)
 

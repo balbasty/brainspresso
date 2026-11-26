@@ -4,15 +4,18 @@ import json
 from pathlib import Path
 
 import pytest
+from roast_utils import LAYOUTS, make_tar, raw_tree, read_tsv
 
 from brainspresso.actions import Action, Claim, WriteJSON, WriteText
 from brainspresso.actions.archive import ExtractMembers
-from brainspresso.roast import (
-    RoastContext, Shard, make_context, run_roast,
-)
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.layout import Layout, make_layout
-from roast_utils import LAYOUTS, make_tar, raw_tree, read_tsv
+from brainspresso.roast import (
+    RoastContext,
+    Shard,
+    make_context,
+    run_roast,
+)
 
 KEYS = KeyAliases(
     {"meta": {}, "raw": {"anat": {"T1w", "TSE"}, "dwi": {}}},

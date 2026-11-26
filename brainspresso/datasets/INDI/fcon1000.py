@@ -32,7 +32,13 @@ from collections import defaultdict
 from logging import getLogger
 
 from brainspresso.datasets.INDI.engine import (
-    TEMPLATES, InlineEntry, Item, Project, Site, json_bytes, read_table,
+    TEMPLATES,
+    InlineEntry,
+    Item,
+    Project,
+    Site,
+    json_bytes,
+    read_table,
 )
 
 lg = getLogger(__name__)

@@ -1,6 +1,6 @@
-import pymupdf
 import math
 
+import pymupdf
 
 _dicom2bids = {
     'Manufacturer': '0008,0070',

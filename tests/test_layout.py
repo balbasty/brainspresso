@@ -4,16 +4,29 @@ from pathlib import Path
 
 import pytest
 
-from brainspresso.bids import layout as layout_mod
 from brainspresso.actions.state import (
-    read_task_states, task_path, write_task_state,
+    read_task_states,
+    task_path,
+    write_task_state,
 )
+from brainspresso.bids import layout as layout_mod
 from brainspresso.bids.harvest import (
-    InlineEntry, harvest, read_manifest, record_run,
+    InlineEntry,
+    harvest,
+    read_manifest,
+    record_run,
 )
 from brainspresso.bids.layout import (
-    DEFAULT_LAYOUT, DerivativeLayout, FlatLayout, Layout, LayoutError,
-    SitesLayout, StudyLayout, make_layout, relative_url, resolve_layout,
+    DEFAULT_LAYOUT,
+    DerivativeLayout,
+    FlatLayout,
+    Layout,
+    LayoutError,
+    SitesLayout,
+    StudyLayout,
+    make_layout,
+    relative_url,
+    resolve_layout,
 )
 from brainspresso.bids.select import Selection
 

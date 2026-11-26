@@ -27,27 +27,27 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-2/` itself
 (and `sourcedata/`, `derivatives/` stay where they are).
 """
 import tarfile
-import nibabel as nib
-import numpy as np
-from tempfile import TemporaryDirectory
 from logging import getLogger
 from pathlib import Path, PosixPath
-from typing import Literal, Iterable, Iterator
+from tempfile import TemporaryDirectory
+from typing import Iterable, Iterator, Literal
 
+import nibabel as nib
+import numpy as np
+
+from brainspresso.actions import (
+    Action,
+    CopyBytes,
+    CopyJSON,
+    IfExists,
+    WrapAction,
+    WriteTSV,
+)
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
-from brainspresso.utils.io import write_tsv
-from brainspresso.utils.io import write_from_buffer
-from brainspresso.utils.io import nibabel_convert
-from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.utils.tabular import Status
+from brainspresso.utils.io import nibabel_convert, write_from_buffer, write_tsv
+from brainspresso.utils.tabular import Status, bidsify_tab
 from brainspresso.utils.vol import make_affine
-from brainspresso.actions import IfExists
-from brainspresso.actions import Action
-from brainspresso.actions import CopyBytes
-from brainspresso.actions import CopyJSON
-from brainspresso.actions import WriteTSV
-from brainspresso.actions import WrapAction
 
 lg = getLogger(__name__)
 import openpyxl  # noqa: E402  (extra: brainspresso[oasis])

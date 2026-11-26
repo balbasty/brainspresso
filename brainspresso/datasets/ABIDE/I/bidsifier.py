@@ -7,21 +7,21 @@ from typing import IO, Callable, Iterable, Iterator, Literal
 
 import nibabel as nib
 
+from brainspresso.actions import (
+    Action,
+    CopyBytes,
+    CopyJSON,
+    Fail,
+    IfExists,
+    WriteJSON,
+)
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
-from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.utils.tabular import Status
-from brainspresso.utils.io import write_tsv
-from brainspresso.utils.tsv import TableMapper
-from brainspresso.utils.keys import compat_keys
-from brainspresso.utils.keys import lower_keys
-from brainspresso.actions import IfExists
-from brainspresso.actions import Action
-from brainspresso.actions import CopyJSON
-from brainspresso.actions import CopyBytes
-from brainspresso.actions import Fail
-from brainspresso.actions import WriteJSON
 from brainspresso.datasets.ABIDE.I.keys import allkeys
+from brainspresso.utils.io import write_tsv
+from brainspresso.utils.keys import compat_keys, lower_keys
+from brainspresso.utils.tabular import Status, bidsify_tab
+from brainspresso.utils.tsv import TableMapper
 
 lg = getLogger(__name__)
 

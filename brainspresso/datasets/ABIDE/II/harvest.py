@@ -17,7 +17,8 @@ Sources:
 import re
 
 from brainspresso.sources.base import (
-    CompositeSource, numeric_labels,
+    CompositeSource,
+    numeric_labels,
 )
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC

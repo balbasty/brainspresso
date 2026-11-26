@@ -22,12 +22,18 @@ roast_dataset(roast_ixi, root, KEYS, keys=["T1w"], jobs=4)
 """
 from brainspresso.actions.engine import LocalExecutor, Shard
 from brainspresso.roast.context import (
-    JsonPolicy, RoastContext, as_list, make_context,
+    JsonPolicy,
+    RoastContext,
+    as_list,
+    make_context,
 )
 from brainspresso.roast.helpers import copy_templates, subject_shards
 from brainspresso.roast.policy import RoastPolicy
 from brainspresso.roast.run import (
-    RoastReport, Roaster, roast_dataset, run_roast,
+    Roaster,
+    RoastReport,
+    roast_dataset,
+    run_roast,
 )
 
 __all__ = [

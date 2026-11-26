@@ -3,11 +3,17 @@ import json
 
 import nibabel as nib
 import pytest
+from roast_utils import (
+    LAYOUTS,
+    init_layout,
+    make_tar,
+    nii_bytes,
+    raw_file,
+    raw_tree,
+    read_tsv,
+)
 
 from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-from roast_utils import (
-    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
-)
 
 PHENOS = Bidsifier.PHENOTYPES
 COLS = list(dict.fromkeys(

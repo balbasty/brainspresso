@@ -17,7 +17,10 @@ from __future__ import annotations
 
 from brainspresso.sources.base import StaticURLs
 from brainspresso.sources.credentials import (
-    NITRC_LOGIN, NitrcAuth, get_credentials, nitrc_credentials,
+    NITRC_LOGIN,
+    NitrcAuth,
+    get_credentials,
+    nitrc_credentials,
 )
 
 __all__ = ["NITRC", "NitrcAuth", "nitrc_credentials", "get_credentials"]

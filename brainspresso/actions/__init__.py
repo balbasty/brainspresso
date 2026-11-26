@@ -15,13 +15,14 @@ Actions: stage-agnostic units of work that write files, and their engine.
 Stage layers build on it: `brainspresso.roast` (convert sources to
 BIDS), grind (preprocessing, `docs/design/architecture.md` §7).
 """
-from . import action        # noqa: F401
-from . import file          # noqa: F401
-from . import writers       # noqa: F401
-from . import engine        # noqa: F401
-from . import locks         # noqa: F401
-from . import state         # noqa: F401
-
-from .action import *       # noqa: F401, F403
-from .file import *         # noqa: F401, F403
-from .writers import *      # noqa: F401, F403
+from . import (
+    action,  # noqa: F401
+    engine,  # noqa: F401
+    file,  # noqa: F401
+    locks,  # noqa: F401
+    state,  # noqa: F401
+    writers,  # noqa: F401
+)
+from .action import *  # noqa: F401, F403
+from .file import *  # noqa: F401, F403
+from .writers import *  # noqa: F401, F403

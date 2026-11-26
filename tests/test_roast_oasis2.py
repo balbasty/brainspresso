@@ -4,9 +4,14 @@ import json
 import nibabel as nib
 import numpy as np
 import pytest
-
 from roast_utils import (
-    LAYOUTS, analyze_pair, init_layout, make_tar, raw_file, raw_tree, read_tsv,
+    LAYOUTS,
+    analyze_pair,
+    init_layout,
+    make_tar,
+    raw_file,
+    raw_tree,
+    read_tsv,
 )
 
 openpyxl = pytest.importorskip("openpyxl")

@@ -35,12 +35,15 @@ from typing import Callable, Iterable
 
 from humanize import naturalsize
 
-from brainspresso.errors import DatasetNotFound, UsageError
 from brainspresso.bids.harvest import _filters, record_run
 from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
-from brainspresso.bids.select import BidsName, Selection, TOP_LEVEL_FILES
-from brainspresso.bids.tables import is_trimmable, query_participants
-from brainspresso.bids.tables import trim_tables
+from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName, Selection
+from brainspresso.bids.tables import (
+    is_trimmable,
+    query_participants,
+    trim_tables,
+)
+from brainspresso.errors import DatasetNotFound, UsageError
 
 lg = getLogger(__name__)
 

@@ -8,12 +8,14 @@ from pathlib import PurePosixPath
 import nibabel as nib
 import numpy as np
 import pytest
+from roast_utils import init_layout, make_tar, nii_bytes, raw_file
 
 from brainspresso.datasets.ABIDE.I import sources
-from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
-from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
+from brainspresso.datasets.ABIDE.I.bidsifier import (
+    BidsifierBase,
+    TemplateError,
+)
 from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-from roast_utils import init_layout, make_tar, nii_bytes, raw_file
 
 TPL = BidsifierBase.TPLDIR
 NAMES = ("T1w.json", "bold.json")

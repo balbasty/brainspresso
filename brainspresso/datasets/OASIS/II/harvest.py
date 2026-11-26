@@ -1,7 +1,6 @@
 
 from brainspresso.sources.base import StaticURLs
 
-
 URLBASE = 'https://download.nrg.wustl.edu/data'
 OASISBASE = 'https://sites.wustl.edu/oasisbrains/files/2024/03/'
 URLS = {

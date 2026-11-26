@@ -1,13 +1,15 @@
 from pathlib import Path
 
-from brainspresso.utils.ui import human2bytes
+from brainspresso.download import IfExists
 from brainspresso.sources.base import (
-    DownloadOptions, Wants, numeric_labels, subject_selection,
+    DownloadOptions,
+    Wants,
+    numeric_labels,
+    subject_selection,
 )
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC
-from brainspresso.download import IfExists
-
+from brainspresso.utils.ui import human2bytes
 
 SITES = (
     'BMB', 'BNU', 'DC', 'HNU', 'IACAS', 'IBA', 'IPCAS', 'JHNU', 'LMU', 'MPG',

@@ -1,7 +1,6 @@
 
 from brainspresso.sources.nitrc import NITRC
 
-
 URLBASE = 'https://fcon_1000.projects.nitrc.org/indi/retro/COBRE'
 URLS = {
     'meta': [

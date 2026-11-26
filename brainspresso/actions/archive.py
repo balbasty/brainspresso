@@ -21,8 +21,8 @@ class ExtractMember(Action):
     """
     Copy one member of an *open* archive (`TarArchive`, `FolderArchive`,
     `tarfile.TarFile`) to `dst`. The archive must stay open until the
-    action has run (the roast runner runs each action before asking the
-    roaster for the next one).
+    action has run (the engine, `actions.engine`, runs each action
+    before asking its producer for the next one).
     """
 
     def __init__(
@@ -56,7 +56,7 @@ class ExtractMembers(Action):
     it is opened (a claim on one folder or a list of folders).
     `rename(member_name)` returns the output path of a member, or None to
     ignore it. Each member is extracted by an `ExtractMember` sub-action,
-    which the runner selects (and to which it applies `IfExists`) like
+    which the engine accepts (and to which it applies `IfExists`) like
     any other action. `staging=True`: intermediate files (see `Action`).
     """
 

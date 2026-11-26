@@ -22,48 +22,22 @@ FilenameLike = str | os.PathLike
 FileLike = FilenameLike | IO
 FilenamesLike = Iterable[FilenameLike] | FilenameLike
 FilesLike = Iterable[FileLike] | FileLike
-Kind = Literal['data', 'sidecar', 'meta', 'table']
+#: Kind of the outputs of an action: an opaque label, set by the action or
+#: by the layer that runs it (e.g. `bids.kinds.Kind` for roast)
+Kind = str
 
-# Dataset-level JSON files that describe tables or the dataset, not data
-# files (kind "table", so that `--json no` does not drop them)
-_TABLE_JSON_SUFFIXES = ('participants', 'sessions', 'scans', 'samples')
-_DATASET_JSON = ('dataset_description.json', 'genetic_info.json')
-_DATASET_FILES = (
-    'README', 'README.md', 'README.txt', 'README.rst', 'CHANGES',
-    'LICENSE', 'LICENSE.md', 'LICENSE.txt', 'CITATION.cff', '.bidsignore',
-)
+__all__ = [
+    "Action", "Claim", "Fail", "FileLike", "FilenameLike", "FilenamesLike",
+    "FilesLike", "IfExists", "IfExistsChoice", "Kind", "WrapAction",
+]
 
 
-def default_kind(path: FilenameLike) -> Kind:
-    """
-    Kind of an output, from its name:
-
-    * `*.tsv`, dataset files (`README`, `.bidsignore`...) and the JSON
-      files that describe tables or the dataset (`participants.json`,
-      `sub-*_sessions.json`, `phenotype/*.json`,
-      `dataset_description.json`): "table";
-    * other `*.json`: "sidecar";
-    * `*.bval`, `*.bvec`: "meta" (metadata that is not JSON: written
-      under every `--json` policy, as `bids.select` treats them as
-      metadata of the DWI series);
-    * anything else (images, surfaces...): "data".
-    """
-    path = Path(path)
-    name = path.name
-    if name.endswith(('.bval', '.bvec')):
-        return 'meta'
-    if name.endswith('.tsv') or name in _DATASET_FILES:
-        return 'table'
-    if name.endswith('.json'):
-        stem = name[:-len('.json')]
-        if (
-            name in _DATASET_JSON or
-            stem.split('_')[-1] in _TABLE_JSON_SUFFIXES or
-            path.parent.name == 'phenotype'
-        ):
-            return 'table'
-        return 'sidecar'
-    return 'data'
+def __getattr__(name: str):
+    """Deprecated re-exports (moved to `bids.kinds`)."""
+    if name == "default_kind":
+        from brainspresso.bids.kinds import default_kind
+        return default_kind
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass(frozen=True)
@@ -195,27 +169,33 @@ class Action:
     action()  # or action.run()
     ```
 
-    Outputs (used by the roast runner, `actions.runner`)
-    ----------------------------------------------------
+    Outputs
+    -------
     An action declares its outputs either as `dst` (one path, or a list
     of paths written together, e.g. DWI nii + bval + bvec) or as a
     `claim` (`Claim(folder, fragment)`) when they are only known once
     it has run (members of an archive, dcm2niix, FreeSurfer trees). A
     claim action is run with `dst=None`: `action()` takes no argument,
     and yields (besides status dictionaries) the concrete actions that
-    write each output, which the runner then selects and runs like any
-    other (so that `IfExists`, atomic writes and counters apply). A
-    claim never writes files itself. Once run, `outputs` lists what was
-    written (or found already there).
+    write each output, which the engine (`actions.engine`) then accepts
+    and runs like any other (so that `IfExists`, atomic writes and
+    counters apply). A claim never writes files itself. Once run,
+    `outputs` lists what was written (or found already there).
 
-    * `kind` ("data", "sidecar", "meta" or "table"; default:
-      `default_kind` of the outputs, which must agree) drives the
-      `--json yes|no|only` policy;
+    * `kind` is an opaque label of the outputs, used by the acceptance
+      policy of the layer that runs the action (`actions.engine.Policy`;
+      roast computes it from the names of the outputs with
+      `bids.kinds.default_kind` when it is not given, for its
+      `--json yes|no|only` policy);
     * `tag` groups actions in the progress display;
     * `staging=True` marks intermediate files (e.g. a FreeSurfer tree
       unpacked to `derivatives/<fs>/sourcedata/`, input of later
-      actions): the JSON policy does not apply to them (nor to the
-      sub-actions of a staging claim).
+      actions), for the acceptance policy (roast does not apply its
+      JSON policy to them, nor to the sub-actions of a staging claim);
+    * `compare=True` (outputs that are cheap to make, e.g. tables):
+      under `IfExists` "different", without an expected size or digest,
+      the outputs are written to temporary files and replace the
+      existing ones only if their content differs.
     """
 
     def __init__(
@@ -234,6 +214,7 @@ class Action:
         kind: Kind | None = None,
         tag: str | None = None,
         staging: bool = False,
+        compare: bool | None = None,
     ) -> None:
         """
         Parameters
@@ -269,13 +250,18 @@ class Action:
             digests.
         claim : Claim | None
             Outputs only known once run (instead of `dst`)
-        kind : {'data', 'sidecar', 'meta', 'table'} | None
-            Kind of output (default: from the names of the outputs; the
-            roast runner rejects outputs of several kinds without it)
+        kind : str | None
+            Kind of the outputs (default: set by the layer that runs
+            the action, e.g. roast's `bids.kinds.default_kind`)
         tag : str | None
-            Progress group (default: that of the roaster)
+            Progress group (default: that of the producer that yields
+            the action)
         staging : bool
-            Intermediate files, not subject to the JSON policy
+            Intermediate files (see `Outputs`)
+        compare : bool | None
+            Compare regenerated outputs under "different" (see
+            `Outputs`; None: not given, False unless the layer that
+            runs the action sets it)
         """
         if (dst is None) == (claim is None):
             raise ValueError('An action has either `dst` or a `claim`')
@@ -283,8 +269,11 @@ class Action:
         self.dst = dst
         self.claim = claim
         self.tag = tag
-        self._kind = kind
+        self.kind: Kind | None = kind
+        self.kind_given = kind is not None
         self.staging = staging
+        self.compare_given = compare is not None
+        self.compare = bool(compare)
         self.outputs: list[Path] | None = None
         self.action = action
         self.input = input
@@ -310,26 +299,6 @@ class Action:
         if isinstance(dst, (str, os.PathLike)):
             dst = [dst]
         return list(map(Path, dst))
-
-    @property
-    def kinds(self) -> set[Kind]:
-        """Default kinds of the declared outputs"""
-        return set(map(default_kind, self.declared))
-
-    @property
-    def kind(self) -> Kind:
-        if self._kind:
-            return self._kind
-        outputs = self.declared
-        return default_kind(outputs[0]) if outputs else 'data'
-
-    @property
-    def kind_given(self) -> bool:
-        return bool(self._kind)
-
-    @kind.setter
-    def kind(self, value: Kind | None) -> None:
-        self._kind = value
 
     def run(self) -> None:
         """Run the action"""
@@ -411,9 +380,8 @@ class Action:
                     )
                     return True
 
-            # tables are cheap to generate: write them and compare
-            if not self.digests and self.size is None and \
-                    self.kind == 'table':
+            # cheap outputs (e.g. tables): write them and compare
+            if not self.digests and self.size is None and self.compare:
                 return _COMPARE
 
             # all identical -> skip

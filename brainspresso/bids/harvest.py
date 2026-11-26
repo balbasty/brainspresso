@@ -10,22 +10,22 @@ host lacks) that are selected and written like downloaded files.
 from __future__ import annotations
 
 import asyncio
-import datetime
 import json
-import os
 import shutil
 from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import quote, unquote
 
 from humanize import naturalsize
 
+from brainspresso.actions.state import (       # noqa: F401 (re-exports)
+    TASK_SCHEMA, now, read_task_states, task_path, write_task_state,
+)
 from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
-    MANIFEST, ORIG_DIR, STATE_DIR, TASKS_DIR, Layout, resolve_layout,
+    MANIFEST, ORIG_DIR, STATE_DIR, Layout, resolve_layout,
 )
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
@@ -297,9 +297,9 @@ def harvest(
 # `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
 # unit...), so that concurrent jobs never write the same file. The
 # manifest is an index that can be rebuilt from them. Written by roast
-# shards (`actions.runner`, which adds `run`, `counts`, `progress` and
-# `children`). Task ids are free-form (e.g. "grind/fs/sub-01/ses-1") and
-# URL-quoted into file names.
+# shards (`actions.engine`, which adds `run`, `counts`, `progress` and
+# `children`; helpers in `actions.state`). Task ids are free-form (e.g.
+# "grind/fs/sub-01/ses-1") and URL-quoted into file names.
 #
 #     {
 #       "schema": 1,
@@ -316,11 +316,6 @@ def harvest(
 #     }
 
 MANIFEST_SCHEMA = 1
-TASK_SCHEMA = 1
-
-
-def now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
 def read_manifest(state: Path) -> dict | None:
@@ -472,35 +467,3 @@ def finish_roast(layout: Layout, **info) -> None:
     info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
             for k, v in info.items()}
     record_run(layout, "roast", info)
-
-
-def task_path(state: Path, task: str) -> Path:
-    """Path of the state file of a task"""
-    return Path(state) / TASKS_DIR / (quote(task, safe="") + ".json")
-
-
-def write_task_state(state: Path, task: str, record: dict) -> Path:
-    """Write the state file of a task (atomically)"""
-    path = task_path(state, task)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    record = {"schema": TASK_SCHEMA, "task": task, **record}
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(record, indent=2, default=str))
-    os.replace(tmp, path)
-    return path
-
-
-def read_task_states(state: Path) -> dict[str, dict]:
-    """State of all tasks `{task id: record}`"""
-    folder = Path(state) / TASKS_DIR
-    out = {}
-    if not folder.is_dir():
-        return out
-    for path in sorted(folder.glob("*.json")):
-        try:
-            record = json.loads(path.read_text())
-        except (OSError, json.JSONDecodeError):
-            lg.warning(f"Could not parse {path}")
-            continue
-        out[record.get("task") or unquote(path.stem)] = record
-    return out

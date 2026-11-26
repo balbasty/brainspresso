@@ -34,8 +34,8 @@ from pathlib import Path
 from typing import Iterator
 
 from brainspresso.actions import Action, Fail, WriteJSON, WriteTSV
-from brainspresso.actions.helpers import copy_templates, subject_shards
-from brainspresso.actions.runner import RoastContext, roast_dataset
+from brainspresso.roast import RoastContext, copy_templates, roast_dataset
+from brainspresso.roast import subject_shards
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.UNCWisconsin.keys import allkeys
 from brainspresso.utils.nrrd import nrrd_to_nifti

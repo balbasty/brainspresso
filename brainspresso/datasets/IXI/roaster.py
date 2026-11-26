@@ -33,9 +33,8 @@ import xlrd  # extra: brainspresso[ixi]
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
 from brainspresso.actions.archive import ExtractMember
-from brainspresso.actions.helpers import copy_templates
-from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import as_list, roast_dataset
+from brainspresso.roast import RoastContext, Shard
+from brainspresso.roast import as_list, copy_templates, roast_dataset
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.utils.archive import open_archive
 from brainspresso.utils.io import write_tsv

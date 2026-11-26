@@ -48,9 +48,8 @@ from typing import Iterator
 
 from brainspresso.actions import Action, Claim, Fail, WriteJSON, WriteTSV
 from brainspresso.actions.archive import ExtractMembers
-from brainspresso.actions.helpers import copy_templates, subject_shards
-from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import as_list, roast_dataset
+from brainspresso.roast import RoastContext, Shard, as_list
+from brainspresso.roast import copy_templates, roast_dataset, subject_shards
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.OASIS.III.keys import allkeys
 from brainspresso.freesurfer import bidsify as fs

@@ -73,10 +73,10 @@ class WriteJSON(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -141,10 +141,10 @@ class CopyJSON(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -211,10 +211,10 @@ class WriteTSV(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -281,10 +281,10 @@ class WriteBytes(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -345,10 +345,10 @@ class CopyBytes(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -411,10 +411,10 @@ class WriteText(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -484,10 +484,10 @@ class BabelConvert(Action):
             Orientation matrix (default: from input)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -554,10 +554,10 @@ class Freesurfer2Gifti(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int

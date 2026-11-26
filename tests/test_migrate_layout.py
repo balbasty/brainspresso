@@ -209,3 +209,124 @@ def test_recursive(tmp_path):
                      "--apply"]) == 0
     assert Layout.detect(tmp_path / "IXI").kind == "flat"
     assert Layout.detect(tmp_path / "ABIDE").kind == "flat"
+
+
+BACKENDS = ["brainspresso", "stdlib"]
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("kind", ["study", "flat"])
+def test_old_manifest_files_rewritten(tmp_path, monkeypatch, backend, kind):
+    monkeypatch.setattr(mig, "BACKEND", backend)
+    ds = tmp_path / "DS"
+    ixi(ds)
+    write(ds / ".brainspresso" / "manifest.json", {"files": {
+        "rawdata/sub-01/anat/sub-01_T1w.nii.gz": {"size": 1},
+        "README": {"size": 2}}})
+    assert mig.main([str(ds), "--layout", kind, "--apply"]) == 0
+    man = read_manifest(ds / ".brainspresso")
+    pre = "rawbids/" if kind == "study" else ""
+    assert man["schema"] == 1
+    assert set(man["files"]) == {pre + "sub-01/anat/sub-01_T1w.nii.gz",
+                                 pre + "README"}
+    for key in man["files"]:
+        assert (ds / key).is_file()
+
+
+@pytest.mark.parametrize("kind", ["study", "flat"])
+@pytest.mark.parametrize("fail_at", [1, 2, 3])
+def test_partial_failure_rolls_back(tmp_path, monkeypatch, kind, fail_at):
+    ixi(tmp_path / "A")
+    oasis3(tmp_path / "DS")
+    ds = tmp_path / "DS"
+    before = snapshot(ds)
+    dirs = {p for p in ds.rglob("*") if p.is_dir()}
+    orig = Path.replace
+    calls = {"n": 0}
+
+    def flaky(self, target):
+        calls["n"] += 1
+        if calls["n"] == fail_at:
+            raise OSError("boom")
+        return orig(self, target)
+
+    monkeypatch.setattr(Path, "replace", flaky)
+    assert mig.main([str(ds), str(tmp_path / "A"), "--layout", kind,
+                     "--apply"]) == 1
+    assert snapshot(ds) == before
+    assert {p for p in ds.rglob("*") if p.is_dir()} == dirs
+    assert Layout.detect(tmp_path / "A").kind == kind   # next dataset ran
+
+
+SOURCES = [
+    ([{"URL": "../../"}],
+     {"study": [{"URL": "../../rawbids/"}], "flat": [{"URL": "../../"}]}),
+    ([{"URL": "x"}, {"URL": "../../rawbids/"}],
+     {"study": [{"URL": "../../rawbids/"}, {"URL": "x"}],
+      "flat": [{"URL": "../../"}, {"URL": "x"}, {"URL": "../../rawbids/"}]}),
+    ([{"URL": "../../rawbids"}],
+     {"study": [{"URL": "../../rawbids/"}],
+      "flat": [{"URL": "../../"}, {"URL": "../../rawbids"}]}),
+    ([{"URL": "../../rawdata"}, {"URL": "./../../rawdata/phenotype/"},
+      {"URL": "../../"}],
+     {"study": [{"URL": "../../rawbids/"},
+                {"URL": "../../rawbids/phenotype"}],
+      "flat": [{"URL": "../../"}, {"URL": "../../phenotype"}]}),
+]
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("kind", ["study", "flat"])
+@pytest.mark.parametrize("case", range(len(SOURCES)))
+def test_source_datasets(tmp_path, monkeypatch, backend, kind, case):
+    monkeypatch.setattr(mig, "BACKEND", backend)
+    sources, expected = SOURCES[case]
+    ds = tmp_path / "DS"
+    ixi(ds)
+    desc = ds / "derivatives" / "fs" / "dataset_description.json"
+    write(desc, {"Name": "fs", "SourceDatasets": sources})
+    assert mig.main([str(ds), "--layout", kind, "--apply"]) == 0
+    assert json.loads(desc.read_text())["SourceDatasets"] == expected[kind]
+    if case == 3:
+        log = (ds / ".brainspresso" / "migrate.log").read_text()
+        assert "drop stale SourceDatasets URL '../../rawdata'" in log
+        assert "remap SourceDatasets URL" in log
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_refuse_corrupt_manifest(tmp_path, monkeypatch, backend):
+    monkeypatch.setattr(mig, "BACKEND", backend)
+    ds = tmp_path / "DS"
+    ixi(ds)
+    write(ds / ".brainspresso" / "manifest.json", "{not json")
+    with pytest.raises(mig.Refusal, match="cannot be parsed"):
+        mig.plan(ds, "study")
+    _refused(ds)
+
+
+def test_recursive_bad_path(tmp_path, capsys):
+    assert mig.main([str(tmp_path / "missing"), "--layout", "flat",
+                     "--recursive"]) == 1
+    write(tmp_path / "file")
+    assert mig.main([str(tmp_path / "file"), "--layout", "flat",
+                     "--recursive"]) == 1
+    assert "is not a directory" in capsys.readouterr().err
+
+
+def test_recursive_path_is_dataset(tmp_path):
+    ixi(tmp_path / "IXI")
+    assert mig.main([str(tmp_path / "IXI"), "--layout", "flat",
+                     "--recursive", "--apply"]) == 0
+    assert Layout.detect(tmp_path / "IXI").kind == "flat"
+
+
+def test_hidden_root_files_stay(tmp_path):
+    ds = tmp_path / "DS"
+    ixi(ds)
+    write(ds / ".foo.json", "{}")
+    write(ds / ".foo.tsv")
+    write(ds / ".bidsignore", "x")
+    assert mig.main([str(ds), "--layout", "study", "--apply"]) == 0
+    assert (ds / ".foo.json").is_file() and (ds / ".foo.tsv").is_file()
+    assert (ds / "rawbids" / ".bidsignore").is_file()
+    assert not (ds / "rawbids" / ".foo.json").exists()

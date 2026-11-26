@@ -33,9 +33,12 @@ flat
 In both layouts `sourcedata/`, `derivatives/` and `.brainspresso/` stay,
 the emptied `rawdata/` is removed, derivative descriptions get the raw
 dataset as first `SourceDatasets` entry (`../../rawbids/` or `../../`,
-stale `../../rawdata/` entries are dropped), and the layout is recorded
+stale `../../rawdata...` URLs are dropped or remapped and duplicates
+removed, by the script itself for both backends), old manifest `files`
+keys are rewritten relative to `<DS>/`, and the layout is recorded
 in `<DS>/.brainspresso/manifest.json`. Moves are renames (same
-filesystem, no copies) and are logged to `<DS>/.brainspresso/migrate.log`.
+filesystem, no copies), undone in reverse order if one fails, and
+are logged to `<DS>/.brainspresso/migrate.log`.
 
 Duplicate `dataset_description.json` (in `rawdata/` and at the root):
 if byte-identical, the `rawdata/` copy is deleted; otherwise the root
@@ -45,7 +48,8 @@ for the whole dataset) and the `rawdata/` copy is saved as
 
 Refusals (non-zero exit, nothing changed in that dataset): no
 `rawdata/`; `rawbids/` or `sub-*` at the root, or a layout already
-recorded in the manifest (already migrated / mixed); any move target
+recorded in the manifest (already migrated / mixed); an unparsable
+manifest; any move target
 that already exists (other than the duplicate description above); a
 root entry that is neither a known raw-dataset file nor a folder that
 stays (the script does not guess where it belongs).
@@ -98,6 +102,8 @@ class Refusal(Exception):
 
 
 def _is_raw_root_entry(path: Path) -> bool:
+    if path.name.startswith("."):
+        return path.name == ".bidsignore"
     if path.is_dir():
         return path.name in RAW_DIRS
     return any(fnmatch.fnmatch(path.name, p) for p in RAW_FILE_PATTERNS)
@@ -138,7 +144,17 @@ def plan(ds: Path, layout: str) -> tuple[list, list, list]:
     if subs:
         raise Refusal(f"{ds}: {subs[0]} at the root (already migrated or "
                       f"mixed layout)")
-    manifest = _read_json(ds / STATE / "manifest.json")
+    mpath = ds / STATE / "manifest.json"
+    manifest = None
+    if mpath.exists():
+        try:
+            manifest = json.loads(mpath.read_text())
+        except (OSError, ValueError) as e:
+            raise Refusal(f"{ds}: {STATE}/manifest.json cannot be parsed "
+                          f"({e}); fix or remove it first")
+        if not isinstance(manifest, dict):
+            raise Refusal(f"{ds}: {STATE}/manifest.json is not a JSON "
+                          f"object; fix or remove it first")
     if manifest and manifest.get("layout"):
         raise Refusal(f"{ds}: layout {manifest['layout']!r} already "
                       f"recorded in {STATE}/manifest.json")
@@ -200,23 +216,84 @@ def _write_json(path: Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
 
 
-def _strip_rawdata_urls(ds: Path) -> None:
-    """Drop stale `SourceDatasets` URLs to `../../rawdata/`."""
+def _raw_url(layout: str) -> str:
+    return "../../rawbids/" if layout == "study" else "../../"
+
+
+def fix_sources(sources, layout: str) -> tuple[list, list[str]]:
+    """
+    `SourceDatasets` of a derivative after migration: the layout's raw
+    URL first, stale `../../rawdata...` (and, for study, `../../`) URLs
+    dropped or remapped, no duplicates (URLs compared normalised).
+
+    Returns the new list and messages describing the changes.
+    """
+    url = _raw_url(layout)
+    target = posixpath.normpath(url)
+    old = "../../" + RAW_OLD
+    out, seen, log = [], {target}, []
+    for s in sources if isinstance(sources, list) else []:
+        value = s.get("URL") if isinstance(s, dict) else None
+        if not isinstance(value, str) or ":" in value:
+            out.append(s)
+            continue
+        norm = posixpath.normpath(value)
+        if norm == old or norm.startswith(old + "/"):
+            rest = norm[len(old) + 1:]
+            if not rest:
+                log.append(f"drop stale SourceDatasets URL {value!r}")
+                continue
+            new = url + rest
+            log.append(f"remap SourceDatasets URL {value!r} -> {new!r}")
+            s = {**s, "URL": new}
+            norm = posixpath.normpath(new)
+        elif layout == "study" and norm == "../..":
+            log.append(f"drop stale SourceDatasets URL {value!r}")
+            continue
+        if norm in seen:
+            if norm != target or value != url:
+                log.append(f"drop duplicate SourceDatasets URL {value!r}")
+            continue
+        seen.add(norm)
+        out.append(s)
+    return [{"URL": url}] + out, log
+
+
+def _fix_descriptions(ds: Path, layout: str) -> list[str]:
+    log = []
     for desc_path in sorted((ds / "derivatives").glob(f"*/{DESCRIPTION}")):
         desc = _read_json(desc_path)
-        if not desc or not isinstance(desc.get("SourceDatasets"), list):
+        if desc is None:
             continue
-        keep = [s for s in desc["SourceDatasets"] if not (
-            isinstance(s, dict) and isinstance(s.get("URL"), str)
-            and posixpath.normpath(s["URL"]) == "../../" + RAW_OLD)]
-        if keep != desc["SourceDatasets"]:
-            desc["SourceDatasets"] = keep
+        sources, msgs = fix_sources(desc.get("SourceDatasets"), layout)
+        rel = desc_path.relative_to(ds).as_posix()
+        log += [f"{rel}: {m}" for m in msgs]
+        if sources != desc.get("SourceDatasets"):
+            desc["SourceDatasets"] = sources
             _write_json(desc_path, desc)
+    return log
+
+
+def _rewrite_manifest_files(ds: Path, layout: str) -> None:
+    """Old manifests (no `schema`) key `files` relative to the raw
+    dataset; schema 1 keys them relative to `<DS>/`."""
+    path = ds / STATE / "manifest.json"
+    manifest = _read_json(path)
+    if manifest is None or "schema" in manifest:
+        return
+    entries = manifest.get("files")
+    if not isinstance(entries, dict):
+        return
+    new = {}
+    for key, value in entries.items():
+        k = key[len(RAW_OLD) + 1:] if key.startswith(RAW_OLD + "/") else key
+        new[(RAW_NEW + "/" + k) if layout == "study" else k] = value
+    manifest["files"] = new
+    _write_json(path, manifest)
 
 
 def _finalize_stdlib(ds: Path, layout: str, info: dict) -> None:
     raw = ds / RAW_NEW if layout == "study" else ds
-    url = "../../rawbids/" if layout == "study" else "../../"
     if layout == "study":
         rawdesc = _read_json(raw / DESCRIPTION) or {}
         study = {"Name": rawdesc.get("Name") or ds.name,
@@ -228,9 +305,6 @@ def _finalize_stdlib(ds: Path, layout: str, info: dict) -> None:
         if desc is None:
             continue
         desc.setdefault("DatasetType", "derivative")
-        sources = [s for s in desc.get("SourceDatasets") or []
-                   if not (isinstance(s, dict) and s.get("URL") == url)]
-        desc["SourceDatasets"] = [{"URL": url}] + sources
         _write_json(desc_path, desc)
     path = ds / STATE / "manifest.json"
     manifest = _read_json(path) or {}
@@ -245,13 +319,33 @@ def _finalize_stdlib(ds: Path, layout: str, info: dict) -> None:
     _write_json(path, manifest)
 
 
-def _finalize(ds: Path, layout: str, info: dict) -> None:
-    _strip_rawdata_urls(ds)
+def _finalize(ds: Path, layout: str, info: dict) -> list[str]:
+    log = _fix_descriptions(ds, layout)
+    _rewrite_manifest_files(ds, layout)
     if BACKEND == "stdlib":
-        return _finalize_stdlib(ds, layout, info)
-    lay = _make_layout(layout, ds)
-    lay.write_descriptions()
-    _record_run(lay, "migrate", info)
+        _finalize_stdlib(ds, layout, info)
+    else:
+        lay = _make_layout(layout, ds)
+        lay.write_descriptions()
+        _record_run(lay, "migrate", info)
+    _fix_descriptions(ds, layout)
+    return log
+
+
+def _undo(done: list) -> list[str]:
+    """Undo completed steps in reverse order; return what failed."""
+    failed = []
+    for kind, a, b in reversed(done):
+        try:
+            if kind == "move":
+                b.replace(a)
+            elif kind == "mkdir":
+                a.rmdir()
+            elif kind == "rmdir":
+                a.mkdir()
+        except OSError as e:
+            failed.append(f"{kind} {a}{' <- ' + str(b) if b else ''}: {e}")
+    return failed
 
 
 def migrate(ds: Path, layout: str, apply: bool = False,
@@ -295,35 +389,67 @@ def migrate(ds: Path, layout: str, apply: bool = False,
           f"(layout {layout!r})", file=out)
     if not apply:
         return moves
+    trash = ds / STATE / "migrate-trash"
+    done, lines = [], []
+    try:
+        for src, dst in [*moves, *((p, None) for p in drops)]:
+            if dst is None:  # identical duplicate: set aside, unlink later
+                dst = trash / f"{len(lines)}_{src.name}"
+            for parent in reversed(dst.parents):
+                if ds in parent.parents and not parent.exists():
+                    parent.mkdir()
+                    done.append(("mkdir", parent, None))
+            src.replace(dst)
+            done.append(("move", src, dst))
+            lines.append(f"delete {src.relative_to(ds)} (identical)"
+                         if dst.parent == trash else
+                         f"move {src.relative_to(ds)} -> "
+                         f"{dst.relative_to(ds)}")
+        (ds / RAW_OLD).rmdir()
+        done.append(("rmdir", ds / RAW_OLD, None))
+        lines.append(f"rmdir {RAW_OLD}")
+    except OSError as e:
+        failed = _undo(done)
+        msg = f"{ds}: migration failed ({e}); "
+        if failed:
+            msg += "could NOT undo: " + "; ".join(failed)
+        else:
+            msg += "all moves undone, dataset unchanged"
+        print(f"ERROR: {msg}", file=sys.stderr)
+        raise OSError(msg) from e
+    if trash.exists():
+        for p in sorted(trash.iterdir()):
+            p.unlink()
+        trash.rmdir()
     (ds / STATE).mkdir(exist_ok=True)
     with open(ds / STATE / "migrate.log", "a") as log:
         stamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         log.write(f"# {stamp} migrate to {layout} (backend {BACKEND})\n")
         for w in warnings:
             log.write(f"WARNING {w}\n")
-        for src, dst in moves:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            src.replace(dst)
-            log.write(f"move {src.relative_to(ds)} -> "
-                      f"{dst.relative_to(ds)}\n")
-        for p in drops:
-            p.unlink()
-            log.write(f"delete {p.relative_to(ds)} (identical)\n")
-        (ds / RAW_OLD).rmdir()
-        log.write(f"rmdir {RAW_OLD}\n")
-    _finalize(ds, layout, {"from": "rawdata", "moves": len(moves)})
+        for line in lines:
+            log.write(line + "\n")
+        for line in _finalize(ds, layout,
+                              {"from": "rawdata", "moves": len(moves)}):
+            log.write(line + "\n")
+            print(line, file=out)
     return moves
 
 
-def _datasets(paths, recursive: bool) -> list[Path]:
-    out = []
+def _datasets(paths, recursive: bool) -> tuple[list[Path], int]:
+    out, errors = [], 0
     for p in map(Path, paths):
-        if recursive:
+        if not recursive:
+            out.append(p)
+        elif not p.is_dir():
+            print(f"ERROR: {p} is not a directory", file=sys.stderr)
+            errors += 1
+        elif (p / RAW_OLD).is_dir():
+            out.append(p)
+        else:
             out += sorted(c for c in p.iterdir()
                           if c.is_dir() and (c / RAW_OLD).is_dir())
-        else:
-            out.append(p)
-    return out
+    return out, errors
 
 
 def main(argv=None) -> int:
@@ -337,16 +463,18 @@ def main(argv=None) -> int:
                         help="PATH holds datasets (subfolders with rawdata/)")
     args = parser.parse_args(argv)
     print(f"Using {BACKEND} backend for descriptions and manifest")
-    datasets = _datasets(args.paths, args.recursive)
+    datasets, failed = _datasets(args.paths, args.recursive)
     if not datasets:
         print("ERROR: no dataset found", file=sys.stderr)
         return 1
-    failed = 0
     for ds in datasets:
         try:
             migrate(ds, args.layout, args.apply)
         except Refusal as e:
             print(f"REFUSED: {e}", file=sys.stderr)
+            failed += 1
+        except OSError as e:
+            print(f"FAILED: {e}", file=sys.stderr)
             failed += 1
     return 1 if failed else 0
 

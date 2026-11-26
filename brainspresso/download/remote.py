@@ -17,19 +17,18 @@ from brainspresso.download.session import new_session
 lg = getLogger(__name__)
 
 
-def _normalize_request_options(opt: dict | None) -> dict:
+def check_request_options(opt: dict | None) -> dict:
     """
-    Convert `requests`-style options into `aiohttp` options.
-
-    Dataset modules historically passed `verify=False` (requests) or
-    `verify_ssl=False` (deprecated in aiohttp). aiohttp expects `ssl=False`.
+    Options passed to `aiohttp.ClientSession.request`. TLS verification
+    is not one of them: it is the `insecure` option of downloads.
     """
     opt = dict(opt or {})
-    for key in ("verify", "verify_ssl"):
-        if key in opt:
-            value = opt.pop(key)
-            if value is False:
-                opt["ssl"] = False
+    tls = {"ssl", "verify", "verify_ssl"} & set(opt)
+    if tls:
+        raise TypeError(
+            f"Request options {sorted(tls)} are not supported: use "
+            f"`insecure=True` to skip TLS certificate verification"
+        )
     return opt
 
 
@@ -65,6 +64,7 @@ class RemoteFile:
             offset: int = 0,
             get_opt: dict = {},
             if_range: str | None = None,
+            insecure: bool = False,
     ):
         """
         Parameters
@@ -87,6 +87,8 @@ class RemoteFile:
             Validator (ETag or Last-Modified) of the partial file.
             If the remote file does not match it anymore, the server
             sends the full file.
+        insecure : bool
+            Do not verify TLS certificates
         """
         if not isinstance(url, ParseResult):
             url = urlparse(url)
@@ -96,7 +98,8 @@ class RemoteFile:
         self.session_is_mine = False
         self._auth = auth
         self.chunk_size = chunk_size
-        self.get_opt = _normalize_request_options(get_opt)
+        self.get_opt = check_request_options(get_opt)
+        self.insecure = insecure
         self.offset = offset
         self.if_range = if_range
         self.complete = False
@@ -152,6 +155,8 @@ class RemoteFile:
         opt = dict(self.get_opt)
         headers = {**opt.pop("headers", {}), **(headers or {})}
         opt.setdefault("allow_redirects", True)
+        if self.insecure:
+            opt["ssl"] = False
         url = self.url.geturl()
 
         r = await self.session.request(method, url, headers=headers, **opt)

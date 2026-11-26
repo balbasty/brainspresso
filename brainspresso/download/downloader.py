@@ -17,7 +17,7 @@ from humanize import naturalsize, naturaldate
 
 from brainspresso.utils.digests import get_digest
 from brainspresso.utils.digests import sort_digests
-from brainspresso.download.remote import RemoteFile
+from brainspresso.download.remote import RemoteFile, check_request_options
 from brainspresso.download.incomplete import IncompleteFile
 from brainspresso.download.constants import CHUNK_SIZE, RETRY_STATUSES
 
@@ -165,6 +165,7 @@ class Downloader:
         ifnodigest: Literal['restart', 'continue'] = 'continue',
         max_attempts: int = 6,
         get_opt: dict = {},
+        insecure: bool = False,
         **kwargs,
     ):
         """
@@ -201,7 +202,10 @@ class Downloader:
             previous attempt stopped.
         get_opt : dict
             Options passed to `aiohttp.ClientSession.request`
-            (e.g. `headers`, `ssl`).
+            (e.g. `headers`).
+        insecure : bool
+            Do not verify the TLS certificate of the server (and of the
+            servers it redirects to).
         """
         # backward compatibility (typo)
         max_attempts = kwargs.pop('max_attemps', max_attempts)
@@ -225,7 +229,8 @@ class Downloader:
         self.ifnodigest = ifnodigest
         self.ifexists = IfExists.from_any(ifexists)
         self.max_attempts = max_attempts
-        self.get_opt = get_opt
+        self.get_opt = check_request_options(get_opt)
+        self.insecure = insecure
         self._stat_done = False
 
     @property
@@ -259,6 +264,7 @@ class Downloader:
                 session=self.session,
                 auth=self.auth,
                 get_opt=self.get_opt,
+                insecure=self.insecure,
             )
             if self._size is None:
                 self.size = await remote.size
@@ -456,6 +462,7 @@ class Downloader:
                     chunk_size=self.chunk_size,
                     offset=local_file.offset,
                     get_opt=self.get_opt,
+                    insecure=self.insecure,
                     if_range=local_file.validator,
                 ) as remote_file:
 

@@ -1,10 +1,7 @@
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from enum import Enum
 from typing import Annotated, Iterable, Literal
-from urllib.parse import urlparse
 from humanize import naturalsize
-from warnings import filterwarnings
-from urllib3.exceptions import InsecureRequestWarning
 from cyclopts import Parameter
 
 from brainspresso.bids.harvest import record_run
@@ -12,10 +9,12 @@ from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
-from brainspresso.sources.nitrc import nitrc_authentifier_async
-from brainspresso.sources import fcp
-from brainspresso.download import DownloadManager
-from brainspresso.download import Downloader
+from brainspresso.sources.base import (
+    DownloadOptions, Wants, configure_sources, harvest_sources,
+    numeric_labels, subject_selection,
+)
+from brainspresso.sources.fcp import FCP
+from brainspresso.sources.nitrc import NITRC
 from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.datasets.CoRR.command import corr
@@ -184,6 +183,66 @@ URLS['NKI']['raw'] = [
 
 GroupNITRC = Parameter(group="nitrc (login required)")
 
+# Subject labels: `0003001` (host) <-> `3001` (BIDS)
+LABELS = numeric_labels()
+
+
+class S3(FCP):
+    """
+    CoRR from s3://fcp-indi/data/Projects/CORR/RawData: imaging data in
+    `RawData/<Site>[_<n>]/<id>/session_<n>/<mod>_<n>/*`, aggregated
+    phenotypes in `CoRR_AggregatedPhenotypicData.csv`.
+    """
+
+    name = "s3"
+    provides = frozenset({"raw", "meta"})
+    labels = LABELS
+    sites: frozenset = frozenset()
+
+    def __init__(self, **kwargs):
+        super().__init__("CORR/RawData", **kwargs)
+
+    def keep(self, entry, selection, wants) -> bool:
+        rel = entry.relpath
+        # Aggregated phenotypes: RawData/CoRR_AggregatedPhenotypicData.csv
+        if len(rel.parts) == 1:
+            return wants("meta") and rel.suffix == ".csv"
+        # Imaging data: RawData/<Site>[_<n>]/<id>/session_<n>/<mod>_<n>/*
+        if not wants("raw") or len(rel.parts) != 5:
+            return False
+        site, sub = rel.parts[:2]
+        if self.sites and site.split("_")[0] not in self.sites:
+            return False
+        return self.keeps_subject(selection, sub)
+
+    def local_path(self, entry) -> str:
+        if "/" not in entry.path:
+            return entry.path
+        return f"RawData/{entry.path}"
+
+
+class NITRCTarballs(NITRC):
+    """CoRR tarballs and phenotypes from NITRC (login)"""
+
+    provides = frozenset({"raw", "meta"})
+    sites: frozenset = frozenset()
+    urls = {
+        key: [NITRC.entry(url, site=site)
+              for site, per_key in URLS.items() for url in per_key[key]]
+        for key in ("raw", "meta")
+    }
+
+    def keep(self, entry, selection, wants) -> bool:
+        return not self.sites or entry.meta["site"] in self.sites
+
+
+def sources() -> dict:
+    """Sources of CoRR"""
+    return {"s3": S3(), "nitrc": NITRCTarballs()}
+
+
+DEFAULTS = {"raw": ["s3", "nitrc"], "meta": ["s3", "nitrc"]}
+
 
 def _value(x):
     """Enum member -> value (str() of a str-Enum is 'Enum.member')"""
@@ -208,7 +267,7 @@ def download(
     subs: Iterable[int] = (),
     exclude_subs: Iterable[int] = (),
     if_exists: IfExists.Choice = "skip",
-    source: Literal["s3", "nitrc"] = "s3",
+    source: Literal["s3", "nitrc"] | None = None,
     user: Annotated[str | None, GroupNITRC] = None,
     password: Annotated[str | None, GroupNITRC] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
@@ -244,7 +303,8 @@ def download(
     if_exists
         Behaviour if a file already exists
     source
-        Source to download from:
+        Source to download from (default: s3, and nitrc if s3 is
+        unavailable):
 
         * s3: public INDI bucket (s3://fcp-indi), no login.
         * nitrc: NITRC tarballs (login required).
@@ -270,41 +330,17 @@ def download(
     keys = {_value(k) for k in _aslist(keys)} or set(KEYS)
     sites = {_value(s) for s in _aslist(sites)} or set(SITES)
     dataset = resolve_layout(path / 'CoRR', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "CoRR"})
-
-    if source == "s3":
-        return download_s3(
-            src,
-            keys=keys,
-            sites=sites,
-            subs={int(_value(s)) for s in _aslist(subs)},
-            exclude_subs={int(_value(s)) for s in _aslist(exclude_subs)},
-            if_exists=if_exists,
-            packet=packet,
-            jobs=jobs,
-        )
-    jobs = jobs or 1
-    auth = nitrc_authentifier_async(user, password)
-
-    def downloaders():
-        for site in sites:
-            for key in keys:
-                for url in URLS[site][key]:
-                    yield Downloader(
-                        url, src / Path(urlparse(url).path).name,
-                        chunk_size=human2bytes(packet),
-                        auth=auth,
-                        get_opt=dict(ssl=False),
-                        ifnodigest="continue",
-                    )
-
-    filterwarnings('ignore', category=InsecureRequestWarning)
-    DownloadManager(
-        downloaders(),
-        ifexists=if_exists,
-        jobs=jobs,
-    ).run("async")
+    harvest_sources(
+        configure_sources(sources(), sites=frozenset(sites), user=user,
+                          password=password),
+        DEFAULTS, dataset,
+        selection=subject_selection(subs, exclude_subs),
+        keys=Wants(keys),
+        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
+                                chunk_size=human2bytes(packet)),
+        override=_value(source) if source else None,
+    )
 
 
 def download_s3(
@@ -318,34 +354,10 @@ def download_s3(
     packet: int | str,
     jobs: int | None,
 ) -> None:
-    """Download CoRR from s3://fcp-indi/data/Projects/CORR/RawData"""
-
-    def rename(rel: PurePosixPath) -> PurePosixPath | None:
-        # Aggregated phenotypes: RawData/CoRR_AggregatedPhenotypicData.csv
-        if len(rel.parts) == 1:
-            if "meta" in keys and rel.suffix == ".csv":
-                return rel
-            return None
-        # Imaging data: RawData/<Site>[_<n>]/<id>/session_<n>/<mod>_<n>/*
-        if "raw" not in keys or len(rel.parts) != 5:
-            return None
-        site, sub = rel.parts[:2]
-        if site.split("_")[0] not in sites:
-            return None
-        try:
-            sub = int(sub)
-        except ValueError:
-            return None
-        if (subs and sub not in subs) or sub in exclude_subs:
-            return None
-        return "RawData" / rel
-
-    DownloadManager(
-        fcp.mirror(
-            "CORR/RawData", src, rename=rename,
-            ifexists=if_exists, chunk_size=human2bytes(packet),
-        ),
-        ifexists=if_exists,
-        jobs=jobs,
-        path="short",
-    ).run()
+    """Download CoRR from s3://fcp-indi/data/Projects/CORR/RawData into
+    the folder `src`"""
+    S3().configure(sites=frozenset(sites)).harvest(
+        src, subject_selection(subs, exclude_subs), Wants(keys),
+        DownloadOptions(ifexists=if_exists, jobs=jobs,
+                        chunk_size=human2bytes(packet)),
+    )

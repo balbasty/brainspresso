@@ -15,20 +15,27 @@ Two routes are supported:
 
 `list_snapshot(..., source="auto")` tries GraphQL first and falls back to
 S3 when the API cannot be reached and no specific tag was requested.
+
+`OpenNeuro` is the source of a dataset (see `sources.base`): it lists a
+snapshot and places the selected files in the BIDS dataset
+(`bids.harvest.harvest`: selection with inheritance, `--where`, trimmed
+tables, manifest).
 """
 from __future__ import annotations
 
 import asyncio
-import datetime
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from logging import getLogger
 from urllib.parse import quote
 
 import aiohttp
 
 from brainspresso.download.session import new_session
+from brainspresso.sources.base import (
+    DownloadOptions, RemoteEntry, Source, SourceUnavailable,
+)
 from brainspresso.sources.s3 import S3Bucket
 
 lg = getLogger(__name__)
@@ -49,18 +56,8 @@ class OpenNeuroError(RuntimeError):
     ...
 
 
-class APIUnavailable(OpenNeuroError):
+class APIUnavailable(OpenNeuroError, SourceUnavailable):
     ...
-
-
-@dataclass
-class RemoteEntry:
-    """A file of a remote dataset"""
-    path: str                               # relative to dataset root
-    url: str
-    size: int | None = None
-    mtime: datetime.datetime | None = None
-    digests: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -233,13 +230,7 @@ async def list_s3(
     async for obj in bucket.list(prefix):
         if obj.key.endswith("/"):
             continue
-        files.append(RemoteEntry(
-            path=obj.key[len(prefix):],
-            url=bucket.url(obj.key),
-            size=obj.size,
-            mtime=obj.mtime,
-            digests={"md5": obj.md5} if obj.md5 else {},
-        ))
+        files.append(obj.entry(bucket.url(obj.key), obj.key[len(prefix):]))
     if not files:
         raise OpenNeuroError(
             f"{dataset} not found in s3://{bucket.bucket} "
@@ -325,3 +316,83 @@ async def list_snapshot(
             f"(--source graphql) for older snapshots."
         )
     return snapshot
+
+
+# ----------------------------------------------------------------------
+#   Source
+# ----------------------------------------------------------------------
+
+class OpenNeuro(Source):
+    """
+    Source: an OpenNeuro dataset, hosted as BIDS.
+
+    `list()` returns the whole snapshot (selection needs the full
+    listing, for inheritance); `fetch(entries, layout, options,
+    selection=, where=, trim=, listing=, provenance=)` selects and
+    places files with `bids.harvest.harvest`.
+
+    Parameters
+    ----------
+    dataset : str
+        Accession number (e.g. "ds000224")
+    tag : str, optional
+        Snapshot tag (default: latest)
+    route : {"auto", "graphql", "s3"}
+        Listing route (see `list_snapshot`)
+    token : str, optional
+        API key (private datasets)
+    """
+
+    name = "openneuro"
+    provides = frozenset({"bids"})
+    jobs = 8
+
+    def __init__(self, dataset: str, tag: str | None = None,
+                 route: str = "auto", token: str | None = None, *,
+                 api: OpenNeuroAPI | None = None,
+                 bucket: S3Bucket | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.dataset = check_dataset_id(dataset)
+        self.tag = tag
+        self.route = route
+        self.token = token
+        self.api = api
+        self.bucket = bucket
+        self._snapshot = None
+
+    def snapshot(self) -> Snapshot:
+        """The listed snapshot (listed once)"""
+        if self._snapshot is None:
+            self._snapshot = asyncio.run(list_snapshot(
+                self.dataset, self.tag, self.route,
+                api=self.api or OpenNeuroAPI(token=self.token),
+                bucket=self.bucket,
+            ))
+        return self._snapshot
+
+    def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        return self.snapshot().files
+
+    def provenance(self) -> dict:
+        snapshot = self.snapshot()
+        return {"source": "openneuro", "dataset": self.dataset,
+                "tag": snapshot.tag, "listing": snapshot.source}
+
+    def fetch(self, entries, layout, options=None, *, selection=None,
+              where=(), trim: bool = True, listing: bool = False,
+              repair: bool = False, provenance: dict | None = None):
+        from brainspresso.bids.harvest import harvest
+        from brainspresso.bids.select import Selection
+        options = DownloadOptions.from_any(options)
+        return harvest(
+            list(entries), layout, selection or Selection(),
+            where=where, trim=trim, if_exists=options.ifexists,
+            jobs=options.jobs or self.jobs, dry_run=options.dry_run,
+            listing=listing, repair=repair, insecure=bool(options.insecure),
+            provenance=provenance or self.provenance(),
+        )
+
+    def harvest(self, layout, selection=None, keys=None, options=None,
+                **kwargs):
+        return self.fetch(self.list(selection, keys), layout, options,
+                          selection=selection, **kwargs)

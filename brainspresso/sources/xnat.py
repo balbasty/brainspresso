@@ -1,604 +1,313 @@
-import os
-import getpass
-import fnmatch
-from pathlib import Path
-from typing import Iterator, Iterable, Literal
+"""
+XNAT servers (NITRC-IR, formerly XNAT Central): an asynchronous client of
+the archive REST API, and a source that downloads the server-built
+archives of scans and assessors (`.../scans/<id>/files?format=tar.gz`).
 
-import requests
+```python
+class OASIS3(XNAT):
+    project = "OASIS3"
+    def keep_scan(self, subject, experiment, scan, wants): ...
+
+OASIS3().with_options(user=..., password=...).harvest(layout, selection)
+```
+
+Each scan (or assessor) is one entry, saved as
+`<experiment>/<scan id>.tar.gz` (`local_path`), with `meta` keys
+`project`, `subject`, `experiment`, `id`, `type` ("scan"/"assessor"),
+`record` (the XNAT record: `ID`, `type`, `label`...).
+"""
+from __future__ import annotations
+
+import asyncio
+import fnmatch
+from logging import getLogger
+from typing import Iterable
+
 import aiohttp
 
-from brainspresso.download import Downloader
-from brainspresso.download import DownloadManager
+from brainspresso.download.constants import RETRY_STATUSES
+from brainspresso.download.session import new_session
+from brainspresso.sources.base import (
+    RemoteEntry, Source, SourceUnavailable, as_wants,
+)
+from brainspresso.sources.credentials import XnatAuth
 
-sessions = {}
-default_server = 'https://www.nitrc.org/ir/'
-# It used to be https://central.xnat.org, but XNAT has been
-# decommissioned in May 2024, and the platform was moved to NITRC
-# I believe that the whole framework (for OASIS) is the same -- we
-# just need to point to the new server and use NITRC credentials.
+lg = getLogger(__name__)
 
-
-def get_credentials(user=None, password=None):
-    user_methods = ['NITRC_USER', 'XNAT_USER', input, ValueError]
-    pass_methods = ['NITRC_PASS', 'XNAT_PASS', getpass.getpass, ValueError]
-
-    if not user:
-        for method in user_methods:
-            if isinstance(method, str):
-                user = os.environ.get(method, None)
-                if user:
-                    break
-            elif isinstance(method, type) and issubclass(method, Exception):
-                raise ValueError(
-                    'Could not get NITRC username. '
-                    'Set environment variable `NITRC_USER`'
-                )
-            elif callable(method):
-                user = method('NITRC user: ')
-                if user:
-                    break
-
-    if not password:
-        for method in pass_methods:
-            if isinstance(method, str):
-                password = os.environ.get(method, None)
-                if password:
-                    break
-            elif isinstance(method, type) and issubclass(method, Exception):
-                raise ValueError(
-                    'Could not get NITRC password. '
-                    'Set environment variable `NITRC_PASS`'
-                )
-            elif callable(method):
-                password = getpass.getpass('NITRC password: ')
-                if password:
-                    break
-
-    return user, password
+# XNAT Central was decommissioned in May 2024; its projects (OASIS) moved
+# to NITRC-IR, which uses NITRC credentials.
+DEFAULT_SERVER = "https://www.nitrc.org/ir"
 
 
-class XNAT:
+class XNATClient:
+    """
+    Minimal asynchronous client of the XNAT archive API (read-only),
+    used as an async context manager:
 
-    # TODO:
-    #   implement `keep_open` (how do I check that the session is still on?)
+    ```python
+    async with XNATClient(server, auth) as xnat:
+        subjects = await xnat.subjects("OASIS3")
+    ```
 
-    def __init__(
-        self,
-        user: str | None = None,
-        password: str | None = None,
-        key: str | None = None,
-        server: str | None = None,
-        open: bool = False,
-        keep_open: bool = True,
-    ):
-        sessions[key] = self
-        self.credentials = get_credentials(user, password)
-        self.server = server or default_server
-        self.server = self.server.rstrip("/")
+    With `auth` (an `XnatAuth`), a session is opened first (JSESSION
+    cookie), and reopened once if the server answers 401/403.
+    """
+
+    def __init__(self, server: str = DEFAULT_SERVER,
+                 auth: XnatAuth | None = None, *, jobs: int = 8,
+                 insecure: bool = False, max_attempts: int = 5):
+        self.server = server.rstrip("/")
+        self.auth = auth
+        self.jobs = jobs
+        self.insecure = insecure
+        self.max_attempts = max_attempts
         self.session = None
-        self.jsessionid = None
-        self._keep_open = None
-        self._keep_open_default = keep_open
-        if open:
-            self.open()
+        self._semaphore = None
 
-    @property
-    def session(self) -> requests.Session:
-        if self._session is None:
-            raise RuntimeError(
-                'Session not open. Call `xnat.open()` or use as context '
-                '`with xnat: ...`')
-        return self._session
+    async def __aenter__(self):
+        self.session = new_session()
+        self._semaphore = asyncio.Semaphore(self.jobs)
+        if self.auth is not None:
+            await self.auth(self.session)
+        return self
 
-    @session.setter
-    def session(self, value: requests.Session):
-        self._session = value
-
-    @property
-    def keep_open(self) -> bool:
-        if self._keep_open is None:
-            return self._keep_open_default
-        else:
-            return self._keep_open
-
-    @keep_open.setter
-    def keep_open(self, value):
-        self._keep_open = value
-
-    @property
-    def is_open(self) -> bool:
-        return self._session is not None
-
-    @property
-    def is_closed(self) -> bool:
-        return not self.is_open
-
-    def auth(self, session: requests.Session) -> None:
-        r = session.post(f'{self.server}/data/JSESSION', auth=self.credentials)
-        return r.content
-
-    async def async_auth(self, session) -> None:
-        if isinstance(session, requests.Session):
-            return self.auth(session)
-
-        async with session.post(
-            f'{self.server}/data/JSESSION',
-            auth=aiohttp.BasicAuth(*self.credentials)
-        ) as r:
-            return await r.read()
-
-    def login(self, force: bool = False) -> None:
-        """
-        Authenticate (once). The JSESSIONID cookie is then reused by all
-        requests; `get`/`head` call `login(force=True)` if the server
-        answers 401/403.
-        """
-        if self.jsessionid is not None and not force:
-            return
-        exc = None
-        for _ in range(2):
-            for __ in range(1, 3):
-                try:
-                    self.jsessionid = self.auth(self.session)
-                    return
-                except requests.exceptions.ConnectionError as e:
-                    exc = e
-            self.session.close()
-            self.session = requests.Session()
-        raise exc
-
-    def logout(self) -> None:
-        if self.is_open:
+    async def __aexit__(self, *exc):
+        if self.auth is not None:
             try:
-                self.session.delete(f'{self.server}/data/JSESSION')
-            except Exception:
+                async with self.session.delete(
+                    f"{self.server}/data/JSESSION", **self._opt
+                ) as r:
+                    await r.read()
+            except Exception:       # logout is best effort
                 pass
-            finally:
-                self.jsessionid = None
+        await self.session.close()
+        self.session = None
 
-    def get(self, *args, **kwargs) -> requests.Response:
-        self.login()
-        r = self.session.get(*args, **kwargs)
-        if r.status_code in (401, 403):
-            self.login(force=True)
-            r = self.session.get(*args, **kwargs)
-        return r
+    @property
+    def _opt(self) -> dict:
+        return {"ssl": False} if self.insecure else {}
 
-    def head(self, *args, **kwargs) -> requests.Response:
-        self.login()
-        r = self.session.head(*args, **kwargs)
-        if r.status_code in (401, 403):
-            self.login(force=True)
-            r = self.session.head(*args, **kwargs)
-        return r
+    async def get_json(self, path: str) -> dict:
+        """GET `<server>/data/<path>?format=json` (with retries)"""
+        url = f"{self.server}/data/{path.lstrip('/')}"
+        authenticated = False
+        async with self._semaphore:
+            for attempt in range(self.max_attempts):
+                try:
+                    async with self.session.get(
+                        url, params={"format": "json"}, **self._opt
+                    ) as r:
+                        if r.status in (401, 403) and self.auth and \
+                                not authenticated:
+                            authenticated = True
+                            await self.auth(self.session)
+                            continue
+                        if r.status in RETRY_STATUSES and \
+                                attempt + 1 < self.max_attempts:
+                            await asyncio.sleep(2 ** attempt)
+                            continue
+                        if r.status in (401, 403):
+                            raise PermissionError(
+                                f"{url}: access denied ({r.status})"
+                            )
+                        r.raise_for_status()
+                        return await r.json(content_type=None)
+                except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
+                    if attempt + 1 >= self.max_attempts:
+                        raise
+                    await asyncio.sleep(2 ** attempt)
+        raise RuntimeError(f"Could not get {url}")
 
-    def open(self, keep_open: bool | None = None):
-        if keep_open is not None:
-            self.keep_open = keep_open
-        if self.is_open:
-            return self
-        self.session = requests.Session()
-        self.login()
-        return self
-
-    def close(self):
-        if self.is_closed:
-            return self
-        self.logout()
-        self.keep_open = None
-        return self
-
-    def __enter__(self):
-        self._was_open = self.is_open
-        self.open()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if not self._was_open:
-            self.close()
-        delattr(self, '_was_open')
-        return self
-
-    def get_subjects(self, project: str) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-
-        Returns
-        -------
-        subjects : list[str]
-            XNAT subject label (e.g. "OAS30001")
-        """
-        url = f'{self.server}/data/archive/projects/{project}/subjects/'
-        print(url)
-        data = self.get(url).json()
-        data = data['ResultSet']['Result']
-        return [elem['label'] for elem in data]
-
-    def get_all_subjects(
-        self,
-        project: str,
-        subjects: str | Iterable[str] | None = None,
-        **kwargs
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subjects : [list of] str
-            Selection pattern
-
-        Returns
-        -------
-        subjects : list[str]
-            XNAT subject label (e.g. "OASIS3/OAS30001")
-        """
-        subjects = subjects or kwargs.pop('subject', None)
-        subjects = filter_list(self.get_subjects(project), subjects)
-        return list(map(lambda x: f'{project}/{x}', subjects))
-
-    def get_experiments(
-        self,
-        project: str,
-        subject: str | None = None
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject : str, optional
-            XNAT subject label to restrict the search to (e.g. "OAS30001")
-
-        Returns
-        -------
-        experiments : list[str]
-            XNAT experiments label (e.g. "OAS30001_MR_d3746")
-        """
-        if subject is not None:
-            subject = f'/subjects/{subject}'
-        else:
-            subject = ''
-        url = (f'{self.server}/data/archive/projects/{project}{subject}/'
-               f'experiments/?format=json')
-        response = self.get(url)
+    async def results(self, path: str) -> list[dict]:
+        data = await self.get_json(path)
         try:
-            data = response.json()['ResultSet']['Result']
-            return [elem['label'] for elem in data]
-        except Exception:
+            return data["ResultSet"]["Result"]
+        except (KeyError, TypeError):
             return []
 
-    def get_all_experiments(
-        self,
-        project: str,
-        subjects: str | Iterable[str] | None = None,
-        experiments: str | Iterable[str] | None = None,
-        **kwargs
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject(s) : [list of] str, optional
-            XNAT subject label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001")
-        experiment(s) : [list of] str
-            Selection pattern
+    def _base(self, project, subject=None, experiment=None) -> str:
+        path = f"archive/projects/{project}"
+        if subject:
+            path += f"/subjects/{subject}"
+        if experiment:
+            path += f"/experiments/{experiment}"
+        return path
 
-        Returns
-        -------
-        experiments : list[str]
-            XNAT experiments label
-            (e.g. "OASIS3/OAS30001/OAS30001_MR_d3746")
-        """
-        subjects = subjects or kwargs.pop('subject', None)
-        experiments = experiments or kwargs.pop('experiment', None)
+    async def subjects(self, project: str) -> list[dict]:
+        return await self.results(f"{self._base(project)}/subjects")
 
-        out = []
-        subjects = self.get_all_subjects(project, subjects)
-        for subject in subjects:
-            proj, sub = subject.split('/')
-            exp = filter_list(self.get_experiments(proj, sub), experiments)
-            out.extend(map(lambda x: f'{proj}/{sub}/{x}', exp))
-        return out
-
-    def get_assessors(
-        self,
-        project: str,
-        subject: str,
-        experiment: str,
-        return_info: bool = False
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject : str
-            XNAT subject label to restrict the search to (e.g. "OAS30001")
-            If `None`, guess from experiment.
-        experiment : str
-            XNAT experiment label to restrict the search to
-            (e.g. "OAS30001_MR_d3746")
-
-        Returns
-        -------
-        scans : list[str]
-            XNAT scans label (e.g. "func1")
-        """
-        if not subject:
-            subject = self.get_subject(project, experiment)
-        url = (f'{self.server}/data/archive/projects/{project}/'
-               f'subjects/{subject}/experiments/{experiment}/'
-               f'assessors/?format=json')
-        data = self.get(url)
-        if not data:
-            return []
-        data = data.json()['ResultSet']['Result']
-        if return_info:
-            return data
-        else:
-            return [elem['label'] for elem in data]
-
-    def get_all_assessors(
-        self,
-        project: str,
-        subjects: str | Iterable[str] | None = None,
-        experiments: str | Iterable[str] | None = None,
-        assessors: str | Iterable[str] | None = None,
-        **kwargs
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject(s) : [list of] str, optional
-            XNAT subject label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001")
-        experiment(s) : [list of] str
-            XNAT experiment label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001_MR_d3746")
-        assessor(s) : [list of] str
-            Selection pattern
-
-        Returns
-        -------
-        assessors : list[str]
-            XNAT experiment + assessor label
-            (e.g. "OASIS3/OAS30001/OAS30001_MR_d3746/OAS30001_Freesurfer53_d0129")
-        """  # noqa: E501
-        subjects = subjects or kwargs.pop('subject', None)
-        experiments = experiments or kwargs.pop('experiment', None)
-        assessors = assessors or kwargs.pop('assessor', None)
-
-        out = []
-        experiments = self.get_all_experiments(project, subjects, experiments)
-        for experiment in experiments:
-            proj, sub, exp = experiment.split('/')
-            subassess = filter_list(
-                self.get_assessors(proj, sub, exp), assessors
-            )
-            out.extend(map(lambda x: f'{proj}/{sub}/{exp}/{x}', subassess))
-        return out
-
-    def get_scans(
-        self,
-        project: str,
-        subject: str,
-        experiment: str,
-        assessor: str | None = None,
-        return_info=False
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject : str
-            XNAT subject label to restrict the search to (e.g. "OAS30001")
-            If `None`, guess from experiment.
-        experiment : str
-            XNAT experiment label to restrict the search to
-            (e.g. "OAS30001_MR_d3746")
-
-        Returns
-        -------
-        scans : list[str]
-            XNAT scans label (e.g. "func1")
-        """
-        if not subject:
-            subject = self.get_subject(project, experiment)
-        if assessor:
-            assessor = f'assessors/{assessor}/'
-        else:
-            assessor = ''
-        url = (f'{self.server}/data/archive/projects/{project}/'
-               f'subjects/{subject}/experiments/{experiment}/{assessor}'
-               f'scans/?format=json')
-        data = self.get(url)
-        if not data:
-            return []
-        data = data.json()['ResultSet']['Result']
-        if return_info:
-            return data
-        else:
-            return [elem['ID'] for elem in data]
-
-    def get_all_scans(
-        self,
-        project: str,
-        subjects: str | Iterable[str] | None = None,
-        experiments: str | Iterable[str] | None = None,
-        scans: str | Iterable[str] | None = None,
-        **kwargs
-    ) -> list[str]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject(s) : [list of] str, optional
-            XNAT subject label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001")
-        experiment(s) : [list of] str
-            XNAT experiment label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001_MR_d3746")
-        scan(s) : [list of] str
-            Selection pattern
-
-        Returns
-        -------
-        scans : list[str]
-            XNAT experiment + scans label
-            (e.g. "OASIS3/OAS30001/OAS30001_MR_d3746/func1")
-        """
-        subjects = subjects or kwargs.pop('subject', None)
-        experiments = experiments or kwargs.pop('experiment', None)
-        scans = scans or kwargs.pop('scan', None)
-
-        out = []
-        experiments = self.get_all_experiments(
-            project, subjects, experiments
-        )
-        for experiment in experiments:
-            proj, sub, exp = experiment.split('/')
-            subscans = filter_list(
-                self.get_scans(proj, sub, exp), scans
-            )
-            out.extend(map(
-                lambda x: f'{proj}/{sub}/{exp}/{x}', subscans
-            ))
-        return out
-
-    def get_subject(self, project: str, experiment: str):
-        url = (f'{self.server}/data/archive/projects/'
-               f'{project}/experiments/{experiment}/?format=json')
-        data = self.session.get(url).json()
-        return data['items'][0]['data_fields']['subject_ID']
-
-    def get_downloader(
-        self,
-        project: str,
-        subject: str,
-        experiment: str,
-        scan: str,
-        dst: str | Path | None = None,
-        *,
-        type: Literal['scan', 'assessor'] = 'scan',
-        **kwargs
-    ) -> Downloader:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject : str
-            XNAT subject label to restrict the search to (e.g. "OAS30001")
-        experiment : str
-            XNAT experiment label to restrict the search to
-            (e.g. "OAS30001_MR_d3746")
-        scan : str
-            XNAT scans label (e.g. "func1")
-        dst : str or Path or file-like
-            Destination
-
-        Other Parameters
-        ----------------
-        type : {'scan', 'assessor'}
-
-        Returns
-        -------
-        Downloader
-            A downloader
-        """
-        if not subject:
-            subject = self.get_subject(project, experiment)
-
-        dst = dst or '.'
-        if isinstance(dst, (str, Path)):
-            if os.path.isdir(dst):
-                dst = os.path.join(dst, experiment, f'{scan}.tar.gz')
-
-        src = (f'{self.server}/data/archive/projects/{project}/'
-               f'subjects/{subject}/experiments/{experiment}/'
-               f'{type}s/{scan}/files?format=tar.gz')
-
-        return Downloader(
-            src, dst, auth=self.async_auth, **kwargs
+    async def experiments(self, project: str,
+                          subject: str | None = None) -> list[dict]:
+        return await self.results(
+            f"{self._base(project, subject)}/experiments"
         )
 
-    def get_all_downloaders(
-        self,
-        project: str,
-        subjects: str | Iterable[str] | None = None,
-        experiments: str | Iterable[str] | None = None,
-        scans: str | Iterable[str] | None = None,
-        dst: str | Path | None = None,
-        *,
-        type: Literal['scan', 'assessor'] = 'scan',
-        **kwargs
-    ) -> Iterator[Downloader]:
-        """
-        Parameters
-        ----------
-        project : str
-            XNAT project name (e.g. "OASIS3")
-        subject(s) : [list of] str
-            XNAT subject label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001")
-        experiment(s) : [list of] str
-            XNAT experiment label (or selection pattern)
-            to restrict the search to (e.g. "OAS30001_MR_d3746")
-        scan(s) : [list of] str
-            XNAT scans label (or selection pattern)
-            to restrict the search to (e.g. "func1")
-        dst : str or Path
-            Destination folder
+    async def scans(self, project, subject, experiment) -> list[dict]:
+        return await self.results(
+            f"{self._base(project, subject, experiment)}/scans"
+        )
 
-        Returns
-        -------
-        yield Downloader
-        """
-        if 'assessor' in kwargs or 'assessors' in kwargs:
-            type = 'assessor'
-        subjects = subjects or kwargs.pop('subject', None)
-        experiments = experiments or kwargs.pop('experiment', None)
-        scans = scans or kwargs.pop(type, None) or kwargs.pop(f'{type}s', None)
+    async def assessors(self, project, subject, experiment) -> list[dict]:
+        return await self.results(
+            f"{self._base(project, subject, experiment)}/assessors"
+        )
 
-        if type == 'scan':
-            get_all = self.get_all_scans
-        elif type == 'assessor':
-            get_all = self.get_all_assessors
-        else:
-            raise ValueError(type)
+    def archive_url(self, project, subject, experiment, id,
+                    type: str = "scan") -> str:
+        """URL of the tar.gz archive of a scan or assessor"""
+        base = self._base(project, subject, experiment)
+        return f"{self.server}/data/{base}/{type}s/{id}/files?format=tar.gz"
 
-        dst = Path(dst or '.')
 
-        scans = get_all(project, subjects, experiments, scans)
-        for scan in scans:
-            proj, sub, exp, scan = scan.split('/')
-            dst1 = dst / exp / f'{scan}.tar.gz'
-            yield self.get_downloader(
-                proj, sub, exp, scan, dst1, **kwargs, type=type
+class XNAT(Source):
+    """
+    Source: scans and assessors of an XNAT project, as server-built
+    archives (`<experiment>/<id>.tar.gz`).
+
+    Subclasses refine the listing with hooks (all return True by
+    default, except `keep_assessor`):
+
+    * `keep_experiment(subject, experiment, wants)`: records of the
+      subject and experiment (`label`, `ID`...)
+    * `keep_scan(subject, experiment, scan, wants)`: scan record (`ID`,
+      `type`...)
+    * `keep_assessor(subject, experiment, assessor, wants)`
+
+    Subjects are pruned with the label mapping (`labels`, from the
+    subject label). Per-run options: `user`, `password`.
+    """
+
+    name = "xnat"
+    server: str = DEFAULT_SERVER
+    project: str = ""
+    login: bool = True
+    jobs = 1
+    user: str | None = None
+    password: str | None = None
+    list_jobs: int = 8
+
+    def __init__(self, project: str | None = None, *,
+                 server: str | None = None, **kwargs):
+        super().__init__(**kwargs)
+        if project is not None:
+            self.project = project
+        if server is not None:
+            self.server = server.rstrip("/")
+
+    # ------------------------------------------------------------------
+    def auth(self) -> XnatAuth | None:
+        if not self.login:
+            return None
+        auth = self.__dict__.get("_auth")
+        if auth is None or (self.user and auth.user != self.user):
+            auth = XnatAuth(self.server, self.user, self.password,
+                            insecure=self.insecure)
+            self._auth = auth
+        return auth
+
+    def client(self) -> XNATClient:
+        return XNATClient(self.server, self.auth(), jobs=self.list_jobs,
+                          insecure=self.insecure)
+
+    def local_path(self, entry: RemoteEntry) -> str | None:
+        return entry.path
+
+    # ------------------------------------------------------------------
+    #   Hooks
+    # ------------------------------------------------------------------
+
+    def keep_experiment(self, subject: dict, experiment: dict,
+                        wants) -> bool:
+        return True
+
+    def keep_scan(self, subject: dict, experiment: dict, scan: dict,
+                  wants) -> bool:
+        return True
+
+    def keep_assessor(self, subject: dict, experiment: dict,
+                      assessor: dict, wants) -> bool:
+        return False
+
+    def subject_ids(self, subjects: list[dict], selection) -> list[dict]:
+        """Subjects to list (pruned with the label mapping)"""
+        return [s for s in subjects
+                if self.keeps_subject(selection, s.get("label", ""))]
+
+    def extra(self, client: XNATClient, selection, wants) -> list:
+        """Entries outside the subject tree (coroutine allowed)"""
+        return []
+
+    # ------------------------------------------------------------------
+    def entry(self, client: XNATClient, subject: dict, experiment: dict,
+              record: dict, type: str = "scan") -> RemoteEntry:
+        sub, exp = subject["label"], experiment["label"]
+        id = record["ID"] if type == "scan" else record.get(
+            "label", record["ID"])
+        return RemoteEntry(
+            path=f"{exp}/{id}.tar.gz",
+            url=client.archive_url(self.project, sub, exp, id, type),
+            meta={"project": self.project, "subject": sub,
+                  "experiment": exp, "id": id, "type": type,
+                  "record": record},
+        )
+
+    async def list_async(self, selection=None, keys=None
+                         ) -> list[RemoteEntry]:
+        wants = as_wants(keys)
+        async with self.client() as client:
+            out = []
+            extra = self.extra(client, selection, wants)
+            if asyncio.iscoroutine(extra):
+                extra = await extra
+            out += list(extra)
+            subjects = self.subject_ids(
+                await client.subjects(self.project), selection
             )
 
-    def download(self, *args, **kwargs) -> Path:
-        downloader = self.get_downloader(*args, **kwargs)
-        DownloadManager(downloader).run()
-        return downloader.dst
+            async def subject_entries(subject):
+                entries = []
+                experiments = await client.experiments(
+                    self.project, subject["label"])
+                for exp in experiments:
+                    if not self.keep_experiment(subject, exp, wants):
+                        continue
+                    scans, assessors = await asyncio.gather(
+                        client.scans(self.project, subject["label"],
+                                     exp["label"]),
+                        client.assessors(self.project, subject["label"],
+                                         exp["label"]),
+                    )
+                    entries += [
+                        self.entry(client, subject, exp, s, "scan")
+                        for s in scans
+                        if self.keep_scan(subject, exp, s, wants)
+                    ]
+                    entries += [
+                        self.entry(client, subject, exp, a, "assessor")
+                        for a in assessors
+                        if self.keep_assessor(subject, exp, a, wants)
+                    ]
+                return entries
 
-    def download_all(self, *args, **kwargs) -> Path:
-        downloaders = list(self.get_all_downloaders(*args, **kwargs))
-        DownloadManager(downloaders).run()
-        return [x.dst for x in downloaders]
+            for entries in await asyncio.gather(
+                *map(subject_entries, subjects)
+            ):
+                out += entries
+        return out
+
+    def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        try:
+            return asyncio.run(self.list_async(selection, keys))
+        except (aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
+            raise SourceUnavailable(
+                f"{self.server}: [{type(e).__name__}] {e}"
+            ) from e
 
 
-def filter_list(full_list, patterns):
+def filter_list(full_list: Iterable[str],
+                patterns: str | Iterable[str] | None) -> list[str]:
+    """Elements of a list that match glob patterns (all if None)"""
+    full_list = list(full_list)
     if not patterns:
         return full_list
     if isinstance(patterns, str):

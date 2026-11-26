@@ -2,17 +2,14 @@ from pathlib import Path
 from enum import Enum
 from typing import Iterable
 from humanize import naturalsize
-from warnings import filterwarnings
-from urllib3.exceptions import InsecureRequestWarning
 
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
-from brainspresso.sources.dataverse import Dataverse, get_credentials
-from brainspresso.download import DownloadManager
-from brainspresso.download import Downloader
+from brainspresso.sources.base import DownloadOptions, Wants
+from brainspresso.sources.dataverse import Dataverse
 from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.datasets.GSP.command import gsp
@@ -21,8 +18,6 @@ from brainspresso.datasets.GSP.command import gsp
 KEYS = ("raw", "meta")
 KeyChoice = Enum("KeyChoice", [("raw", "raw"), ("meta", "meta")], type=str)
 
-URLBASE = 'https://dataverse.harvard.edu/api/access/datafile/:persistentId/'
-URLBASE += "?persistentId="
 FILE_IDS = {
     "meta": {
         "GSP_list_140630.csv": "doi:10.7910/DVN/25833/1RIO8A",
@@ -42,6 +37,11 @@ FILE_IDS = {
         "GSP_retest_140630.tar": "doi:10.7910/DVN/25833/ZBV7LM",
     }
 }
+
+
+def sources() -> dict:
+    """Sources of GSP: Harvard Dataverse (token required)"""
+    return {"dataverse": Dataverse(FILE_IDS, "harvard")}
 
 
 @gsp.command(name="harvest")
@@ -91,26 +91,13 @@ def download(
     """
     setup_filelog(log, level=level)
     path = Path(get_tree_path(path))
-    keys = set(keys or KEYS)
+    if isinstance(keys, str):
+        keys = [keys]
+    keys = {str(getattr(k, "value", k)) for k in keys or KEYS}
     dataset = resolve_layout(path / 'GSP', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "GSP"})
-    auth = {Dataverse.TOKEN_HEADER: get_credentials(token)}
-
-    def downloaders():
-        for key in keys:
-            for fname, id in FILE_IDS[key].items():
-                yield Downloader(
-                    URLBASE + id,
-                    src / fname,
-                    chunk_size=human2bytes(packet),
-                    get_opt=dict(ssl=False, headers=auth),
-                    ifnodigest="continue",
-                )
-
-    filterwarnings('ignore', category=InsecureRequestWarning)
-    DownloadManager(
-        downloaders(),
-        ifexists=if_exists,
-        jobs=jobs,
-    ).run("async")
+    sources()["dataverse"].configure(token=token).harvest(
+        dataset, keys=Wants(keys),
+        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
+                                chunk_size=human2bytes(packet)),
+    )

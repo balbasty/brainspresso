@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Literal, Iterable
-from urllib.parse import urlparse
 from humanize import naturalsize
 
 from brainspresso.bids.harvest import record_run
@@ -8,10 +7,9 @@ from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
-from brainspresso.download import DownloadManager
-from brainspresso.download import Downloader
 from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
+from brainspresso.sources.base import DownloadOptions, StaticURLs, Wants
 from brainspresso.datasets.OASIS.II.command import oasis2
 
 
@@ -28,6 +26,24 @@ URLS = {
 }
 
 KeyChoice = Literal["raw", "meta"]
+
+
+class WUSTL(StaticURLs):
+    """OASIS-II parts (download.nrg.wustl.edu) and demographics
+    (sites.wustl.edu), no login. Per-run option: `parts`."""
+
+    name = "wustl"
+    parts: frozenset = frozenset({1, 2})
+    urls = {
+        "raw": [StaticURLs.entry(url, part=part)
+                for part, url in enumerate(URLS["raw"], 1)],
+        "meta": [StaticURLs.entry(URLS["meta"][0],
+                                  "oasis_longitudinal_demographics.xlsx")],
+    }
+
+    def keep(self, entry, selection, wants) -> bool:
+        part = entry.meta.get("part")
+        return part is None or part in self.parts
 
 
 @oasis2.command(name="harvest")
@@ -74,26 +90,13 @@ def download(
     """
     setup_filelog(log)
     path = Path(get_tree_path(path))
+    if isinstance(keys, str):
+        keys = [keys]
     keys = set(keys or URLS.keys())
-    parts = set(parts or (1, 2))
     dataset = resolve_layout(path / 'OASIS-2', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "OASIS-2"})
-    downloaders = []
-    if 'raw' in keys:
-        for part in parts:
-            URL = URLS['raw'][part-1]
-            downloaders.append(Downloader(
-                URL,  src / Path(urlparse(URL).path).name,
-                ifexists=if_exists,
-                chunk_size=human2bytes(packet),
-            ))
-    if 'meta' in keys:
-        URL = URLS['meta'][0]
-        basename = 'oasis_longitudinal_demographics.xlsx'
-        downloaders.append(Downloader(
-            URL,  src / basename,
-            ifexists=if_exists,
-            chunk_size=human2bytes(packet),
-        ))
-    DownloadManager(downloaders).run()
+    WUSTL().configure(parts=frozenset(parts or (1, 2))).harvest(
+        dataset, keys=Wants(keys),
+        options=DownloadOptions(ifexists=if_exists,
+                                chunk_size=human2bytes(packet)),
+    )

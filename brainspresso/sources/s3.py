@@ -8,6 +8,9 @@ async for obj in bucket.list("ds000224/"):
     print(obj.key, obj.size, bucket.url(obj.key))
 ```
 
+`S3Prefix` is the source of the files under a prefix (see
+`sources.base`); `fcp.FCP` is the one of the INDI bucket.
+
 Notes
 -----
 * Path-style URLs (`https://s3.<region>.amazonaws.com/<bucket>/<key>`)
@@ -34,6 +37,7 @@ import aiohttp
 
 from brainspresso.download.constants import RETRY_STATUSES
 from brainspresso.download.session import new_session
+from brainspresso.sources.base import RemoteEntry, Source, as_wants
 
 lg = getLogger(__name__)
 
@@ -54,6 +58,17 @@ class S3Object:
         """MD5 of the object, if it can be inferred from its ETag"""
         etag = (self.etag or "").strip('"').lower()
         return etag if _MD5.match(etag) else None
+
+    def entry(self, url: str, path: str | None = None) -> RemoteEntry:
+        """The object as a `RemoteEntry` (`path` defaults to the key)"""
+        return RemoteEntry(
+            path=self.key if path is None else path,
+            url=url,
+            size=self.size,
+            mtime=self.mtime,
+            digests={"md5": self.md5} if self.md5 else {},
+            meta={"key": self.key},
+        )
 
 
 def parse_s3_url(url: str) -> tuple[str, str]:
@@ -238,3 +253,68 @@ def _parse_object(elem: ElementTree.Element) -> S3Object:
         mtime=mtime or None,
         etag=elem.findtext(f"{_NS}ETag"),
     )
+
+
+class S3Prefix(Source):
+    """
+    Source: the objects under a prefix of a public bucket, mirrored
+    under `destination(layout)` with their path relative to the prefix
+    (or `local_path(entry)`).
+
+    Subclasses (or the `keep`/`rename` arguments) filter and map entries:
+    `keep(entry, selection, wants) -> bool` and `local_path(entry)`.
+    Hidden files (`.DS_Store`...) and "folder" objects are skipped.
+
+    Parameters
+    ----------
+    bucket : S3Bucket | str | callable() -> S3Bucket
+        Bucket (a callable is called at each listing, so that tests can
+        patch it)
+    prefix : str
+        Prefix (a folder: a trailing "/" is added)
+    keep : callable(RemoteEntry, selection, wants) -> bool
+    rename : callable(RemoteEntry) -> str | None
+    """
+
+    jobs = 4
+
+    def __init__(self, bucket, prefix: str = "", *, keep=None, rename=None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self._bucket = bucket
+        self.prefix = prefix.strip("/") + "/" if prefix.strip("/") else ""
+        if keep is not None:
+            self.keep = keep
+        if rename is not None:
+            self.local_path = rename
+
+    @property
+    def bucket(self) -> S3Bucket:
+        bucket = self._bucket
+        if isinstance(bucket, str):
+            return S3Bucket(bucket)
+        if callable(bucket) and not isinstance(bucket, S3Bucket):
+            return bucket()
+        return bucket
+
+    def keep(self, entry: RemoteEntry, selection, wants) -> bool:
+        return True
+
+    def entries(self, prefix: str = "") -> list[RemoteEntry]:
+        """All objects under `self.prefix + prefix` (paths relative to
+        `self.prefix`)"""
+        bucket = self.bucket
+        root = self.prefix
+        out = []
+        for obj in bucket.list_all(root + prefix):
+            rel = obj.key[len(root):]
+            if not rel or rel.endswith("/"):
+                continue
+            if any(p.startswith(".") for p in rel.split("/")):
+                continue
+            out.append(obj.entry(bucket.url(obj.key), rel))
+        return out
+
+    def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        wants = as_wants(keys)
+        return [e for e in self.entries() if self.keep(e, selection, wants)]

@@ -1,221 +1,97 @@
-import os
-import getpass
+"""
+Dataverse repositories (e.g. https://dataverse.harvard.edu).
 
-import requests
-import aiohttp
+Files are downloaded by persistent identifier
+(`<server>/api/access/datafile/:persistentId/?persistentId=doi:...`),
+with an API token in the `X-Dataverse-key` header (datasets under terms
+of use need one).
 
-from brainspresso.download import Downloader
+```python
+source = Dataverse({"raw": {"GSP_part1.tar": "doi:10.7910/DVN/25833/D9DWAI"}},
+                   server="harvard").configure(token=token)
+source.harvest(layout)
+```
+"""
+from __future__ import annotations
 
+from typing import Mapping
+from urllib.parse import quote
 
-Session = requests.Session | aiohttp.ClientSession
+from brainspresso.sources.base import RemoteEntry, StaticURLs
+from brainspresso.sources.credentials import get_secret
 
 servers = {
     "default": "https://demo.dataverse.org",
     "harvard": "https://dataverse.harvard.edu",
 }
 
-
-def get_credentials(token=None):
-    methods = ['DATAVERSE_TOKEN', getpass.getpass, ValueError]
-
-    if not token:
-        for method in methods:
-            if isinstance(method, str):
-                token = os.environ.get(method, None)
-            elif callable(method):
-                token = methods('Dataverse token: ')
-            elif isinstance(method, type) and issubclass(method, Exception):
-                raise ValueError(
-                    'Could not get Dataverse token. '
-                    'Set environment variable `DATAVERSE_TOKEN`'
-                )
-
-    return token
+TOKEN_HEADER = "X-Dataverse-key"
+TOKEN_ENV = ("DATAVERSE_TOKEN",)
 
 
-class Dataverse:
+def get_token(token: str | None = None) -> str:
+    """Dataverse API token: given, else `DATAVERSE_TOKEN`, else a prompt"""
+    return get_secret("Dataverse token", token, TOKEN_ENV, hidden=True,
+                      option="--token")
 
-    TOKEN_HEADER = "X-Dataverse-key"
 
-    def __init__(
-        self,
-        token: str | None = None,
-        server: str | None = None,
-        open: bool = False,
-        keep_open: bool = True,
-    ):
-        self.token = get_credentials(token)
-        self.server = server or servers["default"]
-        if "http" not in self.server:
-            self.server = servers[self.server]
-        self.server = self.server.rstrip("/")
-        self.session = None
-        self._keep_open = None
-        self._keep_open_default = keep_open
-        if open:
-            self.open()
+def server_url(server: str | None) -> str:
+    server = server or servers["default"]
+    if "://" not in server:
+        server = servers[server]
+    return server.rstrip("/")
 
-    @property
-    def headers(self) -> dict[str, str]:
-        return {self.TOKEN_HEADER: self.token}
 
-    @property
-    def session(self) -> requests.Session:
-        if self._session is None:
-            raise RuntimeError(
-                'Session not open. Call `dataverse.open()` or use as context '
-                '`with dataverse: ...`')
-        return self._session
+def file_url(server: str, persistent_id: str,
+             version: str | None = None) -> str:
+    """Download URL of a file, by persistent identifier"""
+    url = f"{server_url(server)}/api/access/datafile/:persistentId/"
+    if version:
+        url += f"versions/{version}"
+    return url + f"?persistentId={quote(persistent_id, safe=':/')}"
 
-    @property
-    async def asession(self) -> requests.Session:
-        if self._asession is None:
-            raise RuntimeError(
-                'Session not open. Call `dataverse.open_async()` or use '
-                'as context `with dataverse: ...`')
-        return self._asession
 
-    @session.setter
-    def session(self, value: Session):
-        if isinstance(value, requests.Session):
-            self._session = value
-        elif isinstance(value, aiohttp.ClientSession):
-            self._asession = value
-        elif value is None:
-            self._session = self._asession = None
-        raise TypeError(type(value))
+class Dataverse(StaticURLs):
+    """
+    Source: files of a Dataverse repository, by persistent identifier.
 
-    @property
-    def keep_open(self) -> bool:
-        if self._keep_open is None:
-            return self._keep_open_default
-        else:
-            return self._keep_open
+    Parameters
+    ----------
+    files : dict[str, dict[str, str]]
+        `{key: {local name: persistent id}}`
+    server : str
+        Server URL or a name of `servers`
+    token_required : bool
+        Ask for a token (else, use one only if given or in the
+        environment)
 
-    @keep_open.setter
-    def keep_open(self, value):
-        self._keep_open = value
+    Per-run option: `token`.
+    """
 
-    @property
-    def is_open(self) -> bool:
-        return self._session is not None or self._session_async is not None
+    name = "dataverse"
+    insecure = True
+    jobs = 1
+    token: str | None = None
+    token_required: bool = True
 
-    @property
-    def is_closed(self) -> bool:
-        return not self.is_open
+    def __init__(self, files: Mapping[str, Mapping[str, str]],
+                 server: str | None = "harvard", *,
+                 token_required: bool | None = None, **kwargs):
+        self.server = server_url(server)
+        urls = {
+            key: [RemoteEntry(name, file_url(self.server, pid),
+                              meta={"persistent_id": pid})
+                  for name, pid in names.items()]
+            for key, names in files.items()
+        }
+        super().__init__(urls, **kwargs)
+        if token_required is not None:
+            self.token_required = token_required
 
-    def get(self, *args, **kwargs) -> requests.Response:
-        kwargs.setdefault("headers", {})
-        kwargs["headers"].update(self.headers)
-        return self.session.get(*args, **kwargs)
-
-    def head(self, *args, **kwargs) -> requests.Response:
-        kwargs.setdefault("headers", {})
-        kwargs["headers"].update(self.headers)
-        return self.session.head(*args, **kwargs)
-
-    def open(self, keep_open: bool | None = None):
-        if keep_open is not None:
-            self.keep_open = keep_open
-        if self.is_open:
-            return self
-        self.session = requests.Session()
-        return self
-
-    def close(self):
-        if self.is_closed:
-            return self
-        self.session.close()
-        self.session = None
-        self.keep_open = None
-        return self
-
-    def __enter__(self):
-        self._was_open = self.is_open
-        self.open()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if not self._was_open:
-            self.close()
-        delattr(self, '_was_open')
-        return self
-
-    async def aget(self, *args, **kwargs) -> aiohttp.ClientResponse:
-        kwargs.setdefault("headers", {})
-        kwargs["headers"].update(self.headers)
-        session = await self.asession
-        return await session.get(*args, **kwargs)
-
-    async def ahead(self, *args, **kwargs) -> aiohttp.ClientResponse:
-        kwargs.setdefault("headers", {})
-        kwargs["headers"].update(self.headers)
-        session = await self.asession
-        return await session.head(*args, **kwargs)
-
-    async def aopen(self, keep_open: bool | None = None):
-        if keep_open is not None:
-            self.keep_open = keep_open
-        if self.is_open:
-            return self
-        self.session = await aiohttp.ClientSession()
-        return self
-
-    async def aclose(self):
-        if self.is_closed:
-            return self
-        await self.session.close()
-        self.session = None
-        self.keep_open = None
-        return self
-
-    async def __aenter__(self):
-        self._was_open = self.is_open
-        await self.aopen()
-        return self
-
-    async def __aexit__(self, type, value, traceback):
-        if not self._was_open:
-            await self.aclose()
-        delattr(self, '_was_open')
-        return self
-
-    def get_dataset_downloader(
-        self,
-        id: str,
-        version: str | None = None,
-    ) -> Downloader:
-        src = f"${self.server}/api/access/dataset/:persistentId/"
-        if version:
-            src += f"versions/{version}"
-        src += f"?persistentId={id}"
-        dst = id.replace(":", "-").replace("/", "-")
-        if version:
-            dst += f"_{version}"
-        dst += ".zip"
-        return Downloader(
-            src=src,
-            dst=dst,
-            session=self.session,
-            get_opt=self.headers,
-        )
-
-    def get_file_downloader(
-        self,
-        id: str,
-        version: str | None = None,
-    ) -> Downloader:
-        src = f"${self.server}/api/access/datafile/:persistentId/"
-        if version:
-            src += f"versions/{version}"
-        src += f"?persistentId={id}"
-        dst = id.replace(":", "-").replace("/", "-")
-        if version:
-            dst += f"_{version}"
-        dst += ".zip"
-        return Downloader(
-            src=src,
-            dst=dst,
-            session=self.session,
-            get_opt=self.headers,
-        )
+    def download_options(self, options) -> dict:
+        opts = super().download_options(options)
+        token = get_token(self.token) if self.token_required else \
+            (self.token or None)
+        if token:
+            opts["get_opt"] = {"headers": {TOKEN_HEADER: token}}
+        return opts

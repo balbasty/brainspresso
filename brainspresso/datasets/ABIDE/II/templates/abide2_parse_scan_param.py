@@ -66,7 +66,7 @@ def downloaders():
                     name = parts[-1]
                 yield Downloader(
                     url, Path(__file__).parent / 'PDFs' / name,
-                    get_opt=dict(verify=False),
+                    insecure=True,
                     ifexists='skip',
                 )
 

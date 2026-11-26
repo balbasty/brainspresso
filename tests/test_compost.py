@@ -4,14 +4,18 @@ from pathlib import Path
 import pytest
 
 from brainspresso.bids.compost import compost, plan_compost
+from brainspresso.bids.layout import Layout, make_layout
 from brainspresso.bids.select import Selection
 
-# Layout of a dataset roasted by brainspresso:
-# participants.tsv at the dataset root, subjects under rawdata/
-ROASTED = {
-    "sourcedata/IXI-T1.tar": "x" * 100,
-    "sourcedata/IXI-DTI.tar": "x" * 100,
-    "sourcedata/IXI.xls": "x",
+# A dataset roasted by brainspresso, given relative to the raw dataset
+# (`RAW`), to `sourcedata/` (`SOURCE`) and to each derivative dataset
+# (`DERIVATIVES`); placed by `layout` (study or flat).
+SOURCE = {
+    "IXI-T1.tar": "x" * 100,
+    "IXI-DTI.tar": "x" * 100,
+    "IXI.xls": "x",
+}
+RAW = {
     "dataset_description.json": "{}",
     "participants.json": "{}",
     "participants.tsv": (
@@ -20,21 +24,36 @@ ROASTED = {
         "sub-002\t70\tM\n"
         "sub-003\t65\tF\n"
     ),
-    "rawdata/dwi.bval": "0 1000",
-    "rawdata/T1w.json": "{}",
-    "rawdata/sub-001/anat/sub-001_T1w.nii.gz": "x",
-    "rawdata/sub-001/anat/sub-001_T1w.json": "{}",
-    "rawdata/sub-001/anat/sub-001_T2w.nii.gz": "x",
-    "rawdata/sub-001/anat/sub-001_T2w.json": "{}",
-    "rawdata/sub-001/dwi/sub-001_dwi.nii.gz": "x",
-    "rawdata/sub-002/anat/sub-002_T1w.nii.gz": "x",
-    "rawdata/sub-002/anat/sub-002_T1w.json": "{}",
-    "rawdata/sub-003/anat/sub-003_T1w.nii.gz": "x",
-    "derivatives/fs/dataset_description.json": "{}",
-    "derivatives/fs/sourcedata/sub-001/mri/aseg.mgz": "x",
-    "derivatives/fs/sub-001/anat/sub-001_dseg.nii.gz": "x",
-    "derivatives/fs/sub-002/anat/sub-002_dseg.nii.gz": "x",
+    "dwi.bval": "0 1000",
+    "T1w.json": "{}",
+    "sub-001/anat/sub-001_T1w.nii.gz": "x",
+    "sub-001/anat/sub-001_T1w.json": "{}",
+    "sub-001/anat/sub-001_T2w.nii.gz": "x",
+    "sub-001/anat/sub-001_T2w.json": "{}",
+    "sub-001/dwi/sub-001_dwi.nii.gz": "x",
+    "sub-002/anat/sub-002_T1w.nii.gz": "x",
+    "sub-002/anat/sub-002_T1w.json": "{}",
+    "sub-003/anat/sub-003_T1w.nii.gz": "x",
 }
+DERIVATIVES = {"fs": {
+    "dataset_description.json": "{}",
+    "sourcedata/sub-001/mri/aseg.mgz": "x",
+    "sub-001/anat/sub-001_dseg.nii.gz": "x",
+    "sub-002/anat/sub-002_dseg.nii.gz": "x",
+}}
+
+
+def roasted_files(layout: Layout) -> dict:
+    """Files of the roasted dataset, relative to the dataset folder"""
+    def rel(path):
+        return path.relative_to(layout.root).as_posix()
+    out = {rel(layout.source / k): v for k, v in SOURCE.items()}
+    out.update({rel(layout.raw / k): v for k, v in RAW.items()})
+    for name, content in DERIVATIVES.items():
+        drv = layout.derivative(name).root
+        out.update({rel(drv / k): v for k, v in content.items()})
+    return out
+
 
 # Layout of a BIDS dataset harvested as is (e.g. OpenNeuro)
 HARVESTED = {
@@ -87,9 +106,22 @@ def participants(path: Path) -> list[str]:
     return [line.split("\t")[0] for line in path.read_text().splitlines()[1:]]
 
 
-@pytest.fixture
-def roasted(tmp_path):
-    return make(tmp_path / "IXI", ROASTED)
+@pytest.fixture(params=["study", "flat"])
+def roasted(tmp_path, request):
+    # no manifest: the layout is detected from the tree
+    layout = make_layout(request.param, tmp_path / "IXI")
+    make(layout.root, roasted_files(layout))
+    return layout.root
+
+
+def roasted_tree(root: Path) -> dict:
+    return roasted_files(Layout.detect(root))
+
+
+def raw(root: Path, rel: str = "") -> str:
+    """Path of a file of the raw dataset, relative to the dataset folder"""
+    path = Layout.detect(root).raw / rel
+    return path.relative_to(root).as_posix()
 
 
 @pytest.fixture
@@ -103,8 +135,9 @@ def test_sourcedata(roasted):
     assert not any(f.startswith("sourcedata/") for f in left)
     assert not (roasted / "sourcedata").exists()
     # BIDS data and nested source data untouched
-    assert set(ROASTED) - left == {
-        f for f in ROASTED if f.startswith("sourcedata/")
+    tree = roasted_tree(roasted)
+    assert set(tree) - left == {
+        f for f in tree if f.startswith("sourcedata/")
     }
 
 
@@ -146,7 +179,7 @@ def test_dry_run(roasted, capsys):
     plan = compost(roasted, dry_run=True)
     assert files(roasted) == before
     assert sorted(plan.sourcedata) == sorted(
-        f for f in ROASTED if f.startswith("sourcedata/")
+        f for f in roasted_tree(roasted) if f.startswith("sourcedata/")
     )
     assert "sourcedata/IXI-T1.tar" in capsys.readouterr().out
 
@@ -161,12 +194,12 @@ def test_exclude_subs(roasted):
     left = files(roasted)
     # filters do not touch source data by default
     assert "sourcedata/IXI-T1.tar" in left
-    assert not (roasted / "rawdata/sub-002").exists()
-    assert "rawdata/sub-001/anat/sub-001_T1w.nii.gz" in left
+    assert not (roasted / raw(roasted, "sub-002")).exists()
+    assert raw(roasted, "sub-001/anat/sub-001_T1w.nii.gz") in left
     # derivatives untouched unless asked
     assert "derivatives/fs/sub-002/anat/sub-002_dseg.nii.gz" in left
-    # participants.tsv lives next to rawdata/
-    assert participants(roasted / "participants.tsv") == [
+    # participants.tsv lives in the raw dataset
+    assert participants(roasted / raw(roasted, "participants.tsv")) == [
         "sub-001", "sub-003"
     ]
 
@@ -178,34 +211,36 @@ def test_filters_and_sourcedata(roasted):
     )
     left = files(roasted)
     assert not any(f.startswith("sourcedata/") for f in left)
-    assert participants(roasted / "participants.tsv") == ["sub-001"]
+    assert participants(roasted / raw(roasted, "participants.tsv")) == [
+        "sub-001"
+    ]
 
 
 def test_suffixes(roasted):
     compost(roasted, selection=Selection(suffixes=["T1w"]), yes=True)
     left = files(roasted)
-    assert "rawdata/sub-001/anat/sub-001_T2w.nii.gz" not in left
-    assert "rawdata/sub-001/anat/sub-001_T2w.json" not in left
-    assert not (roasted / "rawdata/sub-001/dwi").exists()
+    assert raw(roasted, "sub-001/anat/sub-001_T2w.nii.gz") not in left
+    assert raw(roasted, "sub-001/anat/sub-001_T2w.json") not in left
+    assert not (roasted / raw(roasted, "sub-001/dwi")).exists()
     # top-level sidecars that do not apply anymore are deleted
-    assert "rawdata/dwi.bval" not in left
-    assert "rawdata/T1w.json" in left
-    assert "rawdata/sub-001/anat/sub-001_T1w.json" in left
+    assert raw(roasted, "dwi.bval") not in left
+    assert raw(roasted, "T1w.json") in left
+    assert raw(roasted, "sub-001/anat/sub-001_T1w.json") in left
     # dataset-level files are never deleted
-    assert "dataset_description.json" in left
-    assert "participants.json" in left
+    assert raw(roasted, "dataset_description.json") in left
+    assert raw(roasted, "participants.json") in left
 
 
 def test_where_derivatives(roasted):
     compost(roasted, where=["age>=60"], derivatives=True, yes=True)
     left = files(roasted)
-    assert not (roasted / "rawdata/sub-001").exists()
+    assert not (roasted / raw(roasted, "sub-001")).exists()
     assert not (roasted / "derivatives/fs/sub-001").exists()
     assert "derivatives/fs/sub-002/anat/sub-002_dseg.nii.gz" in left
     assert "derivatives/fs/dataset_description.json" in left
     # nested source data is not a subject folder: untouched
     assert "derivatives/fs/sourcedata/sub-001/mri/aseg.mgz" in left
-    assert participants(roasted / "participants.tsv") == [
+    assert participants(roasted / raw(roasted, "participants.tsv")) == [
         "sub-002", "sub-003"
     ]
 
@@ -226,7 +261,7 @@ def test_harvested(harvested):
         (harvested / ".brainspresso/manifest.json").read_text()
     )
     assert list(manifest["files"]) == ["sub-02/anat/sub-02_T1w.nii.gz"]
-    assert manifest["runs"][-1]["action"] == "compost"
+    assert manifest["runs"][-1]["stage"] == "compost"
     assert manifest["runs"][-1]["filters"] == {"subs": ["02"]}
 
 
@@ -235,20 +270,23 @@ def test_plan_kept_subjects(roasted):
         roasted, sourcedata=False, selection=Selection(subs=["003"])
     )
     assert plan.kept_subjects == {"sub-003"}
-    assert "rawdata/sub-003/anat/sub-003_T1w.nii.gz" not in plan.data
+    assert raw(roasted, "sub-003/anat/sub-003_T1w.nii.gz") not in plan.data
 
 
-def test_cli(tmp_path, capsys):
+@pytest.mark.parametrize("kind", ["study", "flat"])
+def test_cli(tmp_path, capsys, kind):
     from brainspresso.cli import app
     import brainspresso  # noqa: F401  (registers datasets)
 
-    make(tmp_path / "IXI", ROASTED)
+    roasted = tmp_path / "IXI"
+    tree = roasted_files(make_layout(kind, roasted))
+    make(roasted, tree)
     try:
         app(["ixi", "compost", str(tmp_path), "--dry-run",
              "--exclude-subs", "001", "002"])
     except SystemExit as e:
         assert not e.code
     out = capsys.readouterr().out
-    assert "rawdata/sub-001/anat/sub-001_T1w.nii.gz" in out
+    assert raw(roasted, "sub-001/anat/sub-001_T1w.nii.gz") in out
     assert "sourcedata" not in out.split("Compost")[1]
-    assert files(tmp_path / "IXI") == set(ROASTED)
+    assert files(tmp_path / "IXI") == set(tree)

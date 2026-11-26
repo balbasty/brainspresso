@@ -5,7 +5,9 @@ import nibabel as nib
 import pytest
 
 from brainspresso.datasets.OASIS.III.bidsifier import Bidsifier
-from roast_utils import make_tar, nii_bytes, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
+)
 
 DEMO = (
     "OASISID,GENDER,HAND,AgeatEntry,AgeatDeath,EDUC,SES,racecode,AIAN,NHPI,"
@@ -29,9 +31,10 @@ META = {"README", "dataset_description.json", "participants.json",
 PHENO = {"phenotype/UDS_b4_cdr.tsv", "phenotype/UDS_b4_cdr.json"}
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "OASIS-3"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     d = src / "OASIS3_data_files"
     make_tar(d / "demo.tar.gz", {"demo/demo.csv": DEMO.encode()})

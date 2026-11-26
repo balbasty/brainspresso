@@ -9,6 +9,7 @@ from cyclopts import Parameter
 from humanize import naturalsize
 
 from brainspresso.bids.harvest import harvest, format_summary, summarize
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.bids.select import Selection
 from brainspresso.download import IfExists
 from brainspresso.sources.openneuro import (
@@ -55,6 +56,7 @@ def download(
     where: Annotated[Iterable[str], Many] = (),
     folders: Annotated[Iterable[FolderChoice], Many] = (),
     trim: bool = True,
+    layout: LayoutChoice | None = None,
     out: str | None = None,
     source: SourceChoice = "auto",
     if_exists: IfExists.Choice = "skip",
@@ -116,8 +118,13 @@ def download(
         Rewrite participants/sessions/scans tables so that they only
         list what is present locally, so that they describe the
         subset. Originals are kept in `.brainspresso/orig/`.
+    layout
+        Local layout: "study" (the OpenNeuro dataset goes to
+        `<dataset>/rawbids/`, its `sourcedata/` and `derivatives/` next
+        to it) or "flat" (the OpenNeuro dataset is `<dataset>/`).
+        Default: the layout of an existing dataset, else "study".
     out
-        Output BIDS root (overrides `path`)
+        Output dataset folder (overrides `path`)
     source
         Listing route. "auto" uses the OpenNeuro API and falls back
         to the public S3 bucket (latest snapshot only).
@@ -147,6 +154,7 @@ def download(
     root = Path(out) if out else (
         get_tree_path(path) / "OpenNeuro" / dataset
     )
+    local = resolve_layout(root, layout)
     selection = Selection(
         subs=subs,
         exclude_subs=exclude_subs,
@@ -160,7 +168,7 @@ def download(
     )
     harvest(
         snapshot.files,
-        root,
+        local,
         selection,
         where=where,
         trim=trim,
@@ -176,7 +184,7 @@ def download(
         },
     )
     if not dry_run:
-        print(f"BIDS root: {root}")
+        print(f"BIDS root: {local.raw}")
 
 
 @openneuro.command(name="info")

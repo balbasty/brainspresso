@@ -5,6 +5,8 @@ from humanize import naturalsize
 from warnings import filterwarnings
 from urllib3.exceptions import InsecureRequestWarning
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
@@ -51,6 +53,7 @@ def download(
     token: str | None = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = 1,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
     level: str = "info",
 ):
@@ -77,6 +80,11 @@ def download(
         Packet size to download, in bytes
     jobs
         Number of parallel downloaders
+    layout
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log
         Path to log file
 
@@ -84,7 +92,9 @@ def download(
     setup_filelog(log, level=level)
     path = Path(get_tree_path(path))
     keys = set(keys or KEYS)
-    src = path / 'GSP' / 'sourcedata'
+    dataset = resolve_layout(path / 'GSP', layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": "GSP"})
     auth = {Dataverse.TOKEN_HEADER: get_credentials(token)}
 
     def downloaders():

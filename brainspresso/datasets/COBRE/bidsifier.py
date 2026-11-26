@@ -4,6 +4,8 @@ from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Literal, Iterable, Set
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.utils.io import copy_from_buffer
 from brainspresso.utils.io import write_tsv
 from brainspresso.utils.tabular import bidsify_tab
@@ -27,13 +29,15 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Set[KeyChoice] = set(KeyChoice.__args__),
         subs: Iterable[int] = tuple(),
         exclude_subs: Iterable[int] = tuple(),
         json: Literal["yes", "no", "only"] | bool = True,
         ifexists: IfExists.Choice = "skip"
     ):
-        self.root = root
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys = keys
         self.subs = subs
         self.exclude_subs = exclude_subs
@@ -45,8 +49,8 @@ class Bidsifier:
         # Printer
         self.out = bidsify_tab()
         # Folder
-        self.src = self.root / 'sourcedata'
-        self.raw = self.root / 'rawdata'
+        self.src = self.layout.source
+        self.raw = self.layout.raw
         # Track errors
         self.nb_errors = 0
         self.nb_skipped = 0
@@ -59,6 +63,7 @@ class Bidsifier:
         self.init()
         with self.out as self.out:
             self._run()
+        finish_roast(self.layout, keys=self.keys)
 
     def _run(self):
         """Must be run from inside the `out` context."""
@@ -101,25 +106,25 @@ class Bidsifier:
             'README':
                 CopyBytes(
                     self.TPLDIR / 'README',
-                    self.root / 'README',
+                    self.raw / 'README',
                     **opt
                 ),
             'dataset_description.json':
                 CopyJSON(
                     self.TPLDIR / 'dataset_description.json',
-                    self.root / 'dataset_description.json',
+                    self.raw / 'dataset_description.json',
                     **opt
                 ),
             'participants.json':
                 CopyJSON(
                     self.TPLDIR / 'participants.json',
-                    self.root / 'participants.json',
+                    self.raw / 'participants.json',
                     **opt
                 ),
             'participants.tsv':
                 WrapAction(
                     self.src / 'COBRE_phenotypic_data.csv',
-                    self.root / 'participants.tsv',
+                    self.raw / 'participants.tsv',
                     self.make_participants,
                     mode="t", input="path",
                     **opt

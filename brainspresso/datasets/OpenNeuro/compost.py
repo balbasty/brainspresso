@@ -3,6 +3,7 @@ from pathlib import Path
 
 from cyclopts import Parameter
 
+from brainspresso.bids.layout import LayoutChoice
 from brainspresso.datasets.compost import Many, make_doc, run_compost
 from brainspresso.datasets.compost import user_errors
 from brainspresso.datasets.OpenNeuro.command import openneuro
@@ -28,6 +29,7 @@ def compost(
     exclude: Annotated[Iterable[str], Many] = (),
     where: Annotated[Iterable[str], Many] = (),
     derivatives: bool = False,
+    layout: LayoutChoice | None = None,
     trim: bool = True,
     force: bool = False,
     yes: Annotated[bool, Parameter(name=["--yes", "-y"])] = False,
@@ -46,7 +48,7 @@ def compost(
         datatypes=datatypes, suffixes=suffixes, tasks=tasks,
         include=include, exclude=exclude, where=where,
         derivatives=derivatives, trim=trim, force=force, yes=yes,
-        dry_run=dry_run, list=list, log=log, level=level,
+        dry_run=dry_run, list=list, log=log, level=level, layout=layout,
     )
 
 
@@ -57,7 +59,7 @@ path
     Path to root of all datasets. An `OpenNeuro/<dataset>` folder
     must exist. Ignored if `--out` is used.
 out
-    BIDS root of the dataset (overrides `path`)""").replace(
+    Dataset folder (overrides `path`)""").replace(
     "bx openneuro compost", "bx openneuro compost ds000224"
 )
 openneuro.command(compost, name="compost")

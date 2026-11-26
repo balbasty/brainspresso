@@ -7,6 +7,8 @@ from warnings import filterwarnings
 from urllib3.exceptions import InsecureRequestWarning
 from cyclopts import Parameter
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
@@ -211,6 +213,7 @@ def download(
     password: Annotated[str | None, GroupNITRC] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = None,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
     level: str = "info",
 ):
@@ -253,6 +256,11 @@ def download(
         Packet size to download, in bytes
     jobs
         Number of parallel downloads (default: 4 with s3, 1 with nitrc)
+    layout
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log
         Path to log file
 
@@ -261,7 +269,9 @@ def download(
     path = Path(get_tree_path(path))
     keys = {_value(k) for k in _aslist(keys)} or set(KEYS)
     sites = {_value(s) for s in _aslist(sites)} or set(SITES)
-    src = path / 'CoRR' / 'sourcedata'
+    dataset = resolve_layout(path / 'CoRR', layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": "CoRR"})
 
     if source == "s3":
         return download_s3(

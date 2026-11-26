@@ -30,6 +30,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Literal, Iterable
 
+from brainspresso.bids.layout import LayoutChoice
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
 from brainspresso.actions.action import IfExists
@@ -63,6 +64,7 @@ def bidsify(
     json: Literal["yes", "no", "only"] | bool = "yes",
     if_exists: IfExists.Choice = "skip",
     source: SourceChoice = SourceChoice.s3,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
     level: str = "info",
 ):
@@ -111,6 +113,10 @@ def bidsify(
         Source the data was harvested from. "s3" and "nitrc" share the
         same layout: both NITRC tarballs and `sourcedata/RawData/` (from
         s3://fcp-indi) are converted.
+    layout : {"study", "flat"}
+        Layout of the dataset: "study" (raw dataset in `rawbids/`)
+        or "flat" (raw dataset at the root). Default: the layout of
+        an existing dataset, else "study".
     log : str
         Path to log file
     level
@@ -158,5 +164,6 @@ def bidsify(
         subs=subs,
         exclude_subs=exclude_subs,
         json=json,
+        layout=layout,
         ifexists=if_exists,
     ).run()

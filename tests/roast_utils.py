@@ -2,9 +2,10 @@
 Shared helpers for roast characterization tests.
 
 All assertions about the raw BIDS dataset go through `raw_tree` /
-`raw_file`, so that only this module changes if the raw dataset moves
-from `<DS>/rawdata/` (+ top-level files at `<DS>/`) to `<DS>/rawbids/`
-or to `<DS>/` itself.
+`raw_file`, which resolve the raw dataset with `Layout.detect`
+(`<DS>/rawbids/` for a study, `<DS>/` for a flat dataset), so that the
+same assertions hold in both layouts. Fixtures parametrized with
+`LAYOUTS` run each test under both.
 """
 import gzip
 import io
@@ -14,21 +15,39 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-_RAW_DIRS = ("rawdata", "rawbids")
-_EXCLUDED = ("derivatives", "sourcedata")
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import STATE_DIR, Layout, make_layout
+
+LAYOUTS = ("study", "flat")
+_EXCLUDED = ("derivatives", "sourcedata", STATE_DIR)
+
+
+def init_layout(ds_root: Path, kind: str) -> Layout:
+    """Record a layout in the manifest, as `harvest --layout` does"""
+    layout = make_layout(kind, ds_root)
+    record_run(layout, "harvest", {"test": True})
+    return layout
+
+
+def layout_of(ds_root: Path) -> Layout:
+    """Layout of a roasted dataset (it must be detectable)"""
+    layout = Layout.detect(ds_root)
+    assert layout is not None, f"no layout detected in {ds_root}"
+    return layout
 
 
 def raw_tree(ds_root: Path) -> set[str]:
     """Files of the raw BIDS dataset, relative to the raw dataset root."""
-    ds_root = Path(ds_root)
+    layout = Layout.detect(ds_root)
+    if layout is None or not layout.raw.is_dir():
+        return set()
+    raw = layout.raw
     out = set()
-    for p in ds_root.rglob("*"):
+    for p in raw.rglob("*"):
         if not p.is_file():
             continue
-        parts = p.relative_to(ds_root).parts
-        if parts[0] in _RAW_DIRS:
-            parts = parts[1:]
-        if not parts or parts[0] in _EXCLUDED or parts[0] in _RAW_DIRS:
+        parts = p.relative_to(raw).parts
+        if parts[0] in _EXCLUDED:
             continue
         out.add("/".join(parts))
     return out
@@ -36,11 +55,7 @@ def raw_tree(ds_root: Path) -> set[str]:
 
 def raw_file(ds_root: Path, rel: str) -> Path:
     """Path to a file of the raw BIDS dataset, given its relative name."""
-    ds_root = Path(ds_root)
-    for base in (ds_root / d for d in _RAW_DIRS):
-        if (base / rel).exists():
-            return base / rel
-    return ds_root / rel
+    return layout_of(ds_root).raw / rel
 
 
 def nii_bytes(shape=(2, 2, 2), gz=True, value=1) -> bytes:

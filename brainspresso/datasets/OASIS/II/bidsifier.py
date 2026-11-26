@@ -6,6 +6,8 @@ from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Literal, Iterable, Iterator
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.utils.io import write_tsv
 from brainspresso.utils.io import write_from_buffer
 from brainspresso.utils.io import nibabel_convert
@@ -46,6 +48,7 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Iterable[KeyChoice] = set(KeyChoice.__args__),
         parts: Iterable[int] = (1, 2),
         subs: Iterable[int] = tuple(),
@@ -53,7 +56,8 @@ class Bidsifier:
         json: Literal["yes", "no", "only"] | bool = True,
         ifexists: IfExists.Choice = "skip",
     ):
-        self.root: Path = Path(root)
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys: set[KeyChoice] = set(keys)
         self.parts: set[int] = set(parts)
         self.subs: set[int] = set(subs)
@@ -69,8 +73,8 @@ class Bidsifier:
         # Printer
         self.out = bidsify_tab()
         # Folder
-        self.src = self.root / 'sourcedata'
-        self.raw = self.root / 'rawdata'
+        self.src = self.layout.source
+        self.raw = self.layout.raw
         # Track errors
         self.nb_errors = 0
         self.nb_skipped = 0
@@ -83,6 +87,7 @@ class Bidsifier:
         self.init()
         with self.out as self.out:
             self._run()
+        finish_roast(self.layout, keys=self.keys)
 
     def _run(self):
         """Must be run from inside the `out` context."""
@@ -153,29 +158,29 @@ class Bidsifier:
             'README':
                 CopyBytes(
                     self.TPLDIR / 'README',
-                    self.root / 'README',
+                    self.raw / 'README',
                 ),
             'dataset_description.json':
                 CopyJSON(
                     self.TPLDIR / 'dataset_description.json',
-                    self.root / 'dataset_description.json',
+                    self.raw / 'dataset_description.json',
                 ),
             'participants.json':
                 CopyJSON(
                     self.TPLDIR / 'participants.json',
-                    self.root / 'participants.json',
+                    self.raw / 'participants.json',
                 ),
             'participants.tsv':
                 WrapAction(
                     self.src / 'oasis_longitudinal_demographics.xlsx',
-                    self.root / 'participants.tsv',
+                    self.raw / 'participants.tsv',
                     self.make_participants,
                     mode="t", input="path",
                 ),
             'sessions.json':
                 CopyJSON(
                     self.TPLDIR / 'sessions.json',
-                    self.root / 'sessions.json',
+                    self.raw / 'sessions.json',
                 ),
         }
 

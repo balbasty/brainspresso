@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 
 from brainspresso.datasets.COBRE.bidsifier import Bidsifier
-from roast_utils import make_tar, nii_bytes, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
+)
 
 CSV = (
     ",Current Age,Gender,Handedness,Subject Type,Diagnosis\n"
@@ -16,9 +18,10 @@ CSV = (
 )
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "COBRE"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     src.mkdir(parents=True)
     (src / "COBRE_phenotypic_data.csv").write_text(CSV)

@@ -6,6 +6,8 @@ from typing import Annotated, Literal, Iterable
 import aiohttp
 from cyclopts import Parameter
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.ui import human2bytes
@@ -62,6 +64,7 @@ def download(
     password: Annotated[str | None, GroupLogin] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = None,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
 ) -> None:
     """
@@ -97,6 +100,11 @@ def download(
         Packet size to download, in bytes
     jobs : int
         Number of parallel downloads
+    layout : {"study", "flat"}
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log : str
         Path to log file
     """
@@ -105,7 +113,9 @@ def download(
         keys = [keys]
     keys = list({key: None for key in keys or URLS}.keys())
     root: Path = Path(get_tree_path(path)) / 'IXI'
-    src = root / 'sourcedata'
+    dataset = resolve_layout(root, layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": dataset.root.name})
     src.mkdir(parents=True, exist_ok=True)
     chunk_size = human2bytes(packet)
 

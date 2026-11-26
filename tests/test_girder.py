@@ -17,11 +17,14 @@ import numpy as np
 import pytest
 from aiohttp import web
 
+from brainspresso.bids.layout import Layout
 from brainspresso.download import DownloadManager
 from brainspresso.sources import girder as girder_mod
 from brainspresso.sources.girder import Girder, parse_girder_url
 
 nrrd = pytest.importorskip("nrrd")
+
+LAYOUTS = ("study", "flat")
 
 _ids = (f"{i:024x}" for i in itertools.count(1))
 
@@ -316,36 +319,40 @@ def test_uncwisc_harvest_keys(uncwisc, tmp_path):
     }
 
 
-def test_uncwisc_roast(uncwisc, tmp_path):
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_uncwisc_roast(uncwisc, tmp_path, layout):
     import nibabel as nib
     from brainspresso.datasets.UNCWisconsin.bidsifier import Bidsifier
-    uncwisc.download(tmp_path)          # raw + meta, all subjects
+    uncwisc.download(tmp_path, layout=layout)   # raw + meta, all subjects
     root = tmp_path / "UNC-Wisconsin"
-    Bidsifier(root).run()
-    out = files(root)
+    Bidsifier(root).run()                       # layout from the manifest
+    found = Layout.detect(root)
+    assert found.kind == layout
+    raw = found.raw
+    out = files(raw)
     for sub, ses in [("001", "12months"), ("001", "16months"),
                      ("002", "12months")]:
-        base = f"rawdata/sub-{sub}/ses-{ses}"
+        base = f"sub-{sub}/ses-{ses}"
         assert f"{base}/anat/sub-{sub}_ses-{ses}_T1w.nii.gz" in out
         assert f"{base}/anat/sub-{sub}_ses-{ses}_T2w.nii.gz" in out
-    dwi = "rawdata/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi"
+    dwi = "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi"
     assert {f"{dwi}.nii.gz", f"{dwi}.bval", f"{dwi}.bvec"} <= out
     assert not any("sub-002/ses-12months/dwi" in p for p in out)
-    assert nib.load(root / f"{dwi}.nii.gz").shape == (4, 4, 2, 3)
-    assert (root / f"{dwi}.bval").read_text().split() == ["0", "1000", "1000"]
+    assert nib.load(raw / f"{dwi}.nii.gz").shape == (4, 4, 2, 3)
+    assert (raw / f"{dwi}.bval").read_text().split() == ["0", "1000", "1000"]
     t1 = nib.load(
-        root / "rawdata/sub-002/ses-12months/anat/"
+        raw / "sub-002/ses-12months/anat/"
         "sub-002_ses-12months_T1w.nii.gz"
     )
     assert nib.aff2axcodes(t1.affine) == ("L", "P", "S")
 
-    assert (root / "participants.tsv").read_text().splitlines() == [
+    assert (raw / "participants.tsv").read_text().splitlines() == [
         "participant_id\tspecies\tsex\tbirth_date",
         "sub-001\tMacaca mulatta\tF\t2010-06-06",
         "sub-002\tMacaca mulatta\tM\t2010-07-01",
     ]
     assert (
-        root / "rawdata/sub-001/sub-001_sessions.tsv"
+        raw / "sub-001/sub-001_sessions.tsv"
     ).read_text().splitlines() == [
         "session_id\tacq_time\tage\tweight",
         "ses-12months\t2011-06-01\t12\t1.9",
@@ -354,6 +361,12 @@ def test_uncwisc_roast(uncwisc, tmp_path):
     for name in ("README", "dataset_description.json",
                  "participants.json", "sessions.json"):
         assert name in out
+    assert json.loads(
+        (raw / "dataset_description.json").read_text()
+    )["DatasetType"] == "raw"
+    if layout == "study":
+        study = json.loads((root / "dataset_description.json").read_text())
+        assert study["DatasetType"] == "study"
 
 
 def test_download_manager_integration(server, tmp_path):
@@ -382,14 +395,17 @@ def _folder_path(server, fid):
     return "/".join(reversed(parts))
 
 
-def test_uncwisc_roast_derivatives(uncwisc, tmp_path):
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_uncwisc_roast_derivatives(uncwisc, tmp_path, layout):
     from brainspresso.datasets.UNCWisconsin.bidsifier import (
         Bidsifier, SPACE, _age_months,
     )
-    uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"])
+    uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"],
+                     layout=layout)
     root = tmp_path / "UNC-Wisconsin"
     Bidsifier(root).run()
-    drv = root / "derivatives" / "unc-wisconsin"
+    found = Layout.detect(root)
+    drv = found.derivative("unc-wisconsin").root
     out = files(drv)
     assert {"README", "dataset_description.json"} <= out
     for ses in ("12months", "16months"):
@@ -409,9 +425,15 @@ def test_uncwisc_roast_derivatives(uncwisc, tmp_path):
         assert "SpatialReference" in sidecar
     assert ".bidsignore" in out
     # raw data was not harvested
-    assert not (root / "rawdata" / "sub-001" / "ses-12months").exists()
+    assert not (found.raw / "sub-001" / "ses-12months").exists()
     description = json.loads((drv / "dataset_description.json").read_text())
     assert description["DatasetType"] == "derivative"
+    # the local raw dataset comes first, then the hosted one
+    url = {"study": "../../rawbids/", "flat": "../../"}[layout]
+    assert description["SourceDatasets"][0] == {"URL": url}
+    assert (drv / url / "participants.tsv").exists()
+    assert any("kitware" in s.get("URL", "")
+               for s in description["SourceDatasets"][1:])
 
     assert _age_months("12months") == "12"
     assert _age_months("02weeks") == "0.46"
@@ -520,50 +542,60 @@ def test_bullitt_harvest_keys(bullitt, tmp_path):
     }
 
 
-def test_bullitt_roast(bullitt, tmp_path):
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_bullitt_roast(bullitt, tmp_path, layout):
     import nibabel as nib
     from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
-    bullitt.download(tmp_path, exclude_subs=["003"])
+    bullitt.download(tmp_path, exclude_subs=["003"], layout=layout)
     root = tmp_path / "Bullitt"
-    Bidsifier(root).run()
-    out = files(root)
+    Bidsifier(root, layout=layout).run()
+    found = Layout.detect(root)
+    raw = found.raw
+    out = {p for p in files(raw) if not p.startswith((
+        "sourcedata/", "derivatives/", ".brainspresso/"))}
 
     for name in ("README", "dataset_description.json",
                  "participants.json", "participants.tsv"):
         assert name in out
-    anat = "rawdata/sub-001/anat/sub-001"
+    anat = "sub-001/anat/sub-001"
     for suffix in ("acq-flash_T1w", "acq-mprage_T1w", "T2w", "angio"):
         assert {f"{anat}_{suffix}.nii.gz", f"{anat}_{suffix}.json"} <= out
     # "T!-Flash" typo on the server; no MPRAGE for this subject
-    assert "rawdata/sub-002/anat/sub-002_acq-flash_T1w.nii.gz" in out
+    assert "sub-002/anat/sub-002_acq-flash_T1w.nii.gz" in out
     assert not any("sub-002_acq-mprage" in p for p in out)
     # DTI is not converted
-    assert not any("/dwi/" in p for p in out if p.startswith("rawdata"))
+    assert not any("/dwi/" in p for p in out)
 
-    t2 = nib.load(root / f"{anat}_T2w.nii.gz")
+    t2 = nib.load(raw / f"{anat}_T2w.nii.gz")
     assert t2.shape == (4, 3, 2)
     assert np.all(np.asarray(t2.dataobj) == 2)
     assert nib.aff2axcodes(t2.affine) == ("L", "P", "S")
-    sidecar = json.loads((root / f"{anat}_T2w.json").read_text())
+    sidecar = json.loads((raw / f"{anat}_T2w.json").read_text())
     assert sidecar["MagneticFieldStrength"] == 3
 
-    drv = "derivatives/bullitt"
+    drv = found.derivative("bullitt")
+    assert drv.root == root / "derivatives" / "bullitt"
+    out = files(drv.root)
     for name in ("README", "dataset_description.json", ".bidsignore"):
-        assert f"{drv}/{name}" in out
-    brain = f"{drv}/sub-001/anat/sub-001_acq-flash_desc-brain_T1w"
+        assert name in out
+    assert drv.bidsignore.exists()
+    brain = "sub-001/anat/sub-001_acq-flash_desc-brain_T1w"
     assert {f"{brain}.nii.gz", f"{brain}.json"} <= out
-    assert json.loads((root / f"{brain}.json").read_text()) == {
+    assert json.loads((drv.root / f"{brain}.json").read_text()) == {
         "SkullStripped": True
     }
-    assert f"{drv}/sub-002/anat/sub-002_desc-vessels_tubes.tre" in out
+    assert "sub-002/anat/sub-002_desc-vessels_tubes.tre" in out
 
 
-def test_bullitt_roast_keys(bullitt, tmp_path):
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_bullitt_roast_keys(bullitt, tmp_path, layout):
     from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
-    bullitt.download(tmp_path, subs=["001"])
+    bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     Bidsifier(root, keys=["T2w"], json="no").run()
-    assert files(root / "rawdata") == {
+    raw = Layout.detect(root).raw
+    assert {p for p in files(raw) if not p.startswith((
+        "sourcedata/", ".brainspresso/"))} == {
         "sub-001/anat/sub-001_T2w.nii.gz"
     }
     assert not (root / "derivatives").exists()
@@ -575,12 +607,14 @@ def test_compost_commands():
     assert "compost" in app["bullitt"]._commands
 
 
-def test_bullitt_compost_sourcedata(bullitt, tmp_path):
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_bullitt_compost_sourcedata(bullitt, tmp_path, layout):
     from brainspresso.bids.compost import compost
     from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
-    bullitt.download(tmp_path, subs=["001"])
+    bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     Bidsifier(root).run()
     compost(root, yes=True)
     assert not (root / "sourcedata").exists()
-    assert (root / "rawdata/sub-001/anat/sub-001_T2w.nii.gz").exists()
+    raw = Layout.detect(root).raw
+    assert (raw / "sub-001/anat/sub-001_T2w.nii.gz").exists()

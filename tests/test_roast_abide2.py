@@ -5,7 +5,9 @@ import nibabel as nib
 import pytest
 
 from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
-from roast_utils import make_tar, nii_bytes, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
+)
 
 PHEADER = Bidsifier.ParticipantsMapper.header
 SRS = list(Bidsifier.SRSMapper.header.values())
@@ -29,9 +31,10 @@ def write_csv(path, cols, rows):
             {c: c for c in cols}, *rows]) + "\n")
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "ABIDE-2"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     src.mkdir(parents=True)
     # Real column is CURRENT_MED_STATUS; the mapper expects a typo'd
@@ -95,7 +98,8 @@ def test_json_only_and_no(root, tar_files):
     Bidsifier(root, keys={"T1w", "rest", "dti"}, json="only").run()
     assert raw_tree(root) == {
         p for p in scans(29001) | scans(29002) if p.endswith(".json")}
-    (root / "rawdata").rename(root / "old")
+    for rel in raw_tree(root):          # start from an empty raw dataset
+        raw_file(root, rel).unlink()
     Bidsifier(root, keys={"T1w", "rest", "dti"}, json="no").run()
     assert raw_only(root) == {
         p for p in scans(29001) | scans(29002) if not p.endswith(".json")}

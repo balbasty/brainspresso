@@ -5,6 +5,8 @@ from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Iterable, Iterator, Literal
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.utils.tabular import bidsify_tab
 from brainspresso.utils.tabular import Status
 from brainspresso.utils.io import read_json
@@ -42,6 +44,7 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Iterable[str] = allleaves,
         exclude_keys: Iterable[str] = set(),
         subs: Iterable[int] = tuple(),
@@ -49,7 +52,8 @@ class Bidsifier:
         json: Literal["yes", "no", "only"] | bool = True,
         ifexists: IfExists.Choice = "skip",
     ):
-        self.root: Path = Path(root)
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys: set[str] = set(keys)
         self.exclude_keys: set[str] = set(*map(lower_keys, exclude_keys))
         self.subs: set[int] = set(subs)
@@ -65,11 +69,11 @@ class Bidsifier:
         # Printer
         self.out = bidsify_tab()
         # Folder
-        self.src = self.root / 'sourcedata'
-        self.raw = self.root / 'rawdata'
-        self.pheno = self.raw / 'phenotype'
-        self.drv = self.root / 'derivatives'
-        self.dfs = self.drv / 'oasis-freesurfer'
+        self.src = self.layout.source
+        self.raw = self.layout.raw
+        self.pheno = self.layout.phenotype
+        self.fsdrv = self.layout.derivative('oasis-freesurfer')
+        self.dfs = self.fsdrv.root
         # Track errors
         self.nb_errors = 0
         self.nb_skipped = 0
@@ -82,6 +86,7 @@ class Bidsifier:
         self.init()
         with self.out as self.out:
             self._run()
+        finish_roast(self.layout, keys=self.keys)
 
     def _run(self):
         """Must be run from inside the `out` context."""
@@ -148,14 +153,9 @@ class Bidsifier:
                 'README':
                     CopyBytes(
                         self.TPLDIR / 'README',
-                        self.root / 'README',
+                        self.raw / 'README',
                     ),
                 'dataset_description.json':
-                    CopyJSON(
-                        self.TPLDIR / 'dataset_description.json',
-                        self.root / 'dataset_description.json',
-                    ),
-                'rawdata/dataset_description.json':
                     CopyJSON(
                         self.TPLDIR / 'dataset_description.json',
                         self.raw / 'dataset_description.json',
@@ -163,12 +163,12 @@ class Bidsifier:
                 'participants.json':
                     CopyJSON(
                         self.TPLDIR / 'participants.json',
-                        self.root / 'participants.json',
+                        self.raw / 'participants.json',
                     ),
                 'sessions.json':
                     CopyJSON(
                         self.TPLDIR / 'sessions.json',
-                        self.root / 'sessions.json',
+                        self.raw / 'sessions.json',
                     ),
                 'participants.tsv':
                     self.make_participants(),
@@ -304,7 +304,7 @@ class Bidsifier:
     def _action_update_session(self, sub: int, ses: str) -> Action:
         delay = int(ses[1:])  # time after entry, in days
         session_file = self.raw / f'sub-{sub:04d}' / 'sessions.tsv'
-        participants_file = self.root / 'participants.tsv'
+        participants_file = self.raw / 'participants.tsv'
         cdr_file = self.pheno / 'UDS_b4_cdr.tsv'
 
         def action(dst: Path):
@@ -419,7 +419,7 @@ class Bidsifier:
                     if 'fs-all' not in self.keys:
                         if not str(tarpath).endswith(fs.bidsifiable_outputs):
                             continue
-                    dst = self.dfs/'sourcedata'/f'sub-{id:04d}'/f'ses-{ses}'
+                    dst = self.fsdrv.source/f'sub-{id:04d}'/f'ses-{ses}'
                     dst = dst.joinpath(*tarpath.parts[6:])
                     yield WriteBytes(
                         tar.extractfile(member),
@@ -428,7 +428,7 @@ class Bidsifier:
                     )
 
             # Bidsify under "derivatives/oasis-freesurfer/sub-{04d}/ses-{}"
-            src = self.dfs / 'sourcedata' / f'sub-{id:04d}' / f'ses-{ses}'
+            src = self.fsdrv.source / f'sub-{id:04d}' / f'ses-{ses}'
             dst = self.dfs / f'sub-{id:04d}' / f'ses-{ses}'
             srcbase = f'bids:raw:sub-{id:04d}/anat/sub-{id:04d}/ses-{ses}/'
             sourcefiles = [srcbase + 'sub-{id:04d}_ses-{ses}_T1w.nii.gz']
@@ -804,7 +804,7 @@ class Bidsifier:
     }
 
     def make_participants(self, tgt=None):
-        tgt = tgt or self.root
+        tgt = tgt or self.raw
         input_path = self.src / 'OASIS3_data_files' / 'demo.tar.gz'
         output_path = tgt / 'participants.tsv'
 

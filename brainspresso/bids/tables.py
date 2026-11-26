@@ -97,21 +97,19 @@ def trim_tables(
     Parameters
     ----------
     root : Path
-        BIDS root
+        Dataset folder (`layout.root`) or BIDS root
     originals : dict[str, Path]
         Mapping from table path (relative to root) to the untouched
         downloaded copy (which may be the table itself).
-    subjects : Path, default=root
+    subjects : Path, default=folder of the participants table
         Folder that contains the `sub-*` folders listed in
-        `participants.tsv` (e.g. `rawdata/`, if the table lives
-        next to it).
+        `participants.tsv`.
 
     Returns
     -------
     written : list[str]
         Relative paths of the tables written.
     """
-    subjects = Path(subjects if subjects is not None else root)
     written = []
     for relpath, original in sorted(originals.items()):
         if not original.exists():
@@ -120,8 +118,9 @@ def trim_tables(
         name = Path(relpath).name
         folder = (root / relpath).parent
         if name == "participants.tsv":
+            base = Path(subjects) if subjects is not None else folder
             rows = [r for r in rows
-                    if (subjects / r.get("participant_id", "")).is_dir()]
+                    if (base / r.get("participant_id", "")).is_dir()]
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
                     if (folder / r.get("session_id", "")).is_dir()]

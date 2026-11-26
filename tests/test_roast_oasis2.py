@@ -5,7 +5,9 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from roast_utils import analyze_pair, make_tar, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, analyze_pair, init_layout, make_tar, raw_file, raw_tree, read_tsv,
+)
 
 openpyxl = pytest.importorskip("openpyxl")
 from brainspresso.datasets.OASIS.II.bidsifier import Bidsifier  # noqa: E402
@@ -22,9 +24,10 @@ ROWS = [
 ]
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "OASIS-2"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     src.mkdir(parents=True)
     wb = openpyxl.Workbook()

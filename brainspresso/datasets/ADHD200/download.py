@@ -7,6 +7,8 @@ from logging import getLogger
 from humanize import naturalsize
 
 # internals
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.io import write_json
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
@@ -40,6 +42,7 @@ def download(
     if_exists: IfExists.Choice = "skip",
     bidsify: bool = True,
     packet: int | str = naturalsize(CHUNK_SIZE),
+    layout: LayoutChoice | None = None,
     log: str | None = None,
     jobs: int | None = None
 ):
@@ -83,10 +86,15 @@ def download(
     if_exists : {"error", "skip", "overwrite", "different", "refresh"}
         Behaviour if a file already exists
     bidsify : bool
-        If True, download and organize data directly in `rawdata`.
+        If True, download and organize data directly in the raw BIDS
+        dataset (`rawbids/`, or the dataset folder with `--layout flat`).
         Otherwise, download data into `sourcedata`.
     packet : int
         Packet size to download, in bytes
+    layout : {"study", "flat"}
+        Layout of the dataset: "study" (raw dataset in `rawbids/`)
+        or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log : str
         Path to log file
     jobs : int
@@ -97,8 +105,10 @@ def download(
     packet = human2bytes(packet)
     path = Path(get_tree_path(path))
     keys = set(keys)
-    src = path / 'ADHD-200' / 'sourcedata'
-    raw = path / 'ADHD-200' / 'rawdata'
+    dataset = resolve_layout(path / 'ADHD-200', layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": "ADHD-200"})
+    raw = dataset.raw
     out = raw if bidsify else src
 
     # Format subjects

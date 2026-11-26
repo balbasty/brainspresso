@@ -4,6 +4,8 @@ from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Iterable, Iterator, Literal
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.utils.tabular import bidsify_tab
 from brainspresso.utils.tabular import Status
 from brainspresso.utils.io import write_tsv
@@ -42,6 +44,7 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Iterable[str] = {"all"},
         exclude_keys: Iterable[str] = set(),
         subs: Iterable[int] = tuple(),
@@ -49,7 +52,8 @@ class Bidsifier:
         json: Literal["yes", "no", "only"] | bool = True,
         ifexists: IfExists.Choice = "skip",
     ):
-        self.root: Path = Path(root)
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys: set[str] = set(keys)
         self.exclude_keys: set[str] = set(
             *map(lambda x: lower_keys(x, allkeys), exclude_keys)
@@ -67,9 +71,9 @@ class Bidsifier:
         # Printer
         self.out = bidsify_tab()
         # Folder
-        self.src = self.root / 'sourcedata'
-        self.raw = self.root / 'rawdata'
-        self.pheno = self.root / 'phenotype'
+        self.src = self.layout.source
+        self.raw = self.layout.raw
+        self.pheno = self.layout.phenotype
         # Track errors
         self.nb_errors = 0
         self.nb_skipped = 0
@@ -82,6 +86,7 @@ class Bidsifier:
         self.init()
         with self.out as self.out:
             self._run()
+        finish_roast(self.layout, keys=self.keys)
 
     def _run(self):
         """Must be run from inside the `out` context."""
@@ -123,17 +128,17 @@ class Bidsifier:
                 'README':
                     CopyBytes(
                         self.TPLDIR / 'README',
-                        self.root / 'README',
+                        self.raw / 'README',
                     ),
                 'dataset_description.json':
                     CopyJSON(
                         self.TPLDIR / 'dataset_description.json',
-                        self.root / 'dataset_description.json',
+                        self.raw / 'dataset_description.json',
                     ),
                 'participants.json':
                     CopyJSON(
                         self.TPLDIR / 'participants.json',
-                        self.root / 'participants.json',
+                        self.raw / 'participants.json',
                     ),
                 'participants.tsv':
                     self.make_participants(),
@@ -361,7 +366,7 @@ class Bidsifier:
 
     def make_participants(self):
         input_path = self.src / 'Phenotypic_V1_0b.csv'
-        output_path = self.root / 'participants.tsv'
+        output_path = self.raw / 'participants.tsv'
 
         def action_tsv(opath):
 
@@ -945,9 +950,9 @@ class Bidsifier:
     def _make_phenotype(self, base):
         mapper: TableMapper = self.PHENOTYPES[base]
         input_paths = list(self.src.glob('*.csv'))
-        output_path = self.root / 'phenotype' / f'{base}.tsv'
+        output_path = self.layout.phenotype / f'{base}.tsv'
         input_json_path = self.TPLDIR / 'phenotype' / f'{base}.json'
-        output_json_path = self.root / 'phenotype' / f'{base}.json'
+        output_json_path = self.layout.phenotype / f'{base}.json'
 
         def action_tsv(opath):
 

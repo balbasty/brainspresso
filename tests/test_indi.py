@@ -15,6 +15,7 @@ from xml.sax.saxutils import escape
 import pytest
 from aiohttp import web
 
+from brainspresso.bids.layout import Layout, SitesLayout
 from brainspresso.bids.repair import repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
@@ -202,15 +203,28 @@ def table(path: Path) -> list[list[str]]:
     return [line.split("\t") for line in path.read_text().splitlines()]
 
 
+def raw(root: Path, site: str | None = None) -> Path:
+    """Raw BIDS dataset of a harvested project (or of one of its sites)"""
+    layout = Layout.detect(root)
+    if site is not None:
+        assert isinstance(layout, SitesLayout)
+        layout = layout.children[site]
+    return layout.raw
+
+
 # ----------------------------------------------------------------------
 #   FCON1000
 # ----------------------------------------------------------------------
 
-def test_fcon1000_harvest(tmp_path):
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_fcon1000_harvest(tmp_path, layout):
     bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM", "Atlanta",
-       "--folders", "derivatives")
+       "--folders", "derivatives", "--layout", layout)
     root = tmp_path / "FCON1000"
-    data = {p for p in files(root) if p.startswith("sub-")}
+    assert Layout.detect(root).kind == layout
+    bids = raw(root)
+    assert bids == {"study": root / "rawbids", "flat": root}[layout]
+    data = {p for p in files(bids) if p.startswith("sub-")}
     assert data == {
         # labels prefixed with site codes (sub-00448 exists at both)
         "sub-ICBM00448/anat/sub-ICBM00448_T1w.nii.gz",
@@ -228,31 +242,37 @@ def test_fcon1000_harvest(tmp_path):
         "sub-Atlanta06870/func/sub-Atlanta06870_task-rest_bold.nii.gz",
         "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json",
     }
-    src = root / "sub-ICBM11111/anat/sub-ICBM11111_T1w.nii.gz"
+    src = bids / "sub-ICBM11111/anat/sub-ICBM11111_T1w.nii.gz"
     assert src.read_bytes() == OBJECTS[
         f"{F}/ICBM/sourcedata/sub-11111/anat/sub-11111_T1wnii.gz"
     ]
     # Repetition times from the committed site table and exceptions
     sidecar = json.loads(
-        (root / "sub-ICBM00448/sub-ICBM00448_task-rest_bold.json").read_text()
+        (bids / "sub-ICBM00448/sub-ICBM00448_task-rest_bold.json").read_text()
     )
     assert sidecar == {"TaskName": "rest", "RepetitionTime": 2.0}
     sidecar = json.loads((
-        root / "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json"
+        bids / "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json"
     ).read_text())
     assert sidecar["RepetitionTime"] == 2.02
     sidecar = json.loads((
-        root / "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json"
+        bids / "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json"
     ).read_text())
     assert sidecar["RepetitionTime"] == 2.0
-    # derivatives
+    # derivatives, next to the raw dataset in both layouts
     assert "derivatives/fcon1000/sub-ICBM00448/anat/" \
         "sub-ICBM00448_desc-brain_T1w.nii.gz" in files(root)
     assert "derivatives/fcon1000/desc-brain_T1w.json" in files(root)
+    desc = json.loads(
+        (root / "derivatives/fcon1000/dataset_description.json").read_text()
+    )
+    url = {"study": "../../rawbids/", "flat": "../../"}[layout]
+    assert desc["SourceDatasets"][0] == {"URL": url}
+    assert desc["SourceDatasets"][1]["URL"].startswith("s3://fcp-indi/")
     # site notes
     assert "sourcedata/ICBM/README.txt" not in files(root)   # optional
     # participants (committed table), trimmed to what was downloaded
-    rows = table(root / "participants.tsv")
+    rows = table(bids / "participants.tsv")
     assert rows[0][:6] == ["participant_id", "site", "site_participant_id",
                            "age", "sex", "handedness"]
     assert sorted(r[0] for r in rows[1:]) == [
@@ -260,15 +280,32 @@ def test_fcon1000_harvest(tmp_path):
         "sub-ICBM11111",
     ]
     for name in ("README", "dataset_description.json", "participants.json"):
-        assert name in files(root)
+        assert name in files(bids)
+    assert json.loads(
+        (bids / "dataset_description.json").read_text()
+    )["DatasetType"] == "raw"
+    if layout == "study":
+        assert json.loads(
+            (root / "dataset_description.json").read_text()
+        )["DatasetType"] == "study"
+    # trimmed tables: pristine copy in the state folder
+    assert Layout.detect(root).original(bids / "participants.tsv").exists()
 
 
-def test_fcon1000_layout_sites(tmp_path):
+@pytest.mark.parametrize("site_layout", ["study", "flat"])
+def test_fcon1000_layout_sites(tmp_path, site_layout):
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+       "--sites", "ICBM", "Atlanta", "--folders", "derivatives",
+       "--site-layout", site_layout)
     root = tmp_path / "FCON1000"
+    layout = Layout.detect(root)
+    assert layout.to_manifest() == {
+        "layout": "sites",
+        "children": {"Atlanta": site_layout, "ICBM": site_layout},
+    }
+    icbm = raw(root, "ICBM")
     # one BIDS dataset per site, with the labels of the bucket
-    assert {p for p in files(root / "ICBM") if p.startswith("sub-")} == {
+    assert {p for p in files(icbm) if p.startswith("sub-")} == {
         "sub-00448/anat/sub-00448_T1w.nii.gz",
         "sub-00448/func/sub-00448_task-rest_run-1_bold.nii.gz",
         "sub-00448/func/sub-00448_task-rest_run-2_bold.nii.gz",
@@ -278,7 +315,7 @@ def test_fcon1000_layout_sites(tmp_path):
     assert "derivatives/fcon1000/sub-00448/anat/" \
         "sub-00448_desc-brain_T1w.nii.gz" in files(root / "ICBM")
     # site-level sidecar, and a subject sidecar where the TR differs
-    atlanta = root / "Atlanta"
+    atlanta = raw(root, "Atlanta")
     assert json.loads((atlanta / "task-rest_bold.json").read_text()) == {
         "TaskName": "rest", "RepetitionTime": 2.02,
     }
@@ -294,7 +331,13 @@ def test_fcon1000_layout_sites(tmp_path):
     assert set(columns) == {"age", "sex", "handedness"}
     desc = json.loads((atlanta / "dataset_description.json").read_text())
     assert desc["Name"].endswith(": Atlanta")
-    assert "../README" in (atlanta / "README").read_text()
+    parent = {"study": "../../README", "flat": "../README"}[site_layout]
+    assert parent in (atlanta / "README").read_text()
+    assert (atlanta / parent).exists()
+    # one state folder per site, and one for the parent
+    for site in ("ICBM", "Atlanta"):
+        assert (root / site / ".brainspresso/manifest.json").exists()
+    assert (root / ".brainspresso/manifest.json").exists()
     # parent folder: README and merged table of what was downloaded
     assert {"README", "participants.tsv", "participants.json"} <= {
         p.name for p in root.iterdir() if p.is_file()
@@ -312,10 +355,20 @@ def test_fcon1000_layout_sites_labels(tmp_path):
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
        "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
     root = tmp_path / "FCON1000"
-    assert sorted(p.name for p in root.glob("*/sub-*")) == [
-        "sub-00448", "sub-00448", "sub-11111",
-    ]
-    assert not (root / "Atlanta" / "sub-06870").exists()
+    assert sorted(
+        p.name for site in ("ICBM", "Atlanta")
+        for p in raw(root, site).glob("sub-*")
+    ) == ["sub-00448", "sub-00448", "sub-11111"]
+    assert not (raw(root, "Atlanta") / "sub-06870").exists()
+
+
+def test_fcon1000_layout_conflict(tmp_path, capsys):
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
+       "--subs", "ICBM00448")
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--sites", "ICBM",
+             "--layout", "flat"])
+    assert "conflicts with --layout flat" in capsys.readouterr().err
 
 
 def test_fcon1000_compost(tmp_path):
@@ -324,9 +377,10 @@ def test_fcon1000_compost(tmp_path):
     root = tmp_path / "FCON1000"
     bx("fcon1000", "compost", tmp_path, "--exclude-subs", "ICBM11111",
        "--yes")
-    assert not (root / "sub-ICBM11111").exists()
-    assert (root / "sub-ICBM00448").is_dir()
-    assert [r[0] for r in table(root / "participants.tsv")[1:]] == [
+    bids = raw(root)
+    assert not (bids / "sub-ICBM11111").exists()
+    assert (bids / "sub-ICBM00448").is_dir()
+    assert [r[0] for r in table(bids / "participants.tsv")[1:]] == [
         "sub-ICBM00448"
     ]
 
@@ -337,10 +391,10 @@ def test_fcon1000_compost_layout_sites(tmp_path):
        "--sites", "ICBM", "Atlanta")
     root = tmp_path / "FCON1000"
     bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
-    assert not (root / "ICBM" / "sub-00448").exists()
-    assert not (root / "Atlanta" / "sub-00448").exists()
-    assert (root / "ICBM" / "sub-11111").is_dir()
-    assert (root / "Atlanta" / "sub-06870").is_dir()
+    assert not (raw(root, "ICBM") / "sub-00448").exists()
+    assert not (raw(root, "Atlanta") / "sub-00448").exists()
+    assert (raw(root, "ICBM") / "sub-11111").is_dir()
+    assert (raw(root, "Atlanta") / "sub-06870").is_dir()
 
 
 def test_fcon1000_prunes_listing(tmp_path):
@@ -374,7 +428,7 @@ def test_fcon1000_unknown_site(tmp_path, capsys):
 
 def test_acpi_harvest(tmp_path):
     bx("acpi", "harvest", tmp_path)
-    root = tmp_path / "ACPI"
+    root = raw(tmp_path / "ACPI")
     out = files(root)
     # site-level sidecars are moved to the subjects of the site
     assert "sub-0028631/sub-0028631_T1w.json" in out
@@ -411,14 +465,14 @@ def test_acpi_harvest(tmp_path):
 def test_acpi_layout_sites(tmp_path):
     bx("acpi", "harvest", tmp_path, "--layout", "sites")
     root = tmp_path / "ACPI"
+    du_1 = raw(root, "du_1")
     # site-level sidecars stay at the site level
-    assert (root / "du_1" / "T1w.json").exists()
-    assert not (root / "du_1" / "sub-0028631" / "sub-0028631_T1w.json"
-                ).exists()
-    assert table(root / "du_1" / "participants.tsv")[1][:4] == [
+    assert (du_1 / "T1w.json").exists()
+    assert not (du_1 / "sub-0028631" / "sub-0028631_T1w.json").exists()
+    assert table(du_1 / "participants.tsv")[1][:4] == [
         "sub-0028631", "22", "M", "R",
     ]
-    assert (root / "nyu_1" / "sub-0028160").is_dir()
+    assert (raw(root, "nyu_1") / "sub-0028160").is_dir()
     rows = table(root / "participants.tsv")
     assert rows[0][:2] == ["participant_id", "site"]
 
@@ -429,7 +483,7 @@ def test_acpi_layout_sites(tmp_path):
 
 def test_slim_harvest(tmp_path):
     bx("slim", "harvest", tmp_path)
-    root = tmp_path / "SLIM"
+    root = raw(tmp_path / "SLIM")
     assert table(root / "participants.tsv") == [
         ["participant_id", "sex", "age"],
         ["sub-25629", "F", "18"],
@@ -448,7 +502,7 @@ def test_slim_harvest(tmp_path):
 
 def test_slim_sessions_trimmed(tmp_path):
     bx("slim", "harvest", tmp_path, "--sessions", "1")
-    root = tmp_path / "SLIM"
+    root = raw(tmp_path / "SLIM")
     assert [r[0] for r in table(
         root / "sub-25629/sub-25629_sessions.tsv"
     )] == ["session_id", "ses-1"]

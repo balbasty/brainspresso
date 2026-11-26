@@ -4,6 +4,7 @@ from logging import getLogger
 from humanize import naturalsize
 from cyclopts import Parameter
 
+from brainspresso.bids.layout import LayoutChoice
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.keys import flatten_keys
 from brainspresso.download import IfExists
@@ -65,6 +66,7 @@ def download(
     password: Annotated[str | None, GroupNITRC] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = None,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
 ):
     """
@@ -120,6 +122,11 @@ def download(
         Packet size to download, in bytes
     jobs : int
         Number of parallel downloads (default: 4 with s3, 1 otherwise)
+    layout : {"study", "flat"}
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log : str
         Path to log file
 
@@ -136,6 +143,7 @@ def download(
             if_exists=if_exists,
             packet=packet,
             jobs=jobs,
+            layout=layout,
             log=log,
         )
     jobs = jobs or 1
@@ -149,6 +157,7 @@ def download(
             password=password,
             packet=packet,
             jobs=jobs,
+            layout=layout,
             log=log,
         )
     elif source == "xnat":
@@ -162,5 +171,6 @@ def download(
             password=password,
             packet=packet,
             jobs=jobs,
+            layout=layout,
             log=log,
         )

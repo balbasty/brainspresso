@@ -4,6 +4,8 @@ from typing import Optional, Literal, Iterable, Union
 from humanize import naturalsize
 from urllib.parse import urlparse
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.ui import human2bytes
@@ -47,6 +49,7 @@ def download(
     discs: Iterable[int] = tuple(range(1, 13)),
     if_exists: IfExists.Choice = "skip",
     packet: Union[int, str] = naturalsize(CHUNK_SIZE),
+    layout: LayoutChoice | None = None,
     log: Optional[str] = None,
 ):
     """
@@ -71,6 +74,11 @@ def download(
         Behaviour if a file already exists
     packet : int
         Packet size to download, in bytes
+    layout : {"study", "flat"}
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log : str
         Path to log file
 
@@ -79,7 +87,9 @@ def download(
     path = Path(get_tree_path(path))
     keys = set(keys or URLS.keys())
     discs = set(discs or list(range(1, 13)))
-    src = path / 'OASIS-1' / 'sourcedata'
+    dataset = resolve_layout(path / 'OASIS-1', layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": "OASIS-1"})
     downloaders = []
     for key, URL in URLS.items():
         if key not in keys:

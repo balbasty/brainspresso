@@ -12,16 +12,21 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import os
 import shutil
 from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Iterable
+from urllib.parse import quote, unquote
 
 from humanize import naturalsize
 
 from brainspresso.bids.repair import fix_intended_for
+from brainspresso.bids.layout import (
+    MANIFEST, STATE_DIR, TASKS_DIR, Layout, resolve_layout,
+)
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
 from brainspresso.bids.tables import is_trimmable, query_participants
@@ -31,7 +36,11 @@ from brainspresso.download.session import new_session
 
 lg = getLogger(__name__)
 
-STATE_DIR = ".brainspresso"
+__all__ = [
+    "InlineEntry", "STATE_DIR", "finish_roast", "harvest", "read_manifest",
+    "record_run",
+    "write_manifest", "read_task_states", "write_task_state",
+]
 
 
 @dataclass
@@ -124,7 +133,7 @@ def format_summary(summary: dict) -> str:
 
 def harvest(
     entries: list,
-    root: Path,
+    root: Path | Layout,
     selection: Selection,
     *,
     where: Iterable[str] = (),
@@ -135,6 +144,7 @@ def harvest(
     listing: bool = False,
     provenance: dict | None = None,
     repair: bool = False,
+    layout: str | None = None,
 ) -> list:
     """
     Select and download a subset of a remote BIDS dataset.
@@ -143,8 +153,10 @@ def harvest(
     ----------
     entries : list[RemoteEntry]
         Full listing of the remote dataset (paths relative to its root)
-    root : Path
-        Local BIDS root
+    root : Path | Layout
+        Local dataset folder, or its layout. Entry paths are placed with
+        `layout.resolve` (raw files in `layout.raw`, `sourcedata/` in
+        `layout.source`, `derivatives/<name>/` in derivative datasets).
     selection : Selection
         Filters
     where : list[str]
@@ -168,6 +180,9 @@ def harvest(
     repair : bool
         Repair common defects of the downloaded JSON and TSV files
         (see `bids.repair`), before tables are trimmed.
+    layout : {"study", "flat"}, optional
+        Layout of a new dataset (if `root` is a path). Must match the
+        layout of an existing dataset.
 
     Returns
     -------
@@ -186,20 +201,20 @@ def harvest(
     if dry_run or not selected:
         return selected
 
-    root = Path(root)
-    state = root / STATE_DIR
+    layout = resolve_layout(root, layout)
     originals = {}
+    destinations = {}
     downloaders = []
     nb_inline = 0
     for e in selected:
-        dst = root / PurePosixPath(e.path)
+        dst = destinations[e.path] = layout.resolve(e.path)
+        relpath = dst.relative_to(layout.root).as_posix()
         if trim and is_trimmable(e.path):
-            dst = state / "orig" / PurePosixPath(e.path)
-            originals[e.path] = dst
+            originals[relpath] = dst = layout.original(dst)
         if isinstance(e, InlineEntry):
             # generated tables are always refreshed (they are trimmed)
             nb_inline += write_inline(
-                e, dst, "overwrite" if e.path in originals else if_exists
+                e, dst, "overwrite" if relpath in originals else if_exists
             )
             continue
         downloaders.append(Downloader(
@@ -230,51 +245,232 @@ def harvest(
                  if Path(d.dst).parent.name == "fmap"
                  and str(d.dst).endswith(".json")]
         for path in fmaps:
+            dataset, _ = layout.relative(path)
             if repair:
-                fix_intended_for(path, root, trim=False)
+                fix_intended_for(path, dataset, trim=False)
             if trim:
-                fix_intended_for(path, root, trim=True)
+                fix_intended_for(path, dataset, trim=True)
 
     if trim:
-        written = trim_tables(root, originals)
+        written = trim_tables(layout.root, originals)
         lg.info(f"Trimmed tables: {written}")
 
-    write_manifest(state, selected, selection, where, provenance or {})
+    layout.write_descriptions()
+    write_manifest(layout, selected, selection, where, provenance or {},
+                   destinations)
     return selected
 
 
-def write_manifest(state: Path, selected, selection, where, provenance):
+# ----------------------------------------------------------------------
+#   State: manifest and per-task state
+# ----------------------------------------------------------------------
+#
+# `<state>/manifest.json` (`<state>` is `layout.state`, i.e.
+# `<DS>/.brainspresso/`; each site of a "sites" layout has its own):
+#
+#     {
+#       "schema": 1,
+#       "layout": "study" | "flat" | "sites",
+#       "children": {"<site>": "study" | "flat"},    # "sites" only
+#       "runs": [                                    # stages run, in order
+#         {"stage": "harvest" | "roast" | "compost" | "grind",
+#          "date": "<ISO 8601, UTC>",
+#          ...                                       # stage-specific, e.g.
+#          "source": "openneuro", "dataset": "ds000001", "tag": "1.0.0",
+#          "keys": [...], "filters": {...}, "where": [...], "nb_files": 12}
+#       ],
+#       "files": {                                   # harvested files
+#         "<path relative to layout.root>": {
+#           "url": "...", "size": 123, "digests": {"md5": "..."},
+#           "origin": "direct" | "roasted" | "generated"
+#         }
+#       }
+#     }
+#
+# `origin` says how a file got to its place: downloaded to its final
+# path (`direct`), downloaded to `sourcedata/` then roasted (`roasted`,
+# hybrid placement of hosted-BIDS sources, step 2b-iii), or generated
+# locally (`generated`). Manifests without `schema` (written before the
+# layouts) are read as is; their `files` keys are relative to the raw
+# dataset, which is `layout.root` for a flat layout.
+#
+# `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
+# unit...), so that concurrent jobs never write the same file. The
+# manifest is an index that can be rebuilt from them. Not used by
+# roast/grind yet. Task ids are free-form (e.g. "grind/fs/sub-01/ses-1")
+# and URL-quoted into file names.
+#
+#     {
+#       "schema": 1,
+#       "task": "<task id>",
+#       "stage": "roast" | "grind",
+#       "pipeline": "<name>" | null,              # grind
+#       "unit": {"sub": "01", "ses": "1"},        # entities of the unit
+#       "status": "pending" | "running" | "done" | "failed" | "skipped",
+#       "config_hash": "<hex>" | null,            # skip/redo decisions
+#       "started": "<ISO 8601>" | null,
+#       "finished": "<ISO 8601>" | null,
+#       "error": "<message>" | null,
+#       "outputs": ["<path relative to layout.root>", ...]
+#     }
+
+MANIFEST_SCHEMA = 1
+TASK_SCHEMA = 1
+
+
+def now() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def read_manifest(state: Path) -> dict | None:
+    """Content of `<state>/manifest.json` (None if missing or invalid)"""
+    path = Path(state) / MANIFEST
+    if not path.exists():
+        return None
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        lg.warning(f"Could not parse {path}")
+        return None
+    return manifest if isinstance(manifest, dict) else None
+
+
+def record_run(
+    layout: Layout,
+    stage: str,
+    info: dict | None = None,
+    *,
+    files: dict[str, dict] | None = None,
+    deleted: Iterable[str] = (),
+    create: bool = True,
+) -> Path | None:
     """
-    Save what was requested and downloaded in `.brainspresso/manifest.json`
-    (merged with previous runs).
+    Record a stage run in `<state>/manifest.json` (merged with previous
+    runs), with the layout of the dataset.
+
+    Parameters
+    ----------
+    layout : Layout
+    stage : {"harvest", "roast", "compost", "grind"}
+    info : dict
+        Stage-specific fields of the run
+    files : dict[str, dict]
+        Files to add, keyed by path relative to `layout.root`
+    deleted : list[str]
+        Files to remove, relative to `layout.root`
+    create : bool
+        Create the manifest if it does not exist
+
+    Returns
+    -------
+    path : Path | None
+        Path of the manifest (None if it does not exist and `create` is
+        False)
     """
-    state.mkdir(parents=True, exist_ok=True)
-    path = state / "manifest.json"
-    manifest = {"runs": [], "files": {}}
+    state = Path(layout.state)
+    path = state / MANIFEST
+    if not path.exists() and not create:
+        return None
+    manifest = {}
     if path.exists():
         try:
             manifest = json.loads(path.read_text())
         except json.JSONDecodeError:
             shutil.copy(path, path.with_suffix(".json.bak"))
-    filters = {
+            manifest = {}
+    manifest["schema"] = MANIFEST_SCHEMA
+    manifest.update(layout.to_manifest())
+    manifest.setdefault("runs", []).append({
+        "stage": stage, "date": now(), **(info or {}),
+    })
+    entries = manifest.setdefault("files", {})
+    for f in deleted:
+        entries.pop(f, None)
+    entries.update(files or {})
+    state.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, indent=2, default=str))
+    return path
+
+
+def _filters(selection) -> dict:
+    if selection is None:
+        return {}
+    return {
         k: sorted(v) if isinstance(v, (set, list, tuple)) else v
         for k, v in asdict(selection).items() if v
     }
-    manifest.setdefault("runs", []).append({
-        "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        **provenance,
-        "filters": filters,
-        "where": list(where or []),
-        "nb_files": len(selected),
-    })
-    files = manifest.setdefault("files", {})
+
+
+def write_manifest(
+    layout: Layout, selected, selection, where, provenance,
+    destinations: dict[str, Path] | None = None,
+):
+    """
+    Save what was requested and downloaded by `harvest` in the manifest
+    (see `record_run`). `destinations` maps entry paths to their local
+    path (default: `layout.resolve(entry.path)`).
+    """
+    destinations = destinations or {}
+    files = {}
     for e in selected:
+        dst = destinations.get(e.path) or layout.resolve(e.path)
+        key = Path(dst).relative_to(layout.root).as_posix()
         if isinstance(e, InlineEntry):
-            files[e.path] = {"generated": True, "size": e.size}
+            files[key] = {"origin": "generated", "size": e.size}
             continue
-        files[e.path] = {
+        files[key] = {
             "url": e.url,
             "size": e.size,
             **({"digests": e.digests} if e.digests else {}),
+            "origin": "direct",
         }
-    path.write_text(json.dumps(manifest, indent=2, default=str))
+    return record_run(layout, "harvest", {
+        **provenance,
+        "filters": _filters(selection),
+        "where": list(where or []),
+        "nb_files": len(selected),
+    }, files=files)
+
+
+def finish_roast(layout: Layout, **info) -> None:
+    """
+    Steps shared by all roasts, once their actions have run: write the
+    descriptions that depend on the layout (study description,
+    `SourceDatasets` of derivatives) and record the run in the manifest.
+    """
+    layout.write_descriptions()
+    info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
+            for k, v in info.items()}
+    record_run(layout, "roast", info)
+
+
+def task_path(state: Path, task: str) -> Path:
+    """Path of the state file of a task"""
+    return Path(state) / TASKS_DIR / (quote(task, safe="") + ".json")
+
+
+def write_task_state(state: Path, task: str, record: dict) -> Path:
+    """Write the state file of a task (atomically)"""
+    path = task_path(state, task)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = {"schema": TASK_SCHEMA, "task": task, **record}
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(record, indent=2, default=str))
+    os.replace(tmp, path)
+    return path
+
+
+def read_task_states(state: Path) -> dict[str, dict]:
+    """State of all tasks `{task id: record}`"""
+    folder = Path(state) / TASKS_DIR
+    out = {}
+    if not folder.is_dir():
+        return out
+    for path in sorted(folder.glob("*.json")):
+        try:
+            record = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            lg.warning(f"Could not parse {path}")
+            continue
+        out[record.get("task") or unquote(path.stem)] = record
+    return out

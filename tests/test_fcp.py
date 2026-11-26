@@ -146,14 +146,19 @@ def test_abide1_harvest_s3_keys_and_samples(tmp_path):
     assert "phenotypic_MAX_MUN.csv" in files(src)
 
 
-def test_abide1_roast_from_s3_folder(tmp_path):
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_abide1_roast_from_s3_folder(tmp_path, layout):
+    from brainspresso.bids.layout import Layout
     from brainspresso.datasets.ABIDE.I.download_s3 import download_s3
     from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-    download_s3(tmp_path, sites=["Caltech"], keys=["raw"])
+    download_s3(tmp_path, sites=["Caltech"], keys=["raw"], layout=layout)
     root = tmp_path / "ABIDE-1"
     Bidsifier(root, keys={"T1w", "rest"}).run()
-    raw = root / "rawdata"
-    assert files(raw) == {
+    found = Layout.detect(root)
+    assert found.kind == layout
+    raw = found.raw
+    assert {p for p in files(raw) if not p.startswith((
+        "sourcedata/", ".brainspresso/"))} == {
         "sub-51456/anat/sub-51456_T1w.nii.gz",
         "sub-51456/anat/sub-51456_T1w.json",
         "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
@@ -206,16 +211,22 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 #   ADHD-200
 # ----------------------------------------------------------------------
 
-def test_adhd200_harvest_s3(tmp_path):
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_adhd200_harvest_s3(tmp_path, layout):
+    from brainspresso.bids.layout import Layout
     from brainspresso.datasets.ADHD200.download import download
-    download(tmp_path, keys=["raw", "meta"], sites=["Brown"], jobs=2)
+    download(tmp_path, keys=["raw", "meta"], sites=["Brown"], jobs=2,
+             layout=layout)
     root = tmp_path / "ADHD-200"
-    assert files(root / "rawdata") == {
+    raw = Layout.detect(root).raw
+    assert raw == {"study": root / "rawbids", "flat": root}[layout]
+    assert {p for p in files(raw) if not p.startswith((
+        "sourcedata/", ".brainspresso/"))} == {
         "sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
         "sub-0026001/ses-1/func/sub-0026001_ses-1_task-rest_run-1_bold.nii.gz",
     }
     assert same(
-        root / "rawdata/sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
+        raw / "sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
         "ADHD200/RawData/Brown/0026001/session_1/anat_1/mprage.nii.gz",
     )
     assert "Brown_phenotypic.csv" in files(root / "sourcedata")

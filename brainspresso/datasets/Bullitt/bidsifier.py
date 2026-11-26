@@ -13,6 +13,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.actions import Action, CopyBytes, CopyJSON, WriteJSON
 from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.tabular import bidsify_tab
@@ -41,21 +43,24 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Iterable[str] = KEYS,
         subs: Iterable[str] = (),
         exclude_subs: Iterable[str] = (),
         json: str = "yes",
         ifexists: str = "skip",
     ):
-        self.root = Path(root)
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys = set(keys)
         self.subs = set(subs)
         self.exclude_subs = set(exclude_subs)
         self.json = json
         self.ifexists = ifexists
-        self.src = self.root / "sourcedata"
-        self.raw = self.root / "rawdata"
-        self.drv = self.root / "derivatives" / DERIV_NAME
+        self.src = self.layout.source
+        self.raw = self.layout.raw
+        self.deriv = self.layout.derivative(DERIV_NAME)
+        self.drv = self.deriv.root
         self.nb_errors = 0
         self.nb_skipped = 0
 
@@ -65,6 +70,7 @@ class Bidsifier:
                 self.out(status)
             for status in self.make_subjects():
                 self.out(status)
+        finish_roast(self.layout, keys=self.keys)
 
     def fixstatus(self, status: dict, fname: str, mod: str) -> Iterator:
         status.setdefault("path", fname)
@@ -84,16 +90,16 @@ class Bidsifier:
         opt = dict(ifexists=self.ifexists)
         actions = {
             "README": CopyBytes(
-                self.TPLDIR / "README", self.root / "README", **opt),
+                self.TPLDIR / "README", self.raw / "README", **opt),
             "dataset_description.json": CopyJSON(
                 self.TPLDIR / "dataset_description.json",
-                self.root / "dataset_description.json", **opt),
+                self.raw / "dataset_description.json", **opt),
             "participants.json": CopyJSON(
                 self.TPLDIR / "participants.json",
-                self.root / "participants.json", **opt),
+                self.raw / "participants.json", **opt),
             "participants.tsv": CopyBytes(
                 self.TPLDIR / "participants.tsv",
-                self.root / "participants.tsv", **opt),
+                self.raw / "participants.tsv", **opt),
         }
         if self.keys & {"skullstripped", "vessels"}:
             actions["derivatives/dataset_description.json"] = CopyJSON(
@@ -104,7 +110,7 @@ class Bidsifier:
                 self.drv / "README", **opt)
             actions["derivatives/.bidsignore"] = CopyBytes(
                 self.TPLDIR / "derivatives_bidsignore",
-                self.drv / ".bidsignore", **opt)
+                self.deriv.bidsignore, **opt)
         for fname, action in actions.items():
             for status in action:
                 yield from self.fixstatus(status, fname, "meta")

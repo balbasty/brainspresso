@@ -14,8 +14,12 @@ from cyclopts import App, Parameter
 from humanize import naturalsize
 
 from brainspresso.bids.harvest import (
-    InlineEntry, format_summary, harvest, resolve_participants, summarize,
-    write_inline,
+    InlineEntry, format_summary, harvest, record_run, resolve_participants,
+    summarize, write_inline,
+)
+from brainspresso.bids.layout import (
+    LayoutChoice, SitesLayout, SitesLayoutChoice, relative_url,
+    resolve_layout,
 )
 from brainspresso.bids.tables import read_tsv, write_tsv
 from brainspresso.bids.select import Selection
@@ -32,7 +36,6 @@ from brainspresso.sources import fcp
 from brainspresso.sources.openneuro import RemoteEntry
 
 FolderChoice = Literal["derivatives", "sourcedata"]
-LayoutChoice = Literal["merged", "sites"]
 Many = Parameter(consume_multiple=True)
 
 
@@ -140,69 +143,64 @@ def site_selection(selection: Selection, site: Site) -> Selection:
 
 
 def harvest_sites(
-    project: Project, root: Path, selection: Selection, *,
+    project: Project, layout: SitesLayout, selection: Selection, *,
     sites=(), where=(), provenance=None, **options,
 ) -> None:
-    """Layout "sites": one BIDS dataset per site in `root/<site>/`"""
+    """Layout "sites": one dataset per site in `<DS>/<site>/`"""
     items, tables, selection, chosen = prepare(
         project, sites=sites, selection=selection, where=where,
         site_labels=True,
     )
     dry_run = options.get("dry_run", False)
+    harvested = []
     for site in chosen:
         if site.derivative:
             continue
-        entries = project.site_entries(items, tables, site)
+        child = layout.child(site.name)
+        entries = project.site_entries(
+            items, tables, site, parent=relative_url(layout.root, child.raw),
+        )
         local = site_selection(selection, site)
         if not local.select(e.path for e in entries if "/" in e.path):
             continue
         print(f"--- {site.name}")
-        harvest(entries, root / site.name, local, repair=True,
+        harvest(entries, child, local, repair=True,
                 provenance={**(provenance or {}), "site": site.name},
                 **options)
+        harvested.append(site.name)
     extra = extra_entries(project)
     parent = Selection(folders=list(selection.folders))
+    recorded = False
     if parent.select(e.path for e in extra):
         print("--- (dataset)")
-        harvest(extra, root, parent, provenance=provenance, **options)
+        recorded = bool(harvest(extra, layout, parent,
+                                provenance=provenance, **options))
     if dry_run:
         return
     # Parent folder: README and merged participants (trimmed)
     for entry in project.parent_files():
-        write_inline(entry, root / entry.path, "overwrite")
+        write_inline(entry, layout.raw / entry.path, "overwrite")
     merged = project.participants(tables)
     if merged is not None:
         present = {
             f"sub-{s.label(p.name[4:])}": s.name
-            for s in chosen if (root / s.name).is_dir()
-            for p in (root / s.name).glob("sub-*") if p.is_dir()
+            for s in chosen if s.name in layout.children
+            for p in layout.child(s.name).raw.glob("sub-*") if p.is_dir()
         }
         merged = complete_participants(merged, present, present)
         header, rows = read_tsv(merged)
-        write_tsv(root / "participants.tsv", header,
+        write_tsv(layout.raw / "participants.tsv", header,
                   [r for r in rows if r["participant_id"] in present])
-
-
-def compost_roots(project: Project, folder: Path) -> list[Path]:
-    """
-    Datasets to compost: the dataset folder, or the site datasets if it
-    was harvested with `--layout sites` (the parent is not BIDS).
-    """
-    if (folder / "dataset_description.json").exists() or \
-            not project.multisite:
-        return [folder]
-    sites = [folder / s.name for s in project.sites
-             if (folder / s.name / "dataset_description.json").exists()]
-    return sites or [folder]
+    if not recorded:
+        record_run(layout, "harvest", {**(provenance or {}),
+                                       "harvested_sites": harvested})
 
 
 def register(project: Project) -> App:
     """Register `bx <project.name> {harvest,info}`"""
     cmd = App(name=project.name, help=project.help)
     app.command(cmd)
-    add_compost(cmd, project.folder, roots=functools.partial(
-        compost_roots, project
-    ))
+    add_compost(cmd, project.folder)
 
     @cmd.command(name="harvest")
     @user_errors
@@ -220,7 +218,8 @@ def register(project: Project) -> App:
         exclude: Annotated[Iterable[str], Many] = (),
         where: Annotated[Iterable[str], Many] = (),
         folders: Annotated[Iterable[FolderChoice], Many] = (),
-        layout: LayoutChoice = "merged",
+        layout: SitesLayoutChoice | None = None,
+        site_layout: LayoutChoice | None = None,
         trim: bool = True,
         out: str | None = None,
         if_exists: IfExists.Choice = "skip",
@@ -270,18 +269,24 @@ def register(project: Project) -> App:
         folders
             Also download these optional folders
         layout
-            "merged": one BIDS dataset, sites merged (labels made unique
-            with a site code when needed, `site` column in
-            participants.tsv). "sites": one BIDS dataset per site in
-            `<DATASET>/<site>/`, with the labels of the bucket; the
+            "study" (raw dataset in `<DATASET>/rawbids/`) or "flat" (raw
+            dataset in `<DATASET>/`): one BIDS dataset, sites merged
+            (labels made unique with a site code when needed, `site`
+            column in participants.tsv). "sites": one dataset per site
+            in `<DATASET>/<site>/`, with the labels of the bucket; the
             parent folder holds the README and the merged
-            participants.tsv. Single-site datasets ignore it.
+            participants.tsv. Single-site datasets treat "sites" as
+            `--site-layout`. Default: the layout of an existing
+            dataset, else "study".
+        site_layout
+            Layout of each site with `--layout sites` ("study" or
+            "flat"). Default: that of existing sites, else "study".
         trim
             Rewrite participants/sessions/scans tables so that they only
             list what is present locally. Originals are kept in
             `.brainspresso/orig/`.
         out
-            Output BIDS root (overrides `path`)
+            Output dataset folder (overrides `path`)
         if_exists
             Behaviour if a file already exists
         jobs
@@ -302,15 +307,22 @@ def register(project: Project) -> App:
             include=include, exclude=exclude, folders=folders,
         )
         root = Path(out) if out else get_tree_path(path) / project.folder
+        if site_layout and layout != "sites":
+            raise ValueError("--site-layout requires --layout sites")
+        if layout == "sites" and not project.multisite:
+            layout, site_layout = site_layout, None
+        dataset = resolve_layout(
+            root, layout,
+            **({"child_kind": site_layout} if layout == "sites" else {}),
+        )
         provenance = {
             "source": "s3://fcp-indi",
             "dataset": project.name,
             "sites": sorted(sites or []),
-            "layout": layout,
         }
-        if layout == "sites" and project.multisite:
+        if isinstance(dataset, SitesLayout):
             harvest_sites(
-                project, root, selection, sites=sites, where=where,
+                project, dataset, selection, sites=sites, where=where,
                 provenance=provenance, trim=trim, if_exists=if_exists,
                 jobs=jobs, dry_run=dry_run, listing=list,
             )
@@ -321,13 +333,13 @@ def register(project: Project) -> App:
             project, sites=sites, selection=selection, where=where,
         )
         harvest(
-            entries, root, selection,
+            entries, dataset, selection,
             trim=trim, if_exists=if_exists, jobs=jobs,
             dry_run=dry_run, listing=list, repair=True,
             provenance=provenance,
         )
         if not dry_run:
-            print(f"BIDS root: {root}")
+            print(f"BIDS root: {dataset.raw}")
 
     @cmd.command(name="info")
     @user_errors

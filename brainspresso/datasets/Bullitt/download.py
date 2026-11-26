@@ -23,6 +23,8 @@ from typing import Annotated, Iterable
 from cyclopts import Parameter
 from humanize import naturalsize
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.download import CHUNK_SIZE, DownloadManager, IfExists
 from brainspresso.sources.girder import Girder, KITWARE
 from brainspresso.utils.keys import compat_keys
@@ -77,6 +79,7 @@ def download(
     token: str | None = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = None,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
 ):
     """
@@ -115,6 +118,11 @@ def download(
         Packet size to download, in bytes
     jobs
         Number of parallel downloads
+    layout
+        Layout of the dataset (where source data does not move, but
+        later commands reuse it): "study" (raw dataset in
+        `rawbids/`) or "flat" (raw dataset at the root). Default:
+        the layout of an existing dataset, else "study".
     log
         Path to log file
     """
@@ -124,7 +132,9 @@ def download(
     )} or {"raw", "meta", "derivatives"}
     subs = _labels(subs, "sub-")
     exclude_subs = _labels(exclude_subs, "sub-")
-    src = Path(get_tree_path(path)) / DATASET / "sourcedata"
+    dataset = resolve_layout(Path(get_tree_path(path)) / DATASET, layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": dataset.root.name})
 
     def want(key: str) -> bool:
         return bool(keys & compat_keys(key, allkeys))

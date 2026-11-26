@@ -7,6 +7,8 @@ from logging import getLogger
 from pathlib import Path, PosixPath
 from typing import Literal, Iterable, Iterator
 
+from brainspresso.bids.harvest import finish_roast
+from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.utils.io import read_json
 from brainspresso.utils.io import write_tsv
@@ -49,6 +51,7 @@ class Bidsifier:
         self,
         root: Path,
         *,
+        layout: str | Layout | None = None,
         keys: Iterable[KeyChoice] = set(KeyChoice.__args__),
         discs: Iterable[int] = range(1, 13),
         subs: Iterable[int] = tuple(),
@@ -56,7 +59,8 @@ class Bidsifier:
         json: Literal["yes", "no", "only"] | bool = True,
         ifexists: IfExists.Choice = "skip",
     ):
-        self.root: Path = Path(root)
+        self.layout: Layout = resolve_layout(root, layout)
+        self.root: Path = self.layout.root
         self.keys: set[KeyChoice] = set(keys)
         self.discs: set[int] = set(discs)
         self.subs: set[int] = set(subs)
@@ -72,11 +76,11 @@ class Bidsifier:
         # Printer
         self.out = bidsify_tab()
         # Folder
-        self.src = self.root / 'sourcedata'
-        self.raw = self.root / 'rawdata'
-        self.drv = self.root / 'derivatives'
-        self.drvproc = self.drv / 'oasis-processed'
-        self.drvfs = self.drv / 'oasis-freesurfer'
+        self.src = self.layout.source
+        self.raw = self.layout.raw
+        self.drvproc = self.layout.derivative('oasis-processed').root
+        self.fsdrv = self.layout.derivative('oasis-freesurfer')
+        self.drvfs = self.fsdrv.root
         # Track errors
         self.nb_errors = 0
         self.nb_skipped = 0
@@ -89,6 +93,7 @@ class Bidsifier:
         self.init()
         with self.out as self.out:
             self._run()
+        finish_roast(self.layout, keys=self.keys)
 
     def _run(self):
         """Must be run from inside the `out` context."""
@@ -171,22 +176,22 @@ class Bidsifier:
             'README':
                 CopyBytes(
                     self.TPLDIR / 'README',
-                    self.root / 'README',
+                    self.raw / 'README',
                 ),
             'dataset_description.json':
                 CopyJSON(
                     self.TPLDIR / 'dataset_description.json',
-                    self.root / 'dataset_description.json',
+                    self.raw / 'dataset_description.json',
                 ),
             'participants.json':
                 CopyJSON(
                     self.TPLDIR / 'participants.json',
-                    self.root / 'participants.json',
+                    self.raw / 'participants.json',
                 ),
             'participants.tsv':
                 WrapAction(
                     self.src / 'oasis_cross-sectional.xlsx',
-                    self.root / 'participants.tsv',
+                    self.raw / 'participants.tsv',
                     self.make_participants,
                     mode="t", input="path",
                 ),
@@ -539,7 +544,7 @@ class Bidsifier:
         # under "derivatives/oasis-freesurfer/sourcedata/sub-{04d}"
         for path in members:
             path = PosixPath(path)
-            dst = self.drvfs / 'sourcedata' / f'sub-{id:04d}'
+            dst = self.fsdrv.source / f'sub-{id:04d}'
             dst = dst.joinpath(*path.parts[2:])
             yield WriteBytes(
                 tar.extractfile(str(path)),
@@ -548,7 +553,7 @@ class Bidsifier:
             )
 
         # Bidsify under "derivatives/oasis-freesurfer/sub-{04d}"
-        src = self.drvfs / 'sourcedata' / f'sub-{id:04d}'
+        src = self.fsdrv.source / f'sub-{id:04d}'
         dst = self.drvfs / f'sub-{id:04d}'
         srcbase = f'bids:raw:sub-{id:04d}/anat/sub-{id:04d}'
         sourcefiles = [

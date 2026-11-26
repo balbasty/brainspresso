@@ -3,6 +3,7 @@ from typing import Annotated, Iterable, Literal
 
 from cyclopts import Parameter
 
+from brainspresso.bids.layout import LayoutChoice
 from brainspresso.actions import IfExists
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
@@ -25,6 +26,7 @@ def bidsify(
     exclude_subs: Annotated[Iterable[str], Many] = (),
     sessions: Annotated[Iterable[str], Many] = (),
     if_exists: IfExists.Choice = "skip",
+    layout: LayoutChoice | None = None,
     log: str | None = None,
 ):
     """
@@ -46,6 +48,10 @@ def bidsify(
         Only convert these sessions (e.g. 12months)
     if_exists
         Behaviour when a file already exists
+    layout
+        Layout of the dataset: "study" (raw dataset in `rawbids/`)
+        or "flat" (raw dataset at the root). Default: the layout of
+        an existing dataset, else "study".
     log
         Path to log file
     """
@@ -58,5 +64,6 @@ def bidsify(
         subs=_labels(subs, "sub-"),
         exclude_subs=_labels(exclude_subs, "sub-"),
         sessions=_labels(sessions, "ses-"),
+        layout=layout,
         ifexists=if_exists,
     ).run()

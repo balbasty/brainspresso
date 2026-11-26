@@ -13,6 +13,8 @@ from typing import Iterable
 
 from humanize import naturalsize
 
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.download import CHUNK_SIZE, DownloadManager, IfExists
 from brainspresso.sources import fcp
 from brainspresso.utils.keys import compat_keys
@@ -64,6 +66,7 @@ def download_s3(
     if_exists: IfExists.Choice = "skip",
     packet: int | str = naturalsize(CHUNK_SIZE),
     jobs: int | None = None,
+    layout: LayoutChoice | None = None,
     log: str | None = None,
     **kwargs,
 ) -> None:
@@ -78,7 +81,9 @@ def download_s3(
     sites = {_value(s).upper() for s in _aslist(sites)}
     subs = {int(_value(s)) for s in _aslist(subs)}
     exclude_subs = {int(_value(s)) for s in _aslist(exclude_subs)}
-    src = Path(get_tree_path(path)) / "ABIDE-1" / "sourcedata"
+    dataset = resolve_layout(Path(get_tree_path(path)) / "ABIDE-1", layout)
+    src = dataset.source
+    record_run(dataset, "harvest", {"dataset": "ABIDE-1"})
     opt = dict(ifexists=if_exists, chunk_size=human2bytes(packet))
 
     def want(key: str) -> bool:

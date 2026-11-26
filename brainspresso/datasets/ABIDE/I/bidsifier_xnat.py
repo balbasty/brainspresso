@@ -133,6 +133,7 @@ class Bidsifier(BidsifierBase):
         """Process one subject"""
         paths = self.src.glob(f'OAS3{id:05d}_MR_*/*Freesurfer*.tar.gz')
         dfs = self.drvmap['fs']
+        dfs_source = self.layout.derivative(dfs.name).source
         for path in paths:
             ses = path.name.split('.')[0].split('_')[-1]
 
@@ -144,7 +145,7 @@ class Bidsifier(BidsifierBase):
                     if 'fs-all' not in self.keys:
                         if not str(tarpath).endswith(fs.bidsifiable_outputs):
                             continue
-                    dst = dfs / 'sourcedata' / f'sub-{id:05d}' / f'ses-{ses}'
+                    dst = dfs_source / f'sub-{id:05d}' / f'ses-{ses}'
                     dst = dst.joinpath(*tarpath.parts[6:])
                     yield WriteBytes(
                         tar.extractfile(member),
@@ -153,7 +154,7 @@ class Bidsifier(BidsifierBase):
                     )
 
             # Bidsify under "derivatives/oasis-freesurfer/sub-{04d}/ses-{}"
-            src = dfs / 'sourcedata' / f'sub-{id:05d}' / f'ses-{ses}'
+            src = dfs_source / f'sub-{id:05d}' / f'ses-{ses}'
             dst = dfs / f'sub-{id:05d}' / f'ses-{ses}'
             srcbase = f'bids:raw:sub-{id:05d}/anat/sub-{id:05d}/ses-{ses}/'
             sourcefiles = [srcbase + 'sub-{id:05d}_ses-{ses}_T1w.nii.gz']

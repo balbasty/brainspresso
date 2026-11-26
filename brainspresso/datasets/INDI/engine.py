@@ -18,16 +18,22 @@ selection by subject/session/datatype/suffix/task/globs, participant
 queries (`--where`), trimmed tables and a manifest. Listing is pruned:
 only the subjects that are selected are listed.
 
-Local layouts:
+Local layouts (`bids.layout`):
 
-* "merged" (default): `<root>/<Project.folder>/` is one BIDS dataset,
-  with derivatives in `derivatives/<pipeline>/`. Sites are merged:
-  labels are prefixed with a site code when they are not unique
-  across sites, and `participants.tsv` has a `site` column.
-* "sites": `<root>/<Project.folder>/<site>/` is one BIDS dataset per
-  site, with the labels of the bucket (BIDS "Option 1" for multi-site
-  studies). The parent folder is not a BIDS dataset: it holds the
-  README and the merged `participants.tsv`, for pooled lookups.
+* "study" (default) or "flat": `<root>/<Project.folder>/` holds one
+  BIDS dataset (in `rawbids/`, or at the root), with derivatives in
+  `derivatives/<pipeline>/`. Sites are merged: labels are prefixed with
+  a site code when they are not unique across sites, and
+  `participants.tsv` has a `site` column.
+* "sites": `<root>/<Project.folder>/<site>/` is one dataset per site
+  (each a study or flat layout, `--site-layout`), with the labels of
+  the bucket (BIDS "Option 1" for multi-site studies). The parent
+  folder is not a BIDS dataset: it holds the README and the merged
+  `participants.tsv`, for pooled lookups.
+
+Paths of the listing are those of a flat BIDS dataset (`sub-*/...`,
+`sourcedata/...`, `derivatives/<name>/...`); `Layout.resolve` places
+them.
 """
 from __future__ import annotations
 
@@ -250,13 +256,14 @@ class Project:
                 "BIDSVersion": "1.9.0",
                 "DatasetType": "raw",
             })))
+        parent = getattr(self, "parent_dir", "..").rstrip("/")
         out.append(InlineEntry("README", (
             f"{self.title}: site {site.name}\n\n"
             f"One site of a multi-site dataset, downloaded by brainspresso "
-            f"with `--layout sites`.\nSee ../README for the description of "
-            f"the dataset, how to cite it, and how the files of the bucket "
-            f"were curated. ../participants.tsv lists the participants of "
-            f"all sites.\n"
+            f"with `--layout sites`.\nSee {parent}/README for the "
+            f"description of the dataset, how to cite it, and how the files "
+            f"of the bucket were curated. {parent}/participants.tsv lists "
+            f"the participants of all sites.\n"
         )))
         return out
 
@@ -279,12 +286,17 @@ class Project:
     #   Layout "sites": one BIDS dataset per site
     # ------------------------------------------------------------------
 
-    def site_view(self, site: Site, tables: dict[str, str]) -> "Project":
+    def site_view(
+        self, site: Site, tables: dict[str, str], parent: str = ".."
+    ) -> "Project":
         """
         The project restricted to one site, as a single-site project with
-        the labels of the bucket (no site code).
+        the labels of the bucket (no site code). `parent` is the
+        relative path from the raw dataset of the site to the parent
+        folder (which holds the README and merged participants).
         """
         view = copy.copy(self)
+        view.parent_dir = parent
         local = dataclasses.replace(site, code="")
         view.sites = (local,)
         view.parent = self
@@ -303,10 +315,11 @@ class Project:
                 for it in items if it.site == site]
 
     def site_entries(
-        self, items: list[Item], tables: dict[str, str], site: Site
+        self, items: list[Item], tables: dict[str, str], site: Site,
+        parent: str = "..",
     ) -> list:
         """Local listing of the BIDS dataset of one site"""
-        view = self.site_view(site, tables)
+        view = self.site_view(site, tables, parent)
         return view.entries(self.site_items(items, site), tables)
 
     def parent_files(self) -> list[InlineEntry]:

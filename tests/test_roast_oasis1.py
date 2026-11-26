@@ -5,12 +5,20 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from roast_utils import analyze_pair, make_tar, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, analyze_pair, init_layout, layout_of, make_tar, raw_file,
+    raw_tree, read_tsv,
+)
 
 openpyxl = pytest.importorskip("openpyxl")
 from brainspresso.datasets.OASIS.I.bidsifier import Bidsifier  # noqa: E402
 
-DRV = "derivatives/oasis-processed"
+DRV = "oasis-processed"
+
+
+def drv(root):
+    """Root of the processed-images derivative dataset"""
+    return layout_of(root).derivative(DRV).root
 
 
 def _analyze(members, base, data=None):
@@ -19,9 +27,10 @@ def _analyze(members, base, data=None):
     members[base + ".img"] = img
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "OASIS-1"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     src.mkdir(parents=True)
     m = {}
@@ -116,24 +125,25 @@ def test_meta_header(root):
 def test_avg(root):
     Bidsifier(root, keys={"avg"}, discs=[1], subs=[1]).run()
     assert raw_tree(root) == set()
-    drv = root / DRV
-    files = {p.relative_to(drv).as_posix()
-             for p in drv.rglob("*") if p.is_file()}
+    folder = drv(root)
+    files = {p.relative_to(folder).as_posix()
+             for p in folder.rglob("*") if p.is_file()}
     assert files == {"sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
                      "sub-0001/anat/sub-0001_res-1mm_T1w.json"}
     meta = json.loads(
-        (drv / "sub-0001/anat/sub-0001_res-1mm_T1w.json").read_text())
+        (folder / "sub-0001/anat/sub-0001_res-1mm_T1w.json").read_text())
     assert meta["BiasCorrected"] == "N4"
     assert len(meta["Sources"]) == 2
     assert nib.load(
-        drv / "sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz").shape == (2, 2, 2)
+        folder / "sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+    ).shape == (2, 2, 2)
 
 
 @pytest.mark.xfail(strict=True, reason="avg/tal 'Sources' miss the '_' "
                    "between sub-XXXX and run-X")
 def test_avg_sources(root):
     Bidsifier(root, keys={"avg"}, discs=[1], subs=[1], json="only").run()
-    meta = json.loads((root / DRV / "sub-0001/anat/"
+    meta = json.loads((drv(root) / "sub-0001/anat/"
                        "sub-0001_res-1mm_T1w.json").read_text())
     assert meta["Sources"][0] == \
         "bids:raw:sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
@@ -143,7 +153,7 @@ def test_avg_sources(root):
                    "without '.img' extension, so it is never found")
 def test_tal(root):
     Bidsifier(root, keys={"tal"}, discs=[1], subs=[1]).run()
-    anat = root / DRV / "sub-0001/anat"
+    anat = drv(root) / "sub-0001/anat"
     assert (anat / "sub-0001_space-Talairach_res-1mm_T1w.nii.gz").exists()
     assert (anat / "sub-0001_space-Talairach_res-1mm_desc-skullstripped"
                    "_T1w.nii.gz").exists()
@@ -153,7 +163,7 @@ def test_tal(root):
                    "relabelled volume to dst instead of niipath")
 def test_fsl_relabel(root):
     Bidsifier(root, keys={"fsl"}, discs=[1], subs=[1]).run()
-    f = (root / DRV / "sub-0001/anat"
+    f = (drv(root) / "sub-0001/anat"
          / "sub-0001_space-Talairach_res-1mm_dseg.nii.gz")
     dat = np.asarray(nib.load(f).dataobj).ravel()
     assert list(dat[:4]) == [0, 2, 3, 1]

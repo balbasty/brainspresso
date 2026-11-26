@@ -14,6 +14,8 @@ from typing import Annotated, Callable, Iterable
 from cyclopts import App, Parameter
 
 from brainspresso.bids.compost import compost
+from brainspresso.bids.layout import Layout, LayoutChoice, SitesLayout
+from brainspresso.bids.layout import resolve_layout
 from brainspresso.bids.select import Selection
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
@@ -79,6 +81,12 @@ where
     columns, e.g. `"age>=60"` or `"sex==F"` (all queries must match)
 derivatives
     Apply subject and session filters to `derivatives/*/` too
+layout
+    Expected layout of the dataset: "study" (raw dataset in
+    `rawbids/`) or "flat" (raw dataset at the root). Default: the
+    layout recorded in `.brainspresso/manifest.json` or detected from
+    the files. A dataset harvested with `--layout sites` is composted
+    site by site.
 trim
     Rewrite participants/sessions/scans tables so that they only list
     what is left
@@ -113,15 +121,35 @@ def user_errors(func):
 
 
 def run_compost(
-    root: Path,
+    root: Path | Layout,
     *,
     sourcedata, nested, keep,
     subs, exclude_subs, sessions, datatypes, suffixes, tasks,
     include, exclude, where, derivatives,
-    trim, force, yes, dry_run, list, log, level,
+    trim, force, yes, dry_run, list, log, level, layout=None,
 ):
-    """Common implementation of all `compost` commands"""
+    """
+    Common implementation of all `compost` commands. `root` is a dataset
+    folder or a `Layout`; a "sites" layout is composted site by site.
+    """
     setup_filelog(log, level=level)
+    found = resolve_layout(root, layout)
+    if isinstance(found, SitesLayout):
+        if not found.children:
+            raise ValueError(f"No site dataset found in {found.root}")
+        plans = []
+        for dataset in found.datasets():
+            print(f"--- {dataset.root.name}")
+            plans.append(run_compost(
+                dataset,
+                sourcedata=sourcedata, nested=nested, keep=keep,
+                subs=subs, exclude_subs=exclude_subs, sessions=sessions,
+                datatypes=datatypes, suffixes=suffixes, tasks=tasks,
+                include=include, exclude=exclude, where=where,
+                derivatives=derivatives, trim=trim, force=force, yes=yes,
+                dry_run=dry_run, list=list, log=None, level=level,
+            ))
+        return plans
     selection = Selection(
         subs=subs,
         exclude_subs=exclude_subs,
@@ -133,7 +161,7 @@ def run_compost(
         exclude=exclude,
     )
     return compost(
-        root,
+        found,
         sourcedata=sourcedata,
         nested=nested,
         keep=keep,
@@ -158,11 +186,7 @@ def make_doc(cmd: str, root_params: str) -> str:
     )
 
 
-def add_compost(
-    app: App,
-    folder: str,
-    roots: Callable[[Path], list[Path]] | None = None,
-) -> Callable:
+def add_compost(app: App, folder: str) -> Callable:
     """
     Register a `compost` command in a dataset app.
 
@@ -173,9 +197,6 @@ def add_compost(
     folder : str
         Name of the dataset folder under the root of all datasets
         (e.g. "IXI")
-    roots : callable(Path) -> list[Path], optional
-        Map the dataset folder to the dataset roots to compost (e.g.
-        one per site). By default, the dataset folder itself.
     """
 
     @user_errors
@@ -195,6 +216,7 @@ def add_compost(
         exclude: Annotated[Iterable[str], Many] = (),
         where: Annotated[Iterable[str], Many] = (),
         derivatives: bool = False,
+        layout: LayoutChoice | None = None,
         trim: bool = True,
         force: bool = False,
         yes: Annotated[bool, Parameter(name=["--yes", "-y"])] = False,
@@ -203,19 +225,16 @@ def add_compost(
         log: str | None = None,
         level: str = "info",
     ):
-        dataset = get_tree_path(path) / folder
-        for root in (roots(dataset) if roots else [dataset]):
-            if roots:
-                print(f"--- {root.name}")
-            run_compost(
-                root,
-                sourcedata=sourcedata, nested=nested, keep=keep,
-                subs=subs, exclude_subs=exclude_subs, sessions=sessions,
-                datatypes=datatypes, suffixes=suffixes, tasks=tasks,
-                include=include, exclude=exclude, where=where,
-                derivatives=derivatives, trim=trim, force=force, yes=yes,
-                dry_run=dry_run, list=list, log=log, level=level,
-            )
+        run_compost(
+            get_tree_path(path) / folder,
+            sourcedata=sourcedata, nested=nested, keep=keep,
+            subs=subs, exclude_subs=exclude_subs, sessions=sessions,
+            datatypes=datatypes, suffixes=suffixes, tasks=tasks,
+            include=include, exclude=exclude, where=where,
+            derivatives=derivatives, trim=trim, force=force, yes=yes,
+            dry_run=dry_run, list=list, log=log, level=level,
+            layout=layout,
+        )
 
     compost_.__doc__ = make_doc(app.name[0], f"""
 path

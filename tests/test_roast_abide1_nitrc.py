@@ -5,7 +5,9 @@ import nibabel as nib
 import pytest
 
 from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-from roast_utils import make_tar, nii_bytes, raw_file, raw_tree, read_tsv
+from roast_utils import (
+    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
+)
 
 PHENOS = Bidsifier.PHENOTYPES
 COLS = list(dict.fromkeys(
@@ -19,9 +21,10 @@ def write_csv(path, rows):
             {c: c for c in COLS}, *rows]) + "\n")
 
 
-@pytest.fixture
-def root(tmp_path):
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
     root = tmp_path / "ABIDE-1"
+    init_layout(root, request.param)
     src = root / "sourcedata"
     src.mkdir(parents=True)
     make_tar(src / "Caltech.tgz", {

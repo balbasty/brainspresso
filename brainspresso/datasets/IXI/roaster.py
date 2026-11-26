@@ -14,7 +14,9 @@ Output (study layout)
 IXI/rawbids/
     README, dataset_description.json, participants.{tsv,json}
     sub-{03d}/anat/sub-{03d}_{T1w,T2w,PDw,angio}.{nii.gz,json}
-    sub-{03d}/dwi/sub-{03d}_dwi.{nii.gz,json,bval,bvec}  (16 volumes)
+    dwi.{bval,bvec}  (canonical gradient table, inherited)
+    sub-{03d}/dwi/sub-{03d}_dwi.{nii.gz,json}  (16 volumes; .bval/.bvec
+                                 only when the subject's table differs)
 IXI/derivatives/ixi-scanner/        (key `trace`: 17th DTI volume, a
     sub-{03d}/dwi/sub-{03d}_desc-{trace,powderavg}_dwimap.{nii.gz,json}
                                      scanner-derived isotropic image)
@@ -164,17 +166,63 @@ def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
         yield missing_images("DTI")
         return
     with archive:
+        canonical = {}
+        for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
+            path = ctx.resource(source)
+            if path is None:
+                yield Fail(f"{source} not found", name=f"dwi.{ext}")
+                return
+            rows = read_table(path)
+            n = table_length(rows)
+            if n not in (NDIR, NDIR + 1):
+                yield Fail(f"{path.name} has {n} entries, expected {NDIR}",
+                           name=f"dwi.{ext}")
+                return
+            canonical[ext] = np.asarray(rows, dtype=float)[:, :NDIR]
+            if n == NDIR:
+                yield CopyBytes(path, ctx.layout.raw / f"dwi.{ext}")
+            else:
+                yield WriteText(format_table(rows), ctx.layout.raw /
+                                f"dwi.{ext}", src=path)
         series = group_members(archive)
         ctx.progress(total=len(series))
         if want_trace:
             yield from derivative_description(drv)
         for sub, (site, volumes) in sorted(series.items()):
             yield from roast_dwi_subject(ctx, archive, drv, sub, site,
-                                         volumes, want_trace)
+                                         volumes, want_trace, canonical)
             ctx.progress(advance=1)
 
 
-def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace):
+def read_table(path) -> list[list[str]]:
+    return [line.split() for line in path.read_text().splitlines()
+            if line.strip()]
+
+
+def table_length(rows) -> int | None:
+    n = {len(row) for row in rows}
+    return n.pop() if len(n) == 1 else None
+
+
+def format_table(rows) -> str:
+    return "\n".join(" ".join(r[:NDIR]) for r in rows) + "\n"
+
+
+def same_table(ext, rows, canonical) -> bool:
+    try:
+        table = np.asarray(rows, dtype=float)[:, :NDIR]
+    except ValueError:
+        return False
+    ref = canonical[ext]
+    if table.shape != ref.shape:
+        return False
+    if ext == "bval":
+        return bool(np.allclose(table, ref, rtol=1e-3, atol=1))
+    return bool(np.allclose(table, ref, atol=1e-4))
+
+
+def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace,
+                      canonical):
     raw, src = ctx.layout.raw, ctx.source
     dwi = raw / f"sub-{sub}" / "dwi"
     base = f"sub-{sub}_dwi"
@@ -211,30 +259,26 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace):
                        name=f"{base}.nii.gz")
             return
 
-    # 3. gradient table (per-subject NITRC table, else global one)
+    # 3. gradient table: per-subject NITRC table, written only when it
+    #    differs from the canonical (dataset-level, inherited) one
     prefix = "-".join(PurePosixPath(names[0]).name.split("-")[:3])
     tables = {}
     for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
         path = src / "IXI-DTI" / f"{prefix}-{source}"
         if not path.exists():
-            path = ctx.resource(source)
-        if path is None:
-            yield Fail(f"{source} not found for sub-{sub}",
-                       name=f"{base}.{ext}")
-            return
-        rows = [line.split() for line in path.read_text().splitlines()
-                if line.strip()]
-        n = {len(row) for row in rows}
-        n = n.pop() if len(n) == 1 else None
+            continue
+        rows = read_table(path)
+        n = table_length(rows)
         if n == NDIR + 1 and desc is not None:
-            tables[ext] = (path, "\n".join(" ".join(r[:NDIR])
-                                           for r in rows) + "\n")
+            text = format_table(rows)
         elif n == NDIR:
-            tables[ext] = (path, None)
+            text = None
         else:
             yield Fail(f"sub-{sub}: {path.name} has {n} entries, expected "
                        f"{NDIR}", name=f"{base}.{ext}")
             return
+        if not same_table(ext, rows, canonical):
+            tables[ext] = (path, text)
 
     yield CopyJSON(ctx.resource(f"{site}/dwi.json"), dwi / f"{base}.json")
     yield Action(

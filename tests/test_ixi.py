@@ -190,7 +190,8 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
     assert requests["files"] == before + 1
 
 
-def check_roast(root: Path, bval_per_subject: bool, layout: str):
+def check_roast(root: Path, per_subject: bytes | None, layout: str,
+                dataset: bytes | None = None):
     found = Layout.detect(root)
     assert found.kind == layout
     raw = found.raw
@@ -208,14 +209,20 @@ def check_roast(root: Path, bval_per_subject: bool, layout: str):
     assert dwi.shape == (4, 4, 3, 16)
     vols = dti_volumes()
     assert np.allclose(dwi.get_fdata(), np.stack(vols[:16], -1))
-    assert {"sub-002/dwi/sub-002_dwi.bval",
-            "sub-002/dwi/sub-002_dwi.bvec"} <= out
-    assert "dwi.bval" not in out and "dwi.bvec" not in out
-    bval = (raw / "sub-002/dwi/sub-002_dwi.bval").read_bytes()
-    if bval_per_subject:
-        assert bval == BVALS
+    # canonical table at the dataset level (BIDS inheritance)
+    assert {"dwi.bval", "dwi.bvec"} <= out
+    if dataset is None:
+        dataset = (TEMPLATES / "bvals.txt").read_bytes()
+    assert (raw / "dwi.bval").read_bytes() == dataset
+    # per-subject table only when it differs from the canonical one
+    if per_subject is None:
+        assert "sub-002/dwi/sub-002_dwi.bval" not in out
+        assert "sub-002/dwi/sub-002_dwi.bvec" not in out
     else:
-        assert bval == (TEMPLATES / "bvals.txt").read_bytes()
+        assert {"sub-002/dwi/sub-002_dwi.bval",
+                "sub-002/dwi/sub-002_dwi.bvec"} <= out
+        bval = (raw / "sub-002/dwi/sub-002_dwi.bval").read_bytes()
+        assert bval == per_subject
 
 
 @pytest.mark.parametrize("layout", LAYOUTS)
@@ -224,14 +231,17 @@ def test_roast_from_nitrc_folders(xnat, tmp_path, monkeypatch, layout):
     root = tmp_path / "IXI"
     harvest(server, root / "sourcedata")
 
-    # Without bundled bvals/bvecs: per-subject files from NITRC are used
+    # Without bundled bvals/bvecs: the global table comes from sourcedata;
+    # NITRC tables identical to it are not duplicated per subject
     empty = tmp_path / "empty_templates"
     empty.mkdir()
     for sub in ("Guys", "HH", "IOP"):
         (empty / sub).symlink_to(TEMPLATES / sub)
     monkeypatch.setattr(roaster, "TEMPLATES", empty)
+    (root / "sourcedata" / "bvals.txt").write_bytes(BVALS)
+    (root / "sourcedata" / "bvecs.txt").write_bytes(BVECS)
     roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
-    check_roast(root, bval_per_subject=True, layout=layout)
+    check_roast(root, per_subject=None, layout=layout, dataset=BVALS)
 
 
 @pytest.mark.parametrize("layout", LAYOUTS)
@@ -241,8 +251,8 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
     harvest(server, root / "sourcedata")
     roaster.roast(root, keys={"meta", "T1w", "T2w", "dwi"}, layout=layout)
     # IXI.xls comes from the package templates; the per-subject NITRC
-    # gradient tables are preferred over the bundled global ones
-    check_roast(root, bval_per_subject=True, layout=layout)
+    # gradient tables (b=995) differ from the bundled global ones (b=1000)
+    check_roast(root, per_subject=BVALS, layout=layout)
     raw = Layout.detect(root).raw
     lines = (raw / "participants.tsv").read_text().splitlines()
     assert lines[0].startswith("participant_id\tsite\tage\tsex")
@@ -268,7 +278,7 @@ def test_roast_from_tarballs(xnat, tmp_path, layout):
                 info.size = len(data)
                 tar.addfile(info, io.BytesIO(data))
     roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
-    check_roast(root, bval_per_subject=False, layout=layout)
+    check_roast(root, per_subject=None, layout=layout)
 
 
 def test_roast_shards_in_processes(tmp_path):
@@ -290,7 +300,7 @@ def test_roast_shards_in_processes(tmp_path):
     assert out == {
         "sub-002/anat/sub-002_T1w.nii.gz",
         "sub-002/dwi/sub-002_dwi.nii.gz",
-        "sub-002/dwi/sub-002_dwi.bval", "sub-002/dwi/sub-002_dwi.bvec",
+        "dwi.bval", "dwi.bvec",
     }
     assert report.counts["dwi"]["done"] == 3
     assert not report.errors
@@ -396,8 +406,8 @@ def test_dwi_derived_volume(tmp_path, layout, extra, desc):
     assert dd["GeneratedBy"][0]["Name"] == "scanner"
     assert dd["SourceDatasets"]
     assert "*_dwimap" in (droot / ".bidsignore").read_text()
-    assert "dwi.bval" not in raw
-    assert (found.raw / "sub-002/dwi/sub-002_dwi.bval").read_bytes() == \
+    assert "sub-002/dwi/sub-002_dwi.bval" not in raw
+    assert (found.raw / "dwi.bval").read_bytes() == \
         (TEMPLATES / "bvals.txt").read_bytes()
 
 
@@ -417,7 +427,7 @@ def test_dwi_16_volumes(tmp_path, layout):
     report = roast_dti(root, layout)
     assert not report.errors
     found, raw, drv = outputs(root)
-    assert "sub-002/dwi/sub-002_dwi.bvec" in raw
+    assert "dwi.bvec" in raw
     assert not any(p.endswith("_dwimap.nii.gz") for p in drv)
 
 
@@ -443,6 +453,58 @@ def test_dwi_per_subject_table_17_entries(tmp_path, layout):
     dwi = found.raw / "sub-002/dwi/sub-002_dwi"
     assert Path(f"{dwi}.bval").read_bytes() == BVALS
     assert Path(f"{dwi}.bvec").read_bytes() == BVECS
+
+
+def reformat(data: bytes, sign: float = 1) -> bytes:
+    """Same table, different formatting (floats, trailing spaces)"""
+    rows = [line.split() for line in data.decode().splitlines()]
+    return "".join(" ".join(f"{sign * float(x) + 0.0:.6f}" for x in row)
+                   + "  \n" for row in rows).encode()
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_dwi_per_subject_table_same_as_canonical(tmp_path, layout):
+    """A NITRC table numerically equal to the canonical one (here with
+    `1000.0` and trailing spaces) is inherited, not duplicated"""
+    root = tmp_path / "IXI"
+    make_dti(root, {
+        **dti_files(),
+        "IXI002-Guys-0828-bvals.txt":
+            reformat((TEMPLATES / "bvals.txt").read_bytes()),
+        "IXI002-Guys-0828-bvecs.txt":
+            reformat((TEMPLATES / "bvecs.txt").read_bytes()),
+    })
+    report = roast_dti(root, layout)
+    assert not report.errors
+    _, raw, _ = outputs(root)
+    assert {"dwi.bval", "dwi.bvec"} <= raw
+    assert not any(p.startswith("sub-002/dwi/sub-002_dwi.bv") for p in raw)
+
+
+def test_dwi_per_subject_bvecs_negated(tmp_path):
+    """A negated bvec table is a different table"""
+    root = tmp_path / "IXI"
+    make_dti(root, {
+        **dti_files(),
+        "IXI002-Guys-0828-bvals.txt": (TEMPLATES / "bvals.txt").read_bytes(),
+        "IXI002-Guys-0828-bvecs.txt":
+            reformat((TEMPLATES / "bvecs.txt").read_bytes(), sign=-1),
+    })
+    report = roast_dti(root, "flat")
+    assert not report.errors
+    _, raw, _ = outputs(root)
+    assert "sub-002/dwi/sub-002_dwi.bvec" in raw
+    assert "sub-002/dwi/sub-002_dwi.bval" not in raw
+
+
+def test_dwi_subs_keep_dataset_table(tmp_path):
+    """`--subs` does not change the dataset-level table"""
+    root = tmp_path / "IXI"
+    make_dti(root, dti_files())
+    roaster.roast(root, subs=[999], layout="flat", display=False)
+    assert (root / "dwi.bval").read_bytes() == \
+        (TEMPLATES / "bvals.txt").read_bytes()
+    assert not (root / "sub-002").exists()
 
 
 def test_dwi_table_mismatch_fail(tmp_path):

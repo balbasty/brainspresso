@@ -275,7 +275,7 @@ class Dataset:
     defaults : dict[str, list[str]]
         Per-key default sources (empty: the first source, alone)
     roaster : callable | None
-        Roaster when no source has one
+        Roaster when no source has one (a `staticmethod`)
     credentials : {"login", "token"} | None
         Credential options of harvest
     harvest_jobs : int | None

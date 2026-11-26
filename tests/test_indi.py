@@ -292,11 +292,18 @@ def test_fcon1000_harvest(tmp_path, layout):
     assert Layout.detect(root).original(bids / "participants.tsv").exists()
 
 
-@pytest.mark.parametrize("site_layout", ["study", "flat"])
-def test_fcon1000_layout_sites(tmp_path, site_layout):
-    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--folders", "derivatives",
-       "--site-layout", site_layout)
+@pytest.mark.parametrize("site_layout,spelling", [
+    ("study", "sites:study"), ("flat", "sites:flat"), ("flat", "alias"),
+])
+def test_fcon1000_layout_sites(tmp_path, site_layout, spelling):
+    if spelling == "alias":         # deprecated (until the end of step 5)
+        layout = ["--layout", "sites", "--site-layout", site_layout]
+        with pytest.warns(FutureWarning, match="sites:flat"):
+            bx("fcon1000", "harvest", tmp_path, *layout,
+               "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+    else:
+        bx("fcon1000", "harvest", tmp_path, "--layout", spelling,
+           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
     root = tmp_path / "FCON1000"
     layout = Layout.detect(root)
     assert layout.to_manifest() == {
@@ -394,6 +401,41 @@ def test_fcon1000_compost(tmp_path):
     assert [r[0] for r in table(bids / "participants.tsv")[1:]] == [
         "sub-ICBM00448"
     ]
+
+
+def test_fcon1000_site_layout_alone(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--site-layout", "flat"])
+    assert "--layout sites:flat" in capsys.readouterr().err
+
+
+def test_fcon1000_zero_padded_labels(tmp_path):
+    # labels are verbatim (no width): `00448` is not `448`
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites:study",
+       "--sites", "ICBM", "--subs", "00448")
+    icbm = raw(tmp_path / "FCON1000", "ICBM")
+    assert {p.name for p in icbm.glob("sub-*")} == {"sub-00448"}
+    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
+    assert not (icbm / "sub-00448").exists()
+
+
+def test_fcon1000_compost_sites_flag(tmp_path, capsys):
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
+    # --sites only applies to a dataset with one dataset per site
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "compost", str(tmp_path), "--sites", "ICBM",
+             "--exclude-subs", "ICBM11111", "--yes"])
+    assert "--sites only applies" in capsys.readouterr().err
+
+
+def test_fcon1000_unmatched_subjects(tmp_path, capsys, caplog):
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
+       "--subs", "ICBM00448", "ICBM99999", "--dry-run")
+    assert "ICBM99999" in caplog.text
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--sites", "ICBM",
+             "--subs", "ICBM99999", "--dry-run"])
+    assert "No selected subject" in capsys.readouterr().err
 
 
 def test_fcon1000_compost_layout_sites(tmp_path):

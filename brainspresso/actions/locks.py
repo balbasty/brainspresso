@@ -66,6 +66,15 @@ Limitations
 * Lock files accumulate (one per file ever locked). Deleting the
   `locks/` folder is safe only while no brainspresso process uses the
   dataset.
+* Lock files are created with mode 0o666 less the umask: in a dataset
+  shared by several users, every writer needs write access to
+  `.brainspresso/locks/` and its files (e.g. umask 002 and a common
+  group); a writer that cannot open its lock file for writing raises
+  `LockError`.
+* Whether locks hold across machines depends on the filesystem
+  (`fcntl` locks over NFS need a lock manager; some FUSE or object
+  stores accept them but do not share them): this cannot be checked
+  from here, and is not tested.
 """
 from __future__ import annotations
 

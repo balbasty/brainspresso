@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 adhd200_help = """
 ADHD-200 dataset (attention deficit hyperactivity disorder)
@@ -15,3 +16,5 @@ ADHD-200 dataset (attention deficit hyperactivity disorder)
 app.command(
     adhd200 := App(name="adhd200", help=adhd200_help)
 )
+
+add_compost(adhd200, "ADHD-200")

@@ -1,7 +1,7 @@
 # Brainspresso
 
-A single application to **harvest** (download), **roast** (bidsify)
-and **grind** (preprocess) public datasets.
+A single application to **harvest** (download), **roast** (bidsify),
+**grind** (preprocess) and **compost** (clean up) public datasets.
 
 This is a very early work in progress.
 
@@ -43,6 +43,7 @@ Usage: brainspresso COMMAND
  • Harvest    : Download raw data
  • Roast      : Bidsify raw data
  • Grind      : Preprocess data with standard pipelines
+ • Compost    : Delete source data, or data outside a filter
 
 ╭─ Help ────────────────────────────────────────────────────────────────────────────╮
 │ --help,-h  Display this message and exit.                                         │
@@ -200,3 +201,36 @@ slice timing in milliseconds, invalid JSON, sessions tables without
 `session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
 are repaired after download (`brainspresso/bids/repair.py`).
 Each dataset's `README` lists what was changed.
+
+## Compost: clean up a local dataset
+
+Every dataset has a `compost` command. By default, it deletes the source
+data (`<path>/<DATASET>/sourcedata/`) once it has been roasted into BIDS,
+since the archives it contains are usually only taking up space. It
+refuses to do so if no BIDS subject is found (use `--force` to override).
+
+```shell
+bx ixi compost /data --dry-run          # what would be deleted?
+bx ixi compost /data --keep "*.xls"     # keep some source files
+bx oasis1 compost /data --nested        # also derivatives/*/sourcedata
+```
+
+If BIDS filters are given, BIDS data that does **not** match them is
+deleted instead (source data is then kept, unless `--sourcedata` is
+used). The filters are the same as `bx openneuro harvest`, and describe
+what is *kept*: composting with some filters leaves what harvesting with
+the same filters would have downloaded. Metadata that still applies to a
+kept file is kept, dataset-level files are never deleted, and
+`participants.tsv`, `*_sessions.tsv` and `*_scans.tsv` are rewritten to
+only list what is left.
+
+```shell
+bx ixi compost /data --exclude-subs 012 145      # delete two subjects
+bx ixi compost /data --suffixes T1w T2w           # only keep T1w and T2w
+bx abide1 compost /data --where "age>=18" --derivatives
+bx openneuro compost ds000224 /data --datatypes anat
+```
+
+`--derivatives` applies the subject and session filters to
+`derivatives/*/` too. Files to delete are confirmed interactively
+(`--yes` to skip, `--list` to print them first).

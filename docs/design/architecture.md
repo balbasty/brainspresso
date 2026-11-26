@@ -509,9 +509,9 @@ layer in 2b-iv):
 
 ## 6. Dataset registration
 
-Status: **design** (step 4, phase 1), not implemented yet. It replaces the
-sketch of r1–r8 and absorbs INDI's `Project` (`INDI/engine.py`),
-`add_compost` (`datasets/compost.py`) and the per-dataset `command.py`.
+Status: **implemented in step 4** (design r9, review folded in r10). It
+replaces INDI's `Project` command flow, `add_compost` and the per-dataset
+`command.py` modules.
 
 ### Shape
 
@@ -519,14 +519,14 @@ sketch of r1–r8 and absorbs INDI's `Project` (`INDI/engine.py`),
   what it is (name, folder, keys, sources, per-key defaults, layouts,
   sites); `register` turns it into `bx <name> {harvest,roast,compost,info}`
   built from shared option groups. A dataset that needs more overrides a
-  method (the body of a command), edits the option groups of a command,
-  or adds raw cyclopts commands in `cli(app)`: nothing is fixed beyond the
-  defaults (unusual commands, INDI's many projects, OpenNeuro's
-  per-accession datasets all fit).
-* Commands are methods taking a `Layout` and parsed options: the Python
-  API used by tests and `bx grind --datasets` (§7).
+  command body, edits the option groups of a command, or adds raw
+  cyclopts commands in `cli(app)` (unusual commands, INDI's many
+  projects, OpenNeuro's per-accession datasets all fit).
+* `Dataset.run(command, layout, args)` (not meant to be overridden) is
+  the one entry point of the CLI wrapper and of the Python API: it takes
+  the run lock, then calls the command body.
 
-### `Dataset`: attributes
+### `Dataset`: attributes (immutable class defaults)
 
 ```python
 class Dataset:
@@ -535,235 +535,252 @@ class Dataset:
                                   #   ("OpenNeuro/{dataset}")
     title: str = ""
     help: str = ""                # markdown; first line = catalog summary
-    keys: KeyAliases | Mapping | None = None
-                                  # KeyAliases, or a legacy utils.keys tree
-                                  #   (until step 5); None: no --keys
-    subject_width: int = 0        # --subs 2 -> "002" (subject_labels)
-    sessions: bool = False        # adds SessionOptions
-    sites: tuple[str, ...] = ()   # adds SiteOptions (choices of --sites)
+    keys: KeySpec | None = None   # tree, choices, default of --keys
+    subject_width: int | None = None   # None: labels verbatim (strip
+                                  #   `sub-`); int: numbers, ranges, width
+    sessions: bool = False        # SessionOptions in harvest/roast
+    site_names: tuple[str, ...] = ()   # SiteOptions; names in the help
     layouts: tuple[str, ...] = ("study", "flat")   # multi-site: ALL_LAYOUTS
-    templates: Path | None = None
+    template_dir: Path | None = None
     defaults: Mapping[str, Sequence[str]] = {}     # per-key sources (§4)
-    roaster: Roaster | None = None   # used when no source has a roaster
-    login: str | None = None      # title of the LoginOptions panel
+    roaster: Roaster | None = None   # when no source has a roaster
+    credentials: Literal["login", "token"] | None = None
+    harvest_jobs: int | None = None  # default of harvest --jobs
+    download: Mapping[str, Any] = {} # fixed DownloadOptions (on_error...)
+    option_defaults: Mapping[str, Mapping[str, Any]] = {}
+                                  # {command: {field: default}}
     requires: Mapping[str, tuple[str, ...]] = {}   # {"roast": ("xlrd",)}
     extra: str | None = None      # pip extra that installs `requires`
     commands: tuple[str, ...] = ("harvest", "roast", "compost", "info")
     arguments: tuple[Argument, ...] = ()   # leading positionals of every
                                   #   command (OpenNeuro: accession)
-    grind_defaults: Mapping[str, Mapping] = {}     # reserved (§7)
 ```
 
 `roast` is dropped from the default `commands` when neither a source nor
-`roaster` provides one and `roast()` is not overridden (CoRR, GSP, ADHD200).
-A command listed in `requires` is registered only if `utils.deps.requires`
-finds its modules (`find_spec`, no import), as today.
+`roaster` provides one and `roast()` is not overridden (CoRR, GSP,
+ADHD200). A command whose `requires` are missing (`find_spec`, no import)
+is a stub: listed with "(needs pip install 'brainspresso[x]')" in its
+summary, it exits 1 with the hint; it is still recorded in
+`utils.deps.UNAVAILABLE`. The class body and `sources()` run at
+registration: no network access and no optional import there.
 
-### `Dataset`: overridable methods
+### `Dataset`: methods
 
 ```python
 def sources(self, args: Args | None = None) -> dict[str, Source]
-                                  # fresh instances (ADNI: from --urls)
-def bind(self, **arguments) -> Self          # copy for one accession...
+                                  # fresh, configured with
+                                  #   args.source_options() (ADNI: --urls)
+def bind(self, **arguments) -> Self          # copy for one accession
+def keys_for(self, command: str) -> KeySpec | None   # default: keys
+def select_sites(self, values) -> tuple[str, ...]   # case-insensitive;
+                                  #   UsageError on unknown names
 def options(self, command: str) -> dict[str, type[OptionGroup]]
-                                  # param name -> group; edit super()'s
+                                  # extra groups of a command (Args.extras)
 def root(self, path=None, out=None) -> Path  # --out, else tree path/folder
-def layout(self, root, args, *, create: bool) -> Layout
-                                  # parse_layout(--layout) + resolve_layout
-def selection(self, args) -> Selection       # subjects (subject_width),
-                                  #   sessions, filters
-def wants(self, args) -> Wants               # --keys/--exclude-keys
-def configure(self, sources, args) -> dict[str, Source]
-                                  # configure_sources(**args.source_options())
+def layout(self, root, layout=None, *, create=False) -> Layout
+def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
+              ) -> Selection
+def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
-                                  # --source, else sources.select_roaster,
-                                  #   else self.roaster; sets ctx.source
+def run(self, command, layout, args)         # lock, then the body
 # Bodies of the default commands
 def harvest(self, layout, args) -> dict[str, str]  # harvest_sources(...)
 def roast(self, layout, args) -> RoastReport       # make_context + run_roast
 def compost(self, layout, args) -> CompostPlan | list
-def info(self, layout: Layout | None, args) -> None   # keys, sources and
-                                  #   what they provide, defaults, local runs
+def info(self, layout=None, args=None) -> None     # no path, no lock
 def cli(self, app: App) -> None   # add or replace commands (after defaults)
 ```
 
-`Args` holds the parsed groups of one command (`args.download.jobs`) and
-`args.source_options()`, the union of the groups' `source_options()`
-(sites, credentials, dataset groups such as OASIS-I `discs`), offered to
-every source through `Source.configure` (unknown options ignored, §4).
-`Args.of(ds, "harvest", select=SelectionOptions(subs=["002"]))` fills the
-other groups with their defaults (Python API, tests). The default
-`harvest` is `harvest_sources(self.configure(self.sources(args), args),
-self.defaults, layout, self.selection(args), self.wants(args),
-args.download.runtime(), override=args.source.source)` after
-`record_run`: per-key defaults, fallback on `SourceUnavailable` and
-per-source roasters are unchanged.
+`Args` (a documented dataclass) has one always-populated field per
+standard group (`keys`, `select`, `sessions`, `sites`, `filters`,
+`hosted`, `source`, `credentials`, `harvest`, `roast`, `compost`,
+`layout`, `log`; defaults filled in for groups a command does not show)
+and `extras: dict[str, OptionGroup]` for dataset groups, whose fields
+never reuse a standard name. `args.source_options()` is the union of the
+groups' `source_options()` (sites, credentials, extras such as OASIS-I
+`discs`), offered to every source through `Source.configure` (unknown
+options ignored, §4). `Args.of(ds, "harvest", select=...)` is the Python
+API. The default `harvest` is `harvest_sources(self.sources(args),
+self.defaults, layout, selection, wants, options, override=--source)`
+after `record_run`: per-key defaults, fallback and per-source roasters
+are unchanged. `--dry-run` creates nothing and takes no lock.
 
 ### Option groups (`datasets/options.py`)
 
-Dataclasses flattened into flags (`@Parameter(name="*", group=Group(...,
-sort_key=))`, help from field docstrings), subclassable to add fields;
-`with_defaults(Group, jobs=8)` derives a subclass with other defaults.
+Dataclasses flattened into flags (`@Parameter(name="*", group=...)`),
+help from `Parameter(help=)`; subclassable. Signature parameters are
+`Group | None = None` and `Args` fills the defaults.
+`OptionGroup.for_dataset(ds, command)` returns the group, or a subclass
+built with `dataclasses.make_dataclass` for per-dataset choices (keys,
+sources, layouts) and `option_defaults` (closures over a local `Literal`
+break under `from __future__ import annotations`).
 
-| Group | Flags | Default use |
-|-------|-------|-------------|
-| `KeyOptions` | `--keys`, `--exclude-keys` (choices: leaves and groups of `keys`) | harvest, roast, if `keys` |
-| `SelectionOptions` | `--subs`, `--exclude-subs` (str, normalised) | harvest, roast, compost |
-| `SessionOptions` | `--sessions` | same, if `sessions` |
-| `SiteOptions` | `--sites`, `--exclude-sites` | same, if `sites` |
-| `FilterOptions` | `--datatypes`, `--suffixes`, `--tasks`, `--include`, `--exclude`, `--where`, `--folders`, `--trim` | compost; hosted-BIDS harvests |
-| `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (which roaster); info |
-| `LoginOptions` | `--user`, `--password` | harvest, if `login` |
-| `TokenOptions` | `--token` | harvest, if a source has `token` |
-| `DownloadOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--list` | harvest (`runtime()` -> `sources.base.DownloadOptions`) |
-| `RoastOptions` | `--json`, `--if-exists`, `--jobs` | roast |
-| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--force`, `--yes/-y`, `--dry-run`, `--list`, `--wait` | compost |
-| `LayoutOptions` | `--layout` (choices: `layouts`), `--site-layout` (hidden) | all |
+| Group | Flags | Used by |
+|-------|-------|---------|
+| `KeyOptions` | `--keys`, `--exclude-keys` (`keys_for(command)`) | harvest, roast |
+| `SelectionOptions` | `--subs`, `--exclude-subs` | harvest, roast, compost |
+| `SessionOptions` | `--sessions` | compost; harvest/roast if `sessions` |
+| `SiteOptions` | `--sites`, `--exclude-sites` (str, `select_sites`) | if `site_names` |
+| `FilterOptions` | `--datatypes`, `--suffixes`, `--tasks`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
+| `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
+| `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest, roast |
+| `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
+| `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--wait` | harvest |
+| `RoastOptions` | `--json`, `--if-exists`, `--jobs`, `--wait` | roast |
+| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--yes/-y`, `--dry-run`, `--list`, `--wait` | compost |
+| `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
 
-Every command also takes `path` (root of all datasets, `BDP_PATH`) and
-`--out` (dataset folder); summaries come from `describe(command)`.
+Every command but `info` also takes `path` (root of all datasets,
+`BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an
+existing file is read as a list of subjects (one per line). Labels that
+match nothing are warned about by the hosted harvests; their format is
+not validated.
 
-### `register` and the lazy catalog
+### `register`, the catalog and `cli.main`
 
-```python
-def register(dataset: Dataset | type[Dataset], parent: App | None = None) -> App
-```
-
-* Instantiates a class (INDI registers one instance per project subclass),
-  builds `App(name, help)`, and for each available command a function
+* `register(dataset) -> App` instantiates a class (INDI registers one
+  instance per project subclass) and adds, for each command, a function
   whose `__signature__` is `arguments` + `path` + `--out` + one
-  keyword-only parameter per group of `options(command)` (checked on
-  cyclopts 5.5.3: synthesised signatures and flattened dataclasses parse
-  and render panels). Its body: `setup_filelog`, `bind(arguments)`,
-  `root`, `layout(create=command in {"harvest", "roast"})`, the run lock
-  (below), then the method. One `user_errors` wrapper (`ValueError`,
-  `KeyError`, `FileNotFoundError`, `PermissionError`, `LockTimeout`,
-  `CredentialsError`, `SourceUnavailable`) replaces the three copies.
-  Then `cli(app)`.
-* Builders live in `COMMANDS` (decorator `command_builder(name)`): later
-  stages add commands without editing `register`.
-* `datasets/catalog.py` imports no dataset: `CATALOG = {"ixi":
-  ("brainspresso.datasets.IXI:IXI", "IXI dataset (controls)"), ...,
-  "nki-rs": ("brainspresso.datasets.INDI.projects:NKIRS", ...)}`, `load(name)
-  -> Dataset`, and a module `__getattr__` that returns `register(load(name))`.
-  `cli.py` adds each entry as a cyclopts lazy command
-  (`app.command("brainspresso.datasets.catalog:<attr>", name=, help=)`), so
-  `bx --help` imports no dataset and `bx ixi ...` imports IXI only. A
-  dataset that fails to import becomes a stub command printing why (the
-  warning of today). Needs `cyclopts >= 5` (`CommandSpec.help`, absent
-  in 4.x; to verify on 5.0), the floor is `>= 3` today.
-* Why `python -m brainspresso.cli --help` lists nothing today: the
-  package `__init__` imports every dataset, which registers on the module
-  `brainspresso.cli`, while `-m` runs a second copy of `cli.py` as
-  `__main__` with an empty `app` (`bx` uses the populated one). Fix:
-  datasets never import `brainspresso.cli`, `__init__` imports none
-  (`_datasets` becomes `CATALOG`), `cli.py` builds the root app from the
-  catalog; add `brainspresso/__main__.py`.
+  keyword-only parameter per group. Its body: `setup_filelog`,
+  `bind(arguments)`, `root`, `layout`, `Args`, then `run`. Then `cli(app)`.
+  Builders are a plain dict `COMMANDS`.
+* `user_errors` prints `UsageError` (option validation; a `ValueError`),
+  `LayoutError`, `CredentialsError`, `SourceUnavailable`, `LockError`
+  and `LockTimeout` without a traceback (exit 1); other exceptions keep
+  theirs. Tracebacks always go to the file log, and are printed with
+  `--level debug`.
+* `datasets/catalog.py` imports no dataset: `CATALOG = {name: (import
+  path, summary)}` and `load(name) -> Dataset`. `scripts/make_catalog.py`
+  regenerates it; a test checks that each summary is the first line of
+  `help`.
+* `cli.main(tokens)` registers only the dataset named by the first token
+  (a stub printing the error if it fails to import), and one placeholder
+  `App(name, help=summary)` per other entry, so `bx --help` imports no
+  dataset and `bx ixi --help` shows the long help. No cyclopts lazy
+  commands (`CommandSpec`, cyclopts >= 4, would also overwrite the
+  resolved app's help with the summary). `cli.app` (module
+  `__getattr__`) is the app with every dataset registered, for tests and
+  scripts.
+* Why `python -m brainspresso.cli` listed nothing: the package `__init__`
+  imported every dataset, which registered on the module
+  `brainspresso.cli`, while `-m` ran a second copy as `__main__`. Now
+  datasets never import `brainspresso.cli`, `__init__` imports none, and
+  `brainspresso/__main__.py` exists.
+* cyclopts floor: stays `>= 3` unless a construct used here needs more;
+  the real minimum is measured (CLI tests and snapshot in throwaway
+  venvs) and documented in `setup.cfg`.
+* Later: an entry-point group for third-party datasets, merged into the
+  catalog.
 
 ### Layouts
 
-* One option: `--layout {study,flat,sites,sites:study,sites:flat}`
-  (`LayoutValue`); choices are the dataset's `layouts`, so `sites` only
-  exists for multi-site datasets. `parse_layout(value) -> (kind,
-  child_kind)` (`bids/layout.py`); `sites` = the layout of existing sites,
-  else `DEFAULT_LAYOUT` (`study`, now final, §9). Manifest unchanged.
-* `--site-layout X` stays a hidden, deprecated alias (warning): with
-  `--layout sites` it means `sites:X`; alone it is an error ("use
-  `--layout sites:X`"). Remove it after step 5. `LayoutError` messages
-  say `--layout sites:<kind>`.
-* INDI keeps today's rule for single-site projects (they accept `sites*`
-  and use the child kind); compost runs site by site; the default `roast`
-  refuses a `sites` layout (no dataset roasts one yet).
+* One option: `--layout {study,flat,sites,sites:study,sites:flat}`;
+  choices are the dataset's `layouts`. `parse_layout(value) -> (kind,
+  child_kind)` (`bids/layout.py`); `sites` = the layout of existing
+  sites, else `DEFAULT_LAYOUT` (`study`, final, §9). Manifest unchanged.
+* `--site-layout X`: hidden, deprecated (warning) until the end of step
+  5; with `--layout sites` it means `sites:X`, alone it is an error.
+* Every INDI project keeps `--sites` and the `sites*` layouts (single-site
+  ones use the child kind, as before). Compost runs site by site;
+  compost `--sites` only applies to a sites layout (error otherwise); the
+  default `roast` refuses a sites layout.
 
-### Compost and locks
+### Run lock (`actions/runlock.py`)
 
-* `Dataset.compost` replaces `run_compost`/`add_compost` (the module
-  function stays for tests); OpenNeuro's own compost goes.
-* Run lock: `FileLock(<state>/run)` (lock file in `.brainspresso/locks/`,
-  §5), **shared** for a whole harvest or roast (and later grind units),
-  **exclusive** for compost with `timeout=--wait` (default 0): compost
-  fails at once, naming the holder (pid, host), while a harvest or roast
-  of the dataset runs, also on other cluster nodes, and nothing starts
-  while compost deletes. Sites: the parent and each site. No per-file
-  locks for deletions (one never-deleted lock file per deleted file);
-  rewritten tables go through `File(path, "w")`. Processes that skip the
-  run lock (older versions, other tools) are not protected.
+* `run_lock(state, command, exclusive=, wait=0)`: a `FileLock` on
+  `<state>/run`, **shared** for harvest and roast, **exclusive** for
+  compost, taken after `ensure_state()` and before `record_run`; compost
+  takes it before planning and holds it through its confirmation.
+  `--dry-run` and `info` take none. Sites: the parent and every
+  existing site. All three commands fail at once by default (`--wait
+  SECONDS`). Locks disabled (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
+* A shared lock that cannot be opened raises `LockError` (`FileLock`
+  would go on unlocked).
+* Run records: every holder writes `<state>/runs/<host>-<pid>.json`
+  (command, user, host, pid, start), removed on exit; `FileLock` only
+  signs exclusive holders, so the messages name holders from the
+  records ("harvest running: pid N on host since ..."). Roast pool
+  workers take the shared lock in the pool initializer.
+* Second line of defence: compost holding the exclusive lock refuses
+  (unless `--force`) while a record from another host exists ("locks may
+  not be shared on this filesystem, or a run crashed on <host>") or one
+  from this host with a live pid; records of dead local pids are
+  removed.
+* Rewritten tables go through `File(path, "w")`; deletions take no
+  per-file lock (one never-deleted lock file per deleted file).
 
-### Grind seam (not implemented)
+### Grind seam (open items for 4g, not decisions)
 
-`grind` will be a builder in `COMMANDS` adding `bx <ds> grind <pipeline>`
-(a sub-App, one lazy command per pipeline) for datasets that list it in
-`commands`; it reads `grind_defaults` (T1w choice, species/template,
-excluded subjects). `bx grind --datasets` uses `catalog.load(name)` and
-`Dataset.layout`; grind units take the shared run lock.
+`grind` would be one more builder in `COMMANDS` (`bx <ds> grind
+<pipeline>`). Open: naming a bound dataset in `--datasets`
+(`openneuro/ds000224`); grind iterating `layout.datasets()` for sites
+layouts; whether one lock domain per dataset is too coarse for long
+grind jobs. Ports must not assume that grind units take the run lock.
 
-### Migration (phase 2)
-
-Order: catalog + lazy CLI; groups, `Dataset`, `register`, layouts,
-compost lock; pilots IXI, UNC-Wisconsin, OASIS-III, INDI, OpenNeuro; the
-rest; then drop `add_compost`, `command.py` files and command decorators.
+### Migration
 
 | Dataset | harvest | roast | Notes |
 |---------|---------|-------|-------|
 | IXI | declared (login) | declared (source roasters) | `requires` roast xlrd, width 3 |
-| UNC-Wisconsin, OASIS-III | declared (token / login) | declared | sessions |
-| ABIDE-I | declared (sites, login, legacy tree) | override: legacy bidsifiers, `--source` picks nitrc/xnat (step 5) | `download-nitrc/xnat`: hidden aliases of `harvest --source` |
-| ABIDE-II, COBRE, Bullitt | declared | override: legacy function (step 5) | |
-| OASIS-I / II | declared + `discs` / `parts` group | override: legacy function | requires openpyxl |
-| CoRR, GSP, ADHD200 | declared (ADHD200: `bidsify` group) | none | |
+| UNC-Wisconsin, OASIS-III | declared (token / login) | declared | UNC sessions |
+| ABIDE-I, ABIDE-II, CoRR | declared (sites, login) | ABIDE: override, legacy code (step 5) | ABIDE-I `download-nitrc/xnat` dropped |
+| COBRE, Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
+| GSP, ADHD200 | declared (ADHD200: `bidsify` group) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
-| INDI projects | override (`harvest_sites`/`collect`), Filter + Site groups, `jobs=8` | none | `Project` becomes `INDIDataset(Dataset)`; `info` override |
-| OpenNeuro | override; `arguments=(dataset,)`; `OpenNeuroOptions(--tag, --source auto/graphql/s3, --token)` replaces `SourceOptions` | none | default compost, `info` override |
+| INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | none | `INDIDataset`; `info` override |
+| OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | none | default compost; `info` override |
 
-### CLI compatibility (flags that change)
+### CLI compatibility
+
+Every flag of the step-3 snapshot (`tests/data/cli_flags_step3.json`)
+keeps its names, default and choices, except (listed in `test_cli.py`):
 
 * `--layout sites:study|sites:flat` (new); `--site-layout` deprecated.
-* `--exclude-keys` alone keeps files that match no key (today they are
-  dropped as soon as a BIDS key is excluded: `--exclude-keys T2w` drops
-  IXI `sub-*_FLAIR.nii.gz`); unclassified files that follow the scans of
-  an excluded key still go. `--keys` keeps only what its keys describe.
-* `--subs`/`--exclude-subs` parse as strings everywhere, normalised with
-  `subject_width` (were `int` for IXI, COBRE, Bullitt...: same inputs).
-* `--keys` choices come from the key tree (IXI harvest also lists `trace`).
-* Added where missing (all additive): `info`, `--out`, `--level`,
-  `--exclude-keys`, `--dry-run`/`--insecure`/`--jobs` on harvest,
-  `--exclude-sites`, compost `--wait`, roast `--source`.
-* ABIDE-I `download-nitrc`/`download-xnat` take the flags of `harvest`.
-* `--help` panels are regrouped (README excerpts regenerated);
-  `python -m brainspresso[.cli]` lists datasets.
+* `--sites`: free text validated by `select_sites` (was a choice list
+  for ABIDE-I/II and CoRR); default `()` = all (was the list of sites).
+* `--keys` default `()` = all where it was the list of all keys; `--subs`
+  and `--exclude-subs` parse as strings (same inputs accepted).
+* `--exclude-keys` alone keeps files that match no key (they were
+  dropped once a BIDS key was excluded: `--exclude-keys T2w` dropped IXI
+  `sub-*_FLAIR.nii.gz`); files that follow an excluded key's scans go.
+* ABIDE-I `download-nitrc`/`download-xnat` removed (`harvest --source`).
+* Missing optional dependencies: stub commands instead of none.
+* Added (additive): `info` everywhere, `--out`, `--level`, `--wait`,
+  `--exclude-keys`, `--dry-run`, `--insecure`, `--jobs` on harvests,
+  `--exclude-sites`, roast `--source`, compost `--sites`.
+* `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
 
 ### Tests
 
-* Toy `Dataset` (fake sources): default commands and flags, group
-  override/extension, `with_defaults`, no roaster -> no `roast`, missing
-  `requires` -> absent and in `UNAVAILABLE`, `cli()`.
-* Flag snapshot: a script dumps every `(dataset, command, flag)` from the
-  apps; the snapshot taken on the base branch must be a subset of the new
-  one, except the flags listed above (test file lists the exceptions).
-* Subprocesses: `bx --help`, `python -m brainspresso.cli --help` and
-  `python -m brainspresso --help` list every catalog entry, and building
-  the root help imports no `brainspresso.datasets.*` module except the
-  catalog; a broken entry gives a stub with its error; every entry
-  resolves, catalog summaries equal the first line of `help`.
-* Layouts: `parse_layout`; `sites`/`sites:flat` on fcon1000 (the
-  parametrised `test_indi` runs with both spellings); alias warning;
-  `sites` rejected for single-layout datasets; single-site INDI rule.
-* `--exclude-keys`: keep/drop of unclassified data, metadata and claims.
-* Compost fails fast while another process holds the run lock (`--wait`);
-  harvest and roast hold it; sites lock each site.
-* `Dataset.harvest`/`roast`: per-key defaults, fallback, `--source`;
-  roast `--source` sets the roaster and `ctx.source`.
+* Toy `Dataset`: default commands, groups, `for_dataset`, stubs, `cli()`.
+* Flag snapshot (names, choices, defaults) against step 3, exceptions
+  listed; each dataset-group option is accepted by one of its sources.
+* Subprocesses: root help of `bx`, `python -m brainspresso[.cli]` lists
+  the catalog without importing datasets; `bx ixi --help` shows the long
+  help; broken entry -> stub; catalog summaries match.
+* Labels: zero-padded labels verbatim (fcon1000, OpenNeuro, compost);
+  numeric labels with a width (IXI).
+* Layouts: `sites`, `sites:flat`, alias, errors. `--exclude-keys`.
+* Run lock: held by another process -> fail fast, `--wait`, records,
+  stale records, `--force`; dry runs create nothing;
+  `BRAINSPRESSO_LOCKS=0`.
 
 ### Risks
 
-* Synthesised signatures rely on cyclopts behaviour (field docstrings,
-  panels): flag snapshot + version floor. Generic help wording:
-  `describe()` and group subclasses reword.
-* Lazy loading moves import errors to first use: every entry is resolved
-  in the package test.
+* Synthesised signatures rely on cyclopts behaviour: snapshot test, run
+  at the documented floor.
+* Deferred imports move import errors to first use: every catalog entry
+  is loaded in the package test.
+* Cluster locks: NFSv3 keeps the lock of a crashed client (until the
+  lock daemon notices; remedy: restart the client or clear the lock on
+  the server, then delete the stale record); NFSv4 can drop the lock of
+  a partitioned node; Lustre `localflock` and some FUSE mounts do not
+  share locks between nodes; a stopped (SIGSTOP) job keeps its lock. Run
+  records catch the cases where the lock is not shared; without `fcntl`
+  compost refuses unless `BRAINSPRESSO_LOCKS=0`.
 * Over-generalising: legacy roasts stay overrides, `cli()` is an escape
-  hatch. Without `fcntl` locks compost refuses unless `BRAINSPRESSO_LOCKS=0`.
+  hatch.
 
 ## 7. Grind
 
@@ -851,7 +868,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
-| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; lazy catalog; `--layout sites:<kind>`; compost run lock | High-Effort Opus | design (§6), under review |
+| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | in progress (§6, r10) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
@@ -980,3 +997,13 @@ up as an XPASS failure once fixed (then drop the marker).
   alone keeps files that match no key, compost takes an exclusive run
   lock that harvest and roast hold shared; default layout `study` is
   final; nested shards stay handed back to the main process (§5).
+* r10: step 4 design review. `cli.main` registers only the named
+  dataset (placeholders for the others, no cyclopts lazy commands, which
+  lose the long help; cyclopts floor at the measured minimum); `--subs`
+  verbatim unless a dataset sets `subject_width`; `--sites` free text validated by
+  `select_sites`; run lock with run records, failing fast for all three
+  commands, a pool-initializer lock in roast workers and stale-record
+  checks; narrow `user_errors` (`UsageError`); `Args` dataclass and
+  `for_dataset` groups; per-command keys; `HarvestOptions`; missing
+  optional dependencies become stub commands; ABIDE-I `download-nitrc/
+  xnat` dropped; grind items left open for 4g.

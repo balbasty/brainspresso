@@ -414,3 +414,52 @@ def test_ifexists_context_is_restored():
             assert IfExists.current is IfExists.OVERWRITE
         assert IfExists.current is IfExists.SKIP
     assert IfExists.current is before
+
+
+# ----------------------------------------------------------------------
+#   Review fixes (2b-ii-fix)
+# ----------------------------------------------------------------------
+
+def shard_copies(ctx, sub, template):
+    """Every shard reads the same template"""
+    from brainspresso.actions import CopyJSON
+    for k in range(40):
+        yield CopyJSON(template, ctx.layout.raw / f"sub-{sub:02d}" / "anat"
+                       / f"sub-{sub:02d}_run-{k}_T1w.json")
+
+
+def shared_template(ctx):
+    for sub in range(8):
+        yield Shard(shard_copies, sub, ctx.layout.source / "T1w.json")
+
+
+def test_shared_source_read_concurrently(layout):
+    """Readers take no lock and create nothing next to sources"""
+    layout.source.mkdir(parents=True)
+    template = layout.source / "T1w.json"
+    template.write_text("{}")
+    report = run(shared_template, ctx_of(layout), jobs=4)
+    assert not report.errors
+    assert report.total("done") == 320
+    assert tree(layout.source) == {"T1w.json"}
+
+
+def test_reader_creates_nothing_next_to_source(layout, tmp_path):
+    src = tmp_path / "pkg" / "template.json"
+    src.parent.mkdir()
+    src.write_text("{}")
+    seen = []
+
+    def copy(path):
+        seen.append(sorted(p.name for p in src.parent.iterdir()))
+        Path(path).write_text(src.read_text())
+
+    def roaster(ctx):
+        yield Action(src, layout.raw / "README", copy, input="path")
+
+    report = run(roaster, ctx_of(layout))
+    assert report.total("done") == 1
+    assert seen == [["template.json"]]
+    assert sorted(p.name for p in src.parent.iterdir()) == ["template.json"]
+    # outputs are still written atomically (temporary file, then renamed)
+    assert not list(layout.raw.glob("*.tmp"))

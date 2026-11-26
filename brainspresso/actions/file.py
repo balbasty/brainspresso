@@ -13,22 +13,23 @@ class File:
     An object that represents a file in the tree.
 
     It can be in the process of being read, or in the process of
-    being written. Reader/Writer locks ensure that a file is not
-    overwritten while it is being read. During writing, a temporary
-    file is created first, and only renamed to its final name if
-    everything completed properly.
+    being written. A writer takes a lock (no two writers of one file)
+    and writes a temporary file (`<name>.tmp/<name>`), only renamed to
+    its final name if everything completed properly, so that readers
+    (which take no lock and create nothing: sources may be shared or
+    read-only) never see a partial file.
 
     ```python
     # Open file object for reading
     with File(filename) as file_ref:
         # no protection at this point
         with file_ref.open("rb") as f:
-            # read protection enabled
+            # readers take no lock (nothing is created)
             dat = f.read()
 
     # Alternative syntax
     with File(filename, "rb") as file_ref:
-        # read protection enabled
+        # readers take no lock (nothing is created)
         with file_ref.open() as f:
             dat = f.read()
 
@@ -47,7 +48,7 @@ class File:
 
     # Protect file for reading (but do not open a file-object)
     with File(filename, "r") as file_ref:
-        # read protection enabled
+        # readers take no lock (nothing is created)
         subroutine_read(file_ref.safename)
 
     # Protect file for writing (but do not open a file-object)
@@ -110,6 +111,9 @@ class File:
         self.file: IO[bytes] = None
         self.writable = None
         self.readable = None
+        self.discard = False
+        self._entered = False
+        self._writing = False
 
     def open(self, mode: str | None = None, **kwargs) -> "OpenedFile":
         r"""
@@ -140,48 +144,47 @@ class File:
         -------
         OpenedFile
         """
-        if self.lock is None:
+        if not self._entered:
             raise ValueError('File.open() called outside of context manager')
         mode = mode or self.mode or 'rb'
         return OpenedFile(self, mode, **kwargs)
 
     def __enter__(self):
+        mode = self.mode or ''
+        # (no mode: protection deferred to `open`)
+        self.writable = ('w' in mode or 'a' in mode or '+' in mode) \
+            if mode else None
+        self.readable = ('r' in mode or '+' in mode) if mode else None
+        self.discard = False
+        self._entered = True
 
-        # Remove existing file
+        if not self.writable:
+            # Readers take no lock and create nothing next to the file:
+            # sources may be shared by concurrent readers (several shards
+            # reading one template), installed in a read-only package or
+            # in a read-only `sourcedata/`. Writers never replace a file
+            # in place (temporary file + rename), so a reader always sees
+            # a complete file.
+            self.safename = self.filename
+            return self
+
+        self._writing = True
+        # Acquire the write lock first, then clear what a previous
+        # (interrupted) writer may have left: never touch the temporary
+        # file of a writer that owns the lock.
         self.tempdir.mkdir(parents=True, exist_ok=True)
+        self.lock = InterProcessReaderWriterLock(str(self.lockname))
+        if not self.lock.acquire_write_lock(blocking=False):
+            self.lock = None
+            self._entered = self._writing = False
+            raise RuntimeError(
+                f'Could not acquire write lock for {self.filename}'
+            )
         if self.tempname.is_dir():
             rmtree(self.tempname)
         else:
             self.tempname.unlink(missing_ok=True)
-
-        if self.mode:
-            # Acquire lock
-            self.lock = InterProcessReaderWriterLock(str(self.lockname))
-
-            mode = self.mode
-            self.writable = 'w' in mode or 'a' in mode or '+' in mode
-            self.readable = 'r' in mode or '+' in mode
-
-            if (
-                self.writable and
-                not (self.lock.acquire_write_lock(blocking=False))
-            ):
-                raise RuntimeError(
-                    f'Could not acquire write lock for {self.filename}'
-                )
-
-            elif (
-                self.readable and
-                not (self.lock.acquire_read_lock(blocking=False))
-            ):
-                raise RuntimeError(
-                    f'Could not acquire read lock for {self.filename}'
-                )
-
-        if self.writable:
-            self.safename = self.tempname
-        else:
-            self.safename = self.filename
+        self.safename = self.tempname
 
         # Copy file into temp
         if 'a' in mode or ('r' in mode and '+' in mode):
@@ -191,12 +194,22 @@ class File:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self._writing:
+            self._entered = False
+            self.safename = None
+            self.readable = None
+            return
         # Rename temporary filename to output filename
         # Note that we only rename the file to its final name and
         # remove temporary file if the download was successful (i.e.
-        # the context was not interrupted by an exception)
+        # the context was not interrupted by an exception), and if the
+        # output was not discarded (`discard`: identical to the file
+        # already there).
         try:
-            if exc_type is None and self.tempname.exists():
+            if (
+                exc_type is None and not self.discard and
+                self.tempname.exists()
+            ):
                 try:
                     self.tempname.replace(self.filename)
                 except IsADirectoryError:
@@ -205,21 +218,15 @@ class File:
         finally:
             # Release lock and delete existing files
             if self.lock is not None:
-                if self.writable:
-                    try:
-                        self.lock.release_write_lock()
-                    except RuntimeError:
-                        # we were not owning a write lock
-                        pass
-                elif self.readable:
-                    try:
-                        self.lock.release_read_lock()
-                    except RuntimeError:
-                        # we were not owning a read lock
-                        pass
+                try:
+                    self.lock.release_write_lock()
+                except RuntimeError:
+                    # we were not owning a write lock
+                    pass
             if self.tempdir.exists():
-                rmtree(self.tempdir)
+                rmtree(self.tempdir, ignore_errors=True)
             self.lock = None
+            self._entered = self._writing = False
             self.safename = None
             self.writable = None
             self.readable = None
@@ -426,15 +433,16 @@ class FileObj(FileObjMixin, File):
     An opened file object that represents a file in the tree.
 
     It can be in the process of being read, or in the process of
-    being written. Reader/Writer locks ensure that a file is not
-    overwritten while it is being read. During writing, a temporary
-    file is created first, and only renamed to its final name if
-    everything completed properly.
+    being written. A writer takes a lock (no two writers of one file)
+    and writes a temporary file (`<name>.tmp/<name>`), only renamed to
+    its final name if everything completed properly, so that readers
+    (which take no lock and create nothing: sources may be shared or
+    read-only) never see a partial file.
 
     ```python
     # Open file object for reading
     with FileObj(filename, "rb") as f:
-        # read protection enabled
+        # readers take no lock (nothing is created)
         dat = f.read()
 
     # Open file object for writing
@@ -482,17 +490,15 @@ class FileObj(FileObjMixin, File):
 
     def __enter__(self) -> "FileObj":
         super().__enter__()
-        self.tempdir.mkdir(parents=True, exist_ok=True)
         self.fileobj = self.safename.open(self.mode)
         self.total_read = 0
         self.total_write = 0
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        assert self.file is not None
         self.fileobj.close()
         self.fileobj = None
-        super().__exit__(self, exc_type, exc_val, exc_tb)
+        super().__exit__(exc_type, exc_val, exc_tb)
 
 
 class OpenedFile(FileObjMixin):
@@ -546,27 +552,22 @@ class OpenedFile(FileObjMixin):
                 'File was not opened in read mode, '
                 'so file object cannot be opened in read mode.')
 
-        if self.file.lock is None:
-            self.lock = InterProcessReaderWriterLock(str(self.file.lockname))
-            if (
-                self.writable and
-                not self.lock.acquire_write_lock(blocking=False)
-            ):
+        if self.writable and self.file.lock is None:
+            # protection deferred to here (`File(path)` without mode)
+            file = self.file
+            file.tempdir.mkdir(parents=True, exist_ok=True)
+            self.lock = InterProcessReaderWriterLock(str(file.lockname))
+            if not self.lock.acquire_write_lock(blocking=False):
+                self.lock = None
                 raise RuntimeError(
-                    f'Could not acquire write lock for {self.file.filename}'
+                    f'Could not acquire write lock for {file.filename}'
                 )
-            elif (
-                self.readable and
-                not self.lock.acquire_read_lock(blocking=False)
-            ):
-                raise RuntimeError(
-                    f'Could not acquire read lock for {self.file.filename}'
-                )
-
+            file.safename = file.tempname
+            file._writing = True
             # Copy file into temp
             if 'a' in mode or ('r' in mode and '+' in mode):
-                if self.file.filename.exists():
-                    copy2(self.file.filename, self.file.tempname)
+                if file.filename.exists():
+                    copy2(file.filename, file.tempname)
 
         self.fileobj = self.file.safename.open(mode)
         return self
@@ -576,18 +577,11 @@ class OpenedFile(FileObjMixin):
         assert self.file is not None
         self.fileobj.close()
         self.fileobj = None
-        # Release lock
+        # Release lock (the temporary file is renamed by `File.__exit__`)
         if self.lock is not None:
-            if self.writable:
-                try:
-                    self.lock.release_write_lock()
-                except RuntimeError:
-                    # we were not owning a write lock
-                    pass
-            elif self.readable:
-                try:
-                    self.lock.release_read_lock()
-                except RuntimeError:
-                    # we were not owning a read lock
-                    pass
+            try:
+                self.lock.release_write_lock()
+            except RuntimeError:
+                # we were not owning a write lock
+                pass
         self.lock = None

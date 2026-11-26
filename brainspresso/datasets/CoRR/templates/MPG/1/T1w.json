@@ -1,15 +1,18 @@
 {
     "Manufacturer": "Siemens",
-    "ManufacturerModelName": "Magnetom",
-    "MagneticFieldStrength": 7,
-    "PulseSequenceType": "MP2RAGE",
+    "ManufacturersModelName": "Magnetom",
+    "MagneticFieldStrength": 7.0,
+    "ReceiveCoilName": "24Chan",
+    "PulseSequenceType": "3D MP2RAGE",
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 5.0,
     "EchoTime": 0.0024500000000000004,
-    "ParallelReductionFactorInPlane": 2.0,
+    "InversionTime": 0.9,
+    "FlipAngle": 3.0,
+    "PixelBandwidth": 250.0,
     "ParallelAcquisitionTechnique": "GRAPPA",
-    "PhaseEncodingDirection": "AP",
-    "SliceEncodingDirection": "S",
-    "SliceTiming": "Interleaved Ascending",
-    "RepetitionTimePreparation": 5.0,
-    "DwellTime": 1.25e-05,
-    "MRAcquisitionType": "3D"
+    "ParallelReductionFactorInPlane": 2.0,
+    "PartialFourier": 0.08,
+    "SliceThickness": 0.7,
+    "AcquisitionMatrixPE": 320
 }

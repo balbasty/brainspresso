@@ -1,7 +1,9 @@
 {
     "Manufacturer": "GE",
-    "ManufacturerModelName": "Discovery MR750",
-    "MagneticFieldStrength": 3,
-    "PhaseEncodingDirection": "RL",
-    "SliceTiming": "Interleaved Ascending"
+    "ManufacturersModelName": "Discovery MR750",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8 Chan",
+    "RepetitionTime": 8.6,
+    "SliceThickness": 1.5,
+    "AcquisitionMatrixPE": 128
 }

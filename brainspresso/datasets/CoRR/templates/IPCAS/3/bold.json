@@ -1,13 +1,18 @@
 {
     "Manufacturer": "Siemens",
-    "ManufacturerModelName": "TrioTim",
-    "MagneticFieldStrength": 3,
+    "ManufacturersModelName": "TrioTim",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8 Chan",
     "PulseSequenceType": "EPI",
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "RepetitionTime": 2.0,
     "EchoTime": 0.03,
     "FlipAngle": 90.0,
-    "PhaseEncodingDirection": "AP",
-    "SliceEncodingDirection": "A",
-    "SliceTiming": "Interleaved Ascending",
-    "RepetitionTimeExcitation": 2.0,
-    "EffectiveEchoSpacing": 7.000448028673835e-06
+    "PixelBandwidth": 2232.0,
+    "SliceThickness": 3.0,
+    "SpacingBetweenSlices": 3.99,
+    "AcquisitionMatrixPE": 64
 }

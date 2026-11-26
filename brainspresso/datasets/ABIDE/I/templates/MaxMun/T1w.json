@@ -1,18 +1,60 @@
 {
-    "Manufacturer":  "Siemens",
-    "ManufacturerModelName": "Verio",
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
     "SoftwareVersions": "syngo MR B17",
-    "MagneticFieldStrength": 3,
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP;NE2",
+    "MatrixCoilMode": "Auto (Triple)",
+    "CoilCombinationMethod": "rSOS",
     "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR",
+        "PFP"
+    ],
     "SequenceName": "tfl",
-    "EchoTime": 3.06E-3,
-    "RepetitionTimePreparation": 1.8,
-    "RepetitionTimeExcitation": 7.3E-3,
-    "InversionTime": 0.9,
-    "FlipAngle": 9,
+    "PulseSequenceDetails": "%SiemensSeq%\\tfl",
     "MRAcquisitionType": "3D",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "SpoilingRFPhaseIncrement": 50.0,
+    "B0ShimmingTechnique": "Standard",
     "ParallelReductionFactorInPlane": 2,
     "ParallelReductionFactorOutOfPlane": 1,
     "ParallelAcquisitionTechnique": "GRAPPA",
-    "CoilCombinationMethod": "Sum of Squares"
-  }
+    "PartialFourier": 0.875,
+    "PartialFourierDirection": "PHASE",
+    "EchoTime": 0.0030600000000000002,
+    "InversionTime": 0.9,
+    "SliceEncodingDirection": "i",
+    "DwellTime": 8.492000000000001e-06,
+    "FlipAngle": 9.0,
+    "RepetitionTime": 1.8,
+    "RepetitionTimeExcitation": 0.0073,
+    "RepetitionTimePreparation": 1.8,
+    "Modality": "MR",
+    "ProtocolName": "t1_mprage_sag",
+    "SeriesDescription": "t1_mprage_sag",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "BaseResolution": 256,
+    "AcquisitionMatrixPE": 240,
+    "ReconMatrixPE": 240,
+    "PercentPhaseFOV": 93.8,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 210,
+    "PixelBandwidth": 230.0,
+    "SliceThickness": 1.0,
+    "NumberOfAverages": 1
+}

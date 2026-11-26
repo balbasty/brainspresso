@@ -1,19 +1,25 @@
 {
     "Manufacturer": "Philips",
-    "ManufacturerModelName": "Achieva Ds",
     "MagneticFieldStrength": 3.0,
-    "PulseSequenceType": "TFE",
+    "ImagingFrequency": 127.728,
+    "Modality": "MR",
+    "ProtocolName": "T1w",
+    "RepetitionTime": 0.0094,
     "EchoTime": 0.0046,
     "FlipAngle": 8.0,
-    "ParallelAcquisitionTechnique": "SENSE",
-    "SliceEncodingDirection": "A",
-    "SliceThickness": 1.2,
-    "FatSaturation": false,
-    "AcquisitionMatrixSE": 182,
-    "ReconMatrixSE": 182,
-    "RepetitionTimePreparation": 0.0094,
     "InversionTime": 0.9,
-    "PixelBandwidth": "131",
-    "DwellTime": 3.669994128009395e-05,
-    "MRAcquisitionType": "3D"
+    "RepetitionTimePreparation": 2.0,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "PulseSequenceType": "Inversion Recovery Turbo Field Echo (MPRAGE-like)",
+    "RepetitionTimeExcitation": 0.0094,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 1.5,
+    "ParallelReductionFactorOutOfPlane": 2.5,
+    "AcquisitionMatrixPE": 207,
+    "ReconMatrixPE": 256,
+    "PhaseEncodingAxis": "i"
 }

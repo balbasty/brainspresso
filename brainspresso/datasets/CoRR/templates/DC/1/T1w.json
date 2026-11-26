@@ -1,16 +1,16 @@
 {
     "Manufacturer": "Philips",
-    "ManufacturerModelName": "N/A",
-    "MagneticFieldStrength": 3,
-    "PulseSequenceType": "T1-TFE",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "32 Chan",
+    "PulseSequenceType": "3D T1-TFE",
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 2.375,
     "EchoTime": 0.0037,
-    "FlipAngle": 8.0,
-    "ParallelReductionFactorInPlane": 2.5,
-    "ParallelAcquisitionTechnique": "SENSE",
-    "PhaseEncodingDirection": "RL",
-    "SliceEncodingDirection": "A",
-    "RepetitionTimePreparation": 2.375,
     "InversionTime": 0.9,
-    "DwellTime": 2.176941832114246e-05,
-    "MRAcquisitionType": "3D"
+    "FlipAngle": 8.0,
+    "PixelBandwidth": 191.4,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 2.5,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 187
 }

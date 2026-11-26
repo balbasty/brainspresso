@@ -1,0 +1,217 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "5b826707154c64f1cf256572f00a158a54e3da27"
+    },
+    "sidecars": {
+        "CMU/T1w.json": {
+            "printout": "CMU_b/anat.pdf",
+            "sha256": "6112d310c59db93933778315da065d4763ad67e6d9790662edc190f57dc21033",
+            "nii": "CMU_b/nii/anat.nii",
+            "nii_sha256": "9e251fe6ec5d2313f705ad623f853076c3b9220d59b2b41f284feaff09feb33b"
+        },
+        "CMU/bold.json": {
+            "printout": "CMU_b/rest.pdf",
+            "sha256": "2a689be6addc5d497689274edd1c459f0995049cba262a5c39ee5beb3a09dd82",
+            "select": "1",
+            "nii": "CMU_b/nii/rest.nii",
+            "nii_sha256": "6c699a3a55b7d13f6431bf044875a2a5be8b89486c07660ca559a87f0282c428"
+        },
+        "Caltech/T1w.json": {
+            "printout": "Caltech/anat.pdf",
+            "sha256": "bb08d328ed9d03739ced12a61118e866afb7243fa85c0c18bd5afa4fa0d21313",
+            "nii": "Caltech/nii/anat.nii",
+            "nii_sha256": "3d38e763acf789a2476098b49422aa1000e62e781b478d70a86389d31e14a422"
+        },
+        "Caltech/bold.json": {
+            "printout": "Caltech/rest.pdf",
+            "sha256": "b513c8805ba635b8a3dcad0618405dc4de6c1fdce091f764f90eda8e02dfda00",
+            "nii": "Caltech/nii/rest.nii",
+            "nii_sha256": "b91629301d4b6dd43d335e198f7877363fc878bb40f4ebc3c3375a6967c7e876"
+        },
+        "KKI/T1w.json": {
+            "printout": "KKI/anat.pdf",
+            "sha256": "650aabec8bd142d4f6d4a71f0bcaa1b63ccdd2fbc6fa80b6e5c88c0aa702059f",
+            "nii": "KKI/nii/anat.nii",
+            "nii_sha256": "6b5faec056bd845fb92307828a93897070974234093808512343c513d5502d46"
+        },
+        "KKI/bold.json": {
+            "printout": "KKI/rest.pdf",
+            "sha256": "b53806c708d17241bec452b731b8f97c23d757a47494ee469b5e537890953882",
+            "nii": "KKI/nii/rest.nii",
+            "nii_sha256": "3a68cdabba557fc73dd6fe42e4a978e32d7e62a3f331bf97a39cf757324b435f"
+        },
+        "Leuven/T1w.json": {
+            "printout": "Leuven_1/anat.pdf",
+            "sha256": "e47ae9cdcf7d27ae162cfb9969349a7024f5a5431b86d90e644fde29da611151",
+            "nii": "Leuven_1/nii/anat.nii",
+            "nii_sha256": "ed448614527e31c2e8777462fd50a201ce44a5b493d69cb04a6d30fe44e49421"
+        },
+        "Leuven/bold.json": {
+            "printout": "Leuven_1/rest.pdf",
+            "sha256": "875abd057c98d54f53de6b3c0e001c72693ad60d6e06b3365d0daa5711d477c0",
+            "nii": "Leuven_1/nii/rest.nii",
+            "nii_sha256": "e07b2acdb5ae1c924fa8c7f633753f093a56923fde55c00ebb2c8a922af8bfe4"
+        },
+        "MaxMun/T1w.json": {
+            "printout": "MaxMun_a/anat.pdf",
+            "sha256": "90f251de87eb51c762bee2cf2049ad0f23dae2e85bebabcd6bb5362ec101ff7a",
+            "nii": "MaxMun_a/nii/anat.nii",
+            "nii_sha256": "df6f9000ae89c7c3288575cdf13eef91153df5cf8d1a207ef66270db9e2ca9c3"
+        },
+        "MaxMun/bold.json": {
+            "printout": "MaxMun_a/rest.pdf",
+            "sha256": "17b4a00f755ca42411e283a13caed3ecf327b0e64a641dfbf74163c5086aab7c",
+            "select": "0",
+            "nii": "MaxMun_a/nii/rest.nii",
+            "nii_sha256": "cd7ab698598e43614fcacf7edcebabe527a0fd4b0dcd7ef34393cef8a65bb95f"
+        },
+        "NYU/T1w.json": {
+            "printout": "NYU/anat.pdf",
+            "sha256": "af52b2289c1bf092e1f775593b505928dd0f622e45b8a525adbcd036f323a1ba",
+            "nii": "NYU/nii/anat.nii",
+            "nii_sha256": "f246ffe917445b3b0c43f639af721fb50b5a8611cd1636014f787051449e4b28"
+        },
+        "NYU/bold.json": {
+            "printout": "NYU/rest.pdf",
+            "sha256": "ffa59eea66f780c12dfc6989a081e8495c32899986ddc1ce31f5469dee43713e",
+            "nii": "NYU/nii/rest.nii",
+            "nii_sha256": "c94fbb320d6d62f8c9139d34a43bda2643bf361847f48461e3349e39cf0300b6"
+        },
+        "OHSU/T1w.json": {
+            "printout": "OHSU/anat.pdf",
+            "sha256": "8fa5910bdcc80d2d7c9c85a8e43fdaa2e9215d600d2a8605964c746a86cec60d",
+            "nii": "OHSU/nii/anat.nii",
+            "nii_sha256": "698c70be49dc104cf3cb0badbfa3854c29b48440ec434a6901eba0378715a278"
+        },
+        "OHSU/bold.json": {
+            "printout": "OHSU/rest.pdf",
+            "sha256": "bda8469896557f2fdebc25848e44df67ba18e099533e74e9382b6f4e4673a7b4",
+            "nii": "OHSU/nii/rest.nii",
+            "nii_sha256": "63a8b9048e89de027dd364edbf4f52f246bdf53f25d5748330a1466d0e9d4c40"
+        },
+        "Olin/T1w.json": {
+            "printout": "Olin/anat.pdf",
+            "sha256": "b0c2376b62779cbf593f311082d087f8620e60a63223e3c1570d3590e82c749f",
+            "nii": "Olin/nii/anat.nii",
+            "nii_sha256": "a10aa95d85d790364ab047df73de77b481d771149a3b2cbc0e3d9669eeff6dc5"
+        },
+        "Olin/bold.json": {
+            "printout": "Olin/rest.pdf",
+            "sha256": "69e61dff85bef69f89feca9ac81001c9f9861582ddb8cb8270f5bbd5391f538d",
+            "nii": "Olin/nii/rest.nii",
+            "nii_sha256": "2eb4b57229ff3862d9690a5552e19e629c8b429d7a9920fcb63271746ad26419"
+        },
+        "Pitt/T1w.json": {
+            "printout": "Pitt/anat.pdf",
+            "sha256": "c038380398d785afbb80f3fe34110f31637222a0af4062e4640ba6afdb30000e",
+            "nii": "Pitt/nii/anat.nii",
+            "nii_sha256": "f4a9dded32818af86c89e2ffc80376182b870238e2789e52c37511cea6530eb4"
+        },
+        "Pitt/bold.json": {
+            "printout": "Pitt/rest.pdf",
+            "sha256": "b703bdd5178d0a23a0bc6dcb043dc117532d57e055a4579781a342bdb94e5108",
+            "nii": "Pitt/nii/rest.nii",
+            "nii_sha256": "129c3f44b7fb95a82a4fc1dae137ca729b06a4e24a0c987c56b1278f3f512e22"
+        },
+        "SBL/T1w.json": {
+            "printout": "SBL/anat.pdf",
+            "sha256": "9dc2abbaa998fe0862bc7ec1acbe4f814e82b55234a3f55dddd78f333bf80a24",
+            "nii": "SBL/nii/anat.nii",
+            "nii_sha256": "e21354919bdf1a3d53e7552acca114d55a97e0b8fd715f1151eb9c1fba607aaa"
+        },
+        "SBL/bold.json": {
+            "printout": "SBL/rest.pdf",
+            "sha256": "1468e0f810b5d347d89c7c5029ef22020a555da4ae45d925fe11035033a420ca",
+            "nii": "SBL/nii/rest.nii",
+            "nii_sha256": "15615a66da905f2dbb1fe785cd07945fabb4cf33e23d106faf90d7a4b9232c9a"
+        },
+        "SDSU/T1w.json": {
+            "printout": "SDSU/anat.pdf",
+            "sha256": "1bda0f8b9165190e3d30cfea7066cd7d41039ae53c3c8c48c0887f695e2394f3",
+            "nii": "SDSU/nii/anat.nii",
+            "nii_sha256": "a5c562e08721f04a9d708fe15a6faa91ff574ab13c36c98719e33da60db50ccb"
+        },
+        "SDSU/bold.json": {
+            "printout": "SDSU/rest.pdf",
+            "sha256": "8933f2e7bb8d15ca67ce871936217ff7eabdb8c4a8e46734744bf67541ead188",
+            "nii": "SDSU/nii/rest.nii",
+            "nii_sha256": "e98fb625873dedf14098123279fbdb5de0ab54b26730d2f1098601948e48317c"
+        },
+        "Stanford/T1w.json": {
+            "printout": "Stanford/anat.pdf",
+            "sha256": "7cae1f729bcb236314327b5e9f78974b199d8cc2ff4987a29e9fcb683fe93804",
+            "nii": "Stanford/nii/anat.nii",
+            "nii_sha256": "a32868aaad75359fcc3c2e46c3bdaa50657623fa27f776268785ddcdb23550f9"
+        },
+        "Stanford/bold.json": {
+            "printout": "Stanford/rest.pdf",
+            "sha256": "7919d52fd247f9c2ad44fb66d4dcc09345b904af68d13edaae6158e0e89e37a1",
+            "nii": "Stanford/nii/rest.nii",
+            "nii_sha256": "57e84f722c1666188e48f74690df6a4bf9ea554b0ca351c3f217a700c657aae1"
+        },
+        "Trinity/T1w.json": {
+            "printout": "Trinity/anat.pdf",
+            "sha256": "7c350c2dc187418a86b72875f8b65618d4fa93045e97ceba0063d1a5668afe88",
+            "nii": "Trinity/nii/anat.nii",
+            "nii_sha256": "75249a8debb875b279b6258d510c3c27a9ce391cadec44c0600e42df0c193ae0"
+        },
+        "Trinity/bold.json": {
+            "printout": "Trinity/rest.pdf",
+            "sha256": "a971863142dc75e0ff84d94243d58c56361ad8124880828fc42d387c20501748",
+            "nii": "Trinity/nii/rest.nii",
+            "nii_sha256": "bd823f14e2445d91e57d8977bea7bc8f88fe8b7815c6f88a350bc9f1c9e695cd"
+        },
+        "UCLA/T1w.json": {
+            "printout": "UCLA_1/anat.pdf",
+            "sha256": "1349bc9c2af218e7a582fc8e63a8cf87a43aebe9d60beac1686753cc04e68eb3",
+            "select": "0",
+            "nii": "UCLA_1/nii/anat.nii",
+            "nii_sha256": "f3858ddf14edbd8bf8e03e4c9d178638aa06be744fa13a85d7456969a9d39ec6"
+        },
+        "UCLA/bold.json": {
+            "printout": "UCLA_1/rest.pdf",
+            "sha256": "40cec50a8dbdd737402cff519b091966cf04bedfc758e1f6d6c47475515bc508",
+            "nii": "UCLA_1/nii/rest.nii",
+            "nii_sha256": "a9f524d90fd258486740ec28fd2a0c020fcfa2d28b1d89d5440d05656d393ff8"
+        },
+        "UM/T1w.json": {
+            "printout": "UM_1/anat.pdf",
+            "sha256": "a1cddb12cb22c68fbfb4fbb2937399bd1c893e8a91bb4ce935d9061f53a0f348",
+            "select": "1",
+            "nii": "UM_1/nii/anat.nii",
+            "nii_sha256": "1d3ec384162af59c5939f143cd854019b54204216e696994ef2a028570738f1c"
+        },
+        "UM/bold.json": {
+            "printout": "UM_1/rest.pdf",
+            "sha256": "0493e022efbd7d6192e3675befd261a38d37cb3e032ee7760a4688468c905bbe",
+            "nii": "UM_1/nii/rest.nii",
+            "nii_sha256": "6779074de4059e790db45d5770764ab83ebb4a27f5807fb88b2bb70089c5c376"
+        },
+        "USM/T1w.json": {
+            "printout": "USM/anat.pdf",
+            "sha256": "6ac283898508455f7ec28608737fa385252aac10ed9c66a1da0837ad128697bd",
+            "nii": "USM/nii/anat.nii",
+            "nii_sha256": "8a4fbef654728ac80412806d1d0e4c15d1ad57094f6013131f0f2e7ebb2d3759"
+        },
+        "USM/bold.json": {
+            "printout": "USM/rest.pdf",
+            "sha256": "b194e280b13be2e1a21203f60608f6187f157dfda8155eb8f33ad97929b81b7c",
+            "nii": "USM/nii/rest.nii",
+            "nii_sha256": "a071b77ce338d12d39ddda1769532e87f5950dc27479ec1a8c2a8b2f0a2d7078"
+        },
+        "Yale/T1w.json": {
+            "printout": "Yale/anat.pdf",
+            "sha256": "35823fcaaec6754e592f6d9a6aaab5dd82fab357dcf949faea670f1f6995eb39",
+            "select": "1",
+            "nii": "Yale/nii/anat.nii",
+            "nii_sha256": "cdbf12b19fc487a35e956f42918eb7c103bcda2a319178967a84644dc1514e28"
+        },
+        "Yale/bold.json": {
+            "printout": "Yale/rest.pdf",
+            "sha256": "965670ef8017342271cb72aa70818a539160589b10b6dc50b281e0ed7a3cca0d",
+            "nii": "Yale/nii/rest.nii",
+            "nii_sha256": "ce44cf5cdd03c8b3b5f4d516154321725a9c6a3fb68e06d8fa318a8cdff22ed9"
+        }
+    }
+}

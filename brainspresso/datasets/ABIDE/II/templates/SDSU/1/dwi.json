@@ -1,12 +1,21 @@
 {
     "Manufacturer": "GE",
-    "ManufacturerModelName": "MR750",
-    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8HRBRAIN",
+    "Modality": "MR",
+    "ProtocolName": "DTI",
+    "SeriesDescription": "DTI",
+    "RepetitionTime": 8.5,
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP",
+        "SE"
+    ],
     "PulseSequenceType": "Spin Echo EPI",
-    "SliceEncodingDirection": "A",
+    "ParallelAcquisitionTechnique": "ASSET",
+    "AcquisitionMatrixPE": 128,
+    "PercentPhaseFOV": 100.0,
     "SliceThickness": 2.0,
-    "FatSaturation": true,
-    "AcquisitionMatrixSE": 68,
-    "ReconMatrixSE": 68,
-    "RepetitionTimeExcitation": 8.5
+    "SpacingBetweenSlices": 2.0,
+    "NumberShots": 1,
+    "PhaseEncodingAxis": "j"
 }

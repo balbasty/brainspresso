@@ -1,3 +1,4 @@
+"""Asynchronous HTTP downloads (resumable, verified, in parallel)."""
 from . import constants     # noqa: F401
 from . import downloader    # noqa: F401
 from . import incomplete    # noqa: F401

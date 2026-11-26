@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urlparse
 from humanize import naturalsize
 
 from brainspresso.bids.harvest import record_run
@@ -8,11 +7,22 @@ from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
-from brainspresso.download import DownloadManager
-from brainspresso.download import Downloader
 from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
+from brainspresso.sources.base import DownloadOptions, LocalSource, StaticURLs
 from brainspresso.datasets.ADNI.I.command import adni1
+
+
+def sources(urls=()) -> dict:
+    """
+    Sources of ADNI-1: the data are under a data use agreement. They are
+    either downloaded from URLs that the user got from the LONI portal
+    (`urls`), or put in `sourcedata/` by the user (`local`).
+    """
+    return {
+        "urls": StaticURLs({"raw": list(urls)}, name="urls"),
+        "local": LocalSource(provides={"raw", "meta"}),
+    }
 
 
 @adni1.command(name="harvest")
@@ -53,11 +63,10 @@ def download(
     setup_filelog(log)
     path = Path(get_tree_path(path))
     dataset = resolve_layout(path / 'ADNI-1', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "ADNI-1"})
 
     # load all URLs
-    tmp, urls = urls, []
+    tmp, urls = [urls] if isinstance(urls, str) else urls, []
     for url in tmp:
         if Path(url).exists():
             with Path(url).open('rt') as f:
@@ -68,15 +77,7 @@ def download(
         else:
             urls.append(url)
 
-    def downloaders():
-        for url in urls:
-            yield Downloader(
-                url, src / Path(urlparse(url).path).name,
-                chunk_size=human2bytes(packet),
-            )
-
-    DownloadManager(
-        downloaders(),
-        ifexists=if_exists,
-        jobs=jobs,
-    ).run()
+    sources(urls)["urls"].harvest(
+        dataset, options=DownloadOptions(ifexists=if_exists, jobs=jobs,
+                                         chunk_size=human2bytes(packet)),
+    )

@@ -5,15 +5,21 @@ XNAT's REST API needs one request per experiment to list files; they
 are sent concurrently.
 
 ```python
-files = list_project_files("https://www.nitrc.org/ir", "ixi")
+experiments, files = list_project_files("https://www.nitrc.org/ir", "ixi")
 for f in files:
-    print(f.experiment, f.scan, f.collection, f.name, f.size, f.url)
+    m = f.meta
+    print(m["experiment"], m["scan"], m["collection"], f.name, f.size, f.url)
 ```
+
+Each file is a `RemoteEntry` with path
+`<experiment>/<scan>/<collection>/<name>` and `meta` keys `experiment`
+(label, e.g. "2_Guys"), `experiment_id` (e.g. "NITRC_IR_E10452"),
+`scan` (e.g. "T1"), `collection` (resource label, e.g. "NIfTI", "bval")
+and `name`.
 """
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from logging import getLogger
 from typing import Callable
 
@@ -21,27 +27,29 @@ import aiohttp
 
 from brainspresso.download.constants import RETRY_STATUSES
 from brainspresso.download.session import new_session
+from brainspresso.sources.base import RemoteEntry
 
 lg = getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class XNATFile:
-    experiment: str         # experiment label (e.g. "2_Guys")
-    experiment_id: str      # experiment ID (e.g. "NITRC_IR_E10452")
-    scan: str               # scan ID (e.g. "T1")
-    collection: str         # resource label (e.g. "NIfTI", "bval")
-    name: str               # file name
-    size: int | None
-    url: str
+def xnat_entry(experiment, experiment_id, scan, collection, name, size, url):
+    """Build the `RemoteEntry` of a file of an XNAT scan."""
+    return RemoteEntry(
+        path=f"{experiment}/{scan}/{collection}/{name}",
+        url=url,
+        size=size,
+        meta={"experiment": experiment, "experiment_id": experiment_id,
+              "scan": scan, "collection": collection, "name": name},
+    )
 
 
 async def _get_json(
-    session: aiohttp.ClientSession, url: str, attempts: int = 5
+    session: aiohttp.ClientSession, url: str, attempts: int = 5, **opt
 ) -> dict:
     for attempt in range(attempts):
         try:
-            async with session.get(url, params={"format": "json"}) as r:
+            async with session.get(url, params={"format": "json"},
+                                   **opt) as r:
                 if r.status in RETRY_STATUSES and attempt + 1 < attempts:
                     await asyncio.sleep(2 ** attempt)
                     continue
@@ -69,7 +77,7 @@ async def list_project_files_async(
     keep_experiment: Callable[[dict], bool] | None = None,
     auth: aiohttp.BasicAuth | None = None,
     jobs: int = 8,
-) -> tuple[list[dict], list[XNATFile]]:
+) -> tuple[list[dict], list[RemoteEntry]]:
     """
     List the experiments of a project and all their scan files.
 
@@ -90,7 +98,7 @@ async def list_project_files_async(
     -------
     experiments : list[dict]
         Experiment records (after filtering)
-    files : list[XNATFile]
+    files : list[RemoteEntry]
     """
     server = server.rstrip("/")
     async with new_session(auth=auth) as session:
@@ -102,7 +110,7 @@ async def list_project_files_async(
             experiments = [e for e in experiments if keep_experiment(e)]
         semaphore = asyncio.Semaphore(jobs)
 
-        async def files_of(exp: dict) -> list[XNATFile]:
+        async def files_of(exp: dict) -> list[RemoteEntry]:
             async with semaphore:
                 data = await _get_json(
                     session,
@@ -111,7 +119,7 @@ async def list_project_files_async(
             out = []
             for f in data["ResultSet"]["Result"]:
                 size = f.get("Size")
-                out.append(XNATFile(
+                out.append(xnat_entry(
                     experiment=exp.get("label", exp["ID"]),
                     experiment_id=exp["ID"],
                     scan=_scan_from_uri(f["URI"]),
@@ -127,5 +135,5 @@ async def list_project_files_async(
 
 
 def list_project_files(*args, **kwargs):
-    """Synchronous version of `list_project_files_async`"""
+    """List project files (synchronous `list_project_files_async`)."""
     return asyncio.run(list_project_files_async(*args, **kwargs))

@@ -1,18 +1,15 @@
-import os
 from pathlib import Path
 from typing import Optional, Literal, Iterable, Union
 from humanize import naturalsize
-from urllib.parse import urlparse
 
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.ui import human2bytes
-from brainspresso.download import Downloader
-from brainspresso.download import DownloadManager
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.download import IfExists
+from brainspresso.sources.base import DownloadOptions, StaticURLs, Wants
 from brainspresso.datasets.OASIS.I.command import oasis1
 
 
@@ -39,6 +36,34 @@ URLS = {
 }
 
 KeyChoice = Literal["raw", "fs", "meta", "reliability", "facts"]
+
+# local names of the spreadsheets (without their upload id)
+NAMES = {
+    'meta': 'oasis_cross-sectional.xlsx',
+    'reliability': 'oasis_cross-sectional-reliability.xlsx',
+    'facts': 'oasis_cross-sectional_facts.pdf',
+}
+
+
+class WUSTL(StaticURLs):
+    """OASIS-I discs (download.nrg.wustl.edu) and spreadsheets
+    (sites.wustl.edu), no login. Per-run option: `discs`."""
+
+    name = "wustl"
+    discs: frozenset = frozenset(range(1, 13))
+    urls = {
+        key: (
+            [StaticURLs.entry(url, disc=disc)
+             for disc, url in enumerate(value, 1)]
+            if isinstance(value, list) else
+            [StaticURLs.entry(value, NAMES[key])]
+        )
+        for key, value in URLS.items()
+    }
+
+    def keep(self, entry, selection, wants) -> bool:
+        disc = entry.meta.get("disc")
+        return disc is None or disc in self.discs
 
 
 @oasis1.command(name="harvest")
@@ -85,37 +110,13 @@ def download(
     """
     setup_filelog(log)
     path = Path(get_tree_path(path))
+    if isinstance(keys, str):
+        keys = [keys]
     keys = set(keys or URLS.keys())
-    discs = set(discs or list(range(1, 13)))
     dataset = resolve_layout(path / 'OASIS-1', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "OASIS-1"})
-    downloaders = []
-    for key, URL in URLS.items():
-        if key not in keys:
-            continue
-        if key in ('raw', 'fs'):
-            for disc in discs:
-                if disc >= len(URL):
-                    continue
-                URL1 = URL[disc-1]
-                downloaders.append(Downloader(
-                    URL1,  src / Path(urlparse(URL1).path).name,
-                    ifexists=if_exists,
-                    chunk_size=human2bytes(packet),
-                ))
-        else:
-            if key == 'meta':
-                basename = 'oasis_cross-sectional.xlsx'
-            elif key == 'reliability':
-                basename = 'oasis_cross-sectional-reliability.xlsx'
-            elif key == 'facts':
-                basename = 'oasis_cross-sectional_facts.pdf'
-            else:
-                basename = os.path.basename(URL)
-            downloaders.append(Downloader(
-                URL,  src / basename,
-                ifexists=if_exists,
-                chunk_size=human2bytes(packet),
-            ))
-    DownloadManager(downloaders).run()
+    WUSTL().configure(discs=frozenset(discs or range(1, 13))).harvest(
+        dataset, keys=Wants(keys),
+        options=DownloadOptions(ifexists=if_exists,
+                                chunk_size=human2bytes(packet)),
+    )

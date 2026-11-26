@@ -1,3 +1,9 @@
+"""
+Harvest OASIS-III from NITRC-IR (XNAT project "OASIS3", login
+required): one archive per scan (`<experiment>/<scan>.tar.gz`),
+FreeSurfer and PUP assessors (`<experiment>/<assessor>.tar.gz`), and
+the data files (`OASIS3_data_files/<scan>.tar.gz`).
+"""
 from pathlib import Path
 from typing import Iterable
 from humanize import naturalsize
@@ -7,17 +13,80 @@ from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
+from brainspresso.utils.keys import allkeys as generic_keys
 from brainspresso.utils.keys import flatten_keys
-from brainspresso.utils.keys import compat_keys
-from brainspresso.download import DownloadManager
 from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
-from brainspresso.sources.xnat import XNAT
+from brainspresso.sources.base import (
+    DownloadOptions, Wants, numeric_labels, subject_selection,
+)
+from brainspresso.sources.xnat import XNAT, filter_list
 from brainspresso.datasets.OASIS.III.command import oasis3
 from brainspresso.datasets.OASIS.III.keys import allkeys
 
 from logging import getLogger
 lg = getLogger(__name__)
+
+PROJECT = "OASIS3"
+DATA_SUBJECT = "0AS_data_files"
+DATA_EXPERIMENT = "OASIS3_data_files"
+
+# experiment type -> keys that need it
+EXPERIMENT_KEYS = {
+    "MR": ("mri", "fs"),
+    "CT": ("ct",),
+    "FDG": ("FDG", "pup"),
+    "PIB": ("PIB", "pup"),
+    "AV45": ("AV45", "pup"),
+    "AV1451": ("AV1451", "pup"),
+}
+# assessor label pattern -> key
+ASSESSOR_KEYS = {"*Freesurfer*": "fs", "*PUPTIMECOURSE*": "pup"}
+
+
+def roast_oasis3(ctx):
+    """Roaster of what `NitrcIR` writes"""
+    from brainspresso.datasets.OASIS.III.roaster import roast_oasis3
+    return roast_oasis3(ctx)
+
+
+class NitrcIR(XNAT):
+    """OASIS-III scans, assessors and data files from NITRC-IR"""
+
+    name = "xnat"
+    project = PROJECT
+    provides = frozenset({"raw", "derivatives", "meta"})
+    labels = numeric_labels(4, "OAS3")
+    roaster = staticmethod(roast_oasis3)
+
+    def keep_experiment(self, subject, experiment, wants) -> bool:
+        parts = experiment["label"].split("_")
+        keys = EXPERIMENT_KEYS.get(parts[1] if len(parts) > 1 else "")
+        return keys is not None and any(wants(k) for k in keys)
+
+    def keep_scan(self, subject, experiment, scan, wants) -> bool:
+        return wants(scan.get("type", ""))
+
+    def keep_assessor(self, subject, experiment, assessor, wants) -> bool:
+        label = assessor.get("label", "")
+        return any(wants(key) and filter_list([label], pattern)
+                   for pattern, key in ASSESSOR_KEYS.items())
+
+    async def extra(self, client, selection, wants) -> list:
+        if not wants("meta"):
+            return []
+        subject = {"label": DATA_SUBJECT}
+        experiment = {"label": DATA_EXPERIMENT}
+        scans = await client.scans(self.project, DATA_SUBJECT,
+                                   DATA_EXPERIMENT)
+        return [self.entry(client, subject, experiment, scan)
+                for scan in scans]
+
+
+def sources() -> dict:
+    """Sources of OASIS-III"""
+    return {"xnat": NitrcIR()}
+
 
 
 @oasis3.command(name="harvest")
@@ -100,139 +169,15 @@ def download(
     """
     setup_filelog(log)
     path = Path(get_tree_path(path))
+    if isinstance(keys, str):
+        keys = [keys]
     keys = set(keys or flatten_keys(allkeys))
     dataset = resolve_layout(path / 'OASIS-3', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "OASIS-3"})
-
-    xnat = XNAT(user, password, open=True)
-
-    # Format subjects
-    def expand_sub_range(subs):
-        for i, sub in enumerate(subs):
-            if isinstance(sub, str) and ':' in sub:
-                sub = sub.split(':')
-                start, stop = sub[0], sub[1]
-                step = sub[2] if len(sub) > 2 else ''
-                step = int(step) if step else 1
-                if step < 1:
-                    raise ValueError('Subject range: step must be positive')
-                start = int(start) if start else 0
-                stop = int(stop) if stop else None
-                if stop is None:
-                    raise ValueError('Subject range: Stop must be provided')
-                subs = subs[:i] + list(range(start, stop, step)) + subs[i+1:]
-        return subs
-
-    if isinstance(subs, (int, str)):
-        subs = [subs]
-    subs = list(subs or [])
-    subs = expand_sub_range(subs)
-
-    if isinstance(exclude_subs, int):
-        exclude_subs = [exclude_subs]
-    exclude_subs = list(set(exclude_subs or []))
-    exclude_subs = set(expand_sub_range(exclude_subs))
-
-    # Get subject IDs
-    if not subs:
-        subs = xnat.get_subjects('OASIS3')
-        subs = [int(sub[4:]) for sub in subs if sub.startswith('OAS3')]
-    elif subs and isinstance(subs[0], str):
-        # Might be a file that contains subject IDs
-        tmp, subs = subs, []
-        for sub in tmp:
-            if Path(sub).exists():
-                with open(sub, 'rt') as f:
-                    for line in f:
-                        subs.append(int(line))
-            else:
-                subs.append(int(sub))
-    subs = set(subs) - exclude_subs
-
-    # Accumulate downloaders
-    def all_downloaders():
-        opt = dict(chunk_size=human2bytes(packet), ifexists=if_exists)
-
-        # Get downloaders for metadata
-        if (keys & compat_keys("meta")):
-            yield from xnat.get_all_downloaders(
-                'OASIS3', '0AS_data_files', 'OASIS3_data_files', dst=src, **opt
-            )
-
-        # Get downloaders for image data
-        for sub in subs:
-            experiments = xnat.get_experiments('OASIS3', f'OAS3{sub:04d}')
-            for experiment in experiments:
-
-                # early filter on experiment type
-                experiment_type = experiment.split('_')[1]
-                if experiment_type == 'MR':
-                    if not (keys & (compat_keys("mri") | compat_keys("fs"))):
-                        continue
-                elif experiment_type == "CT":
-                    if not (keys & compat_keys("ct")):
-                        continue
-                elif experiment_type == "FDG":
-                    if not (keys & (compat_keys("fdg") | compat_keys("pup"))):
-                        continue
-                elif experiment_type == "PIB":
-                    if not (keys & (compat_keys("pib") | compat_keys("pup"))):
-                        continue
-                elif experiment_type == "AV45":
-                    if not (keys & (compat_keys("av45") | compat_keys("pup"))):
-                        continue
-                else:
-                    continue
-
-                scans = xnat.get_scans('OASIS3', f'OAS3{sub:04d}', experiment,
-                                       return_info=True)
-                for scan in scans:
-                    # filter on scan type (maybe not robust enough?)
-                    keep_scan = bool(keys & compat_keys(scan['type']))
-                    if not keep_scan:
-                        continue
-                    scan = scan['ID']
-                    fname = src / experiment / f'{scan}.tar.gz'
-                    yield xnat.get_downloader(
-                        'OASIS3', f'OAS3{sub:04d}', experiment, scan, fname,
-                        **opt
-                    )
-
-                # derivatives
-
-                if keys & compat_keys("fs"):
-                    assessors = xnat.get_all_assessors(
-                        'OASIS3', f'OAS3{sub:04d}', experiment, '*Freesurfer*'
-                    )
-                    for assessor in assessors:
-                        assessor = assessor.split('/')[-1]
-                        fname = src / experiment / f'{assessor}.tar.gz'
-
-                        yield xnat.get_downloader(
-                            'OASIS3', f'OAS3{sub:04d}', experiment, assessor,
-                            fname, type='assessor', **opt
-                        )
-
-                if keys & compat_keys("pup"):
-                    assessors = xnat.get_all_assessors(
-                        'OASIS3', f'OAS3{sub:04d}', experiment,
-                        '*PUPTIMECOURSE*'
-                    )
-                    for assessor in assessors:
-                        assessor = assessor.split('/')[-1]
-                        fname = src / experiment / f'{assessor}.tar.gz'
-
-                        yield xnat.get_downloader(
-                            'OASIS3', f'OAS3{sub:04d}', experiment, assessor,
-                            fname, type='assessor', **opt
-                        )
-
-    # Download all
-    DownloadManager(
-        all_downloaders(),
-        ifexists=if_exists,
-        path='full',
-        jobs=jobs,
-    ).run()
-    xnat.close()
+    source = sources()["xnat"].configure(user=user, password=password)
+    source.harvest(
+        dataset, subject_selection(subs, exclude_subs, width=4),
+        Wants(keys, generic_keys),
+        DownloadOptions(ifexists=if_exists, jobs=jobs, path="full",
+                        chunk_size=human2bytes(packet)),
+    )

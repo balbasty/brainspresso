@@ -8,12 +8,17 @@ need an API token (`Girder-Token` header).
 ```python
 girder = Girder("https://data.kitware.com/api/v1")
 for f in girder.walk("collection", "54b582c38d777f4362aa9cb3"):
-    print(f.path, f.size, f.sha512)
+    print(f.path, f.size, f.digests.get("sha512"))
 ```
 
-Paths are built from folder and item names. An item that holds a
-single file with the same name as the item maps to `<folders>/<item>`;
-other items map to `<folders>/<item>/<file>`.
+Files are `RemoteEntry`s whose paths are built from folder and item
+names. An item that holds a single file with the same name as the item
+maps to `<folders>/<item>`; other items map to
+`<folders>/<item>/<file>`. Their `meta` holds `file_id`, `item_id` and
+`item` (the item's Girder metadata).
+
+`GirderSource` is the source of the files under a collection or folder
+(see `sources.base`).
 """
 from __future__ import annotations
 
@@ -21,15 +26,17 @@ import asyncio
 import os
 from dataclasses import dataclass, field
 from logging import getLogger
-from pathlib import Path, PurePosixPath
-from typing import Callable, Iterator, Literal
+from pathlib import PurePosixPath
+from typing import Callable, Literal
 from urllib.parse import urlparse
 
 import aiohttp
 
-from brainspresso.download import CHUNK_SIZE, Downloader, IfExists
 from brainspresso.download.constants import RETRY_STATUSES
 from brainspresso.download.session import new_session
+from brainspresso.sources.base import (
+    RemoteEntry, Source, SourceUnavailable, as_wants,
+)
 
 lg = getLogger(__name__)
 
@@ -40,18 +47,9 @@ ResourceType = Literal["collection", "folder"]
 
 
 @dataclass(frozen=True)
-class GirderFile:
-    path: PurePosixPath         # relative to the root of the walk
-    file_id: str
-    size: int | None
-    sha512: str | None
-    url: str
-    item_id: str = ""
-    meta: dict = field(default_factory=dict, compare=False, hash=False)
-
-
-@dataclass(frozen=True)
 class GirderFolder:
+    """A folder met during a walk (path relative to its root, id, meta)."""
+
     path: PurePosixPath         # relative to the root of the walk
     folder_id: str
     meta: dict = field(default_factory=dict, compare=False, hash=False)
@@ -80,7 +78,7 @@ def parse_girder_url(url: str) -> tuple[str, ResourceType, str]:
 
 
 class Girder:
-    """Minimal async client for the Girder REST API (read-only)"""
+    """Minimal async client for the Girder REST API (read-only)."""
 
     def __init__(
         self,
@@ -96,9 +94,11 @@ class Girder:
 
     @property
     def headers(self) -> dict:
+        """Headers of authenticated requests (the token, if any)."""
         return {"Girder-Token": self.token} if self.token else {}
 
     def download_url(self, file_id: str) -> str:
+        """Download URL of a file."""
         return f"{self.api}/file/{file_id}/download"
 
     # ------------------------------------------------------------------
@@ -128,7 +128,7 @@ class Girder:
         raise RuntimeError(f"Could not get {url}")
 
     async def _get_all(self, session, path: str, **params) -> list[dict]:
-        """GET a paginated list endpoint"""
+        """GET a paginated list endpoint."""
         out, offset = [], 0
         while True:
             page = await self._get(
@@ -140,7 +140,7 @@ class Girder:
             offset += PAGE
 
     async def info(self, rtype: ResourceType, rid: str) -> dict:
-        """Metadata of a collection or folder (name, size, description)"""
+        """Metadata of a collection or folder (name, size, description)."""
         async with new_session(headers=self.headers) as session:
             return await self._get(session, f"{rtype}/{rid}")
 
@@ -150,7 +150,7 @@ class Girder:
         rid: str,
         keep_folder: Callable[[PurePosixPath], bool] | None = None,
         folders: list[GirderFolder] | None = None,
-    ) -> list[GirderFile]:
+    ) -> list[RemoteEntry]:
         """
         List all files under a collection or folder.
 
@@ -167,7 +167,7 @@ class Girder:
             metadata) are appended to it.
         """
         semaphore = asyncio.Semaphore(self.jobs)
-        files: list[GirderFile] = []
+        files: list[RemoteEntry] = []
 
         async with new_session(headers=self.headers) as session:
 
@@ -185,14 +185,14 @@ class Girder:
                         prefix / item["name"] if single
                         else prefix / item["name"] / f["name"]
                     )
-                    files.append(GirderFile(
-                        path=path,
-                        file_id=f["_id"],
-                        size=f.get("size"),
-                        sha512=f.get("sha512") or None,
+                    sha512 = f.get("sha512")
+                    files.append(RemoteEntry(
+                        path=path.as_posix(),
                         url=self.download_url(f["_id"]),
-                        item_id=item["_id"],
-                        meta=item.get("meta") or {},
+                        size=f.get("size"),
+                        digests={"sha512": sha512} if sha512 else {},
+                        meta={"file_id": f["_id"], "item_id": item["_id"],
+                              "item": item.get("meta") or {}},
                     ))
 
             async def folder(ptype: str, pid: str, prefix: PurePosixPath):
@@ -223,50 +223,108 @@ class Girder:
 
         if folders is not None:
             folders.sort(key=lambda f: str(f.path))
-        return sorted(files, key=lambda f: str(f.path))
+        return sorted(files, key=lambda f: f.path)
 
-    def walk(self, *args, **kwargs) -> list[GirderFile]:
-        """Synchronous version of `walk_async`"""
+    def walk(self, *args, **kwargs) -> list[RemoteEntry]:
+        """Walk the resource (synchronous version of `walk_async`)."""
         return asyncio.run(self.walk_async(*args, **kwargs))
 
-    # ------------------------------------------------------------------
-    def mirror(
-        self,
-        rtype: ResourceType,
-        rid: str,
-        dst: str | Path,
-        keep: Callable[[GirderFile], bool] | None = None,
-        *,
-        rename: Callable[[GirderFile], PurePosixPath | None] | None = None,
-        keep_folder: Callable[[PurePosixPath], bool] | None = None,
-        ifexists: IfExists.Choice = "skip",
-        chunk_size: int = CHUNK_SIZE,
-        folders: list[GirderFolder] | None = None,
-    ) -> Iterator[Downloader]:
-        """
-        Yield one downloader per file under a collection or folder,
-        saved under `dst` with the same relative path (or `rename(f)`).
 
-        Sizes and SHA-512 checksums (when Girder computed them) come from
-        the listing, so downloads are verified.
+
+class GirderSource(Source):
+    """
+    Source: the files under a Girder collection or folder.
+
+    They are mirrored under `destination(layout)` with their path
+    relative to it (or `local_path(entry)`). Sizes and SHA-512 checksums (when
+    Girder computed them) come from the listing, so downloads are verified.
+
+    Hooks: `keep_folder(path, selection, wants)` prunes the walk,
+    `keep(entry, selection, wants)` filters files, and
+    `folder_entries(folders, selection, wants)` adds files generated from
+    the folder records (e.g. their metadata). Per-run option: `token`
+    (else `GIRDER_TOKEN`; public collections need none).
+
+    Parameters
+    ----------
+    rtype : {"collection", "folder"}, optional
+        Type of the root resource.
+    rid : str, optional
+        Identifier of the root resource.
+    api : str, optional
+        URL of the Girder API.
+    **kwargs
+        Options of `Source`.
+    """
+
+    name = "girder"
+    api: str = KITWARE
+    rtype: ResourceType = "folder"
+    rid: str = ""
+    token: str | None = None
+    jobs = 4
+
+    def __init__(self, rtype: ResourceType | None = None,
+                 rid: str | None = None, *, api: str | None = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        if rtype is not None:
+            self.rtype = rtype
+        if rid is not None:
+            self.rid = rid
+        if api is not None:
+            self.api = api
+
+    def client(self) -> Girder:
+        """Return a Girder client for this source."""
+        return Girder(self.api, token=self.token)
+
+    def keep_folder(self, path: PurePosixPath, selection, wants) -> bool:
+        """Whether to walk a folder (hook that subclasses override)."""
+        return True
+
+    def keep(self, entry: RemoteEntry, selection, wants) -> bool:
+        """Whether to fetch a file (hook that subclasses override)."""
+        return True
+
+    def folder_entries(self, folders: list[GirderFolder], selection,
+                       wants) -> list[RemoteEntry]:
+        """Files generated from the folder records (hook; default: none)."""
+        return []
+
+    def download_options(self, options) -> dict:
+        """Add the Girder token (if any) to the options of `Source`."""
+        opts = super().download_options(options)
+        if options.dry_run:
+            return opts
+        headers = self.client().headers
+        if headers:
+            opts["get_opt"] = {"headers": headers}
+        return opts
+
+    def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List the files of the walk, filtered by the hooks.
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+
+        Returns
+        -------
+        list[RemoteEntry]
         """
-        dst = Path(dst)
-        headers = self.headers
-        listing = self.walk(
-            rtype, rid, keep_folder=keep_folder, folders=folders
-        )
-        for f in listing:
-            if keep is not None and not keep(f):
-                continue
-            local = rename(f) if rename else f.path
-            if local is None:
-                continue
-            yield Downloader(
-                f.url,
-                dst / local,
-                size=f.size,
-                digests={"sha512": f.sha512} if f.sha512 else None,
-                ifexists=ifexists,
-                chunk_size=chunk_size,
-                get_opt={"headers": headers} if headers else {},
+        wants = as_wants(keys)
+        folders: list[GirderFolder] = []
+        try:
+            files = self.client().walk(
+                self.rtype, self.rid, folders=folders,
+                keep_folder=lambda p: self.keep_folder(p, selection, wants),
             )
+        except (aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
+            raise SourceUnavailable(
+                f"{self.api}: [{type(e).__name__}] {e}") from e
+        files = [f for f in files if self.keep(f, selection, wants)]
+        return files + list(self.folder_entries(folders, selection, wants))

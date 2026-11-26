@@ -20,6 +20,7 @@ from aiohttp import web
 from brainspresso.bids.layout import Layout
 from brainspresso.download import DownloadManager
 from brainspresso.sources import girder as girder_mod
+from brainspresso.sources.base import mirror
 from brainspresso.sources.girder import Girder, parse_girder_url
 
 nrrd = pytest.importorskip("nrrd")
@@ -241,7 +242,7 @@ def test_walk_paths_metadata_and_pagination(server, monkeypatch):
     assert ("001/12months/DTI/ORIG/001_12months_DWI_ORIG.nrrd/"
             "001_12months_dwi.nrrd") in paths
     assert len(paths) == len(server.files)
-    assert all(f.sha512 and f.size for f in listing)
+    assert all(f.digests["sha512"] and f.size for f in listing)
     meta = {str(f.path): f.meta for f in folders}
     assert meta["001"]["sex"] == "F"
     assert meta["002/12months"]["scan_weight_kg"] == 2.1
@@ -254,7 +255,7 @@ def test_walk_prunes_folders(server):
         keep_folder=lambda p: p.parts[0] == "002",
     )
     assert listing and all(
-        f.path.parts[0] in ("002", "README.txt") for f in listing
+        f.relpath.parts[0] in ("002", "README.txt") for f in listing
     )
     pruned = server.requests - before
     total_before = server.requests
@@ -264,8 +265,8 @@ def test_walk_prunes_folders(server):
 
 def test_mirror_verifies_sha512(server, tmp_path):
     g = Girder(server.api)
-    dls = list(g.mirror("folder", server.root, tmp_path,
-                        keep=lambda f: f.path.name == "README.txt"))
+    dls = list(mirror(g.walk("folder", server.root), tmp_path,
+                        keep=lambda f: f.name == "README.txt"))
     assert len(dls) == 1 and dls[0].digests
     # tamper with the expected checksum: the download is rejected
     dls[0].digests = {"sha512": "0" * 128}
@@ -370,11 +371,11 @@ def test_uncwisc_roast(uncwisc, tmp_path, layout):
 
 
 def test_download_manager_integration(server, tmp_path):
-    # mirror() yields Downloaders that the manager runs concurrently
+    # mirror(listing) yields Downloaders that the manager runs concurrently
     g = Girder(server.api)
     DownloadManager(
-        g.mirror("folder", server.root, tmp_path,
-                 keep=lambda f: f.path.parts[0] == "002"),
+        mirror(g.walk("folder", server.root), tmp_path,
+                 keep=lambda f: f.relpath.parts[0] == "002"),
         jobs=3, on_error="raise",
     ).run()
     assert all(

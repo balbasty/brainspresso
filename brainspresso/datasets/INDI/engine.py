@@ -53,7 +53,7 @@ from brainspresso.bids.harvest import InlineEntry
 from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName
 from brainspresso.download.session import new_session
 from brainspresso.sources import fcp
-from brainspresso.sources.openneuro import RemoteEntry
+from brainspresso.sources.base import LabelMap, prefix_labels
 from brainspresso.sources.s3 import S3Object
 
 lg = getLogger(__name__)
@@ -103,6 +103,11 @@ class Site:
 
     def label(self, original: str) -> str:
         return self.code + original
+
+    @property
+    def labels(self) -> LabelMap:
+        """Bucket labels <-> labels of the merged dataset (site code)"""
+        return prefix_labels(self.code)
 
     @property
     def key(self) -> str:
@@ -341,11 +346,7 @@ class Project:
                 )
                 continue
             path = reorder_entities(path)
-            out[path] = RemoteEntry(
-                path, fcp.get_bucket().url(it.obj.key),
-                size=it.obj.size, mtime=it.obj.mtime,
-                digests={"md5": it.obj.md5} if it.obj.md5 else {},
-            )
+            out[path] = it.obj.entry(fcp.get_bucket().url(it.obj.key), path)
         inline = list(self.generated(items, tables))
         participants = self.participants(tables)
         if participants is not None:
@@ -468,12 +469,20 @@ async def list_sites(
     sites: Iterable[Site],
     keep_subject=lambda label: True,
     derivatives: bool = False,
+    selection=None,
 ) -> list[Item]:
     """
     List the objects of some sites, pruning subjects that are not kept
-    (`keep_subject(label)`, with site-prefixed labels) and derivative
+    (`keep_subject(label)`, with site-prefixed labels, or the
+    `selection`, through the label mapping of each site) and derivative
     folders (unless `derivatives`).
     """
+    if selection is not None:
+        def keeps(site, label):
+            return site.labels.keeps(selection, label)
+    else:
+        def keeps(site, label):
+            return keep_subject(site.label(label))
     sem = asyncio.Semaphore(CONCURRENCY)
     async with new_session() as session:
         bucket = fcp.get_bucket()
@@ -502,8 +511,7 @@ async def list_sites(
                 if not rel and name in project.derivative_folders \
                         and not derivatives and not site.derivative:
                     continue
-                if name.startswith("sub-") and \
-                        not keep_subject(site.label(name[4:])):
+                if name.startswith("sub-") and not keeps(site, name[4:]):
                     continue
                 if name.startswith("sub-"):
                     tasks.append(full(d))

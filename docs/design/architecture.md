@@ -484,6 +484,17 @@ up as an XPASS failure once fixed (then drop the marker).
 * `set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II (fixed in OASIS-III, step 2b-ii, with its
   sessions table name).
+* IXI DWI: the bundled global 16-entry `bvals.txt`/`bvecs.txt` always wins
+  over the per-subject NITRC tables (`ctx.resource` falls back to the
+  package), and the volume count is never checked against the table.
+  Series have 17 (IXI002, Guys: 17 3D files) or 18 volumes; observed
+  pattern: two leading b=0 (second b=0 not in the IXI table) and, on
+  Philips sites, probably a trailing scanner-derived isotropic/trace image
+  (to check: ≈ mean of the DW volumes). Fix: per-subject volume layout from
+  member count/site, checked on the data; derived volume to a derivative
+  (`desc-trace`/`desc-powderavg` `_dwimap`), not the raw series; per-subject
+  `bval`/`bvec` matching the volumes; counted error on unknown patterns.
+  Awaiting a per-site census of `IXI-DTI.tar` member counts.
 * Harvest (not covered by tests, needs network): ABIDE-II and ABIDE-I xnat
   use the sync `nitrc_authentifier` with aiohttp sessions.
 

@@ -230,20 +230,6 @@ def sources() -> dict:
 DEFAULTS = {"raw": ["s3", "nitrc"], "meta": ["s3", "nitrc"]}
 
 
-def _value(x):
-    """Enum member -> value (str() of a str-Enum is 'Enum.member')"""
-    return str(getattr(x, "value", x))
-
-
-def _aslist(x) -> list:
-    """A single value (including a str or str-Enum) -> [value]"""
-    if x is None:
-        return []
-    if isinstance(x, (str, int)):
-        return [x]
-    return list(x)
-
-
 
 
 def download_s3(

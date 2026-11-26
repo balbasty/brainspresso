@@ -60,7 +60,7 @@ class OASIS2(Dataset):
         return {"wustl": WUSTL()}
 
     def roast(self, layout, args):
-        """Legacy bidsifier (ported in step 5)."""
+        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         from brainspresso.datasets.OASIS.II.bidsifier import (  # noqa: PLC0415
             Bidsifier,  # lazy: optional dependency (openpyxl)
         )

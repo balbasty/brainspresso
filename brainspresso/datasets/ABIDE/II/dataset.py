@@ -38,7 +38,7 @@ class ABIDE2(Dataset):
     harvest_jobs = 1
 
     def keys_for(self, command):
-        """Roast keys: the key hierarchy of the legacy bidsifier."""
+        """Roast keys: the key hierarchy of the legacy roaster."""
         if command == "roast":
             return KeySpec(allkeys)
         return self.keys
@@ -53,7 +53,7 @@ class ABIDE2(Dataset):
         return sources()
 
     def roast(self, layout, args):
-        """Legacy bidsifier (ported in step 5)."""
+        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         Bidsifier(
             layout.root, keys=set(args.keys.keys or allleaves),
             exclude_keys=set(args.keys.exclude_keys),

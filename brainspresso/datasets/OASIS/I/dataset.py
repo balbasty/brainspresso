@@ -52,7 +52,7 @@ class OASIS1(Dataset):
     extra = "oasis1"
 
     def keys_for(self, command):
-        """Roast keys (legacy bidsifier)."""
+        """Roast keys (legacy roaster, `Bidsifier` class)."""
         if command == "roast":
             return KeySpec(None, ROAST_KEYS, ROAST_KEYS)
         return self.keys
@@ -67,7 +67,7 @@ class OASIS1(Dataset):
         return {"wustl": WUSTL()}
 
     def roast(self, layout, args):
-        """Legacy bidsifier (ported in step 5)."""
+        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         from brainspresso.datasets.OASIS.I.bidsifier import (  # noqa: PLC0415
             Bidsifier,  # lazy: optional dependency (openpyxl)
         )

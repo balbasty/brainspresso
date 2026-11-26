@@ -1,6 +1,6 @@
 # Brainspresso
 
-A single application to **harvest** (download), **roast** (bidsify),
+A single application to **harvest** (download), **roast** (convert to BIDS),
 **grind** (preprocess) and **compost** (clean up) public datasets.
 
 This is a very early work in progress.
@@ -37,12 +37,12 @@ These datasets can be listed by typing `brainspresso` (or `bx`, or
 Usage: brainspresso COMMAND
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃     Brainspresso : Download, Bidsify and Process public neuroimagingdatasets      ┃
+┃     Brainspresso : Harvest, Roast and Grind public neuroimaging datasets      ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
  • Plantation : A public neuroimaging dataset supported brainspresso
  • Harvest    : Download raw data
- • Roast      : Bidsify raw data
+ • Roast      : Convert source data to BIDS
  • Grind      : Preprocess data with standard pipelines
  • Compost    : Delete source data, or data outside a filter
 

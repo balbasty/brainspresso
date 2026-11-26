@@ -593,7 +593,7 @@ def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
               ) -> Selection
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
-def legacy_keys(self, command, args) -> set  # legacy bidsifiers
+def legacy_keys(self, command, args) -> set  # legacy roasters
 def check(self, command, args) -> None      # keys, sites, subjects
 def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
 def run(self, command, layout, args)         # check, lock, then the body
@@ -623,7 +623,7 @@ after `record_run` (without `defaults`: the first source, or the one of
 unchanged. The default `roast` builds the context from `keys_for("roast")`
 and `template_dir`, then runs the roaster of `select_roaster` with
 `ctx.source` set to its source folder; `roast --source` only exists when
-sources have different roasters (and for ABIDE-I's legacy bidsifiers).
+sources have different roasters (and for ABIDE-I's legacy roasters).
 `--dry-run` creates nothing and takes no lock. `KeySpec(tree, choices,
 default, off).effective(keys, exclude)`: `--keys` that covers every
 choice, or the default `--keys` of a spec whose default is "all but
@@ -634,7 +634,7 @@ default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
 `KeyAliases.expand`) before anything is written, and the hierarchy is
-listed in the help of the command and in `info`. Legacy bidsifiers
+listed in the help of the command and in `info`. Legacy roasters
 (`legacy_subjects`) get numbers: `--subs` is expanded first (files,
 `start:stop`). A roast of a missing dataset folder is refused before
 anything is created. The command functions return nothing (cyclopts >=
@@ -676,7 +676,7 @@ match nothing are warned about by the hosted harvests (INDI, OpenNeuro;
 an error if none matches); their format is not validated. `subject_width`
 is set where subjects are numbers (IXI 3, Bullitt 3, OASIS-III 4,
 ABIDE-I 5, ADHD-200 7, CoRR 0: host `0003001` is BIDS `3001`); legacy
-bidsifiers get numbers (`Dataset.numbers`).
+roasters get numbers (`Dataset.numbers`).
 
 ### `register`, the catalog and `cli.main`
 
@@ -777,7 +777,7 @@ grind jobs. Ports must not assume that grind units take the run lock.
 | UNC-Wisconsin, OASIS-III | declared (token / login) | declared | UNC sessions |
 | ABIDE-I, ABIDE-II, CoRR | declared (sites, login) | ABIDE: override, legacy code (step 5) | ABIDE-I `download-nitrc/xnat` dropped |
 | COBRE, Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
-| GSP, ADHD200 | declared (ADHD200: `bidsify` group) | none | |
+| GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | none | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
 | OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | none | default compost; `info` override |

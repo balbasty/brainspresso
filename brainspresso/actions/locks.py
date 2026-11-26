@@ -32,7 +32,7 @@ that writes into a dataset creates its state folder *before* it takes
 any lock (`bids.layout.Layout.ensure_state`, called by `record_run`
 before the downloads of every harvest command, by `bids.harvest.harvest`
 and `run_roast` before anything is read or written, by `compost` and by
-the legacy bidsifiers before their actions run).
+the legacy roasters (`Bidsifier` classes) before their actions run).
 
 The dataset of a folder is cached once found (`find_dataset`; folders
 outside any dataset are looked up each time, so a state folder created

@@ -1,4 +1,4 @@
-"""Characterization tests for the OASIS-III roast (bidsify) step."""
+"""Characterization tests for the OASIS-III roast step."""
 import json
 
 import nibabel as nib

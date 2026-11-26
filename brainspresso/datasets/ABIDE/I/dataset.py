@@ -40,7 +40,7 @@ class ABIDE1(Dataset):
     option_defaults = {"roast": {"source": ("s3",)}}
 
     def keys_for(self, command):
-        """Roast keys: the key hierarchy of the legacy bidsifier."""
+        """Roast keys: the key hierarchy of the legacy roaster."""
         if command == "roast":
             return KeySpec(allkeys)
         return self.keys
@@ -55,7 +55,7 @@ class ABIDE1(Dataset):
         return sources()
 
     def groups(self, command):
-        """Roast: `--source` picks the bidsifier."""
+        """Roast: `--source` picks the legacy roaster."""
         groups = super().groups(command)
         if command == "roast" and "source" not in groups:
             i = groups.index("roast")
@@ -63,13 +63,13 @@ class ABIDE1(Dataset):
         return groups
 
     def roast(self, layout, args):
-        """Legacy bidsifiers (ported in step 5): one per source."""
+        """Legacy roasters (`Bidsifier` classes, step 5): one per source."""
         source = (args.source.source or ("s3",))[0]
-        bidsifiers = {"xnat": BidsifierXNAT, "nitrc": BidsifierNITRC,
+        roasters = {"xnat": BidsifierXNAT, "nitrc": BidsifierNITRC,
                       "s3": BidsifierNITRC}
-        if source not in bidsifiers:
+        if source not in roasters:
             raise UsageError(f"Unknown source {source!r}")
-        bidsifiers[source](
+        roasters[source](
             layout.root, keys=set(args.keys.keys or allleaves),
             exclude_keys=set(args.keys.exclude_keys),
             subs=self.numbers(args.select.subs),

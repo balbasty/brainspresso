@@ -1,4 +1,4 @@
-"""Characterization tests for the ABIDE-II roast (bidsify) step."""
+"""Characterization tests for the ABIDE-II roast step."""
 import json
 
 import nibabel as nib

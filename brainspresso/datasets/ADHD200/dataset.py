@@ -1,4 +1,5 @@
 """`bx adhd200`: ADHD-200."""
+import warnings
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -21,17 +22,25 @@ ADHD-200 dataset (attention deficit hyperactivity disorder)
 
 
 @option_group("ADHD-200", 50)
-class BidsifyOptions(OptionGroup):
-    """`--bidsify`."""
+class BidsCopyOptions(OptionGroup):
+    """`--bids/--no-bids` (deprecated alias: `--bidsify/--no-bidsify`)."""
 
-    bidsify: Annotated[bool, Parameter(
-        help="Place the files of the BIDS-like copy in the raw BIDS "
-        "dataset (else in `sourcedata/`)"
+    bids: Annotated[bool, Parameter(
+        help="Place the files of the BIDS-like copy of the bucket in the "
+        "raw BIDS dataset (else in `sourcedata/`)"
     )] = True
+    bidsify: Annotated[bool | None, Parameter(
+        show=False, help="Deprecated: use `--bids/--no-bids`"
+    )] = None
 
     def source_options(self, dataset):
-        """`bidsify`."""
-        return {"bidsify": self.bidsify}
+        """`bidsify` (the option of the S3 source)."""
+        value = self.bids
+        if self.bidsify is not None:
+            warnings.warn("--bidsify/--no-bidsify are deprecated: use "
+                          "--bids/--no-bids", FutureWarning, stacklevel=2)
+            value = self.bidsify
+        return {"bidsify": value}
 
 
 class ADHD200(Dataset):
@@ -47,8 +56,8 @@ class ADHD200(Dataset):
     download = {"path": "full", "on_error": "raise"}
 
     def options(self, command):
-        """`--bidsify` (harvest)."""
-        return {"bidsify": BidsifyOptions} if command == "harvest" else {}
+        """`--bids` (harvest)."""
+        return {"bids": BidsCopyOptions} if command == "harvest" else {}
 
     def sources(self, args=None):
         """s3://fcp-indi."""

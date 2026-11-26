@@ -14,6 +14,7 @@ import pytest
 from aiohttp import web
 
 from brainspresso.sources import fcp
+from cli_utils import bx
 from brainspresso.sources.s3 import S3Bucket
 
 P = "data/Projects"
@@ -119,8 +120,8 @@ def same(path: Path, key: str) -> bool:
 # ----------------------------------------------------------------------
 
 def test_abide1_harvest_s3(tmp_path):
-    from brainspresso.datasets.ABIDE.I.harvest import download_s3
-    download_s3(tmp_path, sites=["Caltech"], subs=[51456])
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+       "Caltech", "--subs", 51456)
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "phenotypic_CALTECH.csv",
@@ -134,24 +135,24 @@ def test_abide1_harvest_s3(tmp_path):
 
 
 def test_abide1_harvest_s3_keys_and_samples(tmp_path):
-    from brainspresso.datasets.ABIDE.I.harvest import download_s3
-    # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes;
-    # a single (non-list) key is accepted.
-    download_s3(tmp_path, sites=["MaxMun"], keys="T1w")
+    # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+       "MaxMun", "--keys", "T1w")
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "RawData/MaxMun_a/0051330/session_1/anat_1/mprage.nii.gz",
     }
-    download_s3(tmp_path, sites=["MaxMun"], keys=["meta"])
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+       "MaxMun", "--keys", "meta")
     assert "phenotypic_MAX_MUN.csv" in files(src)
 
 
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_abide1_roast_from_s3_folder(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from brainspresso.datasets.ABIDE.I.harvest import download_s3
     from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-    download_s3(tmp_path, sites=["Caltech"], keys=["raw"], layout=layout)
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+       "Caltech", "--keys", "raw", "--layout", layout)
     root = tmp_path / "ABIDE-1"
     Bidsifier(root, keys={"T1w", "rest"}).run()
     found = Layout.detect(root)
@@ -214,7 +215,6 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_adhd200_harvest_s3(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from cli_utils import bx
     bx("adhd200", "harvest", tmp_path, "--keys", "raw", "meta", "--sites",
        "Brown", "--jobs", 2, "--layout", layout)
     root = tmp_path / "ADHD-200"

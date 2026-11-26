@@ -26,7 +26,7 @@ OASIS-3/
     derivatives/oasis-freesurfer/
         atlas-*_dseg.tsv
         sourcedata/sub-{04d}/ses-d{04d}/{mri,surf,label,...}/  (unpacked)
-        sub-{04d}/ses-d{04d}/anat/...   (bidsified, `freesurfer.bidsify`)
+        sub-{04d}/ses-d{04d}/anat/...   (converted to BIDS, `freesurfer.bidsify`)
 
 With `--layout flat`, the content of `rawbids/` is in `OASIS-3/` itself.
 
@@ -215,7 +215,7 @@ def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
 
 def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
     """Unpack a FreeSurfer tree in `derivatives/<fs>/sourcedata/`
-    (only its bidsifiable files, unless `fs-all`), then bidsify it"""
+    (only its files that BIDS describes, unless `fs-all`), then roast it"""
     drv = ctx.layout.derivative(FS_NAME)
     ses = tarball.name.split(".")[0].split("_")[-1]
     src = drv.source / f"sub-{sub}" / f"ses-{ses}"
@@ -230,7 +230,7 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
         # sidecars only: the names of the members are enough
         yield Shard(bidsify_freesurfer, sub, ses, tarball, tag="fs")
         return
-    # unpacked files are inputs of the bidsification (`staging`: the
+    # unpacked files are inputs of the roast (`staging`: the
     # JSON policy does not apply to them)
     yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
     # (the shard runs after the tree is unpacked: the engine runs each

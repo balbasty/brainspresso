@@ -21,6 +21,7 @@ from brainspresso import cli
 from brainspresso.bids.layout import LayoutError, parse_layout
 from brainspresso.cli import app, main
 from brainspresso.datasets import catalog
+from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Args, Dataset, KeySpec
 from brainspresso.datasets.Bullitt.dataset import Bullitt
 from brainspresso.datasets.catalog import CATALOG, load
@@ -59,6 +60,8 @@ EXCEPTIONS = {
     ("abide1", "download-xnat", "*"): "removed",
     # deprecated alias, hidden from the help (`--layout sites:<kind>`)
     ("*", "harvest", "--site-layout"): "hidden",
+    # renamed `--bids/--no-bids` (hidden deprecated alias)
+    ("adhd200", "harvest", "--bidsify"): "hidden",
 }
 
 
@@ -434,3 +437,22 @@ def test_key_spec_effective():
     assert unc.effective(("raw", "meta")) == (("raw", "meta"), ())
     assert unc.effective(("raw", "meta"), ["dwi"]) == (("raw", "meta"),
                                                        ("dwi",))
+
+
+@pytest.mark.parametrize("flags,value", [
+    ([], True), (["--no-bids"], False), (["--no-bidsify"], False),
+    (["--bidsify"], True),
+])
+def test_adhd200_bids_flag(tmp_path, monkeypatch, flags, value):
+    seen = {}
+
+    def harvest(self, layout, args):
+        seen.update(self.source_options(args))
+
+    monkeypatch.setattr(ADHD200, "harvest", harvest)
+    app = register(ADHD200())
+    try:
+        app(["harvest", str(tmp_path), "--dry-run", *flags])
+    except SystemExit as e:
+        assert not e.code
+    assert seen["bidsify"] is value

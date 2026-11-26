@@ -1,4 +1,4 @@
-"""Characterization tests for the COBRE roast (bidsify) step."""
+"""Characterization tests for the COBRE roast step."""
 import json
 import os
 
@@ -122,7 +122,7 @@ def test_participants_refreshed_under_different(root):
 
 
 def test_state_folder_exists_before_locks(tmp_path, monkeypatch):
-    """The legacy bidsifier creates `.brainspresso/` before any lock."""
+    """The legacy roaster creates `.brainspresso/` before any lock."""
     from brainspresso.actions.locks import FileLock, find_dataset
     root = tmp_path / "COBRE"
     (root / "sourcedata").mkdir(parents=True)

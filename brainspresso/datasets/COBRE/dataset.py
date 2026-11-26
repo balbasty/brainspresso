@@ -32,7 +32,7 @@ class COBRE(Dataset):
     download = {"on_error": "raise"}
 
     def keys_for(self, command):
-        """Roast keys (legacy bidsifier)."""
+        """Roast keys (legacy roaster, `Bidsifier` class)."""
         if command == "roast":
             return KeySpec(None, ROAST_KEYS, ROAST_KEYS)
         return self.keys
@@ -42,7 +42,7 @@ class COBRE(Dataset):
         return sources()
 
     def roast(self, layout, args):
-        """Legacy bidsifier (ported in step 5)."""
+        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         Bidsifier(
             layout.root, keys=self.legacy_keys("roast", args),
             subs=self.numbers(args.select.subs),

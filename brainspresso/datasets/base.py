@@ -398,7 +398,7 @@ class Dataset:
     harvest_subjects : bool
         Whether harvest takes `--subs` (its sources can prune subjects)
     legacy_subjects : bool
-        Whether roast takes subject numbers (a legacy bidsifier, see
+        Whether roast takes subject numbers (a legacy roaster, see
         `numbers`)
     requires : dict[str, tuple[str]]
         Optional modules of each command
@@ -827,7 +827,7 @@ class Dataset:
 
     def legacy_keys(self, command: str, args: Args) -> set:
         """
-        Keys of a legacy bidsifier: `--keys` (else all) minus excluded.
+        Keys of a legacy roaster: `--keys` (else all) minus excluded.
 
         Parameters
         ----------
@@ -845,7 +845,7 @@ class Dataset:
 
     def numbers(self, values: Iterable[str]) -> list:
         """
-        Subject numbers of a legacy bidsifier (`--subs 1 002 3:5 subs.txt`).
+        Subject numbers of a legacy roaster (`--subs 1 002 3:5 subs.txt`).
 
         Values are expanded as for the other commands (`labels`: files
         and `start:stop` ranges), then converted to numbers.

@@ -28,7 +28,7 @@ class Bullitt(Dataset):
     credentials = "token"
 
     def keys_for(self, command):
-        """Roast keys (legacy bidsifier): raw scans, meta, derivatives."""
+        """Roast keys (legacy roaster): raw scans, meta, derivatives."""
         if command == "roast":
             return KeySpec(None, ROAST_KEYS, ROAST_KEYS)
         return self.keys
@@ -48,7 +48,7 @@ class Bullitt(Dataset):
         return super().describe(command)
 
     def roast(self, layout, args):
-        """Legacy bidsifier (ported in step 5)."""
+        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         Bidsifier(
             layout.root, keys=self.legacy_keys("roast", args),
             subs=self.labels(args.select.subs),

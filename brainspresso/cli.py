@@ -21,7 +21,7 @@ Brainspresso : Harvest, Roast and Grind public neuroimaging datasets
 
 * Plantation : A public neuroimaging dataset supported by brainspresso
 * Harvest    : Download raw data
-* Roast      : Bidsify raw data
+* Roast      : Convert source data to BIDS
 * Grind      : Preprocess data with standard pipelines
 * Compost    : Delete source data, or data outside a filter
 """

@@ -12,10 +12,12 @@ OASIS-1/
 Expected output
 ---------------
 OASIS-1/
-    dataset_description.json
-    participants.tsv
-    participants.json
-    rawdata/
+    dataset_description.json      (DatasetType "study")
+    sourcedata/
+    rawbids/
+        dataset_description.json
+        participants.tsv
+        participants.json
         sub-{04d}/
             anat/
                 sub-{04d}_run-{d}_T1w.{nii.gz|json}
@@ -57,6 +59,9 @@ OASIS-1/
                     sub-{04d}_hemi-R_desc-wm_area.shape.{gii|json}
                     sub-{04d}_hemi-R_desc-pial_area.shape.{gii|json}
                     sub-{04d}_hemi-R_atlas-DesikanKilliany_dseg.label.{gii|json}
+
+With `--layout flat`, the content of `rawbids/` is in `OASIS-1/` itself
+(and `sourcedata/`, `derivatives/` stay where they are).
 """
 from pathlib import Path
 from typing import Literal, Iterable

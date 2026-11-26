@@ -11,10 +11,13 @@ COBRE/
 Expected output
 ---------------
 COBRE/
-  dataset_description.json
-  participants.tsv
-  participants.json
-  rawdata/
+  dataset_description.json          (DatasetType "study")
+  sourcedata/
+  rawbids/
+      README
+      dataset_description.json      (DatasetType "raw")
+      participants.tsv
+      participants.json
       sub-{07d}/
           anat/
               sub-{07d}_T1w.nii.gz
@@ -22,6 +25,9 @@ COBRE/
           func/
               sub-{07d}_bold.nii.gz
               sub-{07d}_bold.json
+
+With `--layout flat`, the content of `rawbids/` is in `COBRE/` itself
+(and `sourcedata/`, `derivatives/` stay where they are).
 """
 
 from pathlib import Path

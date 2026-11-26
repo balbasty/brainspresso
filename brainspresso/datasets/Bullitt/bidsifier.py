@@ -1,13 +1,19 @@
 """
 Bullitt healthy MR database: convert the harvested MetaImage files to BIDS.
 
-Output
-------
+Output (study layout)
+---------------------
 Bullitt/
-    README, dataset_description.json, participants.{tsv,json}
-    rawdata/sub-<NNN>/anat/sub-<NNN>_{acq-flash_T1w,acq-mprage_T1w,T2w,angio}.{nii.gz,json}
-    derivatives/bullitt/sub-<NNN>/anat/sub-<NNN>_acq-flash_desc-brain_T1w.nii.gz
-    derivatives/bullitt/sub-<NNN>/anat/sub-<NNN>_desc-vessels_tubes.tre
+    dataset_description.json        (DatasetType "study")
+    rawbids/
+        README, dataset_description.json, participants.{tsv,json}
+        sub-<NNN>/anat/sub-<NNN>_{acq-flash_T1w,acq-mprage_T1w,T2w,angio}.{nii.gz,json}
+    derivatives/bullitt/            (SourceDatasets: ../../rawbids/)
+        README, dataset_description.json, .bidsignore
+        sub-<NNN>/anat/sub-<NNN>_acq-flash_desc-brain_T1w.nii.gz
+        sub-<NNN>/anat/sub-<NNN>_desc-vessels_tubes.tre
+
+With `--layout flat`, the content of `rawbids/` is in `Bullitt/` itself.
 """
 from logging import getLogger
 from pathlib import Path

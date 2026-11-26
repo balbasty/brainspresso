@@ -38,7 +38,7 @@ class Bidsifier(BidsifierBase):
             yield from self.src.glob(f"phenotypic_{site}*.csv")
 
     # ------------------------------------------------------------------
-    #   Write rawdata
+    #   Write raw data
     # ------------------------------------------------------------------
     def make_raw(self) -> Iterator[Status]:
 

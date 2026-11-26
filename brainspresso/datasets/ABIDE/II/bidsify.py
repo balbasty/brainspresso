@@ -15,16 +15,18 @@ ABIDE-2/
 Expected output
 ---------------
 ABIDE-2/
-    dataset_description.json
-    participants.{tsv|json}
-    phenotype/
-        adir.{tsv|json}
-        ados.{tsv|json}
-        ados_gotham.{tsv|json}
-        srs.{tsv|json}
-        vineland.{tsv|json}
-        wisc_iv.{tsv|json}
-    rawdata/
+    dataset_description.json      (DatasetType "study")
+    sourcedata/
+    rawbids/
+        dataset_description.json
+        participants.{tsv|json}
+        phenotype/
+            adir.{tsv|json}
+            ados.{tsv|json}
+            ados_gotham.{tsv|json}
+            srs.{tsv|json}
+            vineland.{tsv|json}
+            wisc_iv.{tsv|json}
         sub-{:05d}/
             ses-{:02d}/
                 anat/
@@ -33,6 +35,9 @@ ABIDE-2/
                     sub-{:05d}_ses-{:02d}_task-rest_run-{:02d}_bold.nii.gz
                 dwi/
                     sub-{:05d}_ses-{:02d}_dwi.{nii.gz|json|bval|bvec}
+
+With `--layout flat`, the content of `rawbids/` is in `ABIDE-2/` itself
+(and `sourcedata/`, `derivatives/` stay where they are).
 """
 from pathlib import Path
 from typing import Literal, Iterable

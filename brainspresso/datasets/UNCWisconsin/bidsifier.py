@@ -9,15 +9,23 @@ UNC-Wisconsin/sourcedata/
     scan_data/<sub>/<age>months/sMRI/ORIG/<sub>_<age>months_T2_ORIG.nrrd
     scan_data/<sub>/<age>months/DTI/ORIG/*/<sub>_<age>months_dwi.nrrd
 
-Output
-------
+Output (study layout)
+---------------------
 UNC-Wisconsin/
-    README, dataset_description.json
-    participants.tsv, participants.json, sessions.json
-    rawdata/sub-<sub>/sub-<sub>_sessions.tsv
-    rawdata/sub-<sub>/ses-<age>months/anat/sub-<sub>_ses-<age>months_T1w.nii.gz
-    rawdata/sub-<sub>/ses-<age>months/anat/sub-<sub>_ses-<age>months_T2w.nii.gz
-    rawdata/sub-<sub>/ses-<age>months/dwi/sub-<sub>_ses-<age>months_dwi.{nii.gz,bval,bvec}
+    dataset_description.json        (DatasetType "study")
+    rawbids/
+        README, dataset_description.json
+        participants.tsv, participants.json, sessions.json
+        sub-<sub>/sub-<sub>_sessions.tsv
+        sub-<sub>/ses-<age>months/anat/sub-<sub>_ses-<age>months_T1w.nii.gz
+        sub-<sub>/ses-<age>months/anat/sub-<sub>_ses-<age>months_T2w.nii.gz
+        sub-<sub>/ses-<age>months/dwi/sub-<sub>_ses-<age>months_dwi.{nii.gz,bval,bvec}
+    derivatives/unc-wisconsin/      (SourceDatasets: ../../rawbids/)
+        README, dataset_description.json, .bidsignore
+        sub-<sub>/ses-<age>months/{anat,dwi}/...
+
+With `--layout flat`, the content of `rawbids/` is in `UNC-Wisconsin/`
+itself.
 """
 import csv
 import json

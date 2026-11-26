@@ -66,7 +66,7 @@ class Bidsifier(BidsifierBase):
         # TODO: other derivatives
 
     # ------------------------------------------------------------------
-    #   Write rawdata
+    #   Write raw data
     # ------------------------------------------------------------------
     def make_raw(self, key):
         # Run actions

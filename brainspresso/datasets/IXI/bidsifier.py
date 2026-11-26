@@ -297,8 +297,8 @@ class Bidsifier:
 
         # First, copy bvals/bvecs.
         # The original release has a single bvals.txt/bvecs.txt, common
-        # to all subjects, that we place at the top of the tree (under
-        # "rawdata/"). NITRC-IR has one pair per subject (harvested as
+        # to all subjects, that we place at the top of the raw dataset
+        # (`layout.raw`). NITRC-IR has one pair per subject (harvested as
         # `IXI-DTI/<IXI###-Site-####>-{bvals,bvecs}.txt`), written next
         # to each subject's dwi file below.
         common = {}

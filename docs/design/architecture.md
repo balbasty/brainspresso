@@ -101,6 +101,62 @@ without migration (pre-release project).
 
 No module builds `root / "rawdata"` (or any other fixed folder) itself.
 
+Implemented (step 2b-i):
+
+* `make_layout(kind, root, **kw)` (`study`, `flat`, `sites`) and
+  `resolve_layout(root, layout=None) -> Layout`: the detected layout of
+  an existing dataset, else `layout`, else `DEFAULT_LAYOUT` (`"study"`,
+  one constant); `LayoutError` (a `ValueError`) if `--layout` conflicts
+  with the detected one. `Layout.detect(root)`: manifest first, then the
+  tree (`rawbids/` or a "study" description: study; `sub-*` or another
+  description at the root: flat; site datasets under a folder that is
+  not a dataset: sites), else `None`. Paths are accepted as
+  `os.PathLike`; no `upath` yet.
+* Beyond the list above: `layout.root` (`<DS>`), `layout.bids` (root of
+  the BIDS dataset the layout describes: `raw`, or the derivative root),
+  `layout.derivatives`, `layout.description`, `layout.manifest`,
+  `layout.tasks`, `layout.original(path)` (pristine copy of a trimmed
+  table in `<state>/orig/<path relative to root>`), `layout.datasets()`
+  (itself, or each site) and `layout.resolve(relpath)`, which places a
+  path of a flat BIDS listing (as hosts list them: `sub-*/...`,
+  `sourcedata/...`, `derivatives/<name>/...`) in the layout. Hosted-BIDS
+  harvests (OpenNeuro, INDI) go through `resolve`.
+* A derivative sub-layout shares the state folder of its parent; its
+  `raw` is the raw dataset it derives from and `source_url` the relative
+  URL to it (`../../rawbids/` or `../../`).
+* `sites`: `layout.child(name)` (created with `child_kind`, CLI
+  `--site-layout`), `layout.children`; the parent's `raw` is the parent
+  folder itself (README, merged `participants.tsv`); compost runs on
+  each site.
+* `layout.write_descriptions()` (after every harvest and roast): the
+  study description (`DatasetType: "study"`, name and credits from the
+  raw description) and, in every existing derivative description,
+  `DatasetType: "derivative"` and a first `SourceDatasets` entry with
+  the local URL of the raw dataset (a `../../` entry, meaning the raw
+  dataset of a flat layout, is replaced). The raw description stays the
+  template copy (or the hosted one) at `layout.raw`.
+
+**State.** `<state>/manifest.json` (one per dataset; each site of a
+`sites` layout has its own, and the parent has one that records the
+layout of each site):
+
+```json
+{"schema": 1,
+ "layout": "study | flat | sites",
+ "children": {"<site>": "study | flat"},
+ "runs": [{"stage": "harvest | roast | compost | grind",
+           "date": "<ISO 8601 UTC>", "...": "stage-specific fields"}],
+ "files": {"<path relative to <DS>>": {"url": "...", "size": 0,
+           "digests": {"md5": "..."},
+           "origin": "direct | roasted | generated"}}}
+```
+
+`origin` is written by hosted harvests today (`direct` for downloads,
+`generated` for inline files); `roasted` is reserved for hybrid
+placement (2b-iii). Per-task state: `<state>/tasks/<task id>.json`, see
+§7. Both are defined in `bids/harvest.py` (`record_run`,
+`write_manifest`, `write_task_state`, `read_task_states`).
+
 ## 3. Filtering: `Selection` everywhere
 
 `brainspresso.bids.select.Selection` is the single filter vocabulary for
@@ -255,6 +311,20 @@ dataset overrides or adds any command. Optional dependencies keep using
   file. Containers: Docker locally, Apptainer on HPC.
 * State: **one state file per task** under `.brainspresso/` (concurrent jobs
   never write the same file); the manifest is an index rebuilt from them.
+  Format (defined in step 2b-i, not used yet): `<state>/tasks/<task
+  id>.json`, the task id URL-quoted into the file name, written
+  atomically:
+
+  ```json
+  {"schema": 1, "task": "grind/fs/sub-01/ses-1",
+   "stage": "roast | grind", "pipeline": "<name> | null",
+   "unit": {"sub": "01", "ses": "1"},
+   "status": "pending | running | done | failed | skipped",
+   "config_hash": "<hex> | null",
+   "started": "<ISO 8601> | null", "finished": "<ISO 8601> | null",
+   "error": "<message> | null",
+   "outputs": ["<path relative to <DS>>"]}
+  ```
 * Roast shares reporting, the state format and the submit protocol with
   grind (local backend only), not the `Action` class.
 * `bx <ds> grind <pipeline>` applies dataset defaults/overrides (which T1w,
@@ -271,7 +341,7 @@ Each step lands as commits on the refactor branch with its tests green.
 |---|------|------|--------|
 | 1 | Characterization tests for roasts without tests (COBRE, OASIS-I/II/III, ABIDE-II, ABIDE-I nitrc); known bugs as strict xfail | Low-Effort Opus | done (300 passed, 16 xfailed) |
 | 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | done (333 passed) |
-| 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | |
+| 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
 | 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
@@ -308,7 +378,8 @@ up as an XPASS failure once fixed (then drop the marker).
 
 ## 9. Open questions
 
-* Default layout: `study` (proposed) or `flat`.
+* Default layout: `study` (implemented as `DEFAULT_LAYOUT`, one constant
+  in `bids/layout.py`) or `flat`.
 * Validator/tooling support for `DatasetType: "study"` and `rawbids/` (new
   in BIDS 1.11.2): to check; `rawbids/` itself is a plain raw dataset.
 * Grind runtime for SPM (MATLAB, compiled standalone SPM, or Python port).
@@ -323,3 +394,7 @@ up as an XPASS failure once fixed (then drop the marker).
   `LocalSource`; hybrid placement classified by "may be repaired"; layout
   sub-layouts, `relative`, sites as composition; grind stages, done-markers,
   resources in the submit protocol, per-task state; step order revised.
+* r3: step 2b-i. Layout API as implemented (`resolve`, `original`,
+  `bids`, `datasets`, `resolve_layout`), manifest schema 1 and per-task
+  state format; INDI `--layout merged` becomes `--layout study|flat`,
+  `--layout sites` gains `--site-layout`.

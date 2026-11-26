@@ -49,28 +49,30 @@ OASIS-3/
 Expected output
 ---------------
 OASIS-3/
-    dataset_description.json
-    participants.{tsv|json}
-    sessions.json
-    phenotypes/
-        UDSv2_a1_demographics.{tsv|json}
-        UDSv2_a2_informant.{tsv|json}
-        UDSv2_a3_family_history.{tsv|json}
-        UDSv2_a4_medications.{tsv|json}
-        UDSv2_a5_health_history.{tsv|json}
-        UDSv2_b1_physical.{tsv|json}
-        UDSv2_b2_hiscvd.{tsv|json}
-        UDSv2_b3_updrs.{tsv|json}
-        UDSv2_b4_cdr.{tsv|json}
-        UDSv2_b5_npiq.{tsv|json}
-        UDSv2_b6_gds.{tsv|json}
-        UDSv2_b7_fas.{tsv|json}
-        UDSv2_b8_neurofind.{tsv|json}
-        UDSv2_b9_symptoms.{tsv|json}
-        UDSv2_c1_neuropsy.{tsv|json}
-        UDSv2_d1_diagnosis.{tsv|json}
-        UDSv2_d2_medical_conditions.{tsv|json}
-    rawdata/
+    dataset_description.json      (DatasetType "study")
+    sourcedata/
+    rawbids/
+        dataset_description.json
+        participants.{tsv|json}
+        sessions.json
+        phenotype/
+            UDSv2_a1_demographics.{tsv|json}
+            UDSv2_a2_informant.{tsv|json}
+            UDSv2_a3_family_history.{tsv|json}
+            UDSv2_a4_medications.{tsv|json}
+            UDSv2_a5_health_history.{tsv|json}
+            UDSv2_b1_physical.{tsv|json}
+            UDSv2_b2_hiscvd.{tsv|json}
+            UDSv2_b3_updrs.{tsv|json}
+            UDSv2_b4_cdr.{tsv|json}
+            UDSv2_b5_npiq.{tsv|json}
+            UDSv2_b6_gds.{tsv|json}
+            UDSv2_b7_fas.{tsv|json}
+            UDSv2_b8_neurofind.{tsv|json}
+            UDSv2_b9_symptoms.{tsv|json}
+            UDSv2_c1_neuropsy.{tsv|json}
+            UDSv2_d1_diagnosis.{tsv|json}
+            UDSv2_d2_medical_conditions.{tsv|json}
         sub-{04d}/
             sub-{04d}_sessions.tsv
             ses-{d}/
@@ -93,6 +95,9 @@ OASIS-3/
                 pet/
                     sub-{:04d}_trc-PIB_pet.{nii.gz|json}
                     sub-{:04d}_trc-AV45_pet.{nii.gz|json}
+
+With `--layout flat`, the content of `rawbids/` is in `OASIS-3/` itself
+(and `sourcedata/`, `derivatives/` stay where they are).
 """
 from pathlib import Path
 from typing import Literal, Iterable

@@ -57,6 +57,34 @@ Usage: brainspresso COMMAND
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
 
+## Local layout
+
+Each dataset lives in `<path>/<DATASET>/`. By default (`--layout study`),
+this folder is a BIDS *study* dataset (`DatasetType: "study"`, BIDS
+1.10.1+) that keeps the raw BIDS dataset in `rawbids/` (BIDS 1.11.2),
+next to the source data and the derivatives:
+
+```
+IXI/
+├── dataset_description.json      DatasetType "study"
+├── sourcedata/                   harvested files (archives, folders, metadata)
+├── rawbids/                      raw BIDS dataset (DatasetType "raw")
+│   ├── dataset_description.json
+│   ├── README  participants.tsv  participants.json  .bidsignore
+│   ├── phenotype/
+│   └── sub-002/anat/sub-002_T1w.nii.gz ...
+├── derivatives/<pipeline>/       derivative datasets
+│                                 (SourceDatasets: [{"URL": "../../rawbids/"}])
+└── .brainspresso/                manifest, pristine tables, per-task state
+```
+
+With `--layout flat`, the dataset folder is the raw BIDS dataset itself
+(classic BIDS: `IXI/sub-002/...`, `IXI/participants.tsv`, with
+`sourcedata/`, `derivatives/` and `.brainspresso/` inside it). The layout
+is recorded in `.brainspresso/manifest.json` by the first `harvest` or
+`roast`: later commands reuse it (it is detected from the files when
+there is no manifest), and fail if a different `--layout` is given.
+
 ## IXI: Information eXtraction from Images
 
 ```
@@ -88,6 +116,8 @@ Download source data for the IXI dataset.
 │ --if-exists  Behaviour if a file already exists                                   │
 │              [choices: skip,overwrite,different,refresh,error] [default: skip]    │
 │ --packet     Packet size to download, in bytes [default: 8.4 MB]                  │
+│ --layout     Layout of the dataset: study (raw dataset in rawbids/) or            │
+│              flat (raw dataset at the root) [choices: study,flat]                 │
 │ --log        Path to log file                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -107,6 +137,8 @@ Convert source data into a BIDS-compliant directory
 │                 [choices:yes,no,only] [default: yes]                              │
 │ --if-exists     Behaviour when a file already exists                              │
 │                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
+│ --layout        Layout of the dataset: study (raw dataset in rawbids/)            │
+│                 or flat (raw dataset at the root) [choices: study,flat]           │
 │ --log           Path to log file                                                  │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -114,7 +146,10 @@ Convert source data into a BIDS-compliant directory
 ## OpenNeuro: any dataset, or a filtered subset of it
 
 OpenNeuro datasets are already in BIDS, so `harvest` downloads them
-directly into a BIDS root (`<path>/OpenNeuro/<dataset>/`, or `--out`).
+directly into the raw BIDS dataset of `<path>/OpenNeuro/<dataset>/` (or
+`--out`): `rawbids/`, or the folder itself with `--layout flat`. The
+dataset's own `sourcedata/` and `derivatives/` (`--folders`) go next to
+it.
 Filters select *data* files; the metadata that applies to them (sidecars,
 `events.tsv`, `scans.tsv`/`sessions.tsv`, top-level files, `phenotype/`)
 is added automatically, following the BIDS inheritance principle.
@@ -192,8 +227,9 @@ have no gradient table, and their volumes are stacked along z.
 
 Curated commands for projects of the International Neuroimaging
 Data-sharing Initiative mirrored on the public `fcp-indi` bucket (no
-login needed). Each dataset is harvested straight to a BIDS dataset in
-`<path>/<DATASET>/`, with the same selection options as `bx openneuro
+login needed). Each dataset is harvested straight to the raw BIDS
+dataset of `<path>/<DATASET>/` (see [Local layout](#local-layout)), with
+the same selection options as `bx openneuro
 harvest` (`--subs`, `--sessions`, `--datatypes`, `--suffixes`,
 `--tasks`, `--include`/`--exclude`, `--where`, `--folders derivatives`,
 `--dry-run`...) plus `--sites` for multi-site datasets. Only the
@@ -220,18 +256,21 @@ bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
 bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
 ```
 
-Multi-site datasets (`fcon1000`, `hbn`, `acpi`) have two layouts:
+Multi-site datasets (`fcon1000`, `hbn`, `acpi`) can be harvested in two
+ways:
 
-* `--layout merged` (default): one BIDS dataset. Labels that are not
-  unique across sites get a site prefix (`AnnArbor_a/sub-04111` ->
-  `sub-AnnArborA04111`), and `participants.tsv` has a `site` column.
-* `--layout sites`: one BIDS dataset per site (`FCON1000/<site>/`), with
-  the labels of the bucket and site-level metadata (e.g. one
-  `task-rest_bold.json` per site). This is "option 1" of the BIDS
-  recommendations for multi-site studies. The parent folder is not a
-  BIDS dataset: it holds the README and the merged `participants.tsv`,
-  which is also what `--where` queries. `--subs` accepts both the site
-  labels and the merged labels.
+* `--layout study` (default) or `--layout flat`: one BIDS dataset, sites
+  merged. Labels that are not unique across sites get a site prefix
+  (`AnnArbor_a/sub-04111` -> `sub-AnnArborA04111`), and
+  `participants.tsv` has a `site` column.
+* `--layout sites`: one dataset per site (`FCON1000/<site>/`, each a
+  study or a flat dataset, `--site-layout`), with the labels of the
+  bucket and site-level metadata (e.g. one `task-rest_bold.json` per
+  site). This is "option 1" of the BIDS recommendations for multi-site
+  studies. The parent folder is not a BIDS dataset: it holds the README
+  and the merged `participants.tsv`, which is also what `--where`
+  queries. `--subs` accepts both the site labels and the merged labels.
+  `compost` processes each site dataset.
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
 curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
@@ -248,7 +287,8 @@ Each dataset's `README` lists what was changed.
 ## Compost: clean up a local dataset
 
 Every dataset has a `compost` command. By default, it deletes the source
-data (`<path>/<DATASET>/sourcedata/`) once it has been roasted into BIDS,
+data (`<path>/<DATASET>/sourcedata/`) once it has been roasted into BIDS
+(in either layout),
 since the archives it contains are usually only taking up space. It
 refuses to do so if no BIDS subject is found (use `--force` to override).
 

@@ -15,10 +15,12 @@ IXI/
 Expected output
 ---------------
 IXI/
-  dataset_description.json
-  participants.tsv
-  participants.json
-  rawdata/
+  dataset_description.json      (DatasetType "study")
+  sourcedata/
+  rawbids/
+      dataset_description.json
+      participants.tsv
+      participants.json
       dwi.bval
       dwi.bvec
       sub-{03d}/
@@ -34,6 +36,9 @@ IXI/
           dwi/
               sub-{03d}_dwi.nii.gz
               sub-{03d}_dwi.json
+
+With `--layout flat`, the content of `rawbids/` is in `IXI/` itself
+(and `sourcedata/`, `derivatives/` stay where they are).
 """
 
 from pathlib import Path

@@ -161,7 +161,7 @@ class Bidsifier:
         yield {'status': 'done', 'message': ''}
 
     # ------------------------------------------------------------------
-    #   Write rawdata
+    #   Write raw data
     # ------------------------------------------------------------------
     def make_raw(self, keys):
         # Run actions

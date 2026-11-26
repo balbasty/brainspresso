@@ -21,20 +21,8 @@ written to `printouts/<DATASET>/sidecars.lock.json` and a diff report to
 With `--check`, nothing is written and the exit code is non-zero if
 regenerating would change any sidecar or the lock file.
 
-Every difference with the previous template is classified automatically
-(see `classify`) and written to `printouts/<DATASET>/known_issues.md`:
-
-- renames (`ManufacturerModelName` -> `ManufacturersModelName`, the old key
-  was misspelt);
-- (a) old-template errors corrected by protocol2bids: the old value is not
-  a valid BIDS value (e.g. `PhaseEncodingDirection: "AP"`, a text
-  `SliceTiming`, `SliceTiming` in an anatomical sidecar, an implausible
-  `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in a bold sidecar);
-- accepted protocol2bids conventions: differences documented in
-  protocol2bids `notes/conversion_rules.md` (MPRAGE TR convention, EPI TR in
-  `RepetitionTime`, verified template errors), one reason each (`ACCEPTED`);
-- (b) suspected protocol2bids issues: the new value is invalid, or a valid
-  old value was dropped or changed.
+`report.md` lists, per sidecar, the keys added, removed and changed
+compared to the sidecar at git `--baseline` (default `HEAD`).
 
 An entry may set `fill_from` (and `fill_select`) to fill the keys missing
 from the sidecar from another printout of the same acquisition (e.g. the
@@ -48,7 +36,6 @@ import argparse
 import fnmatch
 import hashlib
 import json
-import math
 import sys
 import tomllib
 from pathlib import Path
@@ -231,290 +218,6 @@ def _fmt(v):
 
 
 # ---------------------------------------------------------------------------
-# classification of differences
-# ---------------------------------------------------------------------------
-
-RENAMES = {'ManufacturerModelName': 'ManufacturersModelName'}
-DIRECTIONS = {'i', 'j', 'k', 'i-', 'j-', 'k-'}
-# plausible ranges (seconds, degrees, tesla)
-RANGES = {
-    'RepetitionTime': (1e-3, 20),
-    'RepetitionTimeExcitation': (1e-3, 20),
-    'RepetitionTimePreparation': (1e-3, 20),
-    'EchoTime': (1e-4, 0.5),
-    'InversionTime': (1e-3, 5),
-    'FlipAngle': (0, 180),
-    'EffectiveEchoSpacing': (1e-5, 1e-2),
-    'TotalReadoutTime': (1e-3, 0.5),
-    'DwellTime': (1e-7, 1e-3),
-    'MagneticFieldStrength': (0.1, 12),
-    'SliceThickness': (0.1, 20),
-    'ParallelReductionFactorInPlane': (1, 16),
-    'MultibandAccelerationFactor': (1, 16),
-}
-ENUMS = {
-    'MRAcquisitionType': {'2D', '3D'},
-    'PhaseEncodingDirection': DIRECTIONS,
-    'SliceEncodingDirection': DIRECTIONS,
-}
-# MRI sidecar keys of the BIDS specification (1.10); dropping another key
-# (dcm2niix/vendor extras of the old templates) is reported separately
-BIDS_KEYS = set('''
-Manufacturer ManufacturersModelName DeviceSerialNumber StationName
-SoftwareVersions HardcopyDeviceSoftwareVersion MagneticFieldStrength
-ReceiveCoilName ReceiveCoilActiveElements GradientSetType
-MRTransmitCoilSequence MatrixCoilMode CoilCombinationMethod
-PulseSequenceType ScanningSequence SequenceVariant ScanOptions
-SequenceName PulseSequenceDetails NonlinearGradientCorrection
-MRAcquisitionType MTState MTOffsetFrequency MTPulseBandwidth
-MTNumberOfPulses MTPulseShape MTPulseDuration SpoilingState SpoilingType
-SpoilingRFPhaseIncrement SpoilingGradientMoment SpoilingGradientDuration
-NumberShots ParallelReductionFactorInPlane ParallelAcquisitionTechnique
-ParallelReductionFactorOutOfPlane PartialFourier PartialFourierDirection
-PhaseEncodingDirection EffectiveEchoSpacing TotalReadoutTime MixingTime
-EchoTime InversionTime SliceTiming SliceEncodingDirection DwellTime
-FlipAngle NegativeContrast AnatomicalLandmarkCoordinates
-InstitutionName InstitutionAddress InstitutionalDepartmentName
-ContrastBolusIngredient RepetitionTime RepetitionTimeExcitation
-RepetitionTimePreparation VolumeTiming TaskName
-NumberOfVolumesDiscardedByScanner
-NumberOfVolumesDiscardedByUser DelayTime AcquisitionDuration
-DelayAfterTrigger Instructions TaskDescription CogAtlasID CogPOID
-MultibandAccelerationFactor B0FieldIdentifier B0FieldSource IntendedFor
-Units EchoTime1 EchoTime2 MultipartID SpacingBetweenSlices SliceThickness
-PhaseEncodingSteps ImagingFrequency
-'''.split())
-ANAT_SUFFIXES = ('T1w', 'T2w', 'FLAIR', 'PDw', 'T2starw')
-NOT_IN_ANAT = ('SliceTiming',)
-NOT_IN_FUNC = ('RepetitionTimeExcitation',)
-
-
-def _is_num(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
-
-
-def _suffix(output):
-    return Path(output).stem.split('_')[-1]
-
-
-def invalid(output, key, value):
-    """Reason why `value` is not a valid BIDS value for `key` (or None)."""
-    suffix = _suffix(output)
-    if suffix in ANAT_SUFFIXES and key in NOT_IN_ANAT:
-        return f'`{key}` in an anatomical ({suffix}) sidecar'
-    if suffix in ('bold', 'dwi') and key in NOT_IN_FUNC:
-        return f'`{key}` in a {suffix} sidecar'
-    if key in ENUMS:
-        if value not in ENUMS[key]:
-            return f'`{key}` {_fmt(value)} not in {sorted(ENUMS[key])}'
-        return None
-    if key == 'SliceTiming':
-        if not (isinstance(value, list) and value
-                and all(_is_num(v) for v in value)):
-            return f'`SliceTiming` {_fmt(value)} is not an array of numbers'
-        if min(value) < 0 or max(value) > RANGES['RepetitionTime'][1]:
-            return '`SliceTiming` values out of range'
-        return None
-    if key in RANGES:
-        lo, hi = RANGES[key]
-        if not _is_num(value):
-            return f'`{key}` {_fmt(value)} is not a number'
-        if not lo <= value <= hi:
-            return f'`{key}` {_fmt(value)} outside plausible [{lo}, {hi}]'
-    return None
-
-
-def _seq(sidecar):
-    """ScanningSequence of a sidecar as a set of codes."""
-    seq = sidecar.get('ScanningSequence') or []
-    if isinstance(seq, str):
-        seq = seq.split('\\')
-    return set(seq)
-
-
-def _mprage(sidecar):
-    """MPRAGE-like: 3D gradient-echo inversion recovery.
-
-    Scan tables give no ScanningSequence: 3D with an inversion time.
-    """
-    seq = _seq(sidecar)
-    return (sidecar.get('MRAcquisitionType') == '3D'
-            and 'InversionTime' in sidecar and ('GR' in seq or not seq))
-
-
-def _not_inversion_tr(value):
-    # an inversion TR is >= 0.5 s (conversion_rules.md: scan tables
-    # reporting a TR < 0.5 s for a 3D IR scan only know the excitation TR)
-    return _is_num(value) and value < 0.5
-
-
-# Differences that look like protocol2bids issues but are its documented
-# conventions, or verified template errors (protocol2bids
-# `notes/conversion_rules.md`). Each rule:
-#   (dataset or None, output glob(s), keys ('*': any), kinds, condition,
-#    reason)
-# kinds: 'dropped', 'differs', 'missing' (no repetition time produced);
-# condition(old_value, new_value, new_sidecar) or None. The first matching
-# rule wins (dataset-specific rules first).
-_MPRAGE_TR = ('MPRAGE-like scan: `RepetitionTime` is the inversion TR and is '
-              'not written when only the excitation TR is known '
-              '(conversion_rules.md, "MPRAGE-like sequences")')
-_RTP = ('the template\'s `RepetitionTimePreparation` was the TE, TI or '
-        'excitation TR, not the inversion TR (conversion_rules.md, '
-        '"MPRAGE-like sequences" and cross-checks)')
-ACCEPTED = [
-    ('ABIDE2', 'NYU/[12]/bold.json', ('EchoTime', 'FlipAngle',
-                                      'SliceThickness'), ('differs',), None,
-     'printouts match the NIfTI geometry; the scan tables and templates '
-     'swap NYU_1/NYU_2 bold parameters (conversion_rules.md, cross-checks)'),
-    ('ABIDE1', 'Yale/T1w.json', ('*',), ('dropped', 'differs'), None,
-     'the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes '
-     'protocol 0 (conversion_rules.md, cross-checks)'),
-    ('ABIDE1', ('KKI/T1w.json', 'Trinity/T1w.json'),
-     ('ParallelReductionFactorInPlane', 'ParallelReductionFactorOutOfPlane'),
-     ('differs',), None,
-     'KKI/Trinity: the template\'s in-plane SENSE factor is the '
-     'through-plane `S reduction` (conversion_rules.md, Philips "SENSE '
-     'factors" and cross-checks)'),
-    (None, '*T1w.json', ('RepetitionTime',), ('missing',),
-     lambda a, b, new: _mprage(new), _MPRAGE_TR),
-    (None, '*T1w.json', ('RepetitionTimePreparation',), ('dropped',),
-     lambda a, b, new: _mprage(new) and _not_inversion_tr(a), _RTP),
-    (None, '*T1w.json', ('RepetitionTimePreparation',), ('differs',),
-     lambda a, b, new: (_mprage(new) and b == new.get('RepetitionTime')
-                        and _is_num(a) and not math.isclose(a, b,
-                                                            rel_tol=1e-2)),
-     _RTP),
-    (None, '*', ('RepetitionTimeExcitation',), ('dropped',),
-     lambda a, b, new: 'EP' in _seq(new) and new.get('RepetitionTime') == a,
-     'templates store the EPI TR in `RepetitionTimeExcitation`; '
-     'protocol2bids writes `RepetitionTime` (conversion_rules.md, '
-     'cross-checks)'),
-]
-
-
-def accepted(dataset, output, kind, key, a=None, b=None, new=None):
-    """Reason why a suspect difference is an accepted convention (or None)."""
-    for ds, pattern, keys, kinds, cond, reason in ACCEPTED:
-        if ds not in (None, dataset) or kind not in kinds:
-            continue
-        if keys != ('*',) and key not in keys:
-            continue
-        patterns = (pattern,) if isinstance(pattern, str) else pattern
-        if not any(fnmatch.fnmatch(output, pat) for pat in patterns):
-            continue
-        if cond is None or cond(a, b, new or {}):
-            return reason
-    return None
-
-
-def classify(output, old, new, dataset=None):
-    """Classify the differences between an old and a new sidecar.
-
-    Returns a list of (category, title, detail), with category one of
-    'rename', 'fixed' (old-template error corrected), 'accepted'
-    (protocol2bids convention or verified template error, see
-    `ACCEPTED`), 'suspect' (suspected protocol2bids issue), 'nonbids'
-    (non-BIDS key of the old template).
-    """
-    out = []
-
-    def suspect(title, detail, kind=None, key=None, a=None, b=None):
-        why = kind and accepted(dataset, output, kind, key, a, b, new)
-        if why:
-            out.append(('accepted', f'{title}: {why}', detail))
-        else:
-            out.append(('suspect', title, detail))
-
-    added, removed, changed = diff(old, new)
-    for a, b in RENAMES.items():
-        if a in removed and b in new:
-            out.append(('rename', f'`{a}` -> `{b}`',
-                        f'{_fmt(removed.pop(a))}'))
-            added.pop(b, None)
-    for k, v in removed.items():
-        why = invalid(output, k, v)
-        if k in RENAMES:
-            out.append(('suspect', f'`{RENAMES[k]}` not produced',
-                        f'old (misspelt) `{k}` was {_fmt(v)}'))
-        elif k not in BIDS_KEYS:
-            out.append(('nonbids', f'`{k}` dropped', f'was {_fmt(v)}'))
-        elif why:
-            out.append(('fixed', f'invalid `{k}` dropped', why))
-        else:
-            suspect(f'`{k}` dropped', f'was {_fmt(v)}', 'dropped', k, v)
-    for k, (a, b) in changed.items():
-        why_old, why_new = invalid(output, k, a), invalid(output, k, b)
-        if k not in BIDS_KEYS:
-            out.append(('nonbids', f'`{k}` differs',
-                        f'{_fmt(a)} -> {_fmt(b)}'))
-        elif why_new:
-            out.append(('suspect', f'invalid `{k}` produced', why_new))
-        elif why_old:
-            out.append(('fixed', f'invalid `{k}` corrected',
-                        f'{why_old}; now {_fmt(b)}'))
-        else:
-            suspect(f'`{k}` differs', f'{_fmt(a)} -> {_fmt(b)}',
-                    'differs', k, a, b)
-    for k, v in added.items():
-        why = invalid(output, k, v)
-        if why:
-            out.append(('suspect', f'invalid `{k}` produced', why))
-    for key in ('RepetitionTime',):
-        if key not in new and not any(
-                k.startswith(key) for k in new):
-            suspect('no repetition time produced', '', 'missing', key)
-    return out
-
-
-def render_issues(dataset, issues):
-    """Render the classified differences (known_issues.md)."""
-    sections = [
-        ('rename', 'Renamed keys (fixes)',
-         'The old templates used a misspelt key; protocol2bids writes the '
-         'BIDS name. Not a loss.'),
-        ('fixed', '(a) Old-template errors corrected by protocol2bids',
-         'The old (hand-parsed) value was not a valid BIDS value.'),
-        ('accepted', 'Accepted protocol2bids conventions',
-         'Differences that are documented protocol2bids conventions or '
-         'verified old-template errors (protocol2bids '
-         '`notes/conversion_rules.md`); one reason per group (`ACCEPTED` in '
-         '`scripts/make_sidecars.py`).'),
-        ('suspect', '(b) Suspected protocol2bids issues',
-         'The new value is invalid, or a valid old value was dropped or '
-         'changed. Values were NOT hand-fixed: fix protocol2bids (or add '
-         '`defaults`/`assigns` in `sidecars.toml`) and re-run.'),
-        ('nonbids', 'Non-BIDS keys of the old templates (dropped or changed)',
-         'Vendor/dcm2niix keys that are not BIDS sidecar fields; listed '
-         'for reference only.'),
-    ]
-    lines = [f'# {dataset}: differences with the previous templates', '',
-             'Generated by `scripts/make_sidecars.py` (do not edit): '
-             'differences between the regenerated sidecars and the previous '
-             'templates, classified by rules on value validity (BIDS enums, '
-             '`i`/`j`/`k` directions, numeric `SliceTiming`, plausible '
-             'ranges).', '']
-    for cat, title, intro in sections:
-        lines += [f'## {title}', '', intro, '']
-        groups = {}
-        for output, e, c, t, detail in issues:
-            if c == cat:
-                groups.setdefault(t, []).append((output, e, detail))
-        if not groups:
-            lines += ['None.', '']
-        for t, items in sorted(groups.items(), key=lambda x: -len(x[1])):
-            lines += [f'### {t} ({len(items)})', '']
-            for output, e, detail in items:
-                src = f'`{e["printout"]}`'
-                if 'select' in e:
-                    src += f' (select `{e["select"]}`)'
-                lines.append(f'- `{output}` <- {src}'
-                             + (f': {detail}' if detail else ''))
-            lines.append('')
-    return '\n'.join(lines)
-
-
-# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -534,7 +237,6 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 if lock_path.exists() else {})
     lock = {'protocol2bids': protocol2bids_version(), 'sidecars': {}}
     report = []
-    issues = []
     failures = []
     dirty = []
 
@@ -588,8 +290,6 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         # roundtrip so that the comparison is done on json values
         new = json.loads(text)
         report.append((output, 'ok', diff(old, new)))
-        issues += [(output, e, *i)
-                   for i in classify(output, old, new, dataset)]
         if old_text != text:
             dirty.append(output)
             if not check:
@@ -601,24 +301,19 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
 
-    known = render_issues(dataset, issues)
-    md = render_report(dataset, lock['protocol2bids'], report, known,
-                       baseline)
+    md = render_report(dataset, lock['protocol2bids'], report, baseline)
     print(md, file=out)
     if check:
         if dirty:
             print(f'--check: would change {dirty}', file=out)
         return 1 if (dirty or failures) else 0
     lock_path.write_text(lock_text)
-    if not only:
-        (pdir / 'known_issues.md').write_text(known)
     (pdir / 'report.md').write_text(md)
     return 1 if failures else 0
 
 
-def render_report(dataset, version, report, known, baseline='HEAD'):
+def render_report(dataset, version, report, baseline='HEAD'):
     lines = [f'# {dataset} sidecar regeneration report', '']
-    lines += [known.rstrip(), '']
     lines += [
         f'protocol2bids {version["version"]} (commit {version["commit"]})',
         '',

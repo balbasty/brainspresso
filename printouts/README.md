@@ -26,8 +26,6 @@ printouts/<DATASET>/
                                # map anatomical directions to voxel axes
     sidecars.toml              # conversion table (printout -> sidecar)
     sidecars.lock.json         # provenance of the committed sidecars
-    known_issues.md            # classified differences (copied
-                               # at the top of report.md)
     report.md                  # last regeneration report (diff per sidecar)
 ```
 
@@ -245,19 +243,8 @@ trailing newline). It never adds
 non-BIDS keys to sidecars; provenance (printout SHA-256, selector, NIfTI
 header SHA-256, protocol2bids version and commit) goes to
 `sidecars.lock.json`. `report.md` lists, per sidecar, the keys added,
-removed and changed compared to git `HEAD` (or `--baseline REF`),
-preceded by `known_issues.md`. `known_issues.md` is generated (do not edit):
-it classifies every difference into renames (`ManufacturerModelName` ->
-`ManufacturersModelName`: the old key was misspelt), (a) old-template
-errors corrected by protocol2bids (invalid values: non-`i`/`j`/`k`
-directions, text `SliceTiming`, `SliceTiming` in anatomical sidecars,
-implausible `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in bold
-sidecars...), accepted protocol2bids conventions (documented in
-protocol2bids `notes/conversion_rules.md`: MPRAGE `RepetitionTime` is the
-inversion TR, EPI TR in `RepetitionTime`, verified template errors; one
-reason each, table `ACCEPTED` in the script), (b) suspected protocol2bids
-issues, and non-BIDS keys of the old templates. The committed reports use
-`--baseline aa3e2f1` (the hand-parsed templates).
+removed and changed compared to git `HEAD` (or `--baseline REF`). The
+committed reports use `--baseline aa3e2f1` (the hand-parsed templates).
 
 Do not hand-fix values in the generated sidecars: fix protocol2bids (or, for
 genuinely missing information, add `defaults`/`assigns`) and re-run.

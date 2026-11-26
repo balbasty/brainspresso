@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import secrets
 from logging import getLogger
 from pathlib import Path
 from urllib.parse import quote, unquote
@@ -80,13 +81,25 @@ def write_task_state(
     -------
     Path
         The state file
+
+    Raises
+    ------
+    OSError
+        If it cannot be written
     """
     path = task_path(state, task)
     path.parent.mkdir(parents=True, exist_ok=True)
     record = {"schema": TASK_SCHEMA, "task": task, **record}
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(record, indent=2, default=str))
-    os.replace(tmp, path)
+    # unique temporary file: another process (a worker, another run)
+    # may write the state of the same task at the same time
+    tmp = path.with_name(
+        f"{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        tmp.write_text(json.dumps(record, indent=2, default=str))
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return path
 
 

@@ -163,6 +163,35 @@ def test_diff():
     assert changed == {"b": (2, 3)}
 
 
+def test_classify():
+    old = {"ManufacturerModelName": "Trio", "PhaseEncodingDirection": "AP",
+           "SliceTiming": "Interleaved Ascending", "EchoTime": 0.03,
+           "RepetitionTime": 2, "FlipAngle": 90,
+           "RepetitionTimeExcitation": 2}
+    new = {"ManufacturersModelName": "Trio", "PhaseEncodingDirection": "j-",
+           "EchoTime": 0.003, "RepetitionTime": 2,
+           "EffectiveEchoSpacing": 5e-7}
+    got = {(c, t) for c, t, _ in ms.classify("S/bold.json", old, new)}
+    assert got == {
+        ("rename", "`ManufacturerModelName` -> `ManufacturersModelName`"),
+        ("fixed", "invalid `PhaseEncodingDirection` corrected"),
+        ("fixed", "invalid `SliceTiming` dropped"),
+        ("fixed", "invalid `RepetitionTimeExcitation` dropped"),
+        ("suspect", "`EchoTime` differs"),
+        ("suspect", "`FlipAngle` dropped"),
+        ("suspect", "invalid `EffectiveEchoSpacing` produced"),
+    }
+    # SliceTiming in an anatomical sidecar is an old-template error
+    got = ms.classify("S/T1w.json", {"SliceTiming": [0, 1],
+                                     "RepetitionTime": 2},
+                      {"RepetitionTime": 2})
+    assert [c for c, *_ in got] == ["fixed"]
+    md = ms.render_issues("X", [("S/T1w.json", {"printout": "a.pdf"}, *i)
+                                for i in got])
+    assert "(a) Old-template errors" in md
+    assert "`S/T1w.json` <- `a.pdf`" in md
+
+
 @pytest.mark.parametrize("dataset", DATASETS)
 def test_check_real(dataset):
     """Committed sidecars are up to date (needs protocol2bids)."""

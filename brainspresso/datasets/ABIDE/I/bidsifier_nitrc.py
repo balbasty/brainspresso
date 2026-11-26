@@ -95,7 +95,6 @@ class Bidsifier(BidsifierBase):
             if len(memberpath.parts) != 5:
                 continue
             site, id, ses, mod, fname = memberpath.parts
-            site, *sample = site.split('_')
             id = int(id)
             ses = int(ses.split('_')[-1])
             base, *ext = fname.split(".")
@@ -109,13 +108,13 @@ class Bidsifier(BidsifierBase):
                     continue
                 cat = 'anat'
                 mod = 'T1w'
-                json = self.TPLDIR / site / 'T1w.json'
+                json = self.template(site, 'T1w.json')
             elif base == 'rest':
                 if not (compat_keys('bold', allkeys) & self.keys):
                     continue
                 cat = 'func'
                 mod = 'task-rest_bold'
-                json = self.TPLDIR / site / 'bold.json'
+                json = self.template(site, 'bold.json')
             else:
                 continue
             dst = self.raw / f'sub-{id:05d}' / cat

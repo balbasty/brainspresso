@@ -36,6 +36,20 @@ class BidsifierBase:
         'UM', 'USM', 'Yale',
     )
 
+    @classmethod
+    def template(cls, site: str, name: str) -> Path:
+        """Sidecar template for a scan.
+
+        `site` is the site name found in the data, possibly carrying a
+        sample suffix (`MaxMun_a`, `UCLA_1`, ...). The sample-specific
+        template (`templates/<Site>_<sample>/<name>`) is used if it
+        exists, else the site template (`templates/<Site>/<name>`).
+        """
+        path = cls.TPLDIR / site / name
+        if path.exists():
+            return path
+        return cls.TPLDIR / site.split('_')[0] / name
+
     # ------------------------------------------------------------------
     #   Initialise
     # ------------------------------------------------------------------

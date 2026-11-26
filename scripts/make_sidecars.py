@@ -19,6 +19,22 @@ written to `printouts/<DATASET>/sidecars.lock.json` and a diff report to
 
 With `--check`, nothing is written and the exit code is non-zero if
 regenerating would change any sidecar or the lock file.
+
+Every difference with the previous template is classified automatically
+(see `classify`) and written to `printouts/<DATASET>/known_issues.md`:
+
+- renames (`ManufacturerModelName` -> `ManufacturersModelName`, the old key
+  was misspelt);
+- (a) old-template errors corrected by protocol2bids: the old value is not
+  a valid BIDS value (e.g. `PhaseEncodingDirection: "AP"`, a text
+  `SliceTiming`, `SliceTiming` in an anatomical sidecar, an implausible
+  `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in a bold sidecar);
+- (b) suspected protocol2bids issues: the new value is invalid, or a valid
+  old value was dropped or changed.
+
+An entry may set `previous` (path relative to the templates) to diff a new
+sidecar against an older template at another path (e.g. a per-site template
+replaced by per-sample ones).
 """
 import argparse
 import fnmatch
@@ -38,7 +54,7 @@ TEMPLATES = {
 # template JSON files that are not acquisition sidecars
 NON_SIDECARS = ('dataset_description.json', 'participants.json')
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
-              'manual', 'note'}
+              'manual', 'note', 'previous'}
 
 
 class TableError(ValueError):
@@ -186,6 +202,153 @@ def _fmt(v):
 
 
 # ---------------------------------------------------------------------------
+# classification of differences
+# ---------------------------------------------------------------------------
+
+RENAMES = {'ManufacturerModelName': 'ManufacturersModelName'}
+DIRECTIONS = {'i', 'j', 'k', 'i-', 'j-', 'k-'}
+# plausible ranges (seconds, degrees, tesla)
+RANGES = {
+    'RepetitionTime': (0.1, 20),
+    'RepetitionTimeExcitation': (1e-3, 20),
+    'RepetitionTimePreparation': (1e-3, 20),
+    'EchoTime': (1e-4, 0.5),
+    'InversionTime': (1e-3, 5),
+    'FlipAngle': (0, 180),
+    'EffectiveEchoSpacing': (1e-5, 1e-2),
+    'TotalReadoutTime': (1e-3, 0.5),
+    'DwellTime': (1e-7, 1e-3),
+    'MagneticFieldStrength': (0.1, 12),
+    'SliceThickness': (0.1, 20),
+    'ParallelReductionFactorInPlane': (1, 16),
+    'MultibandAccelerationFactor': (1, 16),
+}
+ENUMS = {
+    'MRAcquisitionType': {'2D', '3D'},
+    'PhaseEncodingDirection': DIRECTIONS,
+    'SliceEncodingDirection': DIRECTIONS,
+}
+ANAT_SUFFIXES = ('T1w', 'T2w', 'FLAIR', 'PDw', 'T2starw')
+NOT_IN_ANAT = ('SliceTiming',)
+NOT_IN_FUNC = ('RepetitionTimeExcitation',)
+
+
+def _is_num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _suffix(output):
+    return Path(output).stem.split('_')[-1]
+
+
+def invalid(output, key, value):
+    """Reason why `value` is not a valid BIDS value for `key` (or None)."""
+    suffix = _suffix(output)
+    if suffix in ANAT_SUFFIXES and key in NOT_IN_ANAT:
+        return f'`{key}` in an anatomical ({suffix}) sidecar'
+    if suffix in ('bold', 'dwi') and key in NOT_IN_FUNC:
+        return f'`{key}` in a {suffix} sidecar'
+    if key in ENUMS:
+        if value not in ENUMS[key]:
+            return f'`{key}` {_fmt(value)} not in {sorted(ENUMS[key])}'
+        return None
+    if key == 'SliceTiming':
+        if not (isinstance(value, list) and value
+                and all(_is_num(v) for v in value)):
+            return f'`SliceTiming` {_fmt(value)} is not an array of numbers'
+        if min(value) < 0 or max(value) > RANGES['RepetitionTime'][1]:
+            return '`SliceTiming` values out of range'
+        return None
+    if key in RANGES:
+        lo, hi = RANGES[key]
+        if not _is_num(value):
+            return f'`{key}` {_fmt(value)} is not a number'
+        if not lo <= value <= hi:
+            return f'`{key}` {_fmt(value)} outside plausible [{lo}, {hi}]'
+    return None
+
+
+def classify(output, old, new):
+    """Classify the differences between an old and a new sidecar.
+
+    Returns a list of (category, title, detail), with category one of
+    'rename', 'fixed' (old-template error corrected), 'suspect'
+    (suspected protocol2bids issue).
+    """
+    out = []
+    added, removed, changed = diff(old, new)
+    for a, b in RENAMES.items():
+        if a in removed and b in new:
+            out.append(('rename', f'`{a}` -> `{b}`',
+                        f'{_fmt(removed.pop(a))}'))
+            added.pop(b, None)
+    for k, v in removed.items():
+        why = invalid(output, k, v)
+        if why:
+            out.append(('fixed', f'invalid `{k}` dropped', why))
+        else:
+            out.append(('suspect', f'`{k}` dropped', f'was {_fmt(v)}'))
+    for k, (a, b) in changed.items():
+        why_old, why_new = invalid(output, k, a), invalid(output, k, b)
+        if why_new:
+            out.append(('suspect', f'invalid `{k}` produced', why_new))
+        elif why_old:
+            out.append(('fixed', f'invalid `{k}` corrected',
+                        f'{why_old}; now {_fmt(b)}'))
+        else:
+            out.append(('suspect', f'`{k}` differs',
+                        f'{_fmt(a)} -> {_fmt(b)}'))
+    for k, v in added.items():
+        why = invalid(output, k, v)
+        if why:
+            out.append(('suspect', f'invalid `{k}` produced', why))
+    for key in ('RepetitionTime',):
+        if key not in new and not any(
+                k.startswith(key) for k in new):
+            out.append(('suspect', 'no repetition time produced', ''))
+    return out
+
+
+def render_issues(dataset, issues):
+    """Render the classified differences (known_issues.md)."""
+    sections = [
+        ('rename', 'Renamed keys (fixes)',
+         'The old templates used a misspelt key; protocol2bids writes the '
+         'BIDS name. Not a loss.'),
+        ('fixed', '(a) Old-template errors corrected by protocol2bids',
+         'The old (hand-parsed) value was not a valid BIDS value.'),
+        ('suspect', '(b) Suspected protocol2bids issues',
+         'The new value is invalid, or a valid old value was dropped or '
+         'changed. Values were NOT hand-fixed: fix protocol2bids (or add '
+         '`defaults`/`assigns` in `sidecars.toml`) and re-run.'),
+    ]
+    lines = [f'# {dataset}: differences with the previous templates', '',
+             'Generated by `scripts/make_sidecars.py` (do not edit): '
+             'differences between the regenerated sidecars and the previous '
+             'templates, classified by rules on value validity (BIDS enums, '
+             '`i`/`j`/`k` directions, numeric `SliceTiming`, plausible '
+             'ranges).', '']
+    for cat, title, intro in sections:
+        lines += [f'## {title}', '', intro, '']
+        groups = {}
+        for output, e, c, t, detail in issues:
+            if c == cat:
+                groups.setdefault(t, []).append((output, e, detail))
+        if not groups:
+            lines += ['None.', '']
+        for t, items in sorted(groups.items(), key=lambda x: -len(x[1])):
+            lines += [f'### {t} ({len(items)})', '']
+            for output, e, detail in items:
+                src = f'`{e["printout"]}`'
+                if 'select' in e:
+                    src += f' (select `{e["select"]}`)'
+                lines.append(f'- `{output}` <- {src}'
+                             + (f': {detail}' if detail else ''))
+            lines.append('')
+    return '\n'.join(lines)
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -204,6 +367,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
                 if lock_path.exists() else {})
     lock = {'protocol2bids': protocol2bids_version(), 'sidecars': {}}
     report = []
+    issues = []
     failures = []
     dirty = []
 
@@ -242,10 +406,13 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
         committed = committed_text(dst, root)
         if committed is None:
             committed = old_text
+        if committed is None and 'previous' in e:
+            committed = committed_text(tpl / e['previous'], root)
         old = json.loads(committed) if committed else {}
         # roundtrip so that the comparison is done on json values
         new = json.loads(text)
         report.append((output, 'ok', diff(old, new)))
+        issues += [(output, e, *i) for i in classify(output, old, new)]
         if old_text != text:
             dirty.append(output)
             if not check:
@@ -257,22 +424,23 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
 
-    md = render_report(dataset, lock['protocol2bids'], report, pdir)
+    known = render_issues(dataset, issues)
+    md = render_report(dataset, lock['protocol2bids'], report, known)
     print(md, file=out)
     if check:
         if dirty:
             print(f'--check: would change {dirty}', file=out)
         return 1 if (dirty or failures) else 0
     lock_path.write_text(lock_text)
+    if not only:
+        (pdir / 'known_issues.md').write_text(known)
     (pdir / 'report.md').write_text(md)
     return 1 if failures else 0
 
 
-def render_report(dataset, version, report, pdir):
+def render_report(dataset, version, report, known):
     lines = [f'# {dataset} sidecar regeneration report', '']
-    known = pdir / 'known_issues.md'
-    if known.exists():
-        lines += [known.read_text().rstrip(), '']
+    lines += [known.rstrip(), '']
     lines += [
         f'protocol2bids {version["version"]} (commit {version["commit"]})',
         '',

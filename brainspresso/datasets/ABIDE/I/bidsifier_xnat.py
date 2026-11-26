@@ -94,16 +94,16 @@ class Bidsifier(BidsifierBase):
     def _make_raw_scan(self, tar):
         member = tar.getmembers()[0]
         memberpath = PosixPath(member.name)
-        site, id = memberpath.parts[0].split('_')
+        site, id = memberpath.parts[0].rsplit('_', 1)
         id = int(id)
         if memberpath.name.split('.')[0] in ('anat', 'mprage'):
             cat = 'anat'
             mod = 'T1w'
-            json = self.TPLDIR / site / 'T1w.json'
+            json = self.template(site, 'T1w.json')
         elif memberpath.name.split('.')[0] == 'rest':
             cat = 'func'
             mod = 'task-rest_bold'
-            json = self.TPLDIR / site / 'bold.json'
+            json = self.template(site, 'bold.json')
         else:
             return
         dst = self.raw / f'sub-{id:05d}' / cat

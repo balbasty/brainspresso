@@ -20,7 +20,11 @@ from aiohttp import web
 from cli_utils import bx
 
 from brainspresso.actions import File
-from brainspresso.actions.locks import LOCAL_DIR_ENV
+from brainspresso.actions.locks import (
+    LOCAL_DIR_ENV,
+    TIMEOUT_ENV,
+    LockTimeout,
+)
 from brainspresso.bids.layout import Layout
 from brainspresso.bids.select import Selection
 from brainspresso.download import Downloader, DownloadManager
@@ -264,6 +268,34 @@ def test_mirror_downloads_and_generated_files(host, tmp_path):
         FILES["/data/a.txt"]
     # keys filter the static lists
     assert [e.path for e in source.list(keys=["meta"])] == ["meta/c.txt"]
+
+
+@pytest.mark.parametrize("on_error", ["yield", "raise"])
+def test_generated_file_in_use_does_not_stop_the_harvest(
+        host, tmp_path, monkeypatch, on_error):
+    monkeypatch.setenv(LOCAL_DIR_ENV, str(tmp_path / "locks"))
+    monkeypatch.setenv(TIMEOUT_ENV, "0.3")
+    source = StaticURLs()
+    entries = [
+        RemoteEntry("first.json", meta={"content": "new"}),
+        RemoteEntry("a.txt", f"{host['url']}/data/a.txt"),
+        RemoteEntry("second.json", meta={"content": "new"}),
+    ]
+    first = tmp_path / "first.json"
+    first.write_text("old")
+    with File(first, "r"):      # a roast reads it for longer than the wait
+        if on_error == "raise":
+            with pytest.raises(LockTimeout):
+                source.fetch(entries, tmp_path,
+                             DownloadOptions(on_error=on_error))
+            return
+        done = source.fetch(entries, tmp_path,
+                            DownloadOptions(on_error=on_error))
+    assert first.read_text() == "old"
+    # the other entries were fetched, and written
+    assert (tmp_path / "a.txt").read_bytes() == FILES["/data/a.txt"]
+    assert (tmp_path / "second.json").read_text() == "new"
+    assert {d.dst.name for d in done} == {"first.json", "a.txt"}
 
 
 def test_dry_run_downloads_nothing(host, tmp_path, capsys):
@@ -676,6 +708,12 @@ def test_write_content_mode_follows_the_umask(tmp_path, umask_002):
     assert write_content(path, "[]", "overwrite")
     assert path.stat().st_mode & 0o777 == 0o664
     assert sorted(p.name for p in tmp_path.iterdir()) == ["a.json"]
+
+
+def test_write_content_of_a_long_name(tmp_path):
+    path = tmp_path / ("x" * 250)       # near the limit of file names
+    assert write_content(path, "{}")
+    assert sorted(p.name for p in tmp_path.iterdir()) == [path.name]
 
 
 def test_write_content_waits_for_a_reader(tmp_path, monkeypatch):

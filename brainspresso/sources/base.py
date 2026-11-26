@@ -56,7 +56,7 @@ from urllib.parse import urlparse
 
 from humanize import naturalsize
 
-from brainspresso.actions.locks import FileLock
+from brainspresso.actions.locks import FileLock, LockError
 from brainspresso.bids.select import Selection
 from brainspresso.download import CHUNK_SIZE, Downloader, DownloadManager
 from brainspresso.errors import UsageError
@@ -538,7 +538,8 @@ def run_downloads(
 
 
 def write_content(dst: str | os.PathLike, content: bytes | str,
-                  ifexists: str = "different") -> bool:
+                  ifexists: str = "different", *,
+                  timeout: float | None = None) -> bool:
     """
     Write a generated file.
 
@@ -559,6 +560,9 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
         Content of the file (str is UTF-8 encoded).
     ifexists : str
         Behaviour if the file exists with a different content.
+    timeout : float | None
+        Seconds to wait for the lock of the file (default:
+        `locks.lock_timeout()`, as downloads that replace a file).
 
     Returns
     -------
@@ -571,13 +575,17 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
         If the file exists with another content and `ifexists` is
         "error".
     LockTimeout
-        If others hold the lock of the file for too long.
+        If others hold the lock of the file for longer than `timeout`.
+    LockError
+        If the lock cannot be taken at all (`actions.locks`).
+    OSError
+        If the file cannot be written.
     """
     dst = Path(dst)
     if isinstance(content, str):
         content = content.encode()
     dst.parent.mkdir(parents=True, exist_ok=True)
-    with FileLock(dst, exclusive=True):
+    with FileLock(dst, exclusive=True, timeout=timeout):
         if dst.exists():
             if dst.read_bytes() == content:
                 return False
@@ -585,8 +593,8 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
                 raise FileExistsError(dst)
             if ifexists == "skip":
                 return False
-        tmp = dst.with_name(
-            f".{dst.name}.{os.getpid()}.{secrets.token_hex(4)}.part")
+        # short: a valid name plus a suffix may be too long
+        tmp = dst.with_name(f".{secrets.token_hex(8)}.part")
         # created as `open` creates files (0o666 less the umask), unlike
         # `tempfile.mkstemp` (0o600, kept by the rename)
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -599,6 +607,36 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
             tmp.unlink(missing_ok=True)
             raise
     return True
+
+
+class _UnwrittenFile:
+    """
+    A generated file that could not be written, as a failed download.
+
+    `DownloadManager` iterates it like a `Downloader`: it raises the
+    error, which the manager reports (or raises, `on_error`).
+
+    Parameters
+    ----------
+    dst : path
+        The file
+    error : Exception
+        Why it was not written
+    """
+
+    def __init__(self, dst: str | os.PathLike, error: Exception):
+        self.dst = Path(dst)
+        self.error = error
+        self.session = None
+        self._size = None
+
+    def __aiter__(self):
+        """Raise the error (an async iterator of no status)."""
+        return self._fail()
+
+    async def _fail(self):
+        raise self.error
+        yield                   # (an async generator)
 
 
 # ----------------------------------------------------------------------
@@ -914,7 +952,12 @@ class Source:
         """
         Return the downloaders of `fetch`.
 
-        Generated files are written as the iterator is consumed.
+        Generated files are written as the iterator is consumed. One
+        that cannot be written (its lock is held for too long by a
+        roast that reads it, a full disk...) is a failed download: the
+        iterator yields an object that reports the error to the
+        `DownloadManager` as a downloader would (`on_error`), and goes
+        on with the next entries.
 
         Parameters
         ----------
@@ -928,21 +971,35 @@ class Source:
         Returns
         -------
         iterator[Downloader]
+            Downloaders (and failed generated files).
+
+        Raises
+        ------
+        ValueError
+            If an entry to download has no URL (`mirror`).
         """
         options = DownloadOptions.from_any(options)
+        opts = self.download_options(options)
 
-        def remote():
+        def rename(entry):
+            return self.resolve(layout, entry)
+
+        def jobs():
             for entry in entries:
                 if entry.meta.get("content") is None:
-                    yield entry
+                    yield from mirror([entry], "", rename=rename, **opts)
                     continue
-                dst = self.resolve(layout, entry)
-                if dst is not None and not options.dry_run:
+                dst = rename(entry)
+                if dst is None or options.dry_run:
+                    continue
+                try:
                     # generated from the listing: always up to date
                     write_content(dst, entry.meta["content"], "overwrite")
+                except (LockError, OSError) as e:
+                    # a failed download of this file, not of the listing
+                    yield _UnwrittenFile(dst, e)
 
-        return mirror(remote(), "", rename=lambda e: self.resolve(layout, e),
-                      **self.download_options(options))
+        return jobs()
 
     def harvest(self, layout, selection=None, keys=None,
                 options: DownloadOptions | Mapping | None = None):

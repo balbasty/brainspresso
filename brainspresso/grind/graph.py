@@ -3,8 +3,8 @@ Plan a grind: units, tasks, signatures and the task graph.
 
 Interfaces only (see `brainspresso.grind`).
 
-One **task** per (stage, unit). Its id is
-`grind/<pipeline>/<stage>/<unit label>` and its state file
+One **task** per (stage, unit, variant). Its id is
+`grind/<pipeline>[@<variant>]/<stage>/<unit label>` and its state file
 `<state>/tasks/<id>.json` (`actions.state`), in the state folder of the
 dataset of the unit (group units: that of the home of the run). The
 record is the done marker; grind adds the `GRIND_FIELDS` to the schema
@@ -20,6 +20,8 @@ from typing import Literal, Mapping, Sequence
 
 from brainspresso.bids.layout import Layout
 from brainspresso.bids.select import Selection
+from brainspresso.grind.containers import ContainerRuntime
+from brainspresso.grind.execution import Executor
 from brainspresso.grind.model import (
     Config,
     Pipeline,
@@ -31,15 +33,17 @@ from brainspresso.grind.overrides import GrindOverrides
 
 __all__ = [
     "GRIND_FIELDS", "VERDICTS", "DatasetScope", "Graph", "IfStale",
-    "Scope", "Task", "Verdict", "enumerate_units", "plan", "signature",
-    "task_id",
+    "Scope", "Task", "TaskArray", "Verdict", "derivative_name",
+    "enumerate_units", "plan", "signature", "task_id",
 ]
 
 #: Fields that grind adds to task records (`actions.state`):
-#: the stage of the pipeline, the dataset reference, the upstream tasks
-#: with their signatures, the pipeline version, the image, the job
-GRIND_FIELDS = ("pipeline_stage", "dataset", "requires", "version",
-                "container", "job")
+#: the stage of the pipeline, the variant, the dataset reference, the
+#: upstream tasks with their signatures, the pipeline version, the
+#: image with its digest, the job. They are passed to the engine as
+#: the extra record fields of the shard, and merged into the record
+GRIND_FIELDS = ("pipeline_stage", "variant", "dataset", "requires",
+                "version", "container", "job")
 #: What the plan says of a task
 Verdict = Literal["todo", "done", "queued", "stale", "blocked"]
 #: The verdicts: "todo" (no record, failed or skipped before), "done"
@@ -92,11 +96,17 @@ class Scope:
         a sites layout, or the collection of a cross-dataset run
     variant : str | None
         `--variant`: outputs go to `derivatives/<pipeline>-<variant>/`
+        and task ids to `grind/<pipeline>@<variant>/`
+    variants : Mapping[str, str | None]
+        Variant in which each required pipeline is read and, if need
+        be, run (`--with <pipeline>=<variant>`); a pipeline that is not
+        named uses its default variant, never `variant`
     """
 
     datasets: tuple[DatasetScope, ...]
     home: Layout
     variant: str | None = None
+    variants: Mapping[str, str | None] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -114,6 +124,8 @@ class Task:
         Name of the stage
     unit : Unit
         The unit
+    variant : str | None
+        Variant of the pipeline (part of the id)
     state : Path
         State folder that holds its record
     root : Path
@@ -122,11 +134,17 @@ class Task:
         Ids of tasks that must succeed first
     after_any : tuple[str, ...]
         Ids of tasks that must be over first (fan-in on what succeeded)
+    locks : tuple[Path, ...]
+        State folders whose grind lock it holds shared while it runs,
+        in the order they are taken (parents before sites): every
+        dataset whose data or derivatives it reads
     resources : Resources
         Resources of the task
     signature : str | None
         Its signature, when it can be known at plan time (no upstream
         task still to run)
+    digest : str | None
+        Digest of its image, when known at plan time
     verdict : {"todo", "done", "queued", "stale", "blocked"}
         What the plan says of it
     reason : str
@@ -139,12 +157,38 @@ class Task:
     unit: Unit
     state: Path
     root: Path
+    variant: str | None = None
     after: tuple[str, ...] = ()
     after_any: tuple[str, ...] = ()
+    locks: tuple[Path, ...] = ()
     resources: Resources = Resources()
     signature: str | None = None
+    digest: str | None = None
     verdict: Verdict = "todo"
     reason: str = ""
+
+
+@dataclass(frozen=True)
+class TaskArray:
+    """
+    Tasks submitted together, as one job array where possible.
+
+    Attributes
+    ----------
+    tasks : tuple[Task, ...]
+        Tasks of one stage with equal resources and no dependency on
+        each other
+    pairwise : tuple[int, ...]
+        Indices (in the list that `Graph.arrays` returns) of earlier
+        arrays that this one is aligned with: built from the same
+        ordered list of units and split at the same places, so that
+        task `i` depends on task `i` of that array and on no other of
+        its tasks. Dependencies on any other array are on the whole
+        array
+    """
+
+    tasks: tuple[Task, ...] = ()
+    pairwise: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -203,20 +247,54 @@ class Graph:
         """
         raise NotImplementedError
 
-    def arrays(self) -> list[list[Task]]:
+    def arrays(self, max_array: int | None = None) -> list[TaskArray]:
         """
         Group the tasks to submit into job arrays.
 
+        Arrays are split here, not by the backends, so that aligned
+        arrays are split at the same places.
+
+        Parameters
+        ----------
+        max_array : int | None
+            Largest array (`Profile.max_array`)
+
         Returns
         -------
-        list[list[Task]]
-            Tasks of one stage with equal resources and no dependency
-            on each other, in dependency order
+        list[TaskArray]
+            Arrays in dependency order, each with the earlier arrays
+            it may depend on pairwise
         """
         raise NotImplementedError
 
 
-def task_id(pipeline: str, stage: str, unit: Unit) -> str:
+def derivative_name(pipeline: str, variant: str | None = None) -> str:
+    """
+    Return the name of the derivative folder of a pipeline.
+
+    Parameters
+    ----------
+    pipeline : str
+        Name of the pipeline
+    variant : str | None
+        Variant (letters and digits only)
+
+    Returns
+    -------
+    str
+        `<pipeline>`, or `<pipeline>-<variant>`
+
+    Raises
+    ------
+    ValueError
+        If the variant is not made of letters and digits, or if
+        `<pipeline>-<variant>` is the name of a registered pipeline
+    """
+    raise NotImplementedError
+
+
+def task_id(pipeline: str, stage: str, unit: Unit,
+            variant: str | None = None) -> str:
     """
     Return the id of a task.
 
@@ -228,13 +306,17 @@ def task_id(pipeline: str, stage: str, unit: Unit) -> str:
         Name of the stage
     unit : Unit
         The unit
+    variant : str | None
+        Variant of the pipeline
 
     Returns
     -------
     str
-        `grind/<pipeline>/<stage>/<unit.label>`, e.g.
-        "grind/fs-long/cross/sub-01/ses-1"; unique in the state folder
-        of the dataset of the unit
+        `grind/<pipeline>[@<variant>]/<stage>/<unit.label>`, e.g.
+        "grind/fs-long/cross/sub-01/ses-1" or
+        "grind/fs-long@hires/cross/sub-01/ses-1"; unique in the state
+        folder of the dataset of the unit, so variants never share a
+        record
     """
     raise NotImplementedError
 
@@ -290,11 +372,14 @@ def signature(
     Compute the signature of a task (the `config_hash` of its record).
 
     SHA-256 of: the name and version of the pipeline, the name of the
-    stage, `stage.fingerprint(config)`, the image digest, the raw
+    stage, `stage.fingerprint(config)`, the image reference, the raw
     inputs (path relative to `root`, size, modification time) and the
-    signature of each upstream task. A change therefore propagates to
-    everything downstream, and the member list of a fan-in is part of
-    it.
+    id and signature of each upstream task. A change therefore
+    propagates to everything downstream, and the member list of a
+    fan-in and the variants of required pipelines are part of it.
+
+    The image digest is not: it is only known once the image is local.
+    It is recorded and compared apart (`plan`).
 
     Parameters
     ----------
@@ -311,7 +396,7 @@ def signature(
     upstream : Mapping[str, str | None] | None
         `{upstream task id: its signature}`
     container : str | None
-        Image and digest
+        Image reference (`Container.image`), without digest
 
     Returns
     -------
@@ -328,6 +413,8 @@ def plan(
     *,
     redo: Sequence[str] = (),
     if_stale: IfStale = "error",
+    runtime: ContainerRuntime | None = None,
+    executor: Executor | None = None,
 ) -> Graph:
     """
     Build the task graph of a run, without running or writing anything.
@@ -337,8 +424,19 @@ def plan(
     overrides of the dataset), dependencies from the levels of the
     stages (unit to unit, fan-in, broadcast), then the verdict of each
     task from its record. Tasks of required pipelines are part of the
-    graph. Each dataset ends with a `finalize` task (descriptions,
-    manifest, failure list) after all of its tasks.
+    graph, in the variant that `scope.variants` gives them. Each
+    dataset ends with a `finalize` task (descriptions, manifest,
+    failure list) after all of its tasks.
+
+    Images are never pulled here. A done task is stale because of its
+    image only if the recorded digest and the one that
+    `runtime.inspect` finds are both known and differ; an unknown
+    digest leaves it done (`Task.digest` is None: unchecked). The
+    command that submits pulls the images, then plans again.
+
+    A task recorded "pending" or "running" is "queued" while its job
+    is live (`executor.attach`), else "todo"; without an executor
+    such a task is "queued" unchecked.
 
     Parameters
     ----------
@@ -354,6 +452,10 @@ def plan(
         ("all": every stage)
     if_stale : {"error", "redo", "keep"}
         What to do with tasks done under another signature
+    runtime : ContainerRuntime | None
+        Runtime that inspects images (None: digests are not compared)
+    executor : Executor | None
+        Backend that tells whether recorded jobs are live
 
     Returns
     -------

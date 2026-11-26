@@ -9,6 +9,7 @@ file locks and the submit seam are shared with roast.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Mapping, Sequence
 
 from brainspresso.actions.action import Action
 from brainspresso.actions.engine import Context, Policy
@@ -27,15 +28,24 @@ class GrindContext(Context):
 
     The `actions.engine.Context` of grind: `root` and `state` are those
     of the layout, `stage` is "grind", and task records pick up
-    `pipeline`. It is pickled to workers and cluster jobs: it holds no
-    open resource.
+    `pipeline`, which is therefore the **name** of the pipeline (the
+    engine stores `ctx.pipeline` as it is); the `Pipeline` itself is
+    `spec`. It is pickled to workers and cluster jobs: it holds no open
+    resource.
+
+    The other fields that grind adds to task records
+    (`grind.graph.GRIND_FIELDS`) are not read from the context: each
+    task gives them to the engine as the extra record fields of its
+    shard (`Shard(record=...)`, step 7), and the engine merges them,
+    with the fields it does not own, into the record that exists (the
+    "pending" record written at submission) instead of replacing it.
 
     Parameters
     ----------
     layout : Layout
         Layout of the dataset (the home of the run for group tasks)
     pipeline : Pipeline
-        The pipeline that runs
+        The pipeline that runs (kept as `spec`)
     config : Config | None
         Effective configuration for this dataset
     overrides : GrindOverrides | None
@@ -46,11 +56,22 @@ class GrindContext(Context):
         Reference of the dataset
     variant : str | None
         Variant of the derivative (`derivatives/<pipeline>-<variant>/`)
+    variants : Mapping[str, str | None] | None
+        Variant of each required pipeline (`Scope.variants`)
+    locks : Sequence[Path]
+        State folders whose grind lock a task of this context holds
+        shared while it runs, in the order they are taken (parents
+        before sites): the dataset and its sites parent; for the home
+        of a run, also every site or dataset that group tasks read
 
     Attributes
     ----------
     stage : str
         "grind" (task states)
+    pipeline : str
+        Name of the pipeline (task states)
+    spec : Pipeline
+        The pipeline
     """
 
     stage = "grind"
@@ -65,6 +86,8 @@ class GrindContext(Context):
         profile: Profile | None = None,
         dataset: str | None = None,
         variant: str | None = None,
+        variants: Mapping[str, str | None] | None = None,
+        locks: Sequence[Path] = (),
     ):
         raise NotImplementedError
 
@@ -81,6 +104,10 @@ class GrindContext(Context):
     def required(self, pipeline: str) -> DerivativeLayout:
         """
         Return the derivative of a required pipeline.
+
+        In the variant that the run chose for it (`variants`), else
+        its default variant (`derivatives/<pipeline>/`); never the
+        variant of the pipeline that runs.
 
         Parameters
         ----------

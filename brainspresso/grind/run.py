@@ -12,11 +12,16 @@ Interfaces only (see `brainspresso.grind`).
 
 Locks: grind never takes the run lock of harvest and roast
 (`<state>/run`). The process that plans and submits, and every task
-while it runs, hold `<state>/<GRIND_LOCK>` shared (same mechanism and
-run records, `actions.runlock`); compost takes it exclusively when it
-deletes BIDS data or derivatives. A running task also holds an
-exclusive lock on the path of its state file, so a unit never runs
-twice at once.
+while it runs, hold `<state>/<GRIND_LOCK>` shared: the same mechanism
+(`actions.runlock.run_lock(..., name=GRIND_LOCK)`, step 7) with run
+records of its own (`<state>/runs-<GRIND_LOCK>/`), which the run lock
+does not read. `bx <ds> grind` takes it through `Dataset.run`
+(`LOCKS["grind"] = (GRIND_LOCK, "shared")`, over
+`Dataset.lock_states`: parents before sites); `grind_collection` takes
+it in every dataset, and a task in every dataset it reads
+(`Task.locks`). Compost takes it exclusively when it deletes BIDS data
+or derivatives. A running task also holds an exclusive lock on
+`<state>/tasks/<id>.run`, so a unit never runs twice at once.
 """
 from __future__ import annotations
 
@@ -83,6 +88,7 @@ def grind_dataset(
     redo: Sequence[str] = (),
     if_stale: IfStale = "error",
     variant: str | None = None,
+    variants: Mapping[str, str | None] | None = None,
     detach: bool | None = None,
     dry_run: bool = False,
     display: bool = True,
@@ -120,10 +126,12 @@ def grind_dataset(
         What to do with tasks done under another signature
     variant : str | None
         Write `derivatives/<pipeline>-<variant>/` instead
+    variants : Mapping[str, str | None] | None
+        Variant of each required pipeline (default: its unnamed one)
     detach : bool | None
         Overrides `Profile.detach`
     dry_run : bool
-        Plan only: nothing is written, locked or submitted
+        Plan only: nothing is written, locked, pulled or submitted
     display : bool
         Show the progress table
     executor : Executor | None
@@ -158,6 +166,7 @@ def grind_collection(
     redo: Sequence[str] = (),
     if_stale: IfStale = "error",
     variant: str | None = None,
+    variants: Mapping[str, str | None] | None = None,
     detach: bool | None = None,
     dry_run: bool = False,
     display: bool = True,
@@ -197,6 +206,8 @@ def grind_collection(
         What to do with tasks done under another signature
     variant : str | None
         Write `derivatives/<pipeline>-<variant>/` instead
+    variants : Mapping[str, str | None] | None
+        Variant of each required pipeline (default: its unnamed one)
     detach : bool | None
         Overrides `Profile.detach`
     dry_run : bool

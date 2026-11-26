@@ -32,8 +32,10 @@ class Container:
         Image reference (`nipreps/fmriprep:23.2.1`), or the path of an
         Apptainer image file
     digest : str | None
-        Content digest (`sha256:...`), part of task signatures and of
-        `GeneratedBy`; resolved by `ContainerRuntime.pull` when None
+        Content digest (`sha256:...`). It is recorded in task records
+        and `GeneratedBy` and compared when known, apart from the task
+        signature (which holds `image`); found by
+        `ContainerRuntime.inspect` or `pull` when None
     env : Mapping[str, str]
         Environment variables set in the container
     gpu : bool
@@ -90,12 +92,34 @@ class ContainerRuntime(Protocol):
         """
         ...
 
+    def inspect(self, container: Container) -> str | None:
+        """
+        Return the digest of an image without pulling it.
+
+        From `container.digest`, the local image store or the image
+        cache. Used when planning (dry runs included): nothing is
+        downloaded or written.
+
+        Parameters
+        ----------
+        container : Container
+            The image
+
+        Returns
+        -------
+        str | None
+            Its digest; None when it is not known locally (a task is
+            then never stale because of its image)
+        """
+        ...
+
     def pull(self, container: Container) -> Container:
         """
         Make an image available locally.
 
         Docker pulls it; Apptainer builds an image file in the cache.
-        Done once, before tasks are submitted.
+        Done once, when tasks are about to be submitted, never by a
+        dry run; the plan is then made again with the digests.
 
         Parameters
         ----------

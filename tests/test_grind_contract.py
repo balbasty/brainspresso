@@ -34,6 +34,8 @@ from brainspresso.grind import (
 )
 
 ROOT = Path(__file__).resolve().parent.parent  # repo, not site-packages
+SECTION = (ROOT / "docs" / "design" / "architecture.md").read_text()
+SECTION = SECTION[SECTION.index("## 7. Grind"):SECTION.index("## 8. ")]
 GRIND = Path(grind.__file__).parent
 ACTIONS = Path(actions_pkg.__file__).parent
 MODULES = sorted(info.name for info in pkgutil.iter_modules(
@@ -237,7 +239,9 @@ def test_bids_app():
         container=containers.Container("nipreps/fmriprep:23.2.1"))
     assert (app.group, app.session_flag, app.out_subdir) == (
         False, None, None)
-    assert app.claims == ("sub-{sub}/", "sub-{sub}.html")
+    assert app.claims == ()         # default claims depend on the level
+    doc = inspect.getdoc(grind.BidsAppPipeline)
+    assert "sub-{sub}/ses-{ses}/" in doc and "refuses" in doc
     assert list(fields(grind.BidsAppConfig)) == [
         "args", "bids_filter", "skip_bids_validation", "files"]
     assert params(grind.BidsAppStage.command) == ["self", "ctx", "work"]
@@ -251,12 +255,18 @@ SIGNATURES = {
     model.format_output: ["template", "unit", "fields"],
     model.register_pipeline: ["pipeline", "name"],
     model.get_pipeline: ["name"],
-    graph.task_id: ["pipeline", "stage", "unit"],
+    graph.task_id: ["pipeline", "stage", "unit", "variant"],
+    graph.derivative_name: ["pipeline", "variant"],
+    graph.Graph.arrays: ["self", "max_array"],
+    model.Pipeline.terminal: ["self"],
+    containers.ContainerRuntime.inspect: ["self", "container"],
+    execution.Executor.attach: ["self", "job"],
     graph.enumerate_units: ["layout", "level", "selection", "overrides",
                            "dataset"],
     graph.signature: ["pipeline", "stage", "config", "inputs", "root",
                      "upstream", "container"],
-    graph.plan: ["pipeline", "scope", "configs", "redo", "if_stale"],
+    graph.plan: ["pipeline", "scope", "configs", "redo", "if_stale",
+                 "runtime", "executor"],
     containers.get_runtime: ["name"],
     containers.ContainerRuntime.command: [
         "self", "container", "argv", "mounts", "env", "workdir"],
@@ -269,7 +279,7 @@ SIGNATURES = {
     execution.make_executor: ["profile"],
     context.GrindContext.__init__: [
         "self", "layout", "pipeline", "config", "overrides", "profile",
-        "dataset", "variant"],
+        "dataset", "variant", "variants", "locks"],
     context.GrindContext.required: ["self", "pipeline"],
     context.GrindContext.scratch: ["self", "task"],
     index.DatasetRef.parse: ["text"],
@@ -283,12 +293,12 @@ SIGNATURES = {
         "derivative", "pipeline", "container", "datasets"],
     run.grind_dataset: [
         "pipeline", "layout", "dataset", "selection", "overrides", "config",
-        "profile", "jobs", "redo", "if_stale", "variant", "detach",
-        "dry_run", "display", "executor"],
+        "profile", "jobs", "redo", "if_stale", "variant", "variants",
+        "detach", "dry_run", "display", "executor"],
     run.grind_collection: [
         "pipeline", "datasets", "where", "root", "out", "selection",
         "config", "profile", "jobs", "redo", "if_stale", "variant",
-        "detach", "dry_run", "display", "executor"],
+        "variants", "detach", "dry_run", "display", "executor"],
     run.grind_status: ["pipeline", "layout", "variant"],
 }
 
@@ -311,7 +321,11 @@ def test_nothing_is_implemented(tmp_path):
         lambda: model.format_output("sub-{sub}", unit),
         lambda: model.get_pipeline("p"),
         lambda: model.register_pipeline(pipeline),
-        lambda: graph.task_id("p", "s", unit),
+        lambda: graph.task_id("p", "s", unit, "hires"),
+        lambda: graph.derivative_name("p", "hires"),
+        lambda: graph.Graph().arrays(100),
+        lambda: pipeline.terminal(),
+        lambda: execution.NotReady(("grind/p/s/sub-01",)),
         lambda: graph.enumerate_units(layout, "subject"),
         lambda: graph.signature(pipeline, None, None),
         lambda: graph.plan(pipeline, graph.Scope((), layout)),
@@ -366,6 +380,19 @@ def test_submit_protocol_extends_the_local_seam():
     assert (profile.backend, profile.runtime, profile.detach) == (
         "local", "docker", False)
     assert profile.runtime in containers.RUNTIMES
+    assert profile.requeues == 3
+    assert typing.get_type_hints(execution.Executor)["local"] is bool
+    for error in (execution.TaskLost, execution.NotReady):
+        assert issubclass(error, Exception)
+
+
+def test_context_names_the_pipeline():
+    """Task records store `ctx.pipeline` as it is: it must be a name."""
+    doc = inspect.getdoc(context.GrindContext)
+    assert "pipeline : str" in doc and "spec : Pipeline" in doc
+    section = SECTION
+    assert "`pipeline`: the **name**" in section
+    assert "Task.verdict" in section and "Task.status" not in section
 
 
 def test_task_state_fields():
@@ -374,14 +401,17 @@ def test_task_state_fields():
             "config_hash", "started", "finished", "error", "outputs"}
     assert not base & set(graph.GRIND_FIELDS)
     assert graph.GRIND_FIELDS == (
-        "pipeline_stage", "dataset", "requires", "version", "container",
-        "job")
+        "pipeline_stage", "variant", "dataset", "requires", "version",
+        "container", "job")
     assert typing.get_args(graph.Verdict) == graph.VERDICTS
     assert typing.get_args(graph.IfStale) == ("error", "redo", "keep")
     assert list(fields(graph.Task)) == [
-        "id", "pipeline", "stage", "unit", "state", "root", "after",
-        "after_any", "resources", "signature", "verdict", "reason"]
-    assert list(fields(graph.Scope)) == ["datasets", "home", "variant"]
+        "id", "pipeline", "stage", "unit", "state", "root", "variant",
+        "after", "after_any", "locks", "resources", "signature", "digest",
+        "verdict", "reason"]
+    assert list(fields(graph.TaskArray)) == ["tasks", "pairwise"]
+    assert list(fields(graph.Scope)) == [
+        "datasets", "home", "variant", "variants"]
     assert list(fields(graph.DatasetScope)) == [
         "ref", "layout", "selection", "overrides"]
     assert run.GRIND_LOCK == "grind"

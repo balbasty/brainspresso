@@ -8,8 +8,11 @@ with the command line `<app> <bids_dir> <out_dir> <level> [options]`.
 an optional `group` stage. `bids_dir` is the raw dataset (mounted
 read-only), `out_dir` the derivative dataset. What an app writes cannot
 be listed beforehand: each task is one action that claims its output
-folders (`BidsAppPipeline.claims`), which become the outputs of the
-task record.
+folders (`BidsAppPipeline.claims`). Once the app has exited, the claim
+yields one `Adopt` action per claimed path (step 7, `actions/`: it
+writes nothing, fails if the path is missing and declares it as its
+output), which is how claimed paths become the outputs of the task
+record. A claim that adopts nothing is an error.
 """
 from __future__ import annotations
 
@@ -100,7 +103,8 @@ class BidsAppStage(Stage):
         Yields
         ------
         Action
-            One action, with a claim on the output folders of the unit
+            One action, with a claim on the output folders of the
+            unit; it yields an `Adopt` action per claimed path
         """
         raise NotImplementedError
 
@@ -125,12 +129,17 @@ class BidsAppPipeline(Pipeline):
         None: one task per subject
     claims : tuple[str, ...]
         Templates (`grind.model.format_output`) of what a participant
-        task writes, relative to `out_dir`
+        task writes, relative to `out_dir`. Empty: `sub-{sub}/` and
+        `sub-{sub}.html` for subject tasks, `sub-{sub}/ses-{ses}/` with
+        a `session_flag`. Each must use every entity of the level
+        (`validate` refuses `sub-{sub}/` with a `session_flag`: session
+        tasks would overwrite each other); an app that writes
+        per-subject files whatever the session is run per subject
     out_subdir : str | None
         Folder of `out_dir` that the app nests its outputs in, if any
     """
 
     group: bool = False
     session_flag: str | None = None
-    claims: tuple[str, ...] = ("sub-{sub}/", "sub-{sub}.html")
+    claims: tuple[str, ...] = ()
     out_subdir: str | None = None

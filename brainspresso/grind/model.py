@@ -271,7 +271,10 @@ class Requirement:
     None), an earlier stage of the same pipeline (`stage`), or another
     pipeline, which must be listed in `Pipeline.requires` (`pipeline`,
     and optionally one of its stages). An upstream stage becomes a
-    dependency of the task. The levels give the mapping: same level,
+    dependency of the task; a `pipeline` without `stage` depends on
+    every terminal stage of that pipeline (`Pipeline.terminal`), in the
+    variant that the run chose for it (`grind.graph.Scope.variants`).
+    The levels give the mapping: same level,
     unit to unit; a finer upstream level fans in (every upstream unit
     that the unit `contains`); a coarser one is broadcast.
 
@@ -285,7 +288,8 @@ class Requirement:
     pipeline : str | None
         Pipeline whose derivative is read
     stage : str | None
-        Stage (of `pipeline`, else of this pipeline) that must have run
+        Stage (of `pipeline`, else of this pipeline) that must have
+        run; None with a `pipeline`: each of its terminal stages
     outputs : tuple[str, ...]
         Names of `Output`s of the upstream stage to take
     min : int
@@ -668,6 +672,20 @@ class Pipeline:
         """
         raise NotImplementedError
 
+    def terminal(self) -> tuple[Stage, ...]:
+        """
+        Return the stages that no other stage of the pipeline requires.
+
+        What a `Requirement` on this pipeline without a `stage` waits
+        for.
+
+        Returns
+        -------
+        tuple[Stage, ...]
+            Terminal stages, in dependency order
+        """
+        raise NotImplementedError
+
     def validate(self) -> None:
         """
         Check the declaration.
@@ -675,7 +693,9 @@ class Pipeline:
         Stage names are unique, levels are known, requirements name
         existing stages, outputs and required pipelines, output
         templates only use known fields, and stages do not depend on
-        each other in a cycle.
+        each other in a cycle. An output with `claim=True` must use
+        every entity of the level of its stage (`sub-{sub}/` is refused
+        for a session stage: its tasks would overwrite each other).
 
         Raises
         ------

@@ -13,9 +13,9 @@ docstrings give them.
 * `overrides`: `GrindOverrides`, what a dataset declares for grind;
 * `containers`: `Container`, `Mount`, `ContainerRuntime`;
 * `execution`: `Executor`, `Handle`, `After` (the submit protocol),
-  `Profile`;
-* `graph`: `Task`, `Graph`, `Scope`, `enumerate_units`, `signature`,
-  `plan`;
+  `NotReady`, `TaskLost`, `Profile`;
+* `graph`: `Task`, `TaskArray`, `Graph`, `Scope`, `task_id`,
+  `derivative_name`, `enumerate_units`, `signature`, `plan`;
 * `context`: `GrindContext`, `GrindPolicy` (the grind layer of the
   action engine);
 * `bidsapp`: `BidsAppPipeline`, `BidsAppStage`, `BidsAppConfig`;
@@ -47,7 +47,9 @@ from brainspresso.grind.execution import (
     After,
     Executor,
     Handle,
+    NotReady,
     Profile,
+    TaskLost,
     load_profile,
     make_executor,
 )
@@ -58,6 +60,8 @@ from brainspresso.grind.graph import (
     Graph,
     Scope,
     Task,
+    TaskArray,
+    derivative_name,
     enumerate_units,
     plan,
     signature,
@@ -110,8 +114,9 @@ __all__ = [
     "Container", "ContainerRuntime", "DatasetRef", "DatasetScope",
     "Executor", "FunctionStage", "Graph", "GrindContext",
     "GrindOverrides", "GrindPolicy", "GrindReport", "Handle", "Mount",
-    "Output", "Pipeline", "Profile", "Query", "Requirement", "Resources",
-    "Scope", "Stage", "Task", "Unit", "Where", "Work", "build_index",
+    "NotReady", "Output", "Pipeline", "Profile", "Query", "Requirement",
+    "Resources", "Scope", "Stage", "Task", "TaskArray", "TaskLost",
+    "Unit", "Where", "Work", "build_index", "derivative_name",
     "describe_derivative", "enumerate_units", "format_output",
     "generated_by", "get_pipeline", "get_runtime", "grind_collection",
     "grind_dataset", "grind_status", "load_profile", "make_executor",

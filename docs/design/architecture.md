@@ -782,7 +782,9 @@ grind <pipeline>`, step 7). Decided in §7: a bound dataset is named
 optional site); a sites layout is ground site by site
 (`layout.datasets()`), group outputs in the parent; grind does not take
 `<state>/run` (too coarse for long jobs) but a second lock file,
-`<state>/grind`, per running process. Ports must not assume that grind
+`<state>/grind`, per running process: `LOCKS` in `datasets/base.py`
+gives each command its lock name and mode (`"grind": ("grind",
+"shared")`), which `Dataset.run` passes to `run_lock`. Ports must not assume that grind
 units take the run lock (§7, "What the ports must and must not assume").
 
 ### Migration
@@ -932,8 +934,9 @@ what this contract replaces.
 
 ### State and skip (`grind/graph.py`, `actions/state.py`)
 
-One task per (stage, unit): id `grind/<pipeline>/<stage>/<unit label>`
-(`task_id`), state file `<state>/tasks/<id>.json` in the state folder
+One task per (stage, unit): id
+`grind/<pipeline>[@<variant>]/<stage>/<unit label>` (`task_id`;
+`derivative_name` gives the folder), state file `<state>/tasks/<id>.json` in the state folder
 of the unit's dataset (group units: that of the run's home, below). The
 record is the **done marker** (**D**: no other marker file) and uses the
 schema of `actions/state.py` (schema 1, fields added, none changed):
@@ -941,7 +944,7 @@ schema of `actions/state.py` (schema 1, fields added, none changed):
 ```json
 {"schema": 1, "task": "grind/fs-long/cross/sub-01/ses-1",
  "stage": "grind", "pipeline": "fs-long",
- "pipeline_stage": "cross", "dataset": "ixi",
+ "pipeline_stage": "cross", "variant": null, "dataset": "ixi",
  "unit": {"sub": "01", "ses": "1"},
  "status": "pending | running | done | failed | skipped",
  "config_hash": "<hex> | null",
@@ -959,10 +962,17 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
 
 * `config_hash` is the task **signature** (`signature`): SHA-256 of the
   pipeline name and version, `stage.fingerprint(effective config)`, the
-  container digest, the raw inputs (path relative to the dataset, size,
+  image reference, the raw inputs (path relative to the dataset, size,
   mtime) and the `config_hash` of each upstream task (so a change
   propagates downstream), plus the member list of a fan-in.
-* Plan verdicts (`Task.status`): **done** (record `done`, same
+* The image **digest** is not in the signature: it is recorded
+  (`container`) and compared apart. `plan(..., runtime=)` asks
+  `ContainerRuntime.inspect` (local store, image cache; never a pull)
+  and a done task is stale only if both digests are known and differ.
+  An unknown digest never makes a task stale; a dry run reports it as
+  unchecked. Images are pulled only when submitting; the plan is then
+  made again with the resolved digests, before anything is submitted.
+* Plan verdicts (`Task.verdict`): **done** (record `done`, same
   signature, recorded outputs exist: not submitted); **todo** (no
   record, or `failed`/`skipped`); **queued** (`pending`/`running` with a
   live job: not submitted again, used as a dependency); **stale**
@@ -970,25 +980,47 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
   a stage and what depends on it.
 * **D**: a stale unit stops the command (`--if-stale error`, default);
   `redo` recomputes it, `keep` leaves it and marks dependants blocked.
-  Two configurations side by side use `--variant NAME`
-  (`derivatives/<pipeline>-<NAME>/`). A derivative folder with content
-  but no grind record of this pipeline is refused.
+  A derivative folder with content but no grind record of this
+  pipeline is refused.
+* **Variants**: two configurations side by side use `--variant NAME`
+  (letters and digits). The variant is part of the task id
+  (`grind/fs-long@hires/...`), of the record (`variant`), of `Task`,
+  `Scope` and `GrindContext`, and of the folder
+  (`derivatives/<pipeline>-<NAME>/`; refused if that is the name of a
+  registered pipeline), so variants never share records. It is not
+  part of `Unit`: the same unit is ground under each variant. A
+  required pipeline is read in its **default** (unnamed) variant unless
+  `--with <pipeline>=<variant>` says otherwise (`Scope.variants`);
+  the run's own variant is never inherited. `GrindContext.required`
+  returns that choice, which enters the signature through the upstream
+  task ids.
 * **D**: actions of a task that runs use `IfExists` "overwrite" (the
   skip decision is per unit; the roast default "skip" would keep stale
   files under a new hash).
-* `pending` is written at submission with the `job`; `skipped` means
+* `pending` is written at submission; the job writes its own `job`
+  (scheduler id, host, pid) when it starts. `skipped` means
   "requirements not met when it started" (`error` names them).
+* Records are updated, not replaced: the engine keeps the fields it
+  does not own and merges the extra fields of the shard
+  (`Shard(record={...})`, how grind passes the `GRIND_FIELDS`), so the
+  `pending` record survives the start of the task. Updates are
+  read-merge-write under a short `FileLock` on the record.
 
 ### Graph, engine and backends (`grind/graph.py`, `grind/execution.py`)
 
 * `plan(pipeline, scope, configs, ...) -> Graph`: `Task`s in
   topological order (those of required pipelines included), each with
-  `after` (must succeed), `after_any` (must finish), `resources` and
-  its verdict. `Graph.waves()` and `Graph.arrays()` group them.
+  `after` (must succeed), `after_any` (must finish), `resources`,
+  `locks` and its verdict. `Graph.waves()` and `Graph.arrays()` group
+  them. A requirement on a `pipeline` without `stage` depends on every
+  terminal stage of that pipeline (those no other stage of it
+  requires).
 * A task is one engine **shard** (`Shard(id=task id, unit=...)`) whose
   producer is `stage.run`: reporting, task state, `File` locks and the
   `submit` seam are those of roast. `GrindContext` (`stage = "grind"`,
-  `pipeline`, layout, effective config, runtime) and `GrindPolicy`
+  `pipeline`: the **name**, which records pick up; `spec`: the
+  `Pipeline`; layout, effective config, variant, runtime) and
+  `GrindPolicy`
   (`grind/context.py`) are the grind `Context` and `Policy`.
 * `Executor.submit(task, resources=None, after=()) -> Handle` and
   `submit_array(tasks, resources=None, after=())` extend the existing
@@ -1001,20 +1033,47 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
 | | local pool | submitit (SLURM, SGE, PBS) | Dask / Ray (optional) |
 |---|---|---|---|
 | order | the engine holds a shard until its `after` handles are done | `afterok` for `after`, `afterany` for `after_any` | futures as dependencies |
-| arrays | none (`--jobs` workers; a task counts `cpus` slots) | tasks of one stage with equal resources form one job array; unit-to-unit edges between arrays use `aftercorr` on SLURM, else the whole array | none |
+| arrays | none (`--jobs` workers; a task counts `cpus` slots) | tasks of one stage with equal resources form one job array (`TaskArray`); aligned arrays use `aftercorr` on SLURM, else the whole array | none |
 | process | attached | attached, or `--detach` (submit and exit; `--status` reads the task states) | attached |
 
 * **D**: scheduler dependencies are hints. Every task re-checks its
   requirements from the upstream task states when it starts, and
   applies the failure policy itself; so `afterany`, detached runs,
   cancelled jobs and restarts need no special case.
+* **Pairwise** dependencies (`After.pairwise`) are only valid between
+  arrays that `Graph.arrays(max_array)` built together from one ordered
+  list of units and split at the same places (`TaskArray.pairwise`
+  names them): element `i` then depends on element `i` and on nothing
+  else of that array. Equal lengths are not enough (todo subsets,
+  splits); anything else waits for the whole array.
+* **Earlier runs**: a `queued` task has no handle in this process.
+  `Executor.attach(job)` returns one from the recorded `job`, or None
+  when the job is over or unknown: liveness is asked of the scheduler
+  for cluster jobs, and is `pid_alive` for a local job of this host; a
+  job that cannot be checked (local, another host) counts as live and
+  the plan says so. A queued task without a live job is `todo`.
+* A task that finds an upstream record `pending` or `running` when it
+  starts is not skipped: if that job is live it raises `NotReady` and
+  is submitted again after it (at most `Profile.requeues` times, then
+  `failed`); if not, the upstream counts as failed.
+* **Handles**: the engine waits by polling `Handle.done()` (it already
+  polls task states every 0.2 s) instead of `concurrent.futures.wait`,
+  so submitit jobs and Dask/Ray futures are handles as they are, with
+  no monitor thread or `Future` adapter per backend. A handle whose
+  task was lost (dead worker, cancelled or killed job) raises
+  `TaskLost`; the state file tells whether it had started. Only an
+  executor with `local = True` lets the engine run lost, unstarted
+  tasks in the main process.
 * The graph ends with one `finalize` task per dataset (descriptions,
   manifest run entry, failure list), `after_any` all its tasks.
 * Engine changes of step 7, all additive and stage-agnostic
   (`actions/` still imports neither `grind/` nor `roast/`): shards with
   `after`, `resources` and a given signature; a context per shard
-  (several datasets, hence state folders, in one run); `pending`
-  records; a named run lock (below).
+  (several datasets, hence state folders, in one run); extra record
+  fields merged into the existing record (`Shard(record=)`,
+  `update_task_state`); polling over `Handle.done()`, `TaskLost` and
+  `Executor.local`; an `Adopt` action (below, BIDS Apps); named run
+  locks with their own records (below).
 
 ### Locks
 
@@ -1024,7 +1083,7 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
   would wait for days, and a detached submitter cannot hold a lock for
   its jobs (locks belong to processes).
 * So grind uses a second lock file, `<state>/grind`, with the same
-  mechanism (`run_lock`, run records): held **shared** by the planning
+  mechanism, `run_lock(..., name="grind")`: held **shared** by the planning
   process while it plans and submits (a local run: until it ends) and
   by each task while it runs, with the `--wait` of the profile;
   **exclusive** for a compost whose plan deletes BIDS data or anything
@@ -1034,8 +1093,32 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
   signature, and files are replaced atomically under `File` locks).
   Order: `run` before `grind`, parents before sites. Queued jobs hold
   nothing: they re-check their inputs when they start.
-* A running task holds an **exclusive** `FileLock` on its state file
-  path (fail at once: the unit is already running elsewhere), then
+* **Records per lock** (step 7, `actions/runlock.py`): today every
+  holder writes `<state>/runs/<host>-<pid>.json` and an exclusive
+  `<state>/run` refuses while any live record exists, so grind records
+  would block a compost of `sourcedata/`. Each lock name gets its own
+  records folder (`run`: `<state>/runs/`, unchanged; `grind`:
+  `<state>/runs-grind/`, with the task id and job), and
+  `read_records`/`_check_records` only read those of the lock being
+  taken. `_held` is keyed by (state, name); `held_states` and
+  `hold_shared` carry (state, name) pairs, so pool workers take the
+  locks their parent holds, not always `<state>/run`.
+* **`Dataset.run`**: `LOCKS` (`datasets/base.py`) maps a command to a
+  lock name and mode: `"grind": ("grind", "shared")`; the other
+  commands keep the `run` lock. `Dataset.run` passes the name to
+  `run_lock` over `lock_states(layout)` unchanged (parent shared first,
+  then the dataset and its sites), so `bx <ds> grind` never takes
+  `<state>/run`. Compost takes `("grind", "exclusive")` itself, after
+  planning, when its plan needs it. `grind_collection` takes the locks
+  of every dataset the same way, datasets sorted.
+* **Tasks** hold `<state>/grind` shared in every dataset whose data or
+  derivatives they read (`Task.locks`, `GrindContext.locks`): their
+  own dataset (and its sites parent) for unit tasks; for a group task
+  the home and each site or each dataset of the collection, parents
+  before sites.
+* A running task holds an **exclusive** `FileLock` on
+  `<state>/tasks/<id>.run` (fail at once: the unit is already running
+  elsewhere; the record itself is locked only while updated), then
   writes its outputs through `File` (exclusive per file, renamed into
   place). Tools that write directly (BIDS Apps) are covered by the unit
   lock and a claim on their output folder.
@@ -1060,8 +1143,17 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
 [args]` in the app's container, and an optional `group` stage (level
 `dataset`: an app takes one `bids_dir`). `bids_dir` is `layout.raw`
 (read-only mount), `out_dir` the derivative root. Outputs cannot be
-listed: the stage is one **claim action** on `sub-<label>/` (and the
-other `claims` templates), recorded as the task outputs. Selection is
+listed: the stage is one **claim action** on the `claims` templates
+(default `sub-{sub}/` and `sub-{sub}.html`; with a session flag
+`sub-{sub}/ses-{ses}/` only). `Pipeline.validate` refuses a claim that
+does not use every entity of the level of its stage: session tasks
+would overwrite each other's `sub-{sub}/`. An app that writes
+per-subject files whatever the session runs at the subject level.
+Once the app has exited, the claim yields one `Adopt` action per
+claimed path (step 7, `actions/`): it writes nothing, fails if the
+path is missing, and declares it as an output, which is how claimed
+folders reach the task record. A claim that adopts nothing is an
+error for grind (the engine alone would count it "empty"). Selection is
 by subject (and session); finer filters go through the app's own filter
 file when `BidsAppConfig.bids_filter` is set, else they are refused.
 
@@ -1073,7 +1165,8 @@ runtimes `docker` (local default), `apptainer` (HPC; images converted
 once into a cache) and `none` (tools installed on the host), chosen by
 the profile. Raw data is mounted read-only, the derivative and scratch
 folders read-write; containers run as the calling user. The image
-digest is part of the signature and of `GeneratedBy`. Python stages run
+reference is part of the signature; the digest (`inspect`, `pull`) is
+recorded, compared when known, and written in `GeneratedBy`. Python stages run
 in the job's own environment (brainspresso must be importable there).
 
 ### Dataset overrides (`grind/overrides.py`)
@@ -1091,7 +1184,8 @@ through the effective config and the resolved inputs.
 * `bx <ds> grind <pipeline>` (`grind_dataset`; a builder in
   `register.COMMANDS`): selection options, `--config`, the options of
   the pipeline's config, `--profile`, `--jobs`, `--redo`, `--if-stale`,
-  `--variant`, `--detach`, `--status`, `--dry-run` (prints the plan).
+  `--variant`, `--with`, `--detach`, `--status`, `--dry-run` (prints
+  the plan; pulls nothing).
 * **D** (§6): a sites layout is ground site by site
   (`layout.datasets()`): session, subject and dataset units, state and
   `derivatives/<pipeline>/` belong to each site; `group` units belong
@@ -1148,25 +1242,46 @@ grind pipeline.
 
 ### Open questions (owner)
 
+Not decided here; where an answer changes a stub, it is named.
+
 1. Stale units: is `--if-stale error` the right default, or `redo`?
+   (default of `if_stale` in `plan`, `grind_dataset`,
+   `grind_collection`)
 2. Is the task record enough as done marker, or should a marker also
    travel inside `derivatives/<pipeline>/` (copies without state)?
+   (a second place to read in `plan`; no signature change)
 3. Second lock file `<state>/grind`, and compost of BIDS data waiting
    for running tasks: agreed? Should stale run records of killed jobs
-   be cleared from the scheduler's job states?
+   be cleared from the scheduler's job states? (`GRIND_LOCK`, the
+   `LOCKS` entry, `Task.locks`)
 4. `dataset` and `group` as two levels (a per-dataset and a
-   cross-dataset summary in one pipeline): keep both?
+   cross-dataset summary in one pipeline): keep both? (`LEVELS`,
+   level of the BIDS-App group stage)
 5. `--where`: are raw column names enough, or is a harmonised set
    (`age` in years, `sex`, `diagnosis`) wanted in the index?
+   (`build_index` columns)
 6. Output templates overridable in the config (`paths`), as in
-   `wiip-grind`, or fixed per pipeline?
+   `wiip-grind`, or fixed per pipeline? (reserved config field
+   `paths`)
 7. BIDS Apps and "which T1w": refuse, or build a filtered view
-   (symlinks) of the dataset in the scratch folder?
+   (symlinks) of the dataset in the scratch folder? (a field of
+   `BidsAppConfig`)
 8. Detached runs by default on cluster profiles? Where does the
    profile file live (`~/.config/brainspresso/config.toml`)?
+   (`Profile.detach`, `load_profile`)
 9. Adopting foreign outputs (a derivative computed elsewhere, or
-   harvested) as done units: `--adopt`, or never?
+   harvested) as done units: `--adopt`, or never? (an argument of
+   `plan` and of the two commands)
 10. SPM runtime (§9), and whether Dask/Ray are worth a backend.
+    (`BACKENDS`)
+11. Required pipelines are read in their default variant unless
+    `--with` names one: right default, or inherit the run's variant
+    when it exists? (`Scope.variants`, `GrindContext.required`)
+12. A queued job that cannot be checked (local run on another host)
+    counts as live. Acceptable, or should a record age limit apply?
+    (`Executor.attach`)
+13. `Profile.requeues` (3): how often may a task wait again for an
+    upstream job before it fails?
 
 ## 8. Implementation steps
 
@@ -1184,7 +1299,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
-| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/`, nothing implemented; `tests/test_grind_contract.py`; 999 passed, 2 skipped, 28 xfailed) |
+| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/`, nothing implemented; `tests/test_grind_contract.py`; 1005 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, one BIDS-App pipeline, submitit; then SPM Segment from `wiip-grind` | High-Effort Opus | |
@@ -1386,3 +1501,16 @@ up as an XPASS failure once fixed (then drop the marker).
   sites layouts ground site by site with group outputs in the parent;
   static graph, scheduler dependencies as hints (tasks re-check their
   requirements); stale units stop the run by default.
+* r16: review of the grind contract (PR #23). Variants in task ids,
+  records, `Task`, `Scope` and `GrindContext`, required pipelines read
+  in their default variant unless `--with`; run records per lock name
+  and `_held`/`hold_shared` keyed by (state, name); `LOCKS["grind"]`
+  names the grind lock; `GrindContext.pipeline` is the name (`spec` the
+  object) and records are merged, not replaced; `Executor.attach`,
+  `NotReady` and job liveness for detached runs; pairwise dependencies
+  only between arrays built together (`TaskArray`); the engine polls
+  `Handle.done()` (`TaskLost`, `Executor.local`); per-session claims
+  for BIDS Apps with a session flag, `Adopt` actions record claimed
+  paths; tasks lock every dataset they read; image digests compared
+  apart from the signature (`ContainerRuntime.inspect`, no pull in dry
+  runs); a requirement on a pipeline depends on its terminal stages.

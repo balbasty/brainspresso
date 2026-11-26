@@ -15,7 +15,15 @@ dependencies and arrays:
 * Dask and Ray (optional): handles passed as dependencies.
 
 Dependencies are scheduling hints: every task checks its requirements
-from the task states when it starts (`grind.graph`).
+from the task states when it starts (`grind.graph`); one that finds an
+upstream task still queued or running raises `NotReady` and is
+submitted again after it.
+
+The engine waits for handles by polling `Handle.done()`, not with
+`concurrent.futures.wait`: submitit jobs and Dask or Ray futures are
+handles as they are, without a monitor thread or a `Future` adapter in
+each backend (step 7 changes `actions.engine.Engine.poll`, which
+already polls the task states).
 """
 from __future__ import annotations
 
@@ -33,11 +41,40 @@ from typing import (
 
 from brainspresso.grind.model import Resources
 
-__all__ = ["BACKENDS", "After", "Executor", "Handle", "Profile",
-           "load_profile", "make_executor"]
+__all__ = ["BACKENDS", "After", "Executor", "Handle", "NotReady",
+           "Profile", "TaskLost", "load_profile", "make_executor"]
 
 #: Names of the execution backends
 BACKENDS = ("local", "slurm", "sge", "pbs", "dask", "ray")
+
+
+class TaskLost(Exception):
+    """
+    Raised by a handle whose task was lost, not by the task itself.
+
+    A dead worker, a cancelled or killed job: the task state tells
+    whether it had started (then it is an error, and is not run again
+    by this run). Step 7 defines it in `actions.engine`, which maps the
+    pool errors of the local backend to it; grind re-exports it.
+    """
+
+
+class NotReady(Exception):
+    """
+    Raised by a task whose upstream task is still queued or running.
+
+    The task goes back to "pending" and is submitted again after the
+    tasks it names, at most `Profile.requeues` times; then it fails.
+    It is never recorded "skipped" for this reason.
+
+    Parameters
+    ----------
+    after : tuple[str, ...]
+        Ids of the upstream tasks to wait for
+    """
+
+    def __init__(self, after: tuple[str, ...] = ()):
+        raise NotImplementedError
 
 
 @runtime_checkable
@@ -45,7 +82,9 @@ class Handle(Protocol):
     """
     A submitted task.
 
-    `concurrent.futures.Future` and submitit jobs satisfy it.
+    `concurrent.futures.Future` and submitit jobs satisfy it. The
+    engine polls `done()`; `result()` and `exception()` raise or return
+    `TaskLost` when the task was lost.
     """
 
     def done(self) -> bool:
@@ -106,9 +145,12 @@ class After:
         "ok": they must succeed (SLURM `afterok`), else the task is not
         started; "any": they must be over (`afterany`)
     pairwise : bool
-        Between two arrays of the same length: element `i` waits for
-        element `i` only (SLURM `aftercorr`; other backends wait for
-        all)
+        Element `i` of the submitted array waits for `handles[i]` only
+        (SLURM `aftercorr`; other backends wait for all). Only valid
+        when `handles` are, in order, a whole array that
+        `grind.graph.Graph.arrays` built together with the submitted
+        one (`TaskArray.pairwise`): equal lengths are not enough.
+        `submit_array` refuses it otherwise
     """
 
     handles: tuple[Handle, ...]
@@ -122,8 +164,17 @@ class Executor(Protocol):
     The submit protocol of the engine, with dependencies and arrays.
 
     `actions.engine.LocalExecutor` is its local backend (step 7 adds
-    `after` and `submit_array` to it).
+    `after`, `submit_array`, `attach` and `local` to it).
+
+    Attributes
+    ----------
+    local : bool
+        Tasks run on this machine, under this process: the engine may
+        run lost tasks that had not started in the main process. False
+        for schedulers and clusters
     """
+
+    local: bool
 
     def submit(
         self,
@@ -174,6 +225,35 @@ class Executor(Protocol):
         -------
         list[Handle]
             One handle per task, in order
+
+        Raises
+        ------
+        ValueError
+            If a pairwise dependency does not have one handle per task
+        """
+        ...
+
+    def attach(self, job: Mapping[str, Any]) -> Handle | None:
+        """
+        Return a handle on a job that an earlier run submitted.
+
+        For the queued tasks of a detached (or interrupted) run, so
+        that their dependants wait for them. Liveness: the scheduler is
+        asked for cluster jobs; a local job is live if its host is this
+        one and its process is alive.
+
+        Parameters
+        ----------
+        job : Mapping[str, Any]
+            The `job` field of a task record: `backend`, `id`, `host`,
+            `pid`
+
+        Returns
+        -------
+        Handle | None
+            None if the job is over, unknown, or of another backend. A
+            job that cannot be checked (local, on another host) gives a
+            handle that is never done
         """
         ...
 
@@ -206,6 +286,8 @@ class Profile:
         Largest job array (larger ones are split)
     detach : bool
         Submit and exit instead of waiting for the tasks
+    requeues : int
+        How many times a task that raised `NotReady` is submitted again
     wait : float
         Seconds a task waits for the grind lock of its dataset
     scratch : Path | None
@@ -223,6 +305,7 @@ class Profile:
     resources: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     max_array: int | None = None
     detach: bool = False
+    requeues: int = 3
     wait: float = 0
     scratch: Path | None = None
     image_cache: Path | None = None

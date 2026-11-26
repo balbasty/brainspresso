@@ -1,0 +1,136 @@
+"""
+BIDS Apps as pipelines.
+
+Interfaces only (see `brainspresso.grind`). A BIDS App is a container
+with the command line `<app> <bids_dir> <out_dir> <level> [options]`.
+`BidsAppPipeline` wraps any of them: a `participant` stage, run as
+`<app> <bids_dir> <out_dir> participant --participant_label <sub>`, and
+an optional `group` stage. `bids_dir` is the raw dataset (mounted
+read-only), `out_dir` the derivative dataset. What an app writes cannot
+be listed beforehand: each task is one action that claims its output
+folders (`BidsAppPipeline.claims`), which become the outputs of the
+task record.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Iterator, Mapping
+
+from brainspresso.actions.action import Action
+from brainspresso.actions.engine import Producer
+from brainspresso.grind.context import GrindContext
+from brainspresso.grind.model import Pipeline, Stage, Work
+
+__all__ = ["BidsAppConfig", "BidsAppPipeline", "BidsAppStage"]
+
+
+@dataclass(frozen=True)
+class BidsAppConfig:
+    """
+    Options common to every BIDS App.
+
+    The fields are the contract; step 7 makes it a pydantic model (a
+    `grind.model.Config`) that apps extend with their own options.
+
+    Attributes
+    ----------
+    args : tuple[str, ...]
+        Extra arguments, passed as they are
+    bids_filter : Mapping[str, Mapping[str, str]] | None
+        Content of the filter file of apps that take one
+        (`--bids-filter-file`); needed for a selection finer than
+        subjects and sessions, which is refused without it
+    skip_bids_validation : bool
+        Pass the app's flag that skips its validation of the dataset
+    files : Mapping[str, str]
+        Host files the app needs, by option (`{"--fs-license-file":
+        "~/license.txt"}`); mounted read-only
+    """
+
+    args: tuple[str, ...] = ()
+    bids_filter: Mapping[str, Mapping[str, str]] | None = None
+    skip_bids_validation: bool = False
+    files: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class BidsAppStage(Stage):
+    """
+    One analysis level of a BIDS App.
+
+    Attributes
+    ----------
+    analysis_level : str
+        Third argument of the app ("participant" or "group")
+    """
+
+    analysis_level: str = "participant"
+
+    def command(self, ctx: GrindContext, work: Work) -> list[str]:
+        """
+        Build the argv of the app for one unit.
+
+        Parameters
+        ----------
+        ctx : GrindContext
+            Context of the run
+        work : Work
+            The unit and its configuration
+
+        Returns
+        -------
+        list[str]
+            `[<bids_dir>, <out_dir>, <level>, "--participant_label",
+            <sub>, ...]`, with paths as seen in the container
+        """
+        raise NotImplementedError
+
+    def run(self, ctx: GrindContext, work: Work
+            ) -> Iterator[Action | Producer]:
+        """
+        Yield the action that runs the app on one unit.
+
+        Parameters
+        ----------
+        ctx : GrindContext
+            Context of the run
+        work : Work
+            The unit and its configuration
+
+        Yields
+        ------
+        Action
+            One action, with a claim on the output folders of the unit
+        """
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class BidsAppPipeline(Pipeline):
+    """
+    A pipeline that wraps a BIDS App.
+
+    `container` (the image of the app) is required. Its stages are
+    derived, not declared: "participant" (level "subject", or "session"
+    with a `session_flag`) and, with `group=True`, "group" (level
+    "dataset": an app takes one `bids_dir`), after the participants that
+    succeeded.
+
+    Attributes
+    ----------
+    group : bool
+        Whether the app has a group level to run
+    session_flag : str | None
+        Option that restricts a run to one session (`--session-id`);
+        None: one task per subject
+    claims : tuple[str, ...]
+        Templates (`grind.model.format_output`) of what a participant
+        task writes, relative to `out_dir`
+    out_subdir : str | None
+        Folder of `out_dir` that the app nests its outputs in, if any
+    """
+
+    group: bool = False
+    session_flag: str | None = None
+    claims: tuple[str, ...] = ("sub-{sub}/", "sub-{sub}.html")
+    out_subdir: str | None = None

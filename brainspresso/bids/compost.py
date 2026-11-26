@@ -497,6 +497,8 @@ def compost(
         return plan
 
     freed = plan.size()
+    # (the state folder holds the lock files of the dataset)
+    plan.layout.ensure_state()
     count = delete_files(root, plan.files)
     lg.info(f"Deleted {count} files under {root}")
 

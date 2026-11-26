@@ -324,7 +324,13 @@ class Files:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Exit every file, in reverse order."""
+        """
+        Exit every file, in reverse order.
+
+        Every file is exited even if exiting one fails. The first error
+        of a clean exit is raised; when exiting because of an exception,
+        errors are only logged, so that they do not mask it.
+        """
         errors = []
         while self._opened:
             file = self._opened.pop(-1)
@@ -333,8 +339,15 @@ class Files:
             except Exception as e:
                 errors.append(e)
             self._unopened.insert(0, file)
-        if errors:
+        if not errors:
+            return
+        if exc_type is None:
+            for e in errors[1:]:
+                lg.error(f"Error while exiting a file: {e!r}")
             raise errors[0]
+        for e in errors:
+            lg.error(f"Error while exiting a file (after {exc_type.__name__}"
+                     f": {exc_val}): {e!r}")
 
     def open(self, *a, **k) -> "OpenedFile" | Tuple["OpenedFile"]:
         r"""

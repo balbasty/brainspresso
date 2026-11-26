@@ -1,5 +1,6 @@
 """Characterization tests for the COBRE roast (bidsify) step."""
 import json
+import os
 
 import nibabel as nib
 import numpy as np
@@ -99,6 +100,44 @@ def test_json_only_and_no(root, tmp_path):
     Bidsifier(root, keys={"T1w"}, json="no", subs=[40001]).run()
     assert "sub-0040001/anat/sub-0040001_T1w.nii.gz" in raw_tree(root)
     assert "sub-0040001/anat/sub-0040001_T1w.json" not in raw_tree(root)
+
+
+def test_participants_refreshed_under_different(root):
+    """A legacy table action is regenerated and compared (not skipped)."""
+    csv = root / "sourcedata" / "COBRE_phenotypic_data.csv"
+    Bidsifier(root, keys={"meta"}, ifexists="different").run()
+    tsv = raw_file(root, "participants.tsv")
+    first = tsv.stat()
+    # unchanged input: the table is left untouched
+    Bidsifier(root, keys={"meta"}, ifexists="different").run()
+    assert (tsv.stat().st_ino, tsv.stat().st_mtime_ns) == \
+        (first.st_ino, first.st_mtime_ns)
+    # new input (e.g. after a harvest): the table is rewritten
+    csv.write_text(CSV.replace("0040001,30", "0040001,31"))
+    os.utime(csv, (first.st_atime + 10, first.st_mtime + 10))
+    Bidsifier(root, keys={"meta"}, ifexists="different").run()
+    rows = read_tsv(raw_file(root, "participants.tsv"))
+    assert rows[2][:2] == ["0040001", "31"]
+    assert tsv.stat().st_mtime_ns != first.st_mtime_ns
+
+
+def test_state_folder_exists_before_locks(tmp_path, monkeypatch):
+    """The legacy bidsifier creates `.brainspresso/` before any lock."""
+    from brainspresso.actions.locks import FileLock, find_dataset
+    root = tmp_path / "COBRE"
+    (root / "sourcedata").mkdir(parents=True)
+    (root / "sourcedata" / "COBRE_phenotypic_data.csv").write_text(CSV)
+    seen = []
+    acquire = FileLock.acquire
+
+    def spy(self):
+        if self.path.is_relative_to(root):      # (not package templates)
+            seen.append(find_dataset(self.path))
+        return acquire(self)
+
+    monkeypatch.setattr(FileLock, "acquire", spy)
+    Bidsifier(root, keys={"meta"}).run()
+    assert len(seen) >= 4 and set(seen) == {root}
 
 
 def test_missing_archive(tmp_path):

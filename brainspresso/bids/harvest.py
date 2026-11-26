@@ -212,6 +212,8 @@ def harvest(
         return selected
 
     layout = resolve_layout(root, layout)
+    # before any download takes a lock (`actions.locks`)
+    layout.ensure_state()
     originals = {}
     destinations = {}
     downloaders = []
@@ -395,7 +397,7 @@ def record_run(
     for f in deleted:
         entries.pop(f, None)
     entries.update(files or {})
-    state.mkdir(parents=True, exist_ok=True)
+    layout.ensure_state()
     path.write_text(json.dumps(manifest, indent=2, default=str))
     return path
 

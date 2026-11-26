@@ -247,6 +247,11 @@ class Action:
       under `IfExists` "different", without an expected size or digest,
       the outputs are written to temporary files and replace the
       existing ones only if their content differs.
+
+    Sources are read under shared locks, outputs written under exclusive
+    locks (`actions.file`). A source that is also an output (an update
+    in place, e.g. `WrapAction(path, path, fix)`) is only locked as an
+    output: the actor reads the current file under the exclusive lock.
     """
 
     def __init__(
@@ -490,10 +495,7 @@ class Action:
         """Run the action, yielding statuses (and a claim's actions)."""
         try:
             # Protect source files for reading and perform action
-            src = self.src
-            if isinstance(src, (str, Path)):
-                src = [src]
-            with Files(*[File(src1, "r") for src1 in src]):
+            with Files(*[File(src1, "r") for src1 in self._read_sources()]):
                 if self.claim is not None:
                     yield from self._iter_claim()
                     return
@@ -507,6 +509,20 @@ class Action:
         except Exception as e:
             lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
+
+    def _read_sources(self) -> list[FilenameLike]:
+        """
+        List the sources to lock for reading (those that are not outputs).
+
+        An action that updates a file in place (a source that is also
+        a destination) reads it under the exclusive lock of its output,
+        which a shared lock taken first would forbid (lock upgrade).
+        """
+        src = self.src
+        if isinstance(src, (str, os.PathLike)):
+            src = [src]
+        outputs = {_same_file_key(dst) for dst in self.declared}
+        return [s for s in src if _same_file_key(s) not in outputs]
 
     def _iter_claim(self) -> Iterator["dict | Action"]:
         """Run a claim action: statuses and sub-actions."""
@@ -660,6 +676,13 @@ class Action:
 
 def _keep_all(path) -> bool:
     return True
+
+
+def _same_file_key(path: FilenameLike) -> str:
+    """Absolute path, with the links of its folder resolved (as locks)."""
+    path = os.path.abspath(path)
+    folder, name = os.path.split(path)
+    return os.path.join(os.path.realpath(folder), name)
 
 
 # `_should_overwrite`: write to a temporary file, keep it if different

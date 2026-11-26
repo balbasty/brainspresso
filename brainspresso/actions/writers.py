@@ -15,9 +15,10 @@ BabelConvert(src: Path, dst: Path): ...     # Convert a neuroimaging file
 Freesurfer2Gifti(src: Path, dst: Path): ... # Convert a surface file
 ```
 """
-from pathlib import Path
 from datetime import datetime
-from typing import Iterable, BinaryIO, TextIO, Mapping
+from logging import getLogger
+from pathlib import Path
+from typing import Iterable, Iterator, BinaryIO, TextIO, Mapping
 
 from brainspresso.utils.io import write_json
 from brainspresso.utils.io import copy_json
@@ -30,6 +31,9 @@ from brainspresso.freesurfer.io import nibabel_fs2gii
 from brainspresso.actions.action import Action
 from brainspresso.actions.action import IfExistsChoice
 from brainspresso.actions.action import Kind
+from brainspresso.actions.locks import FileLock
+
+lg = getLogger(__name__)
 
 
 def _check_source(action: Action) -> None:
@@ -57,6 +61,7 @@ class WriteJSON(Action):
         size: int | None = None,
         mtime: datetime | None = None,
         digests: Mapping[str, str] | None = None,
+        compare: bool | None = None,
         **json_opt,
     ):
         """
@@ -89,6 +94,9 @@ class WriteJSON(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         **json_opt : dict
             JSON options
         """
@@ -108,6 +116,7 @@ class WriteJSON(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
@@ -130,6 +139,7 @@ class CopyJSON(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
         **json_opt,
     ):
         """
@@ -160,6 +170,9 @@ class CopyJSON(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         **json_opt : dict
             JSON options
         """
@@ -178,6 +191,7 @@ class CopyJSON(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
@@ -202,6 +216,7 @@ class WriteTSV(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = True,
         **tsv_opt,
     ):
         """
@@ -234,6 +249,9 @@ class WriteTSV(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: True: a table is cheap to make)
         **tsv_opt : dict
             TSV options
         """
@@ -253,6 +271,7 @@ class WriteTSV(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, path: Path):
@@ -276,6 +295,7 @@ class WriteBytes(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
         Build the action.
@@ -307,6 +327,9 @@ class WriteBytes(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         self.bytes = bytes
 
@@ -323,6 +346,7 @@ class WriteBytes(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: BinaryIO):
@@ -345,6 +369,7 @@ class CopyBytes(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
         Build the action.
@@ -374,6 +399,9 @@ class CopyBytes(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -388,6 +416,7 @@ class CopyBytes(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: BinaryIO):
@@ -412,6 +441,7 @@ class WriteText(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
         Build the action.
@@ -443,6 +473,9 @@ class WriteText(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         self.text = text
 
@@ -459,6 +492,7 @@ class WriteText(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
@@ -484,6 +518,7 @@ class BabelConvert(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
         Build the action.
@@ -519,6 +554,9 @@ class BabelConvert(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -533,6 +571,7 @@ class BabelConvert(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
         self.inp_format = inp_format
         self.out_format = out_format
@@ -563,6 +602,7 @@ class Freesurfer2Gifti(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
         Build the action.
@@ -592,6 +632,9 @@ class Freesurfer2Gifti(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -606,6 +649,7 @@ class Freesurfer2Gifti(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, path: Path):
@@ -614,13 +658,19 @@ class Freesurfer2Gifti(Action):
 
 
 class Unlink(Action):
-    """Remove a file."""
+    """
+    Remove a file.
+
+    The file is deleted under its exclusive lock (`actions.locks`), so
+    that no reader of the file is interrupted.
+    """
 
     def __init__(
         self,
         dst: str,
         *,
         missing_ok=True,
+        tag: str | None = None,
     ):
         """
         Build the action.
@@ -630,7 +680,9 @@ class Unlink(Action):
         dst : str | Path
             Path to file to remove/unlink
         missing_ok : bool
-            Whether to raise an error is the file is missing
+            Whether a missing file is not an error
+        tag : str
+            Progress group (`actions.engine`)
         """
         super().__init__(
             src=[],
@@ -639,9 +691,22 @@ class Unlink(Action):
             mode="w",
             input="path",
             ifexists="overwrite",
+            tag=tag,
         )
         self.missing_ok = missing_ok
 
-    def action(self, path: Path):
-        """Write the output (the actor of the action)."""
-        path.unlink(missing_ok=self.missing_ok)
+    def action(self, path: Path | None = None) -> None:
+        """Delete the destination (`path` is ignored: it is `dst`)."""
+        Path(self.dst).unlink(missing_ok=self.missing_ok)
+
+    def __iter__(self) -> Iterator[dict]:
+        """Delete the destination under its exclusive lock."""
+        self.outputs = []
+        try:
+            with FileLock(self.dst, exclusive=True):
+                self.action()
+        except Exception as e:
+            lg.error(f"Could not delete {self.dst}: {e}")
+            yield {'status': 'error', 'message': str(e)}
+            return
+        yield {'status': 'done'}

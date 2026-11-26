@@ -147,6 +147,9 @@ def harvest_sites(
         site_labels=True,
     )
     dry_run = options.get("dry_run", False)
+    if not dry_run:
+        # before any download takes a lock (`actions.locks`)
+        layout.ensure_state()
     harvested = []
     for site in chosen:
         if site.derivative:

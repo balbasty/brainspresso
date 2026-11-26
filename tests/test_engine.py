@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 
 import brainspresso.actions as actions_pkg
-from brainspresso.actions import Action, Fail, IfExists, WriteText
+from brainspresso.actions import (
+    Action, CopyJSON, Fail, IfExists, WriteJSON, WriteText, WriteTSV,
+)
 from brainspresso.actions.engine import (
     Context, Policy, Rejected, Shard, run,
 )
@@ -196,6 +198,29 @@ def test_compare_is_opt_in(tmp_path):
     action = make(ifexists="different", compare=True)
     statuses = list(action)
     assert {"status": "skipped", "message": "identical"} in statuses
+
+
+def test_table_writers_compare_by_default(tmp_path):
+    """`WriteTSV` compares without a layer; sidecars opt in."""
+    dst = tmp_path / "t.tsv"
+
+    def write(value, **kw):
+        return list(WriteTSV([["a"], [value]], dst, ifexists="different",
+                             **kw))
+
+    write("1")
+    first = dst.stat()
+    assert {"status": "skipped", "message": "identical"} in write("1")
+    assert dst.stat().st_ino == first.st_ino            # untouched
+    write("2")
+    assert dst.read_text().split() == ["a", "2"]        # regenerated
+    assert write("3", compare=False)[-1]["status"] == "skipped"
+    assert dst.read_text().split() == ["a", "2"]
+    json = WriteJSON({}, tmp_path / "x.json")
+    assert not json.compare and not json.compare_given
+    assert WriteJSON({}, tmp_path / "x.json", compare=True).compare
+    assert CopyJSON(tmp_path / "x.json", tmp_path / "y.json",
+                    compare=True).compare
 
 
 def test_shard_signature_includes_policy_fingerprint(tmp_path):

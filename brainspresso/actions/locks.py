@@ -25,6 +25,21 @@ processes "hold" it at once):
 Nothing is ever created next to the file: a source may be shared or
 read-only.
 
+The lock file of a file therefore moves when a `.brainspresso/` folder
+appears in one of its ancestors: two processes that lock the same file
+before and after it appears do not exclude each other. So every command
+that writes into a dataset creates its state folder *before* it takes
+any lock (`bids.layout.Layout.ensure_state`, called by `record_run`
+before the downloads of every harvest command, by `bids.harvest.harvest`
+and `run_roast` before anything is read or written, by `compost` and by
+the legacy bidsifiers before their actions run).
+
+The dataset of a folder is cached once found (`find_dataset`; folders
+outside any dataset are looked up each time, so a state folder created
+later is seen). `forget_datasets` (called by `Layout.ensure_state` when
+it creates a state folder) drops the cache, for a state folder created
+inside a dataset that is already cached (a site of a "sites" layout).
+
 A **reader** holds a *shared* lock (any number of readers at once), a
 **writer** an *exclusive* lock (no reader and no other writer). Locks
 are POSIX record locks (`fcntl.lockf`). These belong to a process, not
@@ -85,7 +100,7 @@ import socket
 import tempfile
 import threading
 import time
-from collections import Counter
+from collections import Counter, OrderedDict
 from logging import getLogger
 from pathlib import Path
 
@@ -98,7 +113,8 @@ lg = getLogger(__name__)
 
 __all__ = [
     "DEFAULT_TIMEOUT", "FileLock", "LockError", "LockTimeout",
-    "find_dataset", "lock_file", "lock_timeout", "locks_enabled",
+    "find_dataset", "forget_datasets", "lock_file", "lock_timeout",
+    "locks_enabled",
 ]
 
 #: State folder of a dataset (`bids.layout.STATE_DIR`)
@@ -201,9 +217,57 @@ def _real(path: str | os.PathLike) -> Path:
     return Path(os.path.realpath(path.parent)) / path.name
 
 
+def _is_state_dir(folder: Path) -> bool:
+    """Whether a folder has a state folder (one `stat`)."""
+    return os.path.isdir(os.path.join(folder, STATE_DIR))
+
+
+# Dataset of each (resolved) folder that holds locked files. Only hits
+# are cached: a folder outside any dataset is looked up again each time,
+# so a state folder created later is found. A hit can only go stale if a
+# *nearer* state folder is created later (a site of a "sites" layout
+# under a dataset whose locks were already taken), which
+# `forget_datasets` handles in this process (`bids.layout.Layout.
+# ensure_state` calls it), or if the state folder is deleted while
+# processes use it.
+_DATASET_CACHE_SIZE = 4096
+_datasets: "OrderedDict[Path, Path]" = OrderedDict()
+_datasets_lock = threading.Lock()
+
+
+def forget_datasets() -> None:
+    """Forget the cached dataset of every folder (`find_dataset`)."""
+    with _datasets_lock:
+        _datasets.clear()
+
+
+def _dataset_of(folder: Path) -> Path | None:
+    """Nearest ancestor-or-self of a resolved folder with a state folder."""
+    with _datasets_lock:
+        found = _datasets.get(folder)
+        if found is not None:
+            _datasets.move_to_end(folder)
+            return found
+    for parent in (folder, *folder.parents):
+        if _is_state_dir(parent):
+            found = parent
+            break
+    else:
+        return None
+    with _datasets_lock:
+        _datasets[folder] = found
+        _datasets.move_to_end(folder)
+        while len(_datasets) > _DATASET_CACHE_SIZE:
+            _datasets.popitem(last=False)
+    return found
+
+
 def find_dataset(path: str | os.PathLike) -> Path | None:
     """
     Dataset that contains a file.
+
+    The dataset of each folder is cached once found (see
+    `forget_datasets`); folders outside any dataset are not cached.
 
     Parameters
     ----------
@@ -216,11 +280,7 @@ def find_dataset(path: str | os.PathLike) -> Path | None:
         The nearest ancestor of `path` (symbolic links resolved) that has
         a `.brainspresso/` folder; None if there is none
     """
-    path = _real(path)
-    for folder in path.parents:
-        if (folder / STATE_DIR).is_dir():
-            return folder
-    return None
+    return _dataset_of(_real(path).parent)
 
 
 def _local_dir() -> Path:
@@ -266,7 +326,7 @@ def lock_file(path: str | os.PathLike) -> tuple[Path, Path | None]:
         The dataset that contains `path`, if any
     """
     real = _real(path)
-    dataset = find_dataset(real)
+    dataset = _dataset_of(real.parent)
     if dataset is not None:
         key = real.relative_to(dataset).as_posix()
         folder = dataset / STATE_DIR / LOCKS_DIR

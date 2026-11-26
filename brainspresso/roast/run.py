@@ -30,7 +30,6 @@ from __future__ import annotations
 import os
 import traceback
 from logging import getLogger
-from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from brainspresso.actions.engine import Producer, Report, run
@@ -91,7 +90,7 @@ def run_roast(
     try:
         # the state folder holds the lock files of the dataset
         # (`actions.locks`): create it before anything is read or written
-        Path(ctx.layout.state).mkdir(parents=True, exist_ok=True)
+        ctx.layout.ensure_state()
         run(roaster, ctx, policy=policy or RoastPolicy(), jobs=jobs,
             display=display, executor=executor, report=report)
     finally:

@@ -71,6 +71,8 @@ class Bidsifier:
         self.nb_skipped = 0
 
     def run(self) -> None:
+        # the state folder holds the lock files (`actions.locks`)
+        self.layout.ensure_state()
         with bidsify_tab() as self.out:
             for status in self.make_meta():
                 self.out(status)
@@ -99,18 +101,18 @@ class Bidsifier:
                 self.TPLDIR / "README", self.raw / "README", **opt),
             "dataset_description.json": CopyJSON(
                 self.TPLDIR / "dataset_description.json",
-                self.raw / "dataset_description.json", **opt),
+                self.raw / "dataset_description.json", **opt, compare=True),
             "participants.json": CopyJSON(
                 self.TPLDIR / "participants.json",
-                self.raw / "participants.json", **opt),
+                self.raw / "participants.json", **opt, compare=True),
             "participants.tsv": CopyBytes(
                 self.TPLDIR / "participants.tsv",
-                self.raw / "participants.tsv", **opt),
+                self.raw / "participants.tsv", **opt, compare=True),
         }
         if self.keys & {"skullstripped", "vessels"}:
             actions["derivatives/dataset_description.json"] = CopyJSON(
                 self.TPLDIR / "derivatives_description.json",
-                self.drv / "dataset_description.json", **opt)
+                self.drv / "dataset_description.json", **opt, compare=True)
             actions["derivatives/README"] = CopyBytes(
                 self.TPLDIR / "derivatives_README",
                 self.drv / "README", **opt)

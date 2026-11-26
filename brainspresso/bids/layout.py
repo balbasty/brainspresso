@@ -195,6 +195,28 @@ class Layout:
         """Pristine copy of a (trimmed) table, in `<state>/orig/`."""
         return self.state / ORIG_DIR / self._relpath(path)
 
+    def ensure_state(self) -> Path:
+        """
+        Create the state folder (`.brainspresso/`) if it does not exist.
+
+        Every command that writes into the dataset calls it before it
+        takes any lock: the state folder holds the lock files of the
+        dataset, and a lock file moves when it appears
+        (`actions.locks`).
+
+        Returns
+        -------
+        Path
+            The state folder
+        """
+        state = Path(self.state)
+        if not state.is_dir():
+            state.mkdir(parents=True, exist_ok=True)
+            # a nearer dataset for the folders already cached
+            from brainspresso.actions.locks import forget_datasets
+            forget_datasets()
+        return state
+
     # ------------------------------------------------------------------
     #   Sub-layouts
     # ------------------------------------------------------------------
@@ -544,6 +566,23 @@ class SitesLayout(Layout):
     def datasets(self) -> list[Layout]:
         """List the site datasets."""
         return list(self.children.values())
+
+    def ensure_state(self) -> Path:
+        """
+        Create the state folder of the parent and of each existing site.
+
+        A new site gets its own when it is harvested (`Layout.
+        ensure_state`, by `bids.harvest.harvest`).
+
+        Returns
+        -------
+        Path
+            The state folder of the parent
+        """
+        for child in self.children.values():
+            if Path(child.root).is_dir():
+                child.ensure_state()
+        return super().ensure_state()
 
     def _relative_local(self, rel):
         parts = rel.parts

@@ -12,10 +12,13 @@ from pathlib import Path
 
 import pytest
 
-from brainspresso.actions import CopyBytes, File, LockError, LockTimeout
+from brainspresso.actions import (
+    CopyBytes, File, Files, LockError, LockTimeout, Unlink, WrapAction,
+)
 from brainspresso.actions.engine import Context, Shard, run
 from brainspresso.actions.locks import (
-    LOCAL_DIR_ENV, STATE_DIR, TIMEOUT_ENV, FileLock, find_dataset, lock_file,
+    LOCAL_DIR_ENV, STATE_DIR, TIMEOUT_ENV, FileLock, find_dataset,
+    forget_datasets, lock_file,
 )
 from brainspresso.bids.layout import STATE_DIR as LAYOUT_STATE_DIR
 
@@ -412,3 +415,264 @@ def test_failed_writer_leaves_the_file(tmp_path):
     assert not (tmp_path / "x.txt.tmp").exists()
     with File(path, "w", timeout=1):            # the lock was released
         pass
+
+
+# ----------------------------------------------------------------------
+#   Cleanup errors, updates in place, deletions
+# ----------------------------------------------------------------------
+
+class _FailsOnExit:
+    """A member of `Files` whose cleanup fails."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        raise OSError("cleanup failed")
+
+
+class _FailsOnEnter:
+    def __enter__(self):
+        raise LockError("cannot enter")
+
+    def __exit__(self, *exc):
+        pass
+
+
+def test_files_cleanup_errors_do_not_mask_the_exception(tmp_path, caplog):
+    path = tmp_path / "x.txt"
+    path.write_text("old")
+    # exiting because of an exception: it propagates, cleanup is logged
+    with pytest.raises(ValueError, match="original"):
+        with Files(File(path, "w"), _FailsOnExit()):
+            raise ValueError("original")
+    assert "cleanup failed" in caplog.text
+    assert path.read_text() == "old"
+    with File(path, "w", timeout=1):            # every file was exited
+        pass
+    # the cleanup of a failed `__enter__` does not mask its error either
+    files = Files(File(path, "r"), _FailsOnExit(), _FailsOnEnter())
+    with pytest.raises(LockError, match="cannot enter"):
+        files.__enter__()
+    with File(path, "w", timeout=1):
+        pass
+    # a clean exit raises the cleanup error
+    with pytest.raises(OSError, match="cleanup failed"):
+        with Files(File(path, "r"), _FailsOnExit()):
+            pass
+
+
+def test_action_that_updates_its_source_in_place(tmp_path):
+    path = tmp_path / "x.txt"
+    path.write_text("old")
+
+    def fix(src, fobj):
+        fobj.write(Path(src).read_text().upper())
+
+    action = WrapAction(path, path, fix, mode="t", ifexists="overwrite")
+    statuses = list(action)
+    assert not [s for s in statuses if s.get("status") == "error"]
+    assert {"status": "done"} in statuses
+    assert path.read_text() == "OLD"
+    assert action.outputs == [path]
+    # through a symbolic link of its folder too
+    path.write_text("old")
+    (tmp_path / "link").symlink_to(tmp_path)
+    action = WrapAction(tmp_path / "link" / "x.txt", path, fix, mode="t",
+                        ifexists="overwrite")
+    statuses = list(action)
+    assert {"status": "done"} in statuses, statuses
+    assert path.read_text() == "OLD"
+    with File(path, "w", timeout=1):            # no lock left behind
+        pass
+
+
+def test_unlink_deletes_its_destination_under_its_lock(tmp_path):
+    path = tmp_path / "x.txt"
+    path.write_text("old")
+    done = threading.Event()
+    statuses = []
+
+    def unlink():
+        statuses.extend(Unlink(path))
+        done.set()
+
+    with File(path, "r"):
+        thread = threading.Thread(target=unlink)
+        thread.start()
+        # it waits for the reader
+        assert not done.wait(0.5)
+        assert path.read_text() == "old"
+    thread.join(SOON)
+    assert statuses == [{"status": "done"}]
+    assert not path.exists()
+    assert not (tmp_path / "x.txt.tmp").exists()
+    assert list(Unlink(path)) == [{"status": "done"}]       # missing_ok
+    statuses = list(Unlink(path, missing_ok=False))
+    assert statuses[0]["status"] == "error"
+
+
+# ----------------------------------------------------------------------
+#   Downloads replace files under the lock of their destination
+# ----------------------------------------------------------------------
+
+def download_file(path, text, finishing, done):
+    import asyncio
+    from brainspresso.download.incomplete import IncompleteFile
+
+    async def go():
+        async with IncompleteFile(path) as partial:
+            await partial.append(text.encode())
+            finishing.set()             # the rename comes next
+
+    asyncio.run(go())
+    done.set()
+
+
+@pytest.mark.parametrize("where", ["dataset", "outside"])
+def test_download_waits_for_reader_before_replacing(tmp_path, where):
+    root = dataset(tmp_path / "DS") if where == "dataset" else tmp_path
+    path = root / "sourcedata" / "data.txt"
+    path.parent.mkdir(parents=True)
+    path.write_text("old")
+    finishing, done = events()
+    with File(path, "r") as f:
+        proc = start(download_file, path, "new", finishing, done)
+        assert finishing.wait(SOON)
+        # the complete download waits until the file is not read
+        assert not done.wait(1.0)
+        with f.open("rt") as fobj:
+            assert fobj.read() == "old"
+    assert done.wait(SOON)
+    proc.join(SOON)
+    assert proc.exitcode == 0
+    assert path.read_text() == "new"
+    assert sorted(p.name for p in path.parent.iterdir()) == ["data.txt"]
+
+
+def test_download_package_imports_no_stage_layer():
+    import ast
+    import brainspresso.download as download_pkg
+    for path in sorted(Path(download_pkg.__file__).parent.glob("*.py")):
+        tree = ast.parse(path.read_text())
+        modules = {n.module for n in ast.walk(tree)
+                   if isinstance(n, ast.ImportFrom) and n.module}
+        modules |= {a.name for n in ast.walk(tree)
+                    if isinstance(n, ast.Import) for a in n.names}
+        bad = {m for m in modules if m.startswith(
+            ("brainspresso.bids", "brainspresso.roast"))}
+        assert not bad, (path.name, bad)
+
+
+# ----------------------------------------------------------------------
+#   The state folder exists before any lock is taken
+# ----------------------------------------------------------------------
+
+@pytest.fixture
+def locks_seen(monkeypatch):
+    """(path, dataset found) of every `FileLock.acquire`."""
+    seen = []
+    acquire = FileLock.acquire
+
+    def spy(self):
+        seen.append((self.path, find_dataset(self.path)))
+        return acquire(self)
+
+    monkeypatch.setattr(FileLock, "acquire", spy)
+    return seen
+
+
+@pytest.mark.parametrize("kind", ["study", "flat"])
+def test_harvest_creates_the_state_folder_before_locks(
+    tmp_path, monkeypatch, locks_seen, kind,
+):
+    import asyncio
+    from brainspresso.bids import harvest as harvest_module
+    from brainspresso.bids.select import Selection
+    from brainspresso.download.incomplete import IncompleteFile
+    from brainspresso.sources.base import RemoteEntry
+
+    class Manager:
+        """Downloads without network: through `IncompleteFile`."""
+
+        def __init__(self, downloaders, **kwargs):
+            self.downloaders = list(downloaders)
+
+        def run(self):
+            async def fetch(dst):
+                async with IncompleteFile(dst) as partial:
+                    await partial.append(b"data")
+            for dl in self.downloaders:
+                asyncio.run(fetch(dl.dst))
+
+    monkeypatch.setattr(harvest_module, "DownloadManager", Manager)
+    root = tmp_path / "DS"
+    entries = [
+        RemoteEntry(f"sub-0{i}/anat/sub-0{i}_T1w.nii.gz",
+                    url=f"http://localhost/{i}", size=4)
+        for i in (1, 2)
+    ]
+    harvest_module.harvest(entries, root, Selection(), layout=kind,
+                           trim=False)
+    assert len(locks_seen) == 2
+    assert all(found == root for _, found in locks_seen)
+
+
+def test_record_run_creates_the_state_folder(tmp_path, locks_seen):
+    from brainspresso.bids.harvest import record_run
+    from brainspresso.bids.layout import make_layout
+    layout = make_layout("study", tmp_path / "DS")
+    record_run(layout, "harvest", {"dataset": "DS"})    # before downloads
+    with File(layout.source / "x.tgz", "w"):
+        pass
+    assert locks_seen == [(layout.source / "x.tgz", layout.root)]
+
+
+def test_ensure_state_of_a_sites_layout(tmp_path):
+    from brainspresso.bids.layout import SitesLayout
+    root = tmp_path / "DS"
+    (root / "site-a").mkdir(parents=True)
+    layout = SitesLayout(root, {"site-a": "flat", "site-b": "flat"})
+    layout.ensure_state()
+    assert (root / STATE_DIR).is_dir()
+    assert (root / "site-a" / STATE_DIR).is_dir()
+    assert not (root / "site-b").exists()       # not created for nothing
+
+
+# ----------------------------------------------------------------------
+#   The dataset of a folder is looked up once
+# ----------------------------------------------------------------------
+
+def test_dataset_of_a_folder_is_looked_up_once(tmp_path, monkeypatch):
+    import brainspresso.actions.locks as locks
+    ds = dataset(tmp_path / "DS")
+    folders = [ds / "rawbids" / "sub-01" / "anat",
+               ds / "rawbids" / "sub-02" / "anat"]
+    forget_datasets()
+    looked = []
+    is_state_dir = locks._is_state_dir
+    monkeypatch.setattr(locks, "_is_state_dir",
+                        lambda f: looked.append(f) or is_state_dir(f))
+    for folder in folders:
+        for i in range(20):
+            with FileLock(folder / f"sub_{i}.nii.gz"):
+                pass
+            assert lock_file(folder / f"sub_{i}.json")[1] == ds
+    real = [Path(os.path.realpath(f)) for f in folders]
+    # one walk up to the dataset per folder
+    assert looked == [real[0], *real[0].parents[:3],
+                      real[1], *real[1].parents[:3]]
+
+
+def test_state_folder_created_later_is_found(tmp_path):
+    from brainspresso.bids.layout import FlatLayout
+    path = tmp_path / "DS" / "site-a" / "sub-01" / "anat" / "x.nii.gz"
+    forget_datasets()
+    assert find_dataset(path) is None           # (a miss is not cached)
+    (tmp_path / "DS" / STATE_DIR).mkdir(parents=True)
+    assert find_dataset(path) == tmp_path / "DS"
+    # a nearer one, created by a layout, replaces the cached one
+    FlatLayout(tmp_path / "DS" / "site-a").ensure_state()
+    assert find_dataset(path) == tmp_path / "DS" / "site-a"
+    assert lock_file(path)[0].is_relative_to(
+        tmp_path / "DS" / "site-a" / STATE_DIR)

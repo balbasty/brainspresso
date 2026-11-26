@@ -321,3 +321,12 @@ def test_compost_zero_padded_labels(tmp_path):
        "--exclude-subs", "0005", "--yes")
     assert not (root / "sub-0005").exists()
     assert (root / "sub-5").exists()
+
+
+def test_bad_option_creates_nothing(tmp_path, capsys):
+    from brainspresso.cli import main
+    with pytest.raises(SystemExit) as e:
+        main(["oasis3", "roast", str(tmp_path), "--keys", "nosuchkey"])
+    assert e.value.code == 1
+    assert "Unknown key 'nosuchkey'" in capsys.readouterr().err
+    assert not any(tmp_path.iterdir())

@@ -594,7 +594,8 @@ def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def legacy_keys(self, command, args) -> set  # legacy bidsifiers
-def run(self, command, layout, args)         # lock, then the body
+def check(self, command, args) -> None      # keys, sites (before writing)
+def run(self, command, layout, args)         # check, lock, then the body
 def execute(self, command, *arguments, path=None, out=None, **groups)
 # Bodies of the default commands
 def harvest(self, layout, args) -> dict[str, str]  # harvest_sources(...)
@@ -900,7 +901,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
-| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (712 passed, 2 skipped, 28 xfailed; §6) |
+| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (713 passed, 2 skipped, 28 xfailed; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |

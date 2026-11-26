@@ -769,6 +769,31 @@ class Dataset:
                               args.layout.value(bound))
         return bound.run(command, layout, args)
 
+    def check(self, command: str, args: Args) -> None:
+        """
+        Check the options of a command before anything is written.
+
+        Keys (against a `KeyAliases` hierarchy) and sites.
+
+        Parameters
+        ----------
+        command : str
+        args : Args
+
+        Raises
+        ------
+        UsageError
+            If an option value cannot be used
+        """
+        spec = self.keys_for(command)
+        if spec is not None and command in ("harvest", "roast"):
+            tree = spec.resolve()
+            if hasattr(tree, "expand"):
+                tree.expand(spec.given(args.keys.keys))
+                tree.expand(args.keys.exclude_keys)
+        self.select_sites(args.sites.sites)
+        self.select_sites(args.sites.exclude_sites)
+
     def run(self, command: str, layout=None, args: Args | None = None):
         """
         Run a command body under the run lock of the dataset.
@@ -792,6 +817,7 @@ class Dataset:
         """
         from brainspresso.actions.runlock import run_lock
         args = args if args is not None else Args.of(self, command)
+        self.check(command, args)
         body = getattr(self, command.replace("-", "_"))
         mode = LOCKS.get(command, "shared")
         if layout is None or mode is None or args.dry_run:

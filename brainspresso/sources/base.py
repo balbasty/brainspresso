@@ -50,6 +50,7 @@ from urllib.parse import urlparse
 
 from humanize import naturalsize
 
+from brainspresso.errors import UsageError
 from brainspresso.download import CHUNK_SIZE, Downloader, DownloadManager
 
 lg = getLogger(__name__)
@@ -1120,7 +1121,6 @@ def plan_sources(
     override = [str(getattr(s, "value", s)) for s in override or ()]
     unknown = [s for s in override if s not in sources]
     if unknown:
-        from brainspresso.errors import UsageError
         raise UsageError(f"Unknown sources {unknown}. "
                          f"Available: {', '.join(sources)}")
     all_keys = list(defaults)
@@ -1307,9 +1307,9 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
             start, stop, *step = value.split(":")
             step = int(step[0]) if step and step[0] else 1
             if step < 1:
-                raise ValueError("Subject range: step must be positive")
+                raise UsageError("Subject range: step must be positive")
             if not stop:
-                raise ValueError("Subject range: stop must be provided")
+                raise UsageError("Subject range: stop must be provided")
             for i in range(int(start or 0), int(stop), step):
                 add(i)
         elif isinstance(value, str) and not value.isdigit() and \

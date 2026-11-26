@@ -57,6 +57,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Collection, Iterable, Mapping
 
+from brainspresso.errors import UsageError
 from brainspresso.bids.select import (
     _DATA, _META, OPTIONAL_FOLDERS, BidsName, Selection, _applies,
     _classify,
@@ -348,7 +349,7 @@ class KeyAliases:
                     return self.groups.get(name, set()) | (
                         {name} if name in self.leaves else set()
                     )
-        raise ValueError(
+        raise UsageError(
             f"Unknown key {key!r}. Choose from: {sorted(self.names)}"
         )
 

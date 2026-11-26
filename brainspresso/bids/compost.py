@@ -173,7 +173,7 @@ def is_filtering(selection: Selection | None, where=()) -> bool:
     return any((
         selection.subs, selection.exclude_subs, selection.sessions,
         selection.datatypes, selection.suffixes, selection.tasks,
-        selection.include, selection.exclude,
+        selection.entities, selection.include, selection.exclude,
     ))
 
 
@@ -186,12 +186,14 @@ def _bids_candidates(paths: Iterable[str]) -> list[str]:
     out = []
     for path in paths:
         parts = PurePosixPath(path).parts
-        if any(p.startswith(".") for p in parts):
+        name = BidsName.parse(path)
+        # hidden files, but those of recordings (`*.ome.zarr/.zattrs`)
+        unit = PurePosixPath(name.unit or path)
+        if any(p.startswith(".") for p in unit.parts):
             continue
         if parts[0].startswith("sub-") and len(parts) > 1:
             out.append(path)
         elif len(parts) == 1 and path not in TOP_LEVEL_FILES:
-            name = BidsName.parse(path)
             if name.is_metadata and name.suffix:
                 out.append(path)
     return out

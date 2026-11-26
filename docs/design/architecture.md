@@ -260,7 +260,7 @@ Each step lands as commits on the refactor branch with its tests green.
 
 | # | Step | Tier | Status |
 |---|------|------|--------|
-| 1 | Characterization tests for roasts without tests (COBRE, OASIS-I/II/III, ABIDE-II, ABIDE-I nitrc); known bugs as strict xfail | Low-Effort Opus | in progress |
+| 1 | Characterization tests for roasts without tests (COBRE, OASIS-I/II/III, ABIDE-II, ABIDE-I nitrc); known bugs as strict xfail | Low-Effort Opus | done (300 passed, 16 xfailed) |
 | 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | |
 | 2b | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`); runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim; pilot on UNC-Wisconsin, IXI, OASIS-III and one INDI project (hybrid placement); remove `rawdata/` from compost/harvest | High-Effort Opus, Fable review | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
@@ -270,6 +270,30 @@ Each step lands as commits on the refactor branch with its tests green.
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, one BIDS-App pipeline, submitit; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
+
+### Known bugs to fix while porting (step 5)
+
+Each one has a strict `xfail` test in `tests/test_roast_*.py`, so it shows
+up as an XPASS failure once fixed (then drop the marker).
+
+* ABIDE-II `_make_raw`: `return` instead of `continue` in the member loop.
+* ABIDE-II `_run`: `rawkeys` built from `allleaves`, ignoring `keys`
+  (same pattern, untested, in `ABIDE/I/bidsifier_xnat.py`).
+* ABIDE-II participants mapper: stray backtick in `CURRENT_MED_STATUS`.
+* ABIDE-II `make_participants` reads ABIDE-I's `Phenotypic_V1_0b.csv`
+  (suspected, no xfail).
+* ABIDE-I nitrc: phenotype glob misses `phenotypic_MAX_MUN.csv`.
+* `participant_id` without `sub-` prefix: ABIDE-I, ABIDE-II, COBRE.
+* OASIS-I: missing comma in `PARTICIPANTS_HEADER` (`'handednessage'`);
+  `do_tal` looks up members without `.img` (Talairach never written);
+  avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
+  relabel saved to `dst` instead of the action's path.
+* OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
+* OASIS-III: sessions written as `sub-X/sessions.tsv` instead of
+  `sub-X/sub-X_sessions.tsv`; `set(*map(lower_keys, exclude_keys))` raises
+  with more than one exclude key (same construct in ABIDE-I/II).
+* Harvest (not covered by tests, needs network): ABIDE-II and ABIDE-I xnat
+  use the sync `nitrc_authentifier` with aiohttp sessions.
 
 ## 9. Open questions
 

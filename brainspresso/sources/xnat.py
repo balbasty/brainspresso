@@ -110,7 +110,9 @@ class XNATClient:
         url = f"{self.server}/data/{path.lstrip('/')}"
         authenticated = False
         async with self._semaphore:
-            for attempt in range(self.max_attempts):
+            # a re-authentication is not counted as an attempt
+            attempt = 0
+            while attempt < self.max_attempts:
                 try:
                     async with self.session.get(
                         url, params={"format": "json"}, **self._opt
@@ -118,11 +120,13 @@ class XNATClient:
                         if r.status in (401, 403) and self.auth and \
                                 not authenticated:
                             authenticated = True
+                            await r.read()
                             await self.auth(self.session)
                             continue
                         if r.status in RETRY_STATUSES and \
                                 attempt + 1 < self.max_attempts:
                             await asyncio.sleep(2 ** attempt)
+                            attempt += 1
                             continue
                         if r.status in (401, 403):
                             raise PermissionError(
@@ -134,6 +138,7 @@ class XNATClient:
                     if attempt + 1 >= self.max_attempts:
                         raise
                     await asyncio.sleep(2 ** attempt)
+                attempt += 1
         raise RuntimeError(f"Could not get {url}")
 
     async def results(self, path: str) -> list[dict]:

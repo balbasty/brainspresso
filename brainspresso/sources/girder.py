@@ -295,6 +295,8 @@ class GirderSource(Source):
     def download_options(self, options) -> dict:
         """Add the Girder token (if any) to the options of `Source`."""
         opts = super().download_options(options)
+        if options.dry_run:
+            return opts
         headers = self.client().headers
         if headers:
             opts["get_opt"] = {"headers": headers}

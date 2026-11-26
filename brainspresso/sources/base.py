@@ -38,6 +38,7 @@ import copy
 import datetime
 import inspect
 import os
+import tempfile
 from dataclasses import dataclass, field, fields
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -280,8 +281,14 @@ class Wants:
     def _below(self, key: str, upper: str) -> bool:
         if key == upper:
             return True
-        if self.tree is None or hasattr(self.tree, "expand"):
-            return key == upper
+        if self.tree is None:
+            return False
+        if hasattr(self.tree, "expand"):
+            # KeyAliases: a group excludes its leaves
+            try:
+                return key in self.tree.expand(upper)
+            except (KeyError, ValueError):     # unknown key
+                return False
         from brainspresso.utils.keys import lower_keys
         return key in lower_keys(upper, self.tree)
 
@@ -554,9 +561,17 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
         if ifexists == "skip":
             return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dst.with_name(dst.name + ".tmp")
-    tmp.write_bytes(content)
-    os.replace(tmp, dst)
+    # unique temporary file (`<file>.tmp` may be a download's directory)
+    fd, tmp = tempfile.mkstemp(dir=dst.parent, prefix="." + dst.name,
+                               suffix=".part")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(content)
+        os.replace(tmp, dst)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
     return True
 
 
@@ -811,7 +826,8 @@ class Source:
                     chunk_size=options.chunk_size)
         if insecure:
             opts["insecure"] = True
-        auth = self.auth()
+        # no credentials (nor prompt) in a dry run
+        auth = None if options.dry_run else self.auth()
         if auth is not None:
             opts["auth"] = auth
         return opts

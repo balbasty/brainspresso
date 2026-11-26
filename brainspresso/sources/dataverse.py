@@ -92,6 +92,8 @@ class Dataverse(StaticURLs):
     def download_options(self, options) -> dict:
         """Add the API token (if any) to the options of `Source`."""
         opts = super().download_options(options)
+        if options.dry_run:
+            return opts
         token = get_token(self.token) if self.token_required else \
             (self.token or None)
         if token:

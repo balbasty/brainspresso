@@ -580,3 +580,107 @@ def test_unreachable_s3_is_unavailable():
                       max_attempts=1)
     with pytest.raises(SourceUnavailable):
         S3Prefix(bucket, "data").list()
+
+
+# ----------------------------------------------------------------------
+#   Review fixes
+# ----------------------------------------------------------------------
+
+@pytest.fixture
+def no_credentials(monkeypatch):
+    for name in ("NITRC_USER", "NITRC_PASS", "XNAT_USER", "XNAT_PASS"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(credentials, "interactive", lambda: False)
+
+
+def test_ixi_user_without_password(no_credentials):
+    from brainspresso.datasets.IXI.download import NitrcIR
+    auth = NitrcIR().configure(user="anon").auth()
+    assert (auth.user, auth.password) == ("anon", "")
+
+
+def test_ixi_listing_access_denied():
+    from brainspresso.datasets.IXI.download import NitrcIR
+
+    async def deny(request):
+        return web.Response(status=403)
+
+    app = web.Application()
+    app.router.add_route("*", "/{tail:.*}", deny)
+    url, stop = serve(app)
+    try:
+        with pytest.raises(PermissionError, match="--user"):
+            NitrcIR(server=url).list()
+    finally:
+        stop()
+
+
+def test_wants_exclude_key_aliases_group():
+    from brainspresso.bids.keys import KeyAliases
+    tree = KeyAliases({"raw": {"anat": {"T1w", "T2w"}, "dwi": {"dwi"}}})
+    wants = Wants(tree=tree, exclude=["anat"])
+    assert not wants("T1w") and not wants("T2w") and wants("dwi")
+    assert Wants(tree=tree, exclude=["unknown"])("T1w")
+
+
+def test_write_content_with_stale_tmp_dir(tmp_path):
+    from brainspresso.sources.base import write_content
+    (tmp_path / "a.json.tmp").mkdir()
+    assert write_content(tmp_path / "a.json", "{}")
+    assert (tmp_path / "a.json").read_text() == "{}"
+    assert sorted(p.name for p in tmp_path.iterdir()) == \
+        ["a.json", "a.json.tmp"]
+
+
+def test_dry_run_nitrc_without_credentials(host, no_credentials, tmp_path):
+    from brainspresso.sources.nitrc import NITRC
+    source = NITRC({"raw": [f"{host['url']}/downloads/ABIDEII-BNI_1.csv"]})
+    source.harvest(tmp_path, options=DownloadOptions(dry_run=True))
+    assert not any(tmp_path.iterdir())
+
+
+def test_abide2_s3_sidecars_filtered_by_site():
+    from types import SimpleNamespace
+    from brainspresso.datasets.ABIDE.II.download import S3
+    s3 = S3()
+    s3.sites = frozenset({"ETH"})
+
+    def keep(path):
+        entry = SimpleNamespace(relpath=Path(path))
+        return s3.keep(entry, None, None)
+
+    assert keep("sidecards/ABIDEII-ETHZ_1/task-rest_bold.json")
+    assert keep("sidecards/ABIDEII-ETHZ_1_task-rest_bold.json")
+    assert not keep("sidecards/ABIDEII-BNI_1/task-rest_bold.json")
+    assert not keep("sidecards/ABIDEII-BNI_1_T1w.json")
+    assert keep("sidecards/task-rest_bold.json")      # site unknown
+
+
+def test_xnat_reauth_is_not_an_attempt():
+    from brainspresso.sources.credentials import XnatAuth
+    from brainspresso.sources.xnat import XNATClient
+    state = {"logged": False}
+
+    async def login(request):
+        state["logged"] = True
+        return web.Response(text="session")
+
+    async def data(request):
+        if not state["logged"]:
+            return web.Response(status=401)
+        return web.json_response({"ok": 1})
+
+    app = web.Application()
+    app.router.add_post("/data/JSESSION", login)
+    app.router.add_get("/data/thing", data)
+    url, stop = serve(app)
+
+    async def run():
+        client = XNATClient(url, max_attempts=1)
+        async with client:
+            client.auth = XnatAuth(url, "u", "p")   # log in on the 401
+            return await client.get_json("thing")
+    try:
+        assert asyncio.run(run()) == {"ok": 1}
+    finally:
+        stop()

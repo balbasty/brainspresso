@@ -104,7 +104,8 @@ class NitrcIR(Source):
     def auth(self):
         if not self.user:
             return None
-        return XnatAuth(self.server, self.user, self.password or "")
+        return XnatAuth(self.server, self.user, self.password or "",
+                        password_required=False)
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
         wants = keys if callable(keys) else Wants(keys)
@@ -117,6 +118,13 @@ class NitrcIR(Source):
                                                exp.get("label", "")),
                 auth=basic,
             )
+        except aiohttp.ClientResponseError as e:
+            if e.status in (401, 403):
+                raise PermissionError(
+                    f"{self.server}: access denied ({e.status}); give "
+                    f"credentials with `--user`/`--password`"
+                ) from e
+            raise SourceUnavailable(f"{self.server}: {e}") from e
         except (aiohttp.ClientConnectionError, OSError) as e:
             raise SourceUnavailable(f"{self.server}: {e}") from e
         # Session metadata (scan date) for reference

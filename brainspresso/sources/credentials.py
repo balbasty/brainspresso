@@ -256,6 +256,9 @@ class XnatAuth:
         Name of the service, in prompts.
     env_user, env_password : list[str]
         Environment variables of the credentials.
+    password_required : bool
+        If False and a user is given, an explicitly given empty password
+        is accepted (no prompt).
     """
 
     def __init__(
@@ -268,12 +271,16 @@ class XnatAuth:
         service: str = "NITRC",
         env_user: Sequence[str] = NITRC_USER,
         env_password: Sequence[str] = NITRC_PASS,
+        password_required: bool = True,
     ):
         self.server = server.rstrip("/")
-        self.user, self.password = get_credentials(
-            service, user, password,
-            env_user=env_user, env_password=env_password,
-        )
+        if user and password is not None and not password_required:
+            self.user, self.password = user, password
+        else:
+            self.user, self.password = get_credentials(
+                service, user, password,
+                env_user=env_user, env_password=env_password,
+            )
         self.insecure = insecure
 
     def __repr__(self):

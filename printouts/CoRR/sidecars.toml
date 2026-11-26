@@ -1,0 +1,406 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py CoRR` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/CoRR/templates/
+#   printout  path of the protocol printout, relative to printouts/CoRR
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/CoRR) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   assigns   (optional) table of BIDS keys that override protocol2bids
+#   manual    true if no printout is available: the sidecar is kept as is
+#   note      (optional) free-text comment
+
+[[sidecar]]
+output = "BMB/1/T1w.json"
+printout = "BMB_1/anat.pdf"
+nii = "BMB_1/nii/anat.nii"
+
+[[sidecar]]
+output = "BMB/1/bold.json"
+printout = "BMB_1/rest.pdf"
+nii = "BMB_1/nii/rest.nii"
+
+[[sidecar]]
+output = "BNU/1/T1w.json"
+printout = "BNU_1/anat.pdf"
+nii = "BNU_1/nii/anat.nii"
+
+[[sidecar]]
+output = "BNU/1/bold.json"
+printout = "BNU_1/rest.pdf"
+nii = "BNU_1/nii/rest.nii"
+
+[[sidecar]]
+output = "BNU/1/dwi.json"
+printout = "BNU_1/dti.pdf"
+nii = "BNU_1/nii/dti.nii"
+
+[[sidecar]]
+output = "BNU/2/T1w.json"
+printout = "BNU_2/anat1.pdf"
+nii = "BNU_2/nii/anat1.nii"
+note = "BNU_2 test session printout (anat1)"
+
+[[sidecar]]
+output = "BNU/2/bold.json"
+printout = "BNU_2/rest1.pdf"
+nii = "BNU_2/nii/rest1.nii"
+note = "BNU_2 test session printout (rest1)"
+
+[[sidecar]]
+output = "BNU/3/T1w.json"
+printout = "BNU_3/anat.pdf"
+nii = "BNU_3/nii/anat.nii"
+
+[[sidecar]]
+output = "BNU/3/bold.json"
+printout = "BNU_3/rest.pdf"
+nii = "BNU_3/nii/rest.nii"
+
+[[sidecar]]
+output = "BNU/3/dwi.json"
+printout = "BNU_3/dti.pdf"
+nii = "BNU_3/nii/dti.nii"
+
+[[sidecar]]
+output = "DC/1/T1w.json"
+printout = "DC_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "DC/1/bold.json"
+printout = "DC_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "HNU/1/T1w.json"
+printout = "HNU_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "HNU/1/bold.json"
+printout = "HNU_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "HNU/1/dwi.json"
+printout = "HNU_1/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "IACAS/1/T1w.json"
+printout = "IACAS_1/anat.pdf"
+nii = "IACAS_1/nii/anat.nii"
+
+[[sidecar]]
+output = "IACAS/1/bold.json"
+printout = "IACAS_1/rest.pdf"
+nii = "IACAS_1/nii/rest.nii"
+
+[[sidecar]]
+output = "IBA/TRT/T1w.json"
+printout = "IBA_TRT/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IBA/TRT/bold.json"
+printout = "IBA_TRT/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/1/T1w.json"
+printout = "IPCAS_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/1/bold.json"
+printout = "IPCAS_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/1/dwi.json"
+printout = "IPCAS_1/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "IPCAS/2/T1w.json"
+printout = "IPCAS_2/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/2/bold.json"
+printout = "IPCAS_2/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/2/dwi.json"
+printout = "IPCAS_2/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "IPCAS/3/T1w.json"
+printout = "IPCAS_3/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/3/bold.json"
+printout = "IPCAS_3/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/4/T1w.json"
+printout = "IPCAS_4/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/4/bold.json"
+printout = "IPCAS_4/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/5/T1w.json"
+printout = "IPCAS_5/all.pdf"
+select = "3"
+nii = "IPCAS_5/nii/anat.nii"
+
+[[sidecar]]
+output = "IPCAS/5/bold.json"
+printout = "IPCAS_5/all.pdf"
+select = "1"
+nii = "IPCAS_5/nii/rest.nii"
+
+[[sidecar]]
+output = "IPCAS/6/T1w.json"
+printout = "IPCAS_6/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/6/bold.json"
+printout = "IPCAS_6/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/7/T1w.json"
+printout = "IPCAS_7/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/7/bold.json"
+printout = "IPCAS_7/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/8/T1w.json"
+printout = "IPCAS_8/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "IPCAS/8/bold.json"
+printout = "IPCAS_8/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "IPCAS/8/dwi.json"
+printout = "IPCAS_8/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "JHNU/1/T1w.json"
+printout = "JHNU_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "JHNU/1/bold.json"
+printout = "JHNU_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "LMU/1/T1w.json"
+printout = "LMU_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "LMU/1/bold.json"
+printout = "LMU_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "LMU/2/T1w.json"
+printout = "LMU_2/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "LMU/2/bold.json"
+printout = "LMU_2/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "LMU/3/T1w.json"
+printout = "LMU_3/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "LMU/3/bold.json"
+printout = "LMU_3/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "MPG/1/T1w.json"
+printout = "MPG_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "MPG/1/bold.json"
+printout = "MPG_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "MRN/1/T1w.json"
+printout = "MRN_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "MRN/1/bold.json"
+printout = "MRN_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "MRN/1/dwi.json"
+printout = "MRN_1/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "NKI/2/T1w.json"
+printout = "NKI_2/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "NKI/2/bold_TE=1400.json"
+printout = "NKI_2/scantable.pdf"
+select = "*Rest 1400"
+
+[[sidecar]]
+output = "NKI/2/bold_TE=2500.json"
+printout = "NKI_2/scantable.pdf"
+select = "*Rest 2500"
+
+[[sidecar]]
+output = "NKI/2/bold_TE=645.json"
+printout = "NKI_2/scantable.pdf"
+select = "*Rest 645"
+
+[[sidecar]]
+output = "NKI/2/dwi.json"
+printout = "NKI_2/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "NYU/1/T1w.json"
+printout = "NYU_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "NYU/1/bold.json"
+printout = "NYU_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "NYU/2/T1w.json"
+printout = "NYU_2/anat.pdf"
+nii = "NYU_2/nii/anat.nii"
+
+[[sidecar]]
+output = "NYU/2/bold.json"
+printout = "NYU_2/rest.pdf"
+nii = "NYU_2/nii/rest.nii"
+
+[[sidecar]]
+output = "SWU/1/T1w.json"
+printout = "SWU_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "SWU/1/bold.json"
+printout = "SWU_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "SWU/2/T1w.json"
+printout = "SWU_2/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "SWU/2/bold.json"
+printout = "SWU_2/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "SWU/3/T1w.json"
+printout = "SWU_3/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "SWU/3/bold.json"
+printout = "SWU_3/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "SWU/4/T1w.json"
+printout = "SWU_4/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "SWU/4/bold.json"
+printout = "SWU_4/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "SWU/4/dwi.json"
+printout = "SWU_4/scantable.pdf"
+select = "*DTI"
+
+[[sidecar]]
+output = "UM/1/T1w.json"
+printout = "UM_1/all.pdf"
+select = "1"
+nii = "UM_1/nii/anat.nii"
+
+[[sidecar]]
+output = "UM/1/bold.json"
+printout = "UM_1/all.pdf"
+select = "0"
+nii = "UM_1/nii/rest.nii"
+
+[[sidecar]]
+output = "UPSM/1/T1w.json"
+printout = "UPSM_1/scantable.pdf"
+select = "*Anatomical"
+
+[[sidecar]]
+output = "UPSM/1/bold.json"
+printout = "UPSM_1/scantable.pdf"
+select = "*Rest"
+
+[[sidecar]]
+output = "Utah/1/T1w.json"
+printout = "Utah_1/anat.pdf"
+nii = "Utah_1/nii/anat.nii"
+
+[[sidecar]]
+output = "Utah/1/bold.json"
+printout = "Utah_1/rest.pdf"
+nii = "Utah_1/nii/rest.nii"
+
+[[sidecar]]
+output = "Utah/2/T1w.json"
+printout = "Utah_2/anat.pdf"
+nii = "Utah_2/nii/anat.nii"
+
+[[sidecar]]
+output = "Utah/2/bold.json"
+printout = "Utah_2/rest.pdf"
+nii = "Utah_2/nii/rest.nii"

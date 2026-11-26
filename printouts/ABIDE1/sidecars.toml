@@ -1,0 +1,200 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py ABIDE1` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/ABIDE/I/templates/
+#   printout  path of the protocol printout, relative to printouts/ABIDE1
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/ABIDE1) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   assigns   (optional) table of BIDS keys that override protocol2bids
+#   manual    true if no printout is available: the sidecar is kept as is
+#   note      (optional) free-text comment
+
+[[sidecar]]
+output = "CMU/T1w.json"
+printout = "CMU_b/anat.pdf"
+nii = "CMU_b/nii/anat.nii"
+note = "ABIDE-I CMU template; uses the CMU_b printouts"
+
+[[sidecar]]
+output = "CMU/bold.json"
+printout = "CMU_b/rest.pdf"
+select = "1"
+nii = "CMU_b/nii/rest.nii"
+note = "ABIDE-I CMU template; uses the CMU_b printouts"
+
+[[sidecar]]
+output = "Caltech/T1w.json"
+printout = "Caltech/anat.pdf"
+nii = "Caltech/nii/anat.nii"
+
+[[sidecar]]
+output = "Caltech/bold.json"
+printout = "Caltech/rest.pdf"
+nii = "Caltech/nii/rest.nii"
+
+[[sidecar]]
+output = "KKI/T1w.json"
+printout = "KKI/anat.pdf"
+nii = "KKI/nii/anat.nii"
+
+[[sidecar]]
+output = "KKI/bold.json"
+printout = "KKI/rest.pdf"
+nii = "KKI/nii/rest.nii"
+
+[[sidecar]]
+output = "Leuven/T1w.json"
+printout = "Leuven_1/anat.pdf"
+nii = "Leuven_1/nii/anat.nii"
+note = "ABIDE-I Leuven template; uses the Leuven_1 printouts"
+
+[[sidecar]]
+output = "Leuven/bold.json"
+printout = "Leuven_1/rest.pdf"
+nii = "Leuven_1/nii/rest.nii"
+note = "ABIDE-I Leuven template; uses the Leuven_1 printouts"
+
+[[sidecar]]
+output = "MaxMun/T1w.json"
+printout = "MaxMun_a/anat.pdf"
+nii = "MaxMun_a/nii/anat.nii"
+note = "ABIDE-I MaxMun template; uses the MaxMun_a printouts"
+
+[[sidecar]]
+output = "MaxMun/bold.json"
+printout = "MaxMun_a/rest.pdf"
+select = "0"
+nii = "MaxMun_a/nii/rest.nii"
+note = "ABIDE-I MaxMun template; uses the MaxMun_a printouts"
+
+[[sidecar]]
+output = "NYU/T1w.json"
+printout = "NYU/anat.pdf"
+nii = "NYU/nii/anat.nii"
+
+[[sidecar]]
+output = "NYU/bold.json"
+printout = "NYU/rest.pdf"
+nii = "NYU/nii/rest.nii"
+
+[[sidecar]]
+output = "OHSU/T1w.json"
+printout = "OHSU/anat.pdf"
+nii = "OHSU/nii/anat.nii"
+
+[[sidecar]]
+output = "OHSU/bold.json"
+printout = "OHSU/rest.pdf"
+nii = "OHSU/nii/rest.nii"
+
+[[sidecar]]
+output = "Olin/T1w.json"
+printout = "Olin/anat.pdf"
+nii = "Olin/nii/anat.nii"
+
+[[sidecar]]
+output = "Olin/bold.json"
+printout = "Olin/rest.pdf"
+nii = "Olin/nii/rest.nii"
+
+[[sidecar]]
+output = "Pitt/T1w.json"
+printout = "Pitt/anat.pdf"
+nii = "Pitt/nii/anat.nii"
+
+[[sidecar]]
+output = "Pitt/bold.json"
+printout = "Pitt/rest.pdf"
+nii = "Pitt/nii/rest.nii"
+
+[[sidecar]]
+output = "SBL/T1w.json"
+printout = "SBL/anat.pdf"
+nii = "SBL/nii/anat.nii"
+
+[[sidecar]]
+output = "SBL/bold.json"
+printout = "SBL/rest.pdf"
+nii = "SBL/nii/rest.nii"
+
+[[sidecar]]
+output = "SDSU/T1w.json"
+printout = "SDSU/anat.pdf"
+nii = "SDSU/nii/anat.nii"
+
+[[sidecar]]
+output = "SDSU/bold.json"
+printout = "SDSU/rest.pdf"
+nii = "SDSU/nii/rest.nii"
+
+[[sidecar]]
+output = "Stanford/T1w.json"
+printout = "Stanford/anat.pdf"
+nii = "Stanford/nii/anat.nii"
+
+[[sidecar]]
+output = "Stanford/bold.json"
+printout = "Stanford/rest.pdf"
+nii = "Stanford/nii/rest.nii"
+
+[[sidecar]]
+output = "Trinity/T1w.json"
+printout = "Trinity/anat.pdf"
+nii = "Trinity/nii/anat.nii"
+
+[[sidecar]]
+output = "Trinity/bold.json"
+printout = "Trinity/rest.pdf"
+nii = "Trinity/nii/rest.nii"
+
+[[sidecar]]
+output = "UCLA/T1w.json"
+printout = "UCLA_1/anat.pdf"
+select = "0"
+nii = "UCLA_1/nii/anat.nii"
+note = "ABIDE-I UCLA template; uses the UCLA_1 printouts"
+
+[[sidecar]]
+output = "UCLA/bold.json"
+printout = "UCLA_1/rest.pdf"
+nii = "UCLA_1/nii/rest.nii"
+note = "ABIDE-I UCLA template; uses the UCLA_1 printouts"
+
+[[sidecar]]
+output = "UM/T1w.json"
+printout = "UM_1/anat.pdf"
+select = "1"
+nii = "UM_1/nii/anat.nii"
+note = "ABIDE-I UM template; uses the UM_1 printouts"
+
+[[sidecar]]
+output = "UM/bold.json"
+printout = "UM_1/rest.pdf"
+nii = "UM_1/nii/rest.nii"
+note = "ABIDE-I UM template; uses the UM_1 printouts"
+
+[[sidecar]]
+output = "USM/T1w.json"
+printout = "USM/anat.pdf"
+nii = "USM/nii/anat.nii"
+
+[[sidecar]]
+output = "USM/bold.json"
+printout = "USM/rest.pdf"
+nii = "USM/nii/rest.nii"
+
+[[sidecar]]
+output = "Yale/T1w.json"
+printout = "Yale/anat.pdf"
+select = "1"
+nii = "Yale/nii/anat.nii"
+
+[[sidecar]]
+output = "Yale/bold.json"
+printout = "Yale/rest.pdf"
+nii = "Yale/nii/rest.nii"

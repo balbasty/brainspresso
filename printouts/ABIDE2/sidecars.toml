@@ -1,0 +1,238 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py ABIDE2` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/ABIDE/II/templates/
+#   printout  path of the protocol printout, relative to printouts/ABIDE2
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/ABIDE2) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   assigns   (optional) table of BIDS keys that override protocol2bids
+#   manual    true if no printout is available: the sidecar is kept as is
+#   note      (optional) free-text comment
+
+[[sidecar]]
+output = "BNI/1/FLAIR.json"
+printout = "BNI_1/3DFLAIR.txt"
+
+[[sidecar]]
+output = "BNI/1/T1w.json"
+printout = "BNI_1/anat.txt"
+nii = "BNI_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "BNI/1/bold.json"
+printout = "BNI_1/rest.txt"
+nii = "BNI_1/nii/bold.nii"
+
+[[sidecar]]
+output = "BNI/1/dwi.json"
+printout = "BNI_1/dti.txt"
+nii = "BNI_1/nii/dwi.nii"
+
+[[sidecar]]
+output = "EMC/1/T1w.json"
+printout = "EMC_1/anat.pdf"
+nii = "EMC_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "EMC/1/bold.json"
+printout = "EMC_1/rest.pdf"
+nii = "EMC_1/nii/bold.nii"
+
+[[sidecar]]
+output = "ETH/1/T1w.json"
+printout = "ETH_1/anat.txt"
+nii = "ETH_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "ETH/1/bold.json"
+printout = "ETH_1/rest.txt"
+nii = "ETH_1/nii/bold.nii"
+
+[[sidecar]]
+output = "GU/1/T1w.json"
+printout = "GU_1/T1w.pdf"
+nii = "GU_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "GU/1/bold.json"
+printout = "GU_1/bold.pdf"
+
+[[sidecar]]
+output = "IP/1/T1w.json"
+printout = "IP_1/T1w.pdf"
+nii = "IP_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "IP/1/bold.json"
+printout = "IP_1/bold.pdf"
+nii = "IP_1/nii/bold.nii"
+
+[[sidecar]]
+output = "IP/1/dwi.json"
+printout = "IP_1/dwi.pdf"
+nii = "IP_1/nii/dwi.nii"
+
+[[sidecar]]
+output = "IU/1/T1w.json"
+printout = "IU_1/T1w.pdf"
+nii = "IU_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "IU/1/bold.json"
+printout = "IU_1/bold.pdf"
+nii = "IU_1/nii/bold.nii"
+
+[[sidecar]]
+output = "KUL/3/T1w.json"
+printout = "KUL_3/T1w.txt"
+nii = "KUL_3/nii/T1w.nii"
+
+[[sidecar]]
+output = "KUL/3/bold.json"
+printout = "KUL_3/bold.txt"
+nii = "KUL_3/nii/bold.nii"
+
+[[sidecar]]
+output = "NYU/1/T1w.json"
+printout = "NYU_1/T1w.pdf"
+nii = "NYU_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "NYU/1/bold.json"
+printout = "NYU_1/bold.pdf"
+nii = "NYU_1/nii/bold.nii"
+
+[[sidecar]]
+output = "NYU/1/dwi.json"
+printout = "NYU_1/dwi.pdf"
+nii = "NYU_1/nii/dwi.nii"
+
+[[sidecar]]
+output = "NYU/2/T1w.json"
+printout = "NYU_2/T1w.pdf"
+nii = "NYU_2/nii/T1w.nii"
+
+[[sidecar]]
+output = "NYU/2/bold.json"
+printout = "NYU_2/bold.pdf"
+nii = "NYU_2/nii/bold.nii"
+
+[[sidecar]]
+output = "NYU/2/dwi.json"
+printout = "NYU_2/dwi.pdf"
+nii = "NYU_2/nii/dwi.nii"
+
+[[sidecar]]
+output = "OHSU/1/T1w.json"
+printout = "OHSU_1/T1w.pdf"
+nii = "OHSU_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "OHSU/1/bold.json"
+printout = "OHSU_1/bold.pdf"
+select = "REST1"
+nii = "OHSU_1/nii/bold.nii"
+
+[[sidecar]]
+output = "SDSU/1/T1w.json"
+printout = "SDSU_1/T1w.pdf"
+nii = "SDSU_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "SDSU/1/bold.json"
+printout = "SDSU_1/bold.pdf"
+nii = "SDSU_1/nii/bold.nii"
+
+[[sidecar]]
+output = "SDSU/1/dwi.json"
+printout = "SDSU_1/dwi.pdf"
+
+[[sidecar]]
+output = "TCD/1/T1w.json"
+printout = "TCD_1/T1w.txt"
+nii = "TCD_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "TCD/1/bold.json"
+printout = "TCD_1/bold.txt"
+nii = "TCD_1/nii/bold.nii"
+
+[[sidecar]]
+output = "TCD/1/dwi.json"
+printout = "TCD_1/dwi.txt"
+nii = "TCD_1/nii/dwi.nii"
+
+[[sidecar]]
+output = "UCD/1/T1w.json"
+printout = "UCD_1/T1w.pdf"
+nii = "UCD_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "UCD/1/bold.json"
+printout = "UCD_1/bold.pdf"
+nii = "UCD_1/nii/bold.nii"
+
+[[sidecar]]
+output = "UCLA/1/T1w.json"
+printout = "UCLA_1/T1w.pdf"
+nii = "UCLA_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "UCLA/1/bold.json"
+printout = "UCLA_1/bold.pdf"
+nii = "UCLA_1/nii/bold.nii"
+
+[[sidecar]]
+output = "UCLA/2/T1w.json"
+manual = true
+note = "no printout available"
+
+[[sidecar]]
+output = "UCLA/2/bold.json"
+manual = true
+note = "no printout available"
+
+[[sidecar]]
+output = "UCLA/Long/T1w.json"
+printout = "UCLA_Long/T1w.pdf"
+nii = "UCLA_Long/nii/T1w.nii"
+
+[[sidecar]]
+output = "UCLA/Long/bold.json"
+printout = "UCLA_Long/bold.pdf"
+nii = "UCLA_Long/nii/bold.nii"
+
+[[sidecar]]
+output = "UPSM/1/T1w.json"
+manual = true
+note = "no printout available"
+
+[[sidecar]]
+output = "UPSM/1/bold.json"
+manual = true
+note = "no printout available"
+
+[[sidecar]]
+output = "UPSM/Long/T1w.json"
+printout = "UPSM_Long/T1w.pdf"
+nii = "UPSM_Long/nii/T1w.nii"
+
+[[sidecar]]
+output = "UPSM/Long/bold.json"
+printout = "UPSM_Long/bold.pdf"
+nii = "UPSM_Long/nii/bold.nii"
+
+[[sidecar]]
+output = "USM/1/T1w.json"
+printout = "USM_1/T1w.pdf"
+nii = "USM_1/nii/T1w.nii"
+
+[[sidecar]]
+output = "USM/1/bold.json"
+printout = "USM_1/bold.pdf"
+nii = "USM_1/nii/bold.nii"

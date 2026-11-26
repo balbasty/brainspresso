@@ -52,8 +52,8 @@ Files come from two sources:
 
 - **brainspresso**: printouts previously stored in
   `brainspresso/datasets/{ABIDE/II,CoRR}/templates/PDFs/` (downloaded by the
-  old `*_parse_scan_param.py` scripts), moved here with `git mv`
-  (byte-identical, renamed). The empty `CoRR/templates/PDFs.download` and
+  old, since removed, `*_parse_scan_param.py` scripts), moved here with
+  `git mv` (byte-identical, renamed). The empty `CoRR/templates/PDFs.download` and
   `PDFs.lock` marker files were removed.
 - **protocol2bids corpus**: `datasets/pdf/<DATASET>/<site>/` and
   `datasets/nii/<DATASET>/<site>/` of
@@ -268,6 +268,5 @@ genuinely missing information, add `defaults`/`assigns`) and re-run.
 ## Superseded code
 
 `brainspresso/utils/prot/` and the `abide2_parse_scan_param.py` /
-`corr_parse_scan_param.py` scripts in the templates folders are superseded
-by this workflow (they still refer to the old `templates/PDFs/` folders).
-They will be removed in a later change.
+`corr_parse_scan_param.py` scripts that used to live in the templates
+folders were superseded by this workflow and have been removed.

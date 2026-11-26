@@ -43,6 +43,7 @@ class OASIS2(Dataset):
     folder = "OASIS-2"
     title = "OASIS-2"
     help = HELP
+    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
     harvest_subjects = False
     requires = {"roast": ("openpyxl",)}

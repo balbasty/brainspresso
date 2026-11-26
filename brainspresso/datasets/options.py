@@ -212,18 +212,32 @@ class KeyOptions(OptionGroup):
     keys: Annotated[Strings, _many(
         "Only these keys (data categories of the dataset; default: all)"
     )] = ()
-    exclude_keys: Annotated[Strings, _many(
-        "Not these keys. Alone, files that match no key are kept"
-    )] = ()
+    exclude_keys: Annotated[Strings, _many("Not these keys")] = ()
 
     @classmethod
     def choices(cls, dataset, command):
         """Choices of the keys of the command."""
         spec = dataset.keys_for(command)
-        if spec is None or spec.choices is None:
+        choices = spec.all_choices() if spec is not None else None
+        if choices is None:
             return {}
-        return {"keys": tuple[literal(spec.choices), ...],
-                "exclude_keys": tuple[literal(spec.choices), ...]}
+        return {"keys": tuple[literal(choices), ...],
+                "exclude_keys": tuple[literal(choices), ...]}
+
+    @classmethod
+    def helps(cls, dataset, command):
+        """Roast (on the roast engine): what `--exclude-keys` alone does."""
+        if command != "roast" or dataset.legacy_roast():
+            return {}
+        spec = dataset.keys_for(command)
+        off = f" ({', '.join(spec.off)}: only if asked for with `--keys`)" \
+            if spec is not None and spec.off else ""
+        return {
+            "keys": "Only these keys (data categories of the dataset; "
+                    "default: all" + off + ")",
+            "exclude_keys": "Not these keys. Without `--keys`, files that "
+                            "match no key are kept",
+        }
 
     @classmethod
     def defaults(cls, dataset, command):
@@ -481,8 +495,13 @@ class CompostOptions(OptionGroup):
         "list what is left"
     )] = True
     force: Annotated[bool, Parameter(
-        help="Delete source data even if no BIDS subject is found, and go "
-        "on despite run records of other commands"
+        help="Delete source data even if no BIDS subject is found (the "
+        "dataset does not seem to have been roasted)"
+    )] = False
+    ignore_runs: Annotated[bool, Parameter(
+        help="Go on although other commands left run records (a run that "
+        "crashed, or locks that this filesystem does not share between "
+        "machines): only if no other command runs"
     )] = False
     yes: Annotated[bool, Parameter(
         name=["--yes", "-y"], help="Do not ask for confirmation"

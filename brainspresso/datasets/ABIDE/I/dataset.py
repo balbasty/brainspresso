@@ -25,6 +25,7 @@ class ABIDE1(Dataset):
     folder = "ABIDE-1"
     title = "ABIDE-I"
     help = HELP
+    legacy_subjects = True
     keys = KeySpec(allkeys, tuple(flatten_keys(allkeys)), ("all",))
     subject_width = 5
     site_names = SITES
@@ -32,9 +33,10 @@ class ABIDE1(Dataset):
     option_defaults = {"roast": {"source": ("s3",)}}
 
     def keys_for(self, command):
-        """Roast keys: those of the legacy bidsifiers (any text)."""
+        """Roast keys: the key hierarchy of the legacy bidsifier."""
         if command == "roast":
-            return KeySpec()
+            from brainspresso.datasets.ABIDE.I.keys import allkeys
+            return KeySpec(allkeys)
         return self.keys
 
     @property

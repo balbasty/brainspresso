@@ -53,7 +53,7 @@ class IXI(Dataset):
     def keys_for(self, command):
         """Roast keys include `trace` (derivative of the DWI scans)."""
         if command == "roast":
-            return KeySpec(roast_keys, (*KEYS, "trace"), KEYS)
+            return KeySpec(roast_keys, (*KEYS, "trace"), KEYS, ("trace",))
         return self.keys
 
     def sources(self, args=None):

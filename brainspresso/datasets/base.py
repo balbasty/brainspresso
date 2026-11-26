@@ -52,6 +52,36 @@ LOCKS: Mapping[str, str | None] = MappingProxyType({
 })
 
 
+def _names(keys) -> tuple:
+    """Key names of command-line values."""
+    return tuple(str(getattr(k, "value", k)) for k in keys or ())
+
+
+def tree_lines(tree, indent: int = 0) -> list[str]:
+    """
+    Lines of a key hierarchy (nested dicts and sets), for the help.
+
+    Parameters
+    ----------
+    tree : dict | set | list | str
+    indent : int
+
+    Returns
+    -------
+    list[str]
+    """
+    if isinstance(tree, str):
+        return [" " * indent + f"* {tree}"]
+    if not isinstance(tree, Mapping):
+        return [" " * indent + f"* {k}" for k in sorted(tree)]
+    out = []
+    for name, sub in tree.items():
+        out.append(" " * indent + f"* {name}")
+        if sub:
+            out += tree_lines(sub, indent + 2)
+    return out
+
+
 @dataclasses.dataclass(frozen=True)
 class KeySpec:
     """
@@ -64,14 +94,19 @@ class KeySpec:
         nested dict, or a function returning one (imported on use, e.g.
         a roaster module with optional dependencies)
     choices : tuple[str] | None
-        Values of `--keys` (None: any text)
+        Values of `--keys` (None: the keys of a nested-dict `tree`, else
+        any text, checked against the hierarchy before the command runs)
     default : tuple[str]
         Default of `--keys` (empty: all)
+    off : tuple[str]
+        Keys only selected when asked for (`--keys` names them): with the
+        default `--keys`, they are excluded (IXI roast: `trace`)
     """
 
     tree: Any = None
     choices: tuple | None = None
     default: tuple = ()
+    off: tuple = ()
 
     def resolve(self) -> Any:
         """Return the key hierarchy (calls `tree` if it is a function)."""
@@ -81,30 +116,83 @@ class KeySpec:
             tree = tree()
         return tree
 
-    def given(self, keys: Iterable[str]) -> tuple:
-        """
-        Keys to select, from `--keys`.
+    def all_choices(self) -> tuple | None:
+        """Return the values of `--keys` (None: any text)."""
+        if self.choices is not None:
+            return tuple(self.choices)
+        if isinstance(self.tree, Mapping):
+            from brainspresso.utils.keys import flatten_keys
+            return tuple(sorted(flatten_keys(self.tree)))
+        return None
 
-        A default that lists every choice counts as no key at all (so
-        that `--exclude-keys` alone means "all but").
+    def static_tree(self) -> Any:
+        """Return the hierarchy if it is known without importing anything."""
+        tree = self.tree
+        if callable(tree) and not isinstance(tree, Mapping) and \
+                not hasattr(tree, "selection"):
+            return None
+        return getattr(tree, "tree", tree)
+
+    def effective(self, keys: Iterable[str] = (),
+                  exclude: Iterable[str] = ()) -> tuple[tuple, tuple]:
+        """
+        Keys to select and to exclude, from `--keys` and `--exclude-keys`.
+
+        `--keys` that covers every choice, or the default `--keys` of a
+        spec whose default is "all but `off`", counts as no `--keys`, so
+        that `--exclude-keys` alone means "all but" (and, in a roast,
+        keeps the files that match no key). With the default `--keys`,
+        the `off` keys are excluded.
 
         Parameters
         ----------
-        keys : list[str]
+        keys, exclude : list[str]
 
         Returns
         -------
-        tuple[str]
+        keys : tuple[str]
             Empty: all keys
+        exclude : tuple[str]
         """
-        keys = tuple(str(getattr(k, "value", k)) for k in keys or ())
-        if self.choices is not None and set(keys) >= set(self.choices):
-            return ()
-        if self.default and set(keys) == set(self.default) and \
-                self.choices is not None and \
-                set(self.default) >= set(self.choices):
-            return ()
-        return keys
+        keys, exclude = _names(keys), _names(exclude)
+        choices = self.all_choices()
+        if not keys or set(keys) == set(self.default):
+            covers = choices is None or not self.default or (
+                set(self.default) | set(self.off) >= set(choices))
+            if covers:
+                return (), exclude + tuple(
+                    k for k in self.off if k not in exclude)
+            return keys or tuple(self.default), exclude
+        if choices is not None and set(keys) >= set(choices):
+            return (), exclude
+        return keys, exclude
+
+    def check(self, keys: Iterable[str] = (),
+              exclude: Iterable[str] = ()) -> None:
+        """
+        Refuse unknown keys.
+
+        Parameters
+        ----------
+        keys, exclude : list[str]
+
+        Raises
+        ------
+        UsageError
+            If a key is not a key of the hierarchy
+        """
+        keys, exclude = _names(keys), _names(exclude)
+        choices = self.all_choices()
+        if choices is not None:
+            unknown = [k for k in (*keys, *exclude) if k not in choices]
+            if unknown:
+                raise UsageError(f"Unknown keys {unknown}. Choose from: "
+                                 f"{', '.join(choices)}")
+            return
+        tree = self.resolve()
+        if hasattr(tree, "expand"):
+            tree.expand(keys)
+            tree.expand(exclude)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -290,6 +378,9 @@ class Dataset:
         Hosted as BIDS: harvest takes the BIDS filters
     harvest_subjects : bool
         Whether harvest takes `--subs` (its sources can prune subjects)
+    legacy_subjects : bool
+        Whether roast takes subject numbers (a legacy bidsifier, see
+        `numbers`)
     requires : dict[str, tuple[str]]
         Optional modules of each command
     extra : str | None
@@ -320,6 +411,7 @@ class Dataset:
     folder_choices: ClassVar[tuple] = ()
     hosted: ClassVar[bool] = False
     harvest_subjects: ClassVar[bool] = True
+    legacy_subjects: ClassVar[bool] = False
     requires: ClassVar[Mapping[str, tuple]] = EMPTY
     extra: ClassVar[str | None] = None
     commands: ClassVar[tuple] = ("harvest", "roast", "compost", "info")
@@ -463,6 +555,36 @@ class Dataset:
                              f"{', '.join(self.site_names)}")
         return tuple(known[v.lower()] for v in values)
 
+    def chosen_sites(self, args: Args) -> tuple:
+        """
+        Sites of `--sites` minus those of `--exclude-sites`.
+
+        Parameters
+        ----------
+        args : Args
+
+        Returns
+        -------
+        tuple[str]
+            Site names (empty: all)
+
+        Raises
+        ------
+        UsageError
+            If every site is excluded
+        """
+        sites = self.select_sites(args.sites.sites)
+        exclude = set(self.select_sites(args.sites.exclude_sites))
+        if not exclude:
+            return sites
+        pool = sites or self.site_names
+        if not pool:            # (the sources apply `exclude_sites`)
+            return sites
+        sites = tuple(s for s in pool if s not in exclude)
+        if not sites:
+            raise UsageError("Every site is excluded")
+        return sites
+
     def groups(self, command: str) -> tuple:
         """
         Return the standard groups of a command (`Args` field names).
@@ -535,6 +657,38 @@ class Dataset:
             "compost": "Delete source data, or BIDS data outside a filter.",
             "info": f"Show what {title} provides.",
         }.get(command, f"{command} {title}.")
+
+    def key_help(self, command: str, resolve: bool = False) -> str:
+        """
+        Return the key hierarchy of a command, for its help.
+
+        Parameters
+        ----------
+        command : str
+        resolve : bool
+            Also resolve hierarchies that need an import (`info`)
+
+        Returns
+        -------
+        str
+            A markdown list ("" without a hierarchy)
+        """
+        spec = self.keys_for(command)
+        if spec is None:
+            return ""
+        tree = spec.static_tree()
+        if tree is None and resolve:
+            try:
+                tree = getattr(spec.resolve(), "tree", None)
+            except ImportError:
+                tree = None
+        if not isinstance(tree, Mapping) or not tree:
+            return ""
+        return "\n".join(tree_lines(tree))
+
+    def legacy_roast(self) -> bool:
+        """Whether `roast` is overridden (not the roast engine)."""
+        return type(self).roast is not Dataset.roast
 
     def has_roast(self) -> bool:
         """Whether the dataset can be roasted."""
@@ -654,8 +808,8 @@ class Dataset:
         """
         from brainspresso.sources.base import Wants
         spec = self.keys_for(command) or KeySpec()
-        return Wants(spec.given(keys) or None, spec.resolve(),
-                     exclude=tuple(exclude_keys or ()))
+        keys, exclude = spec.effective(keys, exclude_keys)
+        return Wants(keys or None, spec.resolve(), exclude=exclude)
 
     def legacy_keys(self, command: str, args: Args) -> set:
         """
@@ -671,13 +825,16 @@ class Dataset:
         set[str]
         """
         spec = self.keys_for(command) or KeySpec()
-        keys = set(args.keys.keys or spec.default or spec.choices or ())
-        return keys - set(args.keys.exclude_keys)
+        keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
+        keys = set(keys or spec.all_choices() or ())
+        return keys - set(exclude)
 
-    @staticmethod
-    def numbers(values: Iterable[str]) -> list:
+    def numbers(self, values: Iterable[str]) -> list:
         """
-        Subject numbers of a legacy bidsifier (`--subs 1 002`).
+        Subject numbers of a legacy bidsifier (`--subs 1 002 3:5 subs.txt`).
+
+        Values are expanded as for the other commands (`labels`: files
+        and `start:stop` ranges), then converted to numbers.
 
         Parameters
         ----------
@@ -692,14 +849,13 @@ class Dataset:
         UsageError
             If a value is not a number
         """
+        from brainspresso.sources.base import subject_labels
         out = []
-        for value in values or ():
-            value = str(value)
-            value = value[4:] if value.startswith("sub-") else value
+        for value in sorted(subject_labels(values, self.subject_width or 0)):
             if not value.isdigit():
                 raise UsageError(f"Subjects are numbers here: {value!r}")
             out.append(int(value))
-        return out
+        return sorted(out)
 
     def select_roaster(self, ctx, override=None) -> tuple:
         """
@@ -773,7 +929,7 @@ class Dataset:
         """
         Check the options of a command before anything is written.
 
-        Keys (against a `KeyAliases` hierarchy) and sites.
+        Keys (against the key hierarchy), sites and subjects.
 
         Parameters
         ----------
@@ -787,12 +943,27 @@ class Dataset:
         """
         spec = self.keys_for(command)
         if spec is not None and command in ("harvest", "roast"):
-            tree = spec.resolve()
-            if hasattr(tree, "expand"):
-                tree.expand(spec.given(args.keys.keys))
-                tree.expand(args.keys.exclude_keys)
-        self.select_sites(args.sites.sites)
-        self.select_sites(args.sites.exclude_sites)
+            spec.check(args.keys.keys, args.keys.exclude_keys)
+        self.chosen_sites(args)
+        subjects = self.numbers if command == "roast" and \
+            self.legacy_subjects else self.labels
+        subjects(args.select.subs)
+        subjects(args.select.exclude_subs)
+
+    @staticmethod
+    def _parent_states(layout) -> list:
+        """State of the parent of a site dataset (`--out <DS>/<site>`)."""
+        from brainspresso.bids.layout import STATE_DIR, Layout, SitesLayout
+        if isinstance(layout, SitesLayout):
+            return []
+        root = Path(layout.root)
+        parent = root.parent
+        if not (parent / STATE_DIR).is_dir():
+            return []
+        found = Layout.detect(parent)
+        if isinstance(found, SitesLayout) and root.name in found.children:
+            return [found.state]
+        return []
 
     def run(self, command: str, layout=None, args: Args | None = None):
         """
@@ -822,15 +993,18 @@ class Dataset:
         mode = LOCKS.get(command, "shared")
         if layout is None or mode is None or args.dry_run:
             return body(layout, args)
-        if mode == "exclusive" and not Path(layout.root).is_dir():
-            raise DatasetNotFound(f"Dataset folder not found: {layout.root}")
+        if command in ("compost", "roast") and \
+                not Path(layout.root).is_dir():
+            raise DatasetNotFound(f"Dataset folder not found: {layout.root}"
+                                  + (" (harvest it first)"
+                                     if command == "roast" else ""))
         layout.ensure_state()
         states = [layout.state] + [
             d.state for d in layout.datasets()
             if d is not layout and Path(d.state).is_dir()
-        ]
+        ] + self._parent_states(layout)
         with run_lock(states, command, exclusive=mode == "exclusive",
-                      wait=args.wait, force=args.compost.force):
+                      wait=args.wait, force=args.compost.ignore_runs):
             return body(layout, args)
 
     # ------------------------------------------------------------------
@@ -900,10 +1074,9 @@ class Dataset:
             filters["sessions"] = sorted(
                 s[4:] if s.startswith("ses-") else s
                 for s in args.sessions.sessions)
+        keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
         ctx = make_context(
-            layout, spec.resolve(),
-            select_keys=spec.given(args.keys.keys),
-            exclude_keys=tuple(args.keys.exclude_keys),
+            layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
             json=args.roast.json_policy, ifexists=args.roast.if_exists,
             templates=self.template_dir,
             subs=sorted(self.labels(args.select.subs)),
@@ -938,6 +1111,7 @@ class Dataset:
             where=args.filters.where, derivatives=c.derivatives,
             trim=c.trim, force=c.force, yes=c.yes, dry_run=c.dry_run,
             list=c.list, sites=self.select_sites(args.sites.sites),
+            exclude_sites=self.select_sites(args.sites.exclude_sites),
             **args.filters.filters(),
         )
 
@@ -954,10 +1128,14 @@ class Dataset:
         print(self.title or self.summary)
         for command in ("harvest", "roast"):
             spec = self.keys_for(command)
-            if spec is not None and spec.choices and (
-                command == "harvest" or self.has_roast()
-            ):
-                print(f"  {command} keys: {', '.join(spec.choices)}")
+            if spec is None or (command == "roast" and not self.has_roast()):
+                continue
+            tree = self.key_help(command, resolve=True)
+            if tree:
+                print(f"  {command} keys:")
+                print("\n".join("    " + line for line in tree.splitlines()))
+            elif spec.all_choices():
+                print(f"  {command} keys: {', '.join(spec.all_choices())}")
         sources = self.sources()
         for name, src in sources.items():
             provides = ", ".join(sorted(getattr(src, "provides", ()) or ()))

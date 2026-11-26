@@ -152,3 +152,18 @@ def test_compost_command_fails_while_harvest_runs(tmp_path, holder, state,
               "--yes"])
     assert e.value.code == 1
     assert "harvest running" in capsys.readouterr().err
+
+
+def test_nested_failure_keeps_outer_count(state, monkeypatch):
+    with run_lock(state, "harvest"):
+        assert held_states() == [str(state)]
+        # an inner lock that fails after it is listed (unopenable)
+        from brainspresso.actions import locks
+        monkeypatch.setattr(locks.FileLock, "acquire", lambda self: self)
+        with pytest.raises(LockError, match="cannot be opened"):
+            with run_lock(state, "roast"):
+                raise AssertionError("not reached")
+        monkeypatch.undo()
+        assert held_states() == [str(state)]
+        assert runlock._held[str(state)] == 1
+    assert held_states() == []

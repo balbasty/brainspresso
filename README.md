@@ -135,7 +135,10 @@ roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 A dataset cannot be composted while it is harvested or roasted (also from
 other machines that share its filesystem), and the other way round: the
 second command fails at once, naming the first one (`--wait SECONDS`
-waits for it).
+waits for it). Each run leaves a record in `.brainspresso/runs/` while it
+runs; compost refuses to start while records of other runs are there (a
+crashed run, or a filesystem that does not share locks between machines:
+`--ignore-runs` once you have checked that nothing runs).
 
 ## OpenNeuro: any dataset, or a filtered subset of it
 

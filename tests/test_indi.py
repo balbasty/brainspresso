@@ -425,7 +425,7 @@ def test_fcon1000_compost_sites_flag(tmp_path, capsys):
     with pytest.raises(SystemExit):
         app(["fcon1000", "compost", str(tmp_path), "--sites", "ICBM",
              "--exclude-subs", "ICBM11111", "--yes"])
-    assert "--sites only applies" in capsys.readouterr().err
+    assert "--sites/--exclude-sites only apply" in capsys.readouterr().err
 
 
 def test_fcon1000_unmatched_subjects(tmp_path, capsys, caplog):
@@ -707,3 +707,78 @@ def test_repair_tsv(tmp_path):
     assert sessions.read_text() == (
         "session_id\tid\tage\nses-BAS1\tA\t59\nses-BAS2\tA\t64\n"
     )
+
+
+@pytest.mark.parametrize("option", ["--sites", "--exclude-sites"])
+def test_fcon1000_compost_some_sites(tmp_path, option):
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta")
+    root = tmp_path / "FCON1000"
+    site = "ICBM" if option == "--sites" else "Atlanta"
+    bx("fcon1000", "compost", tmp_path, option, site,
+       "--exclude-subs", "00448", "--yes")
+    # only ICBM is composted
+    assert not (raw(root, "ICBM") / "sub-00448").exists()
+    assert (raw(root, "Atlanta") / "sub-00448").is_dir()
+
+
+def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
+    # a selection that matches nothing is refused before any download
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--layout", "sites",
+             "--sites", "ICBM", "--subs", "99999"])
+    assert "No selected subject" in capsys.readouterr().err
+    root = tmp_path / "FCON1000"
+    assert files(root) == set()     # (only the state folder, if any)
+    assert not (root / "README").exists()
+
+
+def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
+    from brainspresso.actions.runlock import held_states
+    from brainspresso.datasets.INDI import harvest as indi
+    seen = []
+    original = indi.harvest
+
+    def spy(entries, layout, *args, **kwargs):
+        seen.append((Path(layout.state), list(held_states())))
+        return original(entries, layout, *args, **kwargs)
+
+    monkeypatch.setattr(indi, "harvest", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM")
+    site, held = seen[0]
+    assert site == tmp_path / "FCON1000" / "ICBM" / ".brainspresso"
+    assert str(site) in held
+    assert str(tmp_path / "FCON1000" / ".brainspresso") in held
+
+
+HOLD = """
+import sys, time
+from brainspresso.actions.runlock import run_lock
+with run_lock(sys.argv[1], "harvest"):
+    print("ready", flush=True)
+    time.sleep(60)
+"""
+
+
+def test_fcon1000_site_compost_waits_for_parent(tmp_path, capsys):
+    # compost of one site (`--out <DS>/<site>`) also takes the run lock
+    # of the parent, which a harvest of the parent holds
+    import subprocess
+    import sys
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM")
+    root = tmp_path / "FCON1000"
+    proc = subprocess.Popen(
+        [sys.executable, "-c", HOLD, str(root / ".brainspresso")],
+        stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
+    try:
+        assert proc.stdout.readline().strip() == "ready"
+        with pytest.raises(SystemExit):
+            app(["fcon1000", "compost", "--out", str(root / "ICBM"),
+                 "--exclude-subs", "11111", "--yes"])
+        assert "harvest running" in capsys.readouterr().err
+    finally:
+        proc.kill()
+        proc.wait()
+    assert (raw(root, "ICBM") / "sub-11111").is_dir()

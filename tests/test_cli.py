@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from brainspresso.errors import UsageError
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 from cli_snapshot import snapshot  # noqa: E402
 
@@ -330,3 +332,119 @@ def test_bad_option_creates_nothing(tmp_path, capsys):
     assert e.value.code == 1
     assert "Unknown key 'nosuchkey'" in capsys.readouterr().err
     assert not any(tmp_path.iterdir())
+
+
+# ----------------------------------------------------------------------
+#   Review of PR #19
+# ----------------------------------------------------------------------
+
+def _bids(root, subs=("sub-0005", "sub-5")):
+    for sub in subs:
+        (root / sub / "anat").mkdir(parents=True)
+        (root / sub / "anat" / f"{sub}_T1w.nii.gz").write_bytes(b"x")
+    (root / "dataset_description.json").write_text(
+        '{"Name": "x", "BIDSVersion": "1.10.0"}')
+    return root
+
+
+def test_commands_return_nothing(tmp_path, capsys):
+    # cyclopts >= 4 prints what a command returns; the console script of
+    # cyclopts 3 (`sys.exit(main())`) would print it and exit 1
+    root = _bids(tmp_path / "ds")
+    out = run_python("-c", (
+        "import sys\nfrom brainspresso.cli import main\n"
+        f"sys.exit(main(['openneuro', 'compost', 'ds1', '--out', "
+        f"{str(root)!r}, '--exclude-subs', '0005', '--dry-run']))\n"))
+    assert out.returncode == 0, out.stderr
+    assert "CompostPlan(" not in out.stdout + out.stderr
+    from brainspresso.cli import main
+    try:
+        assert main(["openneuro", "compost", "ds1", "--out", str(root),
+                     "--exclude-subs", "0005", "--dry-run"]) is None
+    except SystemExit as e:     # (cyclopts >= 4 exits after a command)
+        assert not e.code
+    assert "CompostPlan(" not in capsys.readouterr().out
+
+
+def test_ignore_runs_is_not_force(tmp_path, capsys):
+    import json as _json
+    from brainspresso.cli import main
+    root = _bids(tmp_path / "ds")
+    runs = root / ".brainspresso" / "runs"
+    runs.mkdir(parents=True)
+    (runs / "elsewhere-12.json").write_text(_json.dumps(
+        {"command": "harvest", "host": "elsewhere", "pid": 12}))
+    args = ["openneuro", "compost", "ds1", "--out", str(root),
+            "--exclude-subs", "0005", "--yes"]
+    with pytest.raises(SystemExit):
+        main([*args, "--force"])
+    assert "--ignore-runs" in capsys.readouterr().err
+    assert (root / "sub-0005").exists()
+    from cli_utils import bx
+    bx(*args, "--ignore-runs")
+    assert not (root / "sub-0005").exists()
+
+
+def test_legacy_subjects_files_and_ranges(tmp_path):
+    from brainspresso.datasets.COBRE.dataset import COBRE
+    from brainspresso.datasets.base import Args
+    from brainspresso.datasets.options import SelectionOptions
+    subs = tmp_path / "subs.txt"
+    subs.write_text("40000\nsub-40001\n")
+    cobre = COBRE()
+    assert cobre.numbers([str(subs), "3:5", "sub-7"]) == [3, 4, 7, 40000,
+                                                          40001]
+    cobre.check("roast", Args.of(cobre, "roast", select=SelectionOptions(
+        subs=(str(subs), "1:3"))))
+    with pytest.raises(UsageError):
+        cobre.numbers(["abc"])
+
+
+def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
+    from brainspresso.cli import main
+    # an invalid subject
+    (tmp_path / "COBRE").mkdir()
+    with pytest.raises(SystemExit):
+        main(["cobre", "roast", str(tmp_path), "--subs", "abc"])
+    assert "Subjects are numbers" in capsys.readouterr().err
+    assert not any((tmp_path / "COBRE").iterdir())
+    # a missing dataset
+    with pytest.raises(SystemExit):
+        main(["oasis2", "roast", str(tmp_path)])
+    assert "harvest it first" in capsys.readouterr().err
+    assert not (tmp_path / "OASIS-2").exists()
+
+
+def test_key_trees(capsys):
+    from brainspresso.cli import main
+    from brainspresso.datasets.Bullitt.dataset import Bullitt
+    spec = Bullitt().keys_for("harvest")
+    assert "phantoms" in spec.all_choices() and "all" in spec.all_choices()
+    with pytest.raises(UsageError, match="Unknown keys"):
+        spec.check(["nosuchkey"])
+    with pytest.raises(SystemExit) as e:
+        main(["bullitt", "harvest", "--keys", "nosuchkey"])
+    assert e.value.code
+    try:
+        main(["bullitt", "harvest", "--help"])
+    except SystemExit:
+        pass
+    out = capsys.readouterr().out
+    assert "Keys (a group selects" in out and "phantoms" in out
+
+
+def test_key_spec_effective():
+    from brainspresso.datasets.IXI.dataset import KEYS, IXI
+    from brainspresso.datasets.UNCWisconsin.dataset import UNCWisconsin
+    roast = IXI().keys_for("roast")
+    assert roast.effective(KEYS) == ((), ("trace",))
+    assert roast.effective((), ["T2w"]) == ((), ("T2w", "trace"))
+    assert roast.effective(KEYS, ["T2w"]) == ((), ("T2w", "trace"))
+    assert roast.effective(["T1w", "trace"]) == (("T1w", "trace"), ())
+    assert roast.effective([*KEYS, "trace"]) == ((), ())
+    assert IXI().keys_for("harvest").effective(KEYS, ["dwi"]) == (
+        (), ("dwi",))
+    unc = UNCWisconsin().keys_for("harvest")
+    assert unc.effective(("raw", "meta")) == (("raw", "meta"), ())
+    assert unc.effective(("raw", "meta"), ["dwi"]) == (("raw", "meta"),
+                                                       ("dwi",))

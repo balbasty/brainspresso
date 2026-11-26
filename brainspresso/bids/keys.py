@@ -300,6 +300,7 @@ class KeyAliases:
         bids: Mapping[str, Mapping] | None = None,
         folders: Mapping[str, Iterable[str]] | None = None,
     ):
+        self.tree = tree
         self.groups: dict[str, set[str]] = {}
         self.leaves: set[str] = set()
         self._walk(tree)

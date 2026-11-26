@@ -66,6 +66,7 @@ def run_compost(
     list: bool = False,
     layout: str | None = None,
     sites: Iterable[str] = (),
+    exclude_sites: Iterable[str] = (),
 ):
     """
     Compost a dataset (a "sites" layout: site by site).
@@ -83,6 +84,8 @@ def run_compost(
         Expected layout
     sites : list[str]
         Only these sites (a "sites" layout only)
+    exclude_sites : list[str]
+        Not these sites (a "sites" layout only)
 
     Returns
     -------
@@ -91,6 +94,7 @@ def run_compost(
     """
     found = resolve_layout(root, layout)
     sites = [str(s) for s in sites or ()]
+    exclude_sites = {str(s).lower() for s in exclude_sites or ()}
     options = dict(
         sourcedata=sourcedata, nested=nested, keep=keep, subs=subs,
         exclude_subs=exclude_subs, sessions=sessions, datatypes=datatypes,
@@ -104,6 +108,8 @@ def run_compost(
             names = {s.lower() for s in sites}
             datasets = [d for d in datasets
                         if Path(d.root).name.lower() in names]
+        datasets = [d for d in datasets
+                    if Path(d.root).name.lower() not in exclude_sites]
         if not datasets:
             raise UsageError(f"No site dataset found in {found.root}")
         plans = []
@@ -111,11 +117,11 @@ def run_compost(
             print(f"--- {Path(dataset.root).name}")
             plans.append(run_compost(dataset, **options))
         return plans
-    if sites:
+    if sites or exclude_sites:
         raise UsageError(
-            f"--sites only applies to a dataset harvested with one "
-            f"dataset per site (--layout sites); {found.root} has layout "
-            f"{found.kind!r}"
+            f"--sites/--exclude-sites only apply to a dataset harvested "
+            f"with one dataset per site (--layout sites); {found.root} has "
+            f"layout {found.kind!r}"
         )
     selection = Selection(
         subs=subs, exclude_subs=exclude_subs, sessions=sessions,

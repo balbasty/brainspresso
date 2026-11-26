@@ -19,8 +19,9 @@ Run records are also a second line of defence where locks are not
 shared between machines (Lustre `localflock`, some FUSE mounts) or
 outlive their process (NFSv3 after a client crash): compost, once it
 holds the exclusive lock, refuses while a record from another host
-exists, or one from this host whose process is alive, unless `force`.
-Records of dead processes of this host are removed.
+exists, or one from this host whose process is alive, unless `force`
+(`compost --ignore-runs`). Records of dead processes of this host are
+removed.
 
 With locks disabled (`$BRAINSPRESSO_LOCKS=0`, or no `fcntl`), nothing is
 locked and no record is written.
@@ -159,7 +160,7 @@ def _check_records(state: Path, force: bool) -> None:
         f"between machines on this filesystem (then wait for these "
         f"runs to finish), or a run crashed on the host named above "
         f"(then delete its record in {state / RECORDS_DIR}). Use "
-        f"--force to go on anyway."
+        f"--ignore-runs to go on anyway."
     )
 
 
@@ -223,7 +224,7 @@ def run_lock(
     if not locks_enabled():
         yield []
         return
-    locks, records = [], []
+    locks, records, counted = [], [], []
     try:
         for state in states:
             if not state.is_dir():
@@ -250,14 +251,16 @@ def run_lock(
             if not _held.get(key):
                 records.append(_write_record(state, command))
             _held[key] = _held.get(key, 0) + 1
+            counted.append(key)
         yield locks
     finally:
+        # only the counts this call incremented (a failure between
+        # `acquire` and the count must not drop an outer holder's)
+        for key in reversed(counted):
+            _held[key] -= 1
+            if not _held[key]:
+                del _held[key]
         for lock in reversed(locks):
-            key = str(Path(lock.path).parent)
-            if key in _held:
-                _held[key] -= 1
-                if not _held[key]:
-                    del _held[key]
             lock.release()
         for path in records:
             with contextlib.suppress(OSError):

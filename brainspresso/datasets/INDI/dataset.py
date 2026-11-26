@@ -87,17 +87,6 @@ class INDIDataset(Dataset):
             raise UsageError(str(e)) from e
         return tuple(s.name for s in chosen if not s.derivative)
 
-    def chosen_sites(self, args) -> tuple:
-        """`--sites` minus `--exclude-sites` (empty: all)."""
-        sites = self.select_sites(args.sites.sites)
-        exclude = set(self.select_sites(args.sites.exclude_sites))
-        if not exclude:
-            return sites
-        sites = [s for s in (sites or self.site_names) if s not in exclude]
-        if not sites:
-            raise UsageError("Every site is excluded")
-        return tuple(sites)
-
     def options(self, command):
         """`info --derivatives`."""
         return {"info": InfoOptions} if command == "info" else {}

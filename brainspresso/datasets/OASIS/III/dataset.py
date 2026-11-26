@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.OASIS.III.keys import allkeys
 
 HELP = """
 OASIS-3 dataset (longitudinal, pet, dementia)
@@ -34,7 +35,7 @@ class OASIS3(Dataset):
     folder = "OASIS-3"
     title = "OASIS-3"
     help = HELP
-    keys = KeySpec()
+    keys = KeySpec(allkeys)
     subject_width = 4
     credentials = "login"
     harvest_jobs = 1
@@ -49,7 +50,6 @@ class OASIS3(Dataset):
 
     def wants(self, command, keys=(), exclude_keys=()):
         """Harvest keys over the generic key tree (all OASIS-3 keys)."""
-        from brainspresso.datasets.OASIS.III.keys import allkeys
         from brainspresso.sources.base import Wants
         from brainspresso.utils.keys import allkeys as generic_keys
         from brainspresso.utils.keys import flatten_keys

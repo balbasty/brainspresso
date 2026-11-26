@@ -96,9 +96,17 @@ def main(tokens=None):
     ----------
     tokens : list[str], optional
         Arguments (default: `sys.argv[1:]`)
+
+    Returns
+    -------
+    int | None
+        Exit status (None: success)
     """
     tokens = list(sys.argv[1:] if tokens is None else tokens)
-    return build_app(tokens[0] if tokens else None)(tokens)
+    result = build_app(tokens[0] if tokens else None)(tokens)
+    # the console script calls `sys.exit(main())`: only an exit status
+    return result if isinstance(result, int) and \
+        not isinstance(result, bool) else None
 
 
 _app = None
@@ -115,4 +123,4 @@ def __getattr__(name):
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -538,7 +538,7 @@ class Dataset:
                                   #   ("OpenNeuro/{dataset}")
     title: str = ""
     help: str = ""                # markdown; first line = catalog summary
-    keys: KeySpec | None = None   # tree, choices, default of --keys
+    keys: KeySpec | None = None   # tree, choices, default, off of --keys
     subject_width: int | None = None   # None: labels verbatim (strip
                                   #   `sub-`); int: numbers, ranges, width
     sessions: bool = False        # SessionOptions in harvest/roast
@@ -594,7 +594,8 @@ def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def legacy_keys(self, command, args) -> set  # legacy bidsifiers
-def check(self, command, args) -> None      # keys, sites (before writing)
+def check(self, command, args) -> None      # keys, sites, subjects
+def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
 def run(self, command, layout, args)         # check, lock, then the body
 def execute(self, command, *arguments, path=None, out=None, **groups)
 # Bodies of the default commands
@@ -623,9 +624,22 @@ unchanged. The default `roast` builds the context from `keys_for("roast")`
 and `template_dir`, then runs the roaster of `select_roaster` with
 `ctx.source` set to its source folder; `roast --source` only exists when
 sources have different roasters (and for ABIDE-I's legacy bidsifiers).
-`--dry-run` creates nothing and takes no lock. A `KeySpec` whose
-default lists every choice counts as "no `--keys`" (`given`), so
-`--exclude-keys` alone means "all but".
+`--dry-run` creates nothing and takes no lock. `KeySpec(tree, choices,
+default, off).effective(keys, exclude)`: `--keys` that covers every
+choice, or the default `--keys` of a spec whose default is "all but
+`off`", counts as no `--keys` (so `--exclude-keys` alone means "all
+but" and, in a roast, keeps the files of no key), and the default
+excludes `off` (IXI roast: `trace` only when named in `--keys`); a
+default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
+a selection. Choices come from `choices`, else from a nested-dict tree
+(flattened); keys are checked (`KeySpec.check`: choices, else
+`KeyAliases.expand`) before anything is written, and the hierarchy is
+listed in the help of the command and in `info`. Legacy bidsifiers
+(`legacy_subjects`) get numbers: `--subs` is expanded first (files,
+`start:stop`). A roast of a missing dataset folder is refused before
+anything is created. The command functions return nothing (cyclopts >=
+4 prints a return value; the cyclopts 3 console script would print it
+and exit 1); `execute` returns it.
 
 ### Option groups (`datasets/options.py`)
 
@@ -711,8 +725,10 @@ bidsifiers get numbers (`Dataset.numbers`).
   5; with `--layout sites` it means `sites:X`, alone it is an error.
 * Every INDI project keeps `--sites` and the `sites*` layouts (single-site
   ones use the child kind, as before). Compost runs site by site;
-  compost `--sites` only applies to a sites layout (error otherwise); the
-  default `roast` refuses a sites layout.
+  compost `--sites`/`--exclude-sites` only apply to a sites layout
+  (error otherwise); the default `roast` refuses a sites layout. A
+  `--subs` selection that matches no site is refused before anything is
+  downloaded (every site is listed first).
 
 ### Run lock (`actions/runlock.py`)
 
@@ -721,8 +737,12 @@ bidsifiers get numbers (`Dataset.numbers`).
   compost, taken after `ensure_state()` and before `record_run`; compost
   takes it before planning and holds it through its confirmation.
   `--dry-run` and `info` take none. Sites: the parent and every
-  existing site. All three commands fail at once by default (`--wait
-  SECONDS`). Locks disabled (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
+  existing site; a site created by a harvest takes its own shared lock
+  when it is created (`INDI.harvest.harvest_sites`), and a command on one
+  site (`--out <DS>/<site>`) also takes the lock of its parent, so a
+  compost of a site waits for a harvest of the parent. All three
+  commands fail at once by default (`--wait SECONDS`). Locks disabled
+  (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
   would go on unlocked).
 * Run records: every holder writes `<state>/runs/<host>-<pid>.json`
@@ -731,10 +751,11 @@ bidsifiers get numbers (`Dataset.numbers`).
   records ("harvest running: pid N on host since ..."). Roast pool
   workers take the shared lock in the pool initializer.
 * Second line of defence: compost holding the exclusive lock refuses
-  (unless `--force`) while a record from another host exists ("locks may
-  not be shared on this filesystem, or a run crashed on <host>") or one
-  from this host with a live pid; records of dead local pids are
-  removed.
+  (unless `--ignore-runs`; `--force` only means "delete source data
+  that does not seem roasted") while a record from another host exists
+  ("locks may not be shared on this filesystem, or a run crashed on
+  <host>") or one from this host with a live pid; records of dead local
+  pids are removed.
 * Deletions and rewritten tables take no per-file lock: they run under
   the exclusive run lock (a per-file lock would leave one never-deleted
   lock file per deleted file, and `File` writers would nest with the
@@ -777,7 +798,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   `sub-*_FLAIR.nii.gz`); files that follow an excluded key's scans go.
 * ABIDE-I `download-nitrc`/`download-xnat` removed (`harvest --source`).
 * Missing optional dependencies: stub commands instead of none.
-* Added (additive): `info` everywhere, `--out`, `--level`, `--wait`,
+* Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--wait`,
   `--exclude-keys` (harvests; legacy roasts: set difference),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
   `--packet` on hosted harvests, `--exclude-sites`, `--json` on
@@ -796,7 +817,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   numeric labels with a width (IXI).
 * Layouts: `sites`, `sites:flat`, alias, errors. `--exclude-keys`.
 * Run lock: held by another process -> fail fast, `--wait`, records,
-  stale records, `--force`; dry runs create nothing;
+  stale records, `--ignore-runs`; dry runs create nothing;
   `BRAINSPRESSO_LOCKS=0`.
 
 ### Risks
@@ -901,7 +922,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
-| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (713 passed, 2 skipped, 28 xfailed; §6) |
+| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (725 passed, 2 skipped, 28 xfailed; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
@@ -1048,3 +1069,12 @@ up as an XPASS failure once fixed (then drop the marker).
   sources have different roasters; tables rewritten by compost rely on
   the exclusive run lock (no per-file `File` lock); cyclopts floor 3.17
   (measured), with a CI job at the floor.
+* r12: review of PR #19. Compost applies `--exclude-sites`; command
+  functions return nothing; `--ignore-runs` (run records) is separate
+  from `--force`; a sites harvest checks `--subs` before downloading,
+  new sites take their run lock and a site command takes its parent's;
+  legacy roasts expand subject files and ranges; nested key trees give
+  choices, checks and a hierarchy in the help; `KeySpec.off` (IXI
+  `trace`) and `effective`; options are checked and a missing dataset
+  refused before anything is created; nested run-lock failures keep the
+  outer count.

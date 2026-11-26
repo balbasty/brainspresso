@@ -23,6 +23,7 @@ class COBRE(Dataset):
     folder = "COBRE"
     title = "COBRE"
     help = HELP
+    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
     harvest_subjects = False
     credentials = "login"

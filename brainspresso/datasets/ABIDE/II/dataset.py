@@ -27,6 +27,7 @@ class ABIDE2(Dataset):
     folder = "ABIDE-2"
     title = "ABIDE-II"
     help = HELP
+    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
     harvest_subjects = False
     site_names = SITES
@@ -34,9 +35,10 @@ class ABIDE2(Dataset):
     harvest_jobs = 1
 
     def keys_for(self, command):
-        """Roast keys: those of the legacy bidsifier (any text)."""
+        """Roast keys: the key hierarchy of the legacy bidsifier."""
         if command == "roast":
-            return KeySpec()
+            from brainspresso.datasets.ABIDE.II.keys import allkeys
+            return KeySpec(allkeys)
         return self.keys
 
     @property

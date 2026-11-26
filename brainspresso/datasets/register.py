@@ -86,7 +86,13 @@ def user_errors(func: Callable) -> Callable:
 
 def _docstring(dataset: Dataset, command: str) -> str:
     """Docstring of a command (its parameters that are not groups)."""
-    lines = [dataset.describe(command), "", "Parameters", "----------"]
+    lines = [dataset.describe(command), ""]
+    keys = dataset.key_help(command) if command in ("harvest", "roast") \
+        else ""
+    if keys:
+        lines += ["**Keys** (a group selects the keys below it):", "",
+                  keys, ""]
+    lines += ["Parameters", "----------"]
     for arg in dataset.arguments:
         lines += [arg.name, f"    {arg.help or arg.name}"]
     if command != "info":
@@ -141,8 +147,10 @@ def build_command(dataset: Dataset, command: str) -> Callable:
         groups = {k: v for k, v in values.items() if v is not None}
         log = groups.get("log") or opt.LogOptions()
         setup_filelog(log.log, level=log.level)
-        return dataset.execute(command, *arguments, path=path, out=out,
-                               **groups)
+        # nothing is returned: cyclopts >= 4 prints what a command
+        # returns, and the console script (`sys.exit(main())`) of
+        # cyclopts 3 would print it and exit 1 (`execute` returns it)
+        dataset.execute(command, *arguments, path=path, out=out, **groups)
 
     run.__name__ = run.__qualname__ = command.replace("-", "_")
     run.__signature__ = signature

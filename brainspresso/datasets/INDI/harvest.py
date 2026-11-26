@@ -7,6 +7,7 @@ Harvest of the curated INDI projects (`bx <project> harvest`), as BIDS.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import copy
 from typing import Iterable
 
@@ -15,6 +16,7 @@ from brainspresso.bids.harvest import (
     InlineEntry, check_selected_subjects, harvest, record_run,
     resolve_participants, subjects_of, write_inline,
 )
+from brainspresso.actions.runlock import run_lock
 from brainspresso.bids.layout import SitesLayout, relative_url
 from brainspresso.bids.tables import read_tsv, write_tsv
 from brainspresso.bids.select import Selection
@@ -125,10 +127,9 @@ def harvest_sites(
         site_labels=True,
     )
     dry_run = options.get("dry_run", False)
-    if not dry_run:
-        # before any download takes a lock (`actions.locks`)
-        layout.ensure_state()
-    harvested = []
+    # Plan every site first: a selection that matches nothing is refused
+    # before anything is written
+    plan = []
     for site in chosen:
         if site.derivative:
             continue
@@ -144,11 +145,24 @@ def harvest_sites(
             if not known:               # nothing harvested: not a site
                 del layout.children[site.name]
             continue
-        print(f"--- {site.name}")
-        harvest(entries, child, local, repair=True,
-                provenance={**(provenance or {}), "site": site.name},
-                check_subjects=False, **options)
-        harvested.append(site.name)
+        plan.append((site, child, entries, local))
+    check_selected_subjects(asked, (), found)
+    if not dry_run:
+        # before any download takes a lock (`actions.locks`)
+        layout.ensure_state()
+    harvested = []
+    with contextlib.ExitStack() as stack:
+        for site, child, entries, local in plan:
+            print(f"--- {site.name}")
+            if not dry_run:
+                # a new site holds its own run lock too (a compost of the
+                # site alone, `--out <DS>/<site>`, must wait for it)
+                child.ensure_state()
+                stack.enter_context(run_lock(child.state, "harvest"))
+            harvest(entries, child, local, repair=True,
+                    provenance={**(provenance or {}), "site": site.name},
+                    check_subjects=False, **options)
+            harvested.append(site.name)
     extra = extra_entries(project)
     parent = Selection(folders=list(selection.folders))
     recorded = False
@@ -156,7 +170,6 @@ def harvest_sites(
         print("--- (dataset)")
         recorded = bool(harvest(extra, layout, parent, provenance=provenance,
                                 check_subjects=False, **options))
-    check_selected_subjects(asked, (), found)
     if dry_run:
         return
     # Parent folder: README and merged participants (trimmed)

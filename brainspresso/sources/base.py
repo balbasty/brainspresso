@@ -88,6 +88,7 @@ class RemoteEntry:
     meta : dict
         Host-specific fields (Girder item metadata, XNAT scan, S3 key...).
     """
+
     path: str
     url: str | None = None
     size: int | None = None
@@ -96,6 +97,7 @@ class RemoteEntry:
     meta: dict[str, Any] = field(default_factory=dict, compare=False)
 
     def __post_init__(self):
+        """Normalise `path`, `digests` and `meta`."""
         if isinstance(self.path, PurePosixPath):
             self.path = self.path.as_posix()
         self.digests = dict(self.digests or {})
@@ -103,11 +105,12 @@ class RemoteEntry:
 
     @property
     def relpath(self) -> PurePosixPath:
-        """`path` as a `PurePosixPath`"""
+        """`path` as a `PurePosixPath`."""
         return PurePosixPath(self.path)
 
     @property
     def name(self) -> str:
+        """File name of the entry."""
         return self.relpath.name
 
 
@@ -118,8 +121,9 @@ class RemoteEntry:
 @dataclass
 class DownloadOptions:
     """
-    Options of a harvest, shared by all sources (the `DownloadOptions`
-    group of the command line).
+    Options of a harvest, shared by all sources.
+
+    They are the `DownloadOptions` group of the command line.
 
     Parameters
     ----------
@@ -139,6 +143,7 @@ class DownloadOptions:
     on_error : {"yield", "raise"}
         A failed download is reported in the table ("yield") or raises
     """
+
     ifexists: str = "skip"
     jobs: int | None = None
     chunk_size: int = CHUNK_SIZE
@@ -149,6 +154,18 @@ class DownloadOptions:
 
     @classmethod
     def from_any(cls, options: "DownloadOptions | Mapping | None"):
+        """Build options from options, a mapping or None.
+
+        Parameters
+        ----------
+        options : DownloadOptions | Mapping | None
+            Options (returned as is), keyword arguments, or None
+            (defaults).
+
+        Returns
+        -------
+        DownloadOptions
+        """
         if options is None:
             return cls()
         if isinstance(options, cls):
@@ -160,6 +177,17 @@ class DownloadOptions:
         return cls(**dict(options))
 
     def replace(self, **kwargs) -> "DownloadOptions":
+        """Return a copy with some options changed.
+
+        Parameters
+        ----------
+        **kwargs
+            Options to change (they must exist).
+
+        Returns
+        -------
+        DownloadOptions
+        """
         out = copy.copy(self)
         for key, value in kwargs.items():
             if not hasattr(out, key):
@@ -173,8 +201,11 @@ class DownloadOptions:
 # ----------------------------------------------------------------------
 
 def _related_in_tree(tree) -> Callable[[str, str], bool]:
-    """`related(a, b)`: whether two keys are equal, or one is below the
-    other, in a dataset key tree (nested dict/set, or `KeyAliases`)"""
+    """Build `related(a, b)` for a dataset key tree.
+
+    `related(a, b)` tells whether two keys are equal, or one is below the
+    other, in a dataset key tree (nested dict/set, or `KeyAliases`).
+    """
     if tree is None:
         return lambda a, b: a == b or "all" in (a, b)
     expand = getattr(tree, "expand", None)
@@ -230,9 +261,11 @@ class Wants:
         self._related = _related_in_tree(tree)
 
     def related(self, a: str, b: str) -> bool:
+        """Whether two keys are equal, or one is below the other."""
         return self._related(a, b)
 
     def __call__(self, key: str) -> bool:
+        """Whether `key` is wanted."""
         if self.keys and not any(self._related(key, k) for k in self.keys):
             return False
         if self.within is not None and not any(
@@ -253,7 +286,7 @@ class Wants:
         return key in lower_keys(upper, self.tree)
 
     def restrict(self, group: Iterable[str]) -> "Wants":
-        """Wanted keys related to one of the keys of `group`"""
+        """Wanted keys related to one of the keys of `group`."""
         out = copy.copy(self)
         group = set(group)
         out.within = group if self.within is None else {
@@ -262,6 +295,7 @@ class Wants:
         return out
 
     def __repr__(self):
+        """Represent the wanted keys."""
         return (f"Wants({sorted(self.keys) or 'all'}"
                 + (f", within={sorted(self.within)}" if self.within
                    is not None else "")
@@ -270,7 +304,7 @@ class Wants:
 
 
 def as_wants(keys) -> Callable[[str], bool]:
-    """None (everything), a collection of key names, or a predicate"""
+    """None (everything), a collection of key names, or a predicate."""
     if keys is None:
         return Wants()
     if callable(keys):
@@ -292,8 +326,9 @@ def _identity(x):
 @dataclass(frozen=True)
 class LabelMap:
     """
-    Mapping between the subject identifiers of a host and BIDS labels,
-    supplied by the dataset (`OAS30001` <-> `0001`, `0051456` <->
+    Mapping between the subject identifiers of a host and BIDS labels.
+
+    It is supplied by the dataset (`OAS30001` <-> `0001`, `0051456` <->
     `51456`, INDI site codes...). Sources use it to prune their listings
     with `selection.keeps_subject`.
 
@@ -306,11 +341,12 @@ class LabelMap:
         Host identifier of a BIDS label (lets a source list only the
         selected subjects).
     """
+
     to_bids: Callable[[str], str | None] = _identity
     to_host: Callable[[str], str | None] | None = None
 
     def keeps(self, selection, host_id) -> bool:
-        """Whether files of a host subject may be selected"""
+        """Whether files of a host subject may be selected."""
         label = self.to_bids(str(host_id))
         if label is None:
             return False
@@ -319,8 +355,10 @@ class LabelMap:
         return selection.keeps_subject(label)
 
     def hosts(self, selection) -> list[str] | None:
-        """Host identifiers of the subjects explicitly selected (None if
-        all subjects are selected, or labels cannot be mapped back)"""
+        """Host identifiers of the subjects explicitly selected.
+
+        None if all subjects are selected, or labels cannot be mapped back.
+        """
         subs = getattr(selection, "subs", None)
         if subs is None:
             subs = getattr(getattr(selection, "base", None), "subs", None)
@@ -336,7 +374,8 @@ class LabelMap:
 
 def numeric_labels(width: int = 0, prefix: str = "") -> LabelMap:
     """
-    Host identifiers that are numbers (with an optional prefix):
+    Host identifiers that are numbers (with an optional prefix).
+
     `numeric_labels()` maps `0051456` to `51456`, `numeric_labels(3)`
     maps `12` to `012`, `numeric_labels(4, "OAS3")` maps `OAS30001`
     to `0001` (and back).
@@ -360,7 +399,7 @@ def numeric_labels(width: int = 0, prefix: str = "") -> LabelMap:
 
 
 def prefix_labels(prefix: str) -> LabelMap:
-    """Host identifiers `<prefix><label>` (e.g. INDI site codes)"""
+    """Host identifiers `<prefix><label>` (e.g. INDI site codes)."""
     def to_bids(host: str) -> str:
         return prefix + host
 
@@ -382,14 +421,18 @@ def mirror(
     **download_opts,
 ) -> Iterator[Downloader]:
     """
-    Yield one `Downloader` per entry, saved under `dst` with the entry's
-    path (or `rename(entry)`). Sizes, mtimes and digests from the listing
+    Yield one `Downloader` per entry.
+
+    Each entry is saved under `dst` with its path (or `rename(entry)`).
+    Sizes, mtimes and digests from the listing
     are passed on, so that downloads need no extra request and are
     verified.
 
     Parameters
     ----------
     entries : iterable[RemoteEntry]
+        Files to download (entries without a path, or whose path ends
+        with a slash, are skipped).
     dst : path
         Local folder
     keep : callable(RemoteEntry) -> bool
@@ -399,6 +442,16 @@ def mirror(
     **download_opts
         `Downloader` options (`ifexists`, `chunk_size`, `auth`,
         `insecure`, `get_opt`...)
+
+    Yields
+    ------
+    Downloader
+        One downloader per kept entry.
+
+    Raises
+    ------
+    ValueError
+        If a kept entry has no URL.
     """
     dst = Path(dst)
     for entry in entries:
@@ -424,8 +477,25 @@ def run_downloads(
     downloaders: Iterable[Downloader],
     options: DownloadOptions | Mapping | None = None,
 ) -> list[Downloader]:
-    """Run downloaders with the options of a harvest (or print them,
-    with `dry_run`). Returns the downloaders."""
+    """
+    Run downloaders with the options of a harvest.
+
+    With `options.dry_run`, the downloaders are printed (with their
+    size) instead of being run.
+
+    Parameters
+    ----------
+    downloaders : iterable[Downloader]
+        Downloaders to run (possibly a lazy generator).
+    options : DownloadOptions | Mapping | None
+        Options of the harvest (`ifexists`, `jobs`, `path`, `on_error`,
+        `dry_run`).
+
+    Returns
+    -------
+    list[Downloader]
+        The downloaders that were run (or printed).
+    """
     options = DownloadOptions.from_any(options)
     if options.dry_run:
         downloaders = list(downloaders)
@@ -453,8 +523,26 @@ def run_downloads(
 
 def write_content(dst: str | os.PathLike, content: bytes | str,
                   ifexists: str = "different") -> bool:
-    """Write a generated file (unless it exists with the same content, or
-    `ifexists` is "skip" or "error"). Returns whether it was written."""
+    """
+    Write a generated file.
+
+    The file is not written if it exists with the same content, or if it
+    exists and `ifexists` is "skip" or "error".
+
+    Parameters
+    ----------
+    dst : path
+        Output file.
+    content : bytes | str
+        Content of the file (str is UTF-8 encoded).
+    ifexists : str
+        Behaviour if the file exists with a different content.
+
+    Returns
+    -------
+    bool
+        Whether the file was written.
+    """
     dst = Path(dst)
     if isinstance(content, str):
         content = content.encode()
@@ -477,8 +565,10 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
 # ----------------------------------------------------------------------
 
 class SourceUnavailable(RuntimeError):
-    """A source cannot be used (host offline, no access...): a harvest
-    falls back to the next source of the key"""
+    """A source cannot be used (host offline, no access...).
+
+    A harvest falls back to the next source of the key.
+    """
 
 
 @runtime_checkable
@@ -559,9 +649,22 @@ class Source:
 
     # ------------------------------------------------------------------
     def configure(self, **options) -> "Source":
-        """A copy of the source with the per-run options it knows
-        (others, and None values, are ignored): options of a command are
-        offered to every source of the dataset"""
+        """
+        Return a copy of the source with the per-run options it knows.
+
+        Other options, and None values, are ignored: options of a
+        command are offered to every source of the dataset.
+
+        Parameters
+        ----------
+        **options
+            Per-run options (credentials, sites, token...).
+
+        Returns
+        -------
+        Source
+            A configured copy.
+        """
         known = {k: v for k, v in options.items()
                  if v is not None and self._is_option(k)}
         return self.with_options(**known)
@@ -571,8 +674,20 @@ class Source:
             not callable(getattr(type(self), key, None))
 
     def with_options(self, **options) -> "Source":
-        """A copy of the source with per-run options set (credentials,
-        token...); options must be existing attributes"""
+        """
+        Return a copy of the source with per-run options set.
+
+        Parameters
+        ----------
+        **options
+            Options (credentials, token...); they must be existing
+            attributes.
+
+        Returns
+        -------
+        Source
+            A copy with the options set.
+        """
         out = copy.copy(self)
         for key, value in options.items():
             if not self._is_option(key):
@@ -581,6 +696,7 @@ class Source:
         return out
 
     def __repr__(self):
+        """Represent the source by its name and keys."""
         return (f"{type(self).__name__}(name={self.name!r}, "
                 f"provides={sorted(self.provides)})")
 
@@ -589,33 +705,106 @@ class Source:
     # ------------------------------------------------------------------
 
     def auth(self) -> Callable | None:
-        """Authentication hook of the downloads (called on 401/403 with
-        the aiohttp session), or None. Called once per fetch."""
+        """
+        Return the authentication hook of the downloads.
+
+        The hook is called on 401/403 with the aiohttp session. This
+        method is called once per fetch.
+
+        Returns
+        -------
+        callable | None
+            The hook, or None (no authentication).
+        """
         return None
 
     def keeps_subject(self, selection, host_id) -> bool:
-        """Whether a host subject may be selected (label mapping)"""
+        """
+        Whether a host subject may be selected (label mapping).
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        host_id : str
+            Identifier of the subject on the host.
+
+        Returns
+        -------
+        bool
+        """
         return self.labels.keeps(selection, host_id)
 
     def destination(self, layout) -> Path:
-        """Local folder of the files of this source: `layout.source`
-        (or its `folder`). `layout` may also be the source folder."""
+        """
+        Local folder of the files of this source.
+
+        Parameters
+        ----------
+        layout : Layout | path
+            Layout of the dataset (or the source folder itself).
+
+        Returns
+        -------
+        Path
+            `layout.source`, or its `folder` sub-folder.
+        """
         root = Path(getattr(layout, "source", layout))
         return root / self.folder if self.folder else root
 
     def local_path(self, entry: RemoteEntry) -> str | None:
-        """Path of an entry relative to `destination` (None: skip)"""
+        """
+        Path of an entry relative to `destination`.
+
+        Parameters
+        ----------
+        entry : RemoteEntry
+            Remote file.
+
+        Returns
+        -------
+        str | None
+            Relative local path (None: skip the entry).
+        """
         return entry.path
 
     def resolve(self, layout, entry: RemoteEntry) -> Path | None:
-        """Local path of an entry (None: skip). Default:
-        `destination(layout) / local_path(entry)`; sources that place
-        files in the BIDS dataset use `layout.resolve`."""
+        """
+        Local path of an entry.
+
+        The default is `destination(layout) / local_path(entry)`; sources
+        that place files in the BIDS dataset use `layout.resolve`.
+
+        Parameters
+        ----------
+        layout : Layout | path
+            Layout of the dataset.
+        entry : RemoteEntry
+            Remote file.
+
+        Returns
+        -------
+        Path | None
+            Local path (None: skip the entry).
+        """
         local = self.local_path(entry)
         return None if local is None else self.destination(layout) / local
 
     def download_options(self, options: DownloadOptions) -> dict:
-        """`Downloader` options of this source"""
+        """
+        Return the `Downloader` options of this source.
+
+        Parameters
+        ----------
+        options : DownloadOptions
+            Options of the harvest.
+
+        Returns
+        -------
+        dict
+            Keyword arguments of `Downloader` (`ifexists`, `chunk_size`,
+            `insecure`, `auth`...).
+        """
         insecure = self.insecure if options.insecure is None \
             else options.insecure
         opts = dict(ifexists=options.ifexists,
@@ -632,15 +821,44 @@ class Source:
     # ------------------------------------------------------------------
 
     def list(self, selection=None, keys=None) -> Iterable[RemoteEntry]:
-        """Files to fetch for a selection and the wanted keys"""
+        """
+        List the files to fetch for a selection and the wanted keys.
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection (None: everything).
+        keys : Wants | list[str] | None
+            Wanted keys (None: all).
+
+        Returns
+        -------
+        iterable[RemoteEntry]
+            Files to fetch.
+        """
         raise NotImplementedError
 
     def fetch(self, entries: Iterable[RemoteEntry], layout,
               options: DownloadOptions | Mapping | None = None):
         """
         Download entries to `resolve(layout, entry)` (shared `mirror`).
+
         Entries with a `meta["content"]` (bytes or str) are files
         generated from the listing: they are written, not downloaded.
+
+        Parameters
+        ----------
+        entries : iterable[RemoteEntry]
+            Files to fetch (from `list`).
+        layout : Layout | path
+            Layout of the dataset.
+        options : DownloadOptions | Mapping | None
+            Options of the harvest.
+
+        Returns
+        -------
+        list[Downloader]
+            The downloaders that were run.
         """
         options = DownloadOptions.from_any(options)
         if options.jobs is None and self.jobs is not None:
@@ -651,8 +869,24 @@ class Source:
     def downloaders(self, entries: Iterable[RemoteEntry], layout,
                     options: DownloadOptions | Mapping | None = None
                     ) -> Iterator[Downloader]:
-        """The downloaders of `fetch` (generated files are written as
-        the iterator is consumed)"""
+        """
+        Return the downloaders of `fetch`.
+
+        Generated files are written as the iterator is consumed.
+
+        Parameters
+        ----------
+        entries : iterable[RemoteEntry]
+            Files to fetch.
+        layout : Layout | path
+            Layout of the dataset.
+        options : DownloadOptions | Mapping | None
+            Options of the harvest.
+
+        Returns
+        -------
+        iterator[Downloader]
+        """
         options = DownloadOptions.from_any(options)
 
         def remote():
@@ -670,7 +904,25 @@ class Source:
 
     def harvest(self, layout, selection=None, keys=None,
                 options: DownloadOptions | Mapping | None = None):
-        """`fetch(list(selection, keys))`"""
+        """
+        List and fetch: `fetch(list(selection, keys))`.
+
+        Parameters
+        ----------
+        layout : Layout | path
+            Layout of the dataset.
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+        options : DownloadOptions | Mapping | None
+            Options of the harvest.
+
+        Returns
+        -------
+        list
+            The result of `fetch`.
+        """
         return self.fetch(self.list(selection, keys), layout, options)
 
 
@@ -702,16 +954,18 @@ class StaticURLs(Source):
     @staticmethod
     def entry(url: str | RemoteEntry, path: str | None = None,
               **meta) -> RemoteEntry:
-        """An entry for a URL, saved under `path` (default: its name)"""
+        """Build an entry for a URL, saved under `path` (default: its name)."""
         if isinstance(url, RemoteEntry):
             return url
         return RemoteEntry(path or PurePosixPath(urlparse(url).path).name,
                            url, meta=meta)
 
     def keep(self, entry: RemoteEntry, selection, wants) -> bool:
+        """Whether to fetch an entry (filter that subclasses override)."""
         return True
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List the entries of `urls` for the wanted keys."""
         wants = as_wants(keys)
         out, seen = [], set()
         for key, urls in self.urls.items():
@@ -730,8 +984,10 @@ class StaticURLs(Source):
 
 class CompositeSource(Source):
     """
-    Several sources seen as one (e.g. images from XNAT and phenotypes
-    from static URLs): each part lists and fetches its own entries.
+    Several sources seen as one.
+
+    For example images from XNAT and phenotypes from static URLs: each
+    part lists and fetches its own entries.
     """
 
     def __init__(self, *parts: Source, **kwargs):
@@ -741,7 +997,7 @@ class CompositeSource(Source):
         super().__init__(**kwargs)
 
     def with_options(self, **options) -> "CompositeSource":
-        """Options are passed to the parts that have them"""
+        """Options are passed to the parts that have them."""
         unknown = {k for k in options
                    if not any(p._is_option(k) for p in self.parts)}
         if unknown:
@@ -749,11 +1005,13 @@ class CompositeSource(Source):
         return self.configure(**options)
 
     def configure(self, **options) -> "CompositeSource":
+        """Configure each part (see `Source.configure`)."""
         out = copy.copy(self)
         out.parts = [part.configure(**options) for part in self.parts]
         return out
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List the entries of the parts that provide wanted keys."""
         wants = as_wants(keys)
         out = []
         for i, part in enumerate(self.parts):
@@ -765,6 +1023,7 @@ class CompositeSource(Source):
         return out
 
     def fetch(self, entries, layout, options=None) -> list:
+        """Fetch the entries of each part with that part."""
         entries = list(entries)
         out = []
         for i, part in enumerate(self.parts):
@@ -776,6 +1035,8 @@ class CompositeSource(Source):
 
 class LocalSource(Source):
     """
+    Data that is already local.
+
     Data the user put in `sourcedata/` themselves (data under a data use
     agreement, ADNI...), or data shipped with brainspresso. It lists and
     fetches nothing; roast reads the folder.
@@ -784,18 +1045,21 @@ class LocalSource(Source):
     name = "local"
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List nothing (the files are already local)."""
         return []
 
     def fetch(self, entries, layout, options=None) -> list:
+        """Fetch nothing (the files are already local)."""
         return []
 
     def harvest(self, layout, selection=None, keys=None, options=None):
+        """Harvest nothing; log where the files are read from."""
         lg.info(f"{self.name}: nothing to download, the files are read "
                 f"from {self.destination(layout)}")
         return []
 
     def present(self, layout) -> bool:
-        """Whether the folder holds anything"""
+        """Whether the folder holds anything."""
         folder = self.destination(layout)
         return folder.is_dir() and any(folder.iterdir())
 
@@ -880,13 +1144,37 @@ def harvest_sources(
     override: str | Sequence[str] | None = None,
 ) -> dict[str, str]:
     """
-    Harvest a dataset from its sources: for each group of keys of
-    `plan_sources`, the first candidate that is not unavailable.
+    Harvest a dataset from its sources.
+
+    For each group of keys of `plan_sources`, the first candidate that
+    is not unavailable is harvested.
+
+    Parameters
+    ----------
+    sources : dict[str, Source]
+        Sources of the dataset.
+    defaults : dict[str, list[str]]
+        Ordered default sources per key (see `plan_sources`).
+    layout : Layout | path
+        Layout of the dataset.
+    selection : Selection | None
+        Subject selection.
+    keys : Wants | list[str] | None
+        Wanted keys.
+    options : DownloadOptions | Mapping | None
+        Options of the harvest.
+    override : str | list[str], optional
+        `--source`: the sources to use instead of the defaults.
 
     Returns
     -------
     used : dict[str, str]
         Source used for each key
+
+    Raises
+    ------
+    SourceUnavailable
+        If no candidate of a group of keys is available.
     """
     wants = keys if isinstance(keys, Wants) else (
         Wants(keys) if keys is None or not callable(keys) else keys
@@ -919,15 +1207,43 @@ def harvest_sources(
 
 def configure_sources(sources: Mapping[str, Source], **options
                       ) -> dict[str, Source]:
-    """Per-run options (credentials, sites...) offered to every source"""
+    """
+    Offer per-run options (credentials, sites...) to every source.
+
+    Parameters
+    ----------
+    sources : dict[str, Source]
+        Sources of the dataset.
+    **options
+        Per-run options (see `Source.configure`).
+
+    Returns
+    -------
+    dict[str, Source]
+        Configured copies of the sources.
+    """
     return {name: src.configure(**options) for name, src in sources.items()}
 
 
 def select_roaster(sources: Iterable[Source], ctx) -> Source | None:
     """
-    The source whose roaster should read `sourcedata/`: the first one
-    whose `roaster.detect(ctx)` is true, else the first one with a
-    roaster (roast without a harvest manifest, mixed `sourcedata/`).
+    Select the source whose roaster should read `sourcedata/`.
+
+    It is the first source whose `roaster.detect(ctx)` is true, else the
+    first one with a roaster (roast without a harvest manifest, mixed
+    `sourcedata/`).
+
+    Parameters
+    ----------
+    sources : iterable[Source]
+        Sources of the dataset.
+    ctx : object
+        Roast context, passed to `roaster.detect`.
+
+    Returns
+    -------
+    Source | None
+        The selected source (None if no source has a roaster).
     """
     sources = [s for s in sources if s.roaster is not None]
     for source in sources:
@@ -943,8 +1259,10 @@ def select_roaster(sources: Iterable[Source], ctx) -> Source | None:
 
 def subject_labels(values, width: int = 0, prefix: str = "sub-") -> set[str]:
     """
-    BIDS labels from command-line subject values: numbers (formatted
-    with `width` digits), labels (with or without `sub-`), ranges
+    Convert command-line subject values to BIDS labels.
+
+    Values are numbers (formatted with `width` digits), labels (with or
+    without `sub-`), ranges
     `start:stop[:step]` and files that list one subject per line.
     """
     if values is None:
@@ -984,7 +1302,20 @@ def subject_labels(values, width: int = 0, prefix: str = "sub-") -> set[str]:
 
 
 def subject_selection(subs=(), exclude_subs=(), width: int = 0):
-    """`Selection` of subjects from command-line values"""
+    """
+    Build a `Selection` of subjects from command-line values.
+
+    Parameters
+    ----------
+    subs, exclude_subs : list
+        Subjects to include and exclude (see `subject_labels`).
+    width : int
+        Number of digits of numeric labels.
+
+    Returns
+    -------
+    Selection
+    """
     from brainspresso.bids.select import Selection
     return Selection(subs=subject_labels(subs, width),
                      exclude_subs=subject_labels(exclude_subs, width))

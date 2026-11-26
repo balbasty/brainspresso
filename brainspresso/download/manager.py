@@ -1,3 +1,4 @@
+"""Parallel execution of downloads, with a progress table."""
 __all__ = ["DownloadManager", "DownloadTable"]
 import asyncio
 import time
@@ -22,6 +23,7 @@ _PROGRESS_KEYS = frozenset({"done", "done%", "dspeed", "wspeed", "tspeed"})
 
 
 class DownloadTable(LogSafeTabular):
+    """Progress table of downloads (path, size, done, speed...)."""
 
     def __init__(self, *args, **kwargs):
         rec_fields = (
@@ -72,6 +74,8 @@ class DownloadManager:
             jobs_per_host: int | None = None,
     ):
         """
+        Prepare the downloads.
+
         Parameters
         ----------
         downloaders : iterable[Downloader]
@@ -111,7 +115,7 @@ class DownloadManager:
         self.out = DownloadTable(max_workers=tabular_jobs or self.jobs)
 
     def run(self, mode: Literal["async", "threaded"] = "async"):
-        """Run all downloads"""
+        """Run all downloads."""
         if mode != "async":
             warnings.warn(
                 "DownloadManager.run: the 'threaded' mode has been removed. "
@@ -121,7 +125,7 @@ class DownloadManager:
         return asyncio.run(self.run_async())
 
     def _iter_jobs(self):
-        """Yield (display path, downloader) pairs"""
+        """Yield (display path, downloader) pairs."""
         if self.path[0] == 's':
             # Shorten path, but we need to access all downloaders which
             # might be slow is the input is a looooong generator
@@ -133,6 +137,7 @@ class DownloadManager:
                 yield str(self.repath(downloader.dst)), downloader
 
     async def run_async(self):
+        """Run all downloads (async version of `run`)."""
         guard = {'yield': _Guard, 'raise': lambda x: x}[self.on_error]
         queue: asyncio.Queue = asyncio.Queue(maxsize=4 * self.jobs)
         last_emit: dict[str, float] = {}
@@ -207,6 +212,18 @@ class DownloadManager:
                     await asyncio.gather(*tasks, return_exceptions=True)
 
     def shortpath(self, paths):
+        """Shorten paths for display, according to the `path` mode.
+
+        Parameters
+        ----------
+        paths : list[Path]
+            Paths to shorten.
+
+        Returns
+        -------
+        list
+            Shortened paths.
+        """
         if len(paths) == 1:
             # fallback to mode "name"
             return [path.name for path in paths]
@@ -217,6 +234,7 @@ class DownloadManager:
         return [path.relative_to(Path(common)) for path in paths]
 
     def repath(self, path):
+        """Path for display, according to the `path` mode (abs, name...)."""
         mode = self.path[0].lower()
         if mode == "a":  # abs
             return path.absolute()
@@ -227,7 +245,7 @@ class DownloadManager:
         assert False
 
     def commonprefix(self, *paths):
-        """Common prefix of given paths"""
+        """Return the common prefix of given paths."""
         # https://gist.github.com/chrono-meter/7e47528a3f902c9ade7e0cc442394d08
         counter = Counter()
 

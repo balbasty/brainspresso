@@ -40,11 +40,11 @@ NITRC_PASS = ("NITRC_PASS", "XNAT_PASS")
 
 
 class CredentialsError(ValueError):
-    """Credentials are needed but none were given"""
+    """Credentials are needed but none were given."""
 
 
 def interactive() -> bool:
-    """Whether the user can be prompted (standard input is a terminal)"""
+    """Whether the user can be prompted (standard input is a terminal)."""
     try:
         return sys.stdin is not None and sys.stdin.isatty()
     except (AttributeError, ValueError):
@@ -52,7 +52,7 @@ def interactive() -> bool:
 
 
 def prompt(message: str, hidden: bool = False) -> str:
-    """Ask the user (a function, so that tests can replace it)"""
+    """Ask the user (a function, so that tests can replace it)."""
     return getpass.getpass(message) if hidden else input(message)
 
 
@@ -65,8 +65,10 @@ def get_secret(
     option: str | None = None,
 ) -> str:
     """
-    A credential: `value` if given, else the first environment variable
-    of `env` that is set, else a prompt, else a `CredentialsError`.
+    Get a credential.
+
+    It is `value` if given, else the first environment variable of `env`
+    that is set, else a prompt, else a `CredentialsError`.
 
     Parameters
     ----------
@@ -81,6 +83,16 @@ def get_secret(
         Do not echo the answer of the prompt
     option : str, optional
         Command-line option that gives it (for the error message)
+
+    Returns
+    -------
+    str
+        The credential.
+
+    Raises
+    ------
+    CredentialsError
+        If no value is given, set or entered.
     """
     if value:
         return value
@@ -116,7 +128,27 @@ def get_credentials(
     env_user: Sequence[str] = (),
     env_password: Sequence[str] = (),
 ) -> tuple[str, str]:
-    """`(user, password)` of a service (see `get_secret`)"""
+    """
+    Get the user and password of a service (see `get_secret`).
+
+    Parameters
+    ----------
+    service : str
+        Name of the service (e.g. "NITRC"), shown in prompts.
+    user, password : str, optional
+        Values given by the user (`--user`, `--password`).
+    env_user, env_password : list[str]
+        Environment variables of the user and password.
+
+    Returns
+    -------
+    user, password : str
+
+    Raises
+    ------
+    CredentialsError
+        If a credential is not given, set or entered.
+    """
     user = get_secret(f"{service} user", user, env_user, option="--user")
     password = get_secret(f"{service} password", password, env_password,
                           hidden=True, option="--password")
@@ -126,14 +158,27 @@ def get_credentials(
 def nitrc_credentials(
     user: str | None = None, password: str | None = None
 ) -> tuple[str, str]:
-    """NITRC (and NITRC-IR) credentials: `NITRC_USER`/`NITRC_PASS`
-    (or `XNAT_USER`/`XNAT_PASS`)"""
+    """
+    Get the NITRC (and NITRC-IR) credentials.
+
+    Environment variables: `NITRC_USER`/`NITRC_PASS` (or
+    `XNAT_USER`/`XNAT_PASS`).
+
+    Parameters
+    ----------
+    user, password : str, optional
+        Values given by the user.
+
+    Returns
+    -------
+    user, password : str
+    """
     return get_credentials("NITRC", user, password,
                            env_user=NITRC_USER, env_password=NITRC_PASS)
 
 
 def basic_auth(user: str, password: str) -> str:
-    """Value of a basic `Authorization` header"""
+    """Value of a basic `Authorization` header."""
     encode = getattr(aiohttp, "encode_basic_auth", None)
     if encode is not None:
         return encode(user, password)
@@ -142,12 +187,22 @@ def basic_auth(user: str, password: str) -> str:
 
 class NitrcAuth:
     """
-    Asynchronous authentication hook for the NITRC website (project
-    downloads, `*.projects.nitrc.org`): logs in with the account form,
-    the session then holds the login cookie.
+    Asynchronous authentication hook for the NITRC website.
+
+    It is used for project downloads (`*.projects.nitrc.org`): it logs in
+    with the account form, the session then holds the login cookie.
 
     Credentials are resolved when the hook is created (before downloads
     start). It is a class, so that it can be pickled.
+
+    Parameters
+    ----------
+    user, password : str, optional
+        Credentials (see `nitrc_credentials`).
+    url : str
+        Login form.
+    insecure : bool
+        Do not verify the TLS certificate.
     """
 
     def __init__(
@@ -163,9 +218,11 @@ class NitrcAuth:
         self.insecure = insecure
 
     def __repr__(self):
+        """Represent the hook (without the password)."""
         return f"NitrcAuth({self.user!r}, url={self.url!r})"
 
     async def __call__(self, session: aiohttp.ClientSession):
+        """Log in on `session` (an aiohttp session) and return it."""
         if not isinstance(session, aiohttp.ClientSession):
             raise TypeError(
                 f"NitrcAuth expects an aiohttp session, got {session!r}"
@@ -181,9 +238,24 @@ class NitrcAuth:
 
 class XnatAuth:
     """
-    Asynchronous authentication hook for an XNAT server: opens a session
-    (`POST <server>/data/JSESSION` with basic credentials); its cookie
-    is then sent with every request of the aiohttp session.
+    Asynchronous authentication hook for an XNAT server.
+
+    It opens a session (`POST <server>/data/JSESSION` with basic
+    credentials); its cookie is then sent with every request of the
+    aiohttp session.
+
+    Parameters
+    ----------
+    server : str
+        URL of the XNAT server.
+    user, password : str, optional
+        Credentials (see `get_credentials`).
+    insecure : bool
+        Do not verify the TLS certificate.
+    service : str
+        Name of the service, in prompts.
+    env_user, env_password : list[str]
+        Environment variables of the credentials.
     """
 
     def __init__(
@@ -205,14 +277,16 @@ class XnatAuth:
         self.insecure = insecure
 
     def __repr__(self):
+        """Represent the hook (without the password)."""
         return f"XnatAuth({self.server!r}, {self.user!r})"
 
     @property
     def headers(self) -> dict:
-        """Basic authentication header"""
+        """Basic authentication header."""
         return {"Authorization": basic_auth(self.user, self.password)}
 
     async def __call__(self, session: aiohttp.ClientSession):
+        """Open an XNAT session on `session` and return it."""
         opt = {"ssl": False} if self.insecure else {}
         async with session.post(f"{self.server}/data/JSESSION",
                                 headers=self.headers, **opt) as r:

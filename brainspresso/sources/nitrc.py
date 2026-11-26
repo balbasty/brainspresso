@@ -1,6 +1,7 @@
 """
-NITRC project downloads (`*.projects.nitrc.org`): static URLs behind the
-NITRC website login.
+NITRC project downloads (`*.projects.nitrc.org`).
+
+They are static URLs behind the NITRC website login.
 
 NITRC's certificate chain is often incomplete, so these sources skip TLS
 verification by default (`insecure = True`), and download one file at a
@@ -29,6 +30,13 @@ class NITRC(StaticURLs):
     Per-run options (`with_options`): `user`, `password` (else
     `NITRC_USER`/`NITRC_PASS`, else a prompt). `login = False` for files
     that need no login.
+
+    Parameters
+    ----------
+    urls : dict[str, list[str | RemoteEntry]]
+        URLs per key (see `StaticURLs`).
+    **kwargs
+        Options of `StaticURLs` (and `user`, `password`).
     """
 
     name = "nitrc"
@@ -40,6 +48,7 @@ class NITRC(StaticURLs):
     password: str | None = None
 
     def auth(self):
+        """Return the NITRC login hook (None if `login` is false)."""
         if not self.login:
             return None
         auth = self.__dict__.get("_auth")

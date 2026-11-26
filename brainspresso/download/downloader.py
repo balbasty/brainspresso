@@ -1,3 +1,4 @@
+"""Download of a single remote file into a local file."""
 import asyncio
 import aiofiles.os as aos
 import time
@@ -26,20 +27,37 @@ aop = aos.path
 
 
 async def run_async(func, *args, **kwargs):
+    """Run a blocking function in the default executor.
+
+    Parameters
+    ----------
+    func : callable
+        Blocking function.
+    *args, **kwargs
+        Arguments of `func`.
+
+    Returns
+    -------
+    object
+        The value returned by `func`.
+    """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, partial(func, **kwargs), *args)
 
 
 async def lexists(path: str) -> bool:
+    """Whether `path` exists (broken symlinks included), asynchronously."""
     return await run_async(op.lexists, path)
 
 
 class IfExists:
     """
+    Behaviour of a download when its destination file exists.
+
     This class both:
     - holds the set of singleton values (as an Enum)
     - defines constant (such as the default value)
-    - serves as a context manager to override whichever value was set
+    - serves as a context manager to override whichever value was set.
 
     ```python
     action = Action(..., ifexists='overwrite')
@@ -51,6 +69,8 @@ class IfExists:
     Choice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
 
     class Enum(_Enum):
+        """Singleton values of the `ifexists` option."""
+
         SKIP = S = 1
         OVERWRITE = O = 2       # noqa: E741
         DIFFERENT = D = 3
@@ -70,7 +90,7 @@ class IfExists:
 
     @classmethod
     def from_any(cls, x: str | int | Enum | None) -> Enum:
-        """Return the singleton representation of a value"""
+        """Return the singleton representation of a value."""
         if x is None:
             return cls.default
         elif isinstance(x, str):
@@ -83,16 +103,18 @@ class IfExists:
         self._prev = None
 
     def __enter__(self) -> None:
+        """Set this value as the current one."""
         self._prev = type(self).current
         type(self).current = self.value
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restore the previous value."""
         type(self).current = self._prev
         self._prev = None
 
 
 class Downloader:
-    """
+    r"""
     An object that knows how to download a file.
 
     While downloading, the downloader yields regular status messages.
@@ -169,6 +191,8 @@ class Downloader:
         **kwargs,
     ):
         """
+        Prepare the download of a remote file.
+
         Parameters
         ----------
         src : str | ParseResult
@@ -235,6 +259,7 @@ class Downloader:
 
     @property
     async def size(self) -> int:
+        """Size of the remote file, in bytes (fetched on first use)."""
         if self._size is None:
             await self._get_size_mtime()
         return self._size
@@ -245,6 +270,7 @@ class Downloader:
 
     @property
     async def mtime(self) -> int:
+        """Last-modified time of the remote file (fetched on first use)."""
         if self._mtime is None:
             await self._get_size_mtime()
         return self._mtime
@@ -370,12 +396,11 @@ class Downloader:
         return
 
     def __aiter__(self) -> AsyncIterator[dict]:
+        """Iterate over progress reports of the download (see `iter`)."""
         return self.iter()
 
     async def iter(self) -> AsyncIterator[dict]:
-        """
-        Download the file
-        """
+        """Download the file."""
         # --------------------------------------------------------------
         # If file exists, select replacement strategy
         # --------------------------------------------------------------
@@ -434,7 +459,7 @@ class Downloader:
                 await asyncio.sleep(delay)
 
     async def _attempt(self, checksum, checkalgo) -> AsyncIterator[dict]:
-        """A single download attempt. Raises on network errors."""
+        """Make a single download attempt. Raises on network errors."""
         async with IncompleteFile(
             self.dst,
             checksum=checksum,
@@ -572,7 +597,7 @@ def _format_exc(exc: BaseException) -> str:
 
 
 def _retry_delay(exc: BaseException, attempt: int) -> float:
-    """Exponential backoff with jitter, honoring `Retry-After`"""
+    """Exponential backoff with jitter, honoring `Retry-After`."""
     headers = getattr(exc, "headers", None) or {}
     retry_after = headers.get("Retry-After", None)
     if retry_after:

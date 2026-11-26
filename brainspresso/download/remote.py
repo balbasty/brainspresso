@@ -1,3 +1,4 @@
+"""Remote files, read as streams of bytes."""
 # std
 import time
 import inspect
@@ -19,7 +20,9 @@ lg = getLogger(__name__)
 
 def check_request_options(opt: dict | None) -> dict:
     """
-    Options passed to `aiohttp.ClientSession.request`. TLS verification
+    Check the options passed to `aiohttp.ClientSession.request`.
+
+    TLS verification
     is not one of them: it is the `insecure` option of downloads.
     """
     opt = dict(opt or {})
@@ -34,7 +37,8 @@ def check_request_options(opt: dict | None) -> dict:
 
 class RemoteFile:
     """
-    This object represents a remote file, whose bytes are downloaded.
+    A remote file, whose bytes are downloaded.
+
     It is used as an async context manager.
 
     ```python
@@ -67,6 +71,8 @@ class RemoteFile:
             insecure: bool = False,
     ):
         """
+        Prepare the reading of a remote file.
+
         Parameters
         ----------
         url : str | ParseResult
@@ -115,6 +121,7 @@ class RemoteFile:
     # ------------------------------------------------------------------
 
     async def auth(self, session) -> None:
+        """Run the authentication hook (if any) on `session`."""
         if self._auth is None:
             return
         result = self._auth(session)
@@ -207,7 +214,7 @@ class RemoteFile:
 
     @property
     async def size(self) -> int | None:
-        """Size of the remote file (from the GET response if available)"""
+        """Size of the remote file (from the GET response if available)."""
         if self.response is not None:
             return self._size_from(self.response, self.offset)
         r = await self._head_once()
@@ -215,7 +222,7 @@ class RemoteFile:
 
     @property
     async def mtime(self):
-        """Last-modified time of the remote file"""
+        """Last-modified time of the remote file."""
         r = self.response if self.response is not None else (
             await self._head_once()
         )
@@ -228,7 +235,7 @@ class RemoteFile:
 
     @property
     def validator(self) -> str | None:
-        """Strong ETag, or Last-Modified, usable in an `If-Range` header"""
+        """Strong ETag, or Last-Modified, usable in an `If-Range` header."""
         if self.response is None:
             return None
         etag = self.response.headers.get("ETag", "")
@@ -241,6 +248,7 @@ class RemoteFile:
     # ------------------------------------------------------------------
 
     async def __aenter__(self):
+        """Send the request and check the response."""
         h = {}
         if self.offset:
             h["Range"] = f"bytes={self.offset}-"
@@ -275,6 +283,7 @@ class RemoteFile:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Release (or close) the response."""
         if self.response is not None:
             if exc_type is None:
                 self.response.release()
@@ -300,6 +309,7 @@ class RemoteFile:
             tic = toc
 
     def __aiter__(self):
+        """Iterate over chunks of bytes of the response."""
         return self.iterator
 
     def _update_speed(self, nbytes, time):

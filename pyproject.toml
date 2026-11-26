@@ -13,7 +13,14 @@ line-length = 79
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "D"]
+
+[tool.ruff.lint.per-file-ignores]
+# pydocstyle is enforced package by package; drop paths as they comply.
+"!brainspresso/{sources,download}/**" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

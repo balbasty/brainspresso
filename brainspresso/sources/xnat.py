@@ -1,7 +1,9 @@
 """
-XNAT servers (NITRC-IR, formerly XNAT Central): an asynchronous client of
-the archive REST API, and a source that downloads the server-built
-archives of scans and assessors (`.../scans/<id>/files?format=tar.gz`).
+XNAT servers (NITRC-IR, formerly XNAT Central).
+
+This module holds an asynchronous client of the archive REST API, and a source
+that downloads the server-built archives of scans and assessors
+(`.../scans/<id>/files?format=tar.gz`).
 
 ```python
 class OASIS3(XNAT):
@@ -41,8 +43,9 @@ DEFAULT_SERVER = "https://www.nitrc.org/ir"
 
 class XNATClient:
     """
-    Minimal asynchronous client of the XNAT archive API (read-only),
-    used as an async context manager:
+    Minimal asynchronous client of the XNAT archive API (read-only).
+
+    It is used as an async context manager:
 
     ```python
     async with XNATClient(server, auth) as xnat:
@@ -51,6 +54,19 @@ class XNATClient:
 
     With `auth` (an `XnatAuth`), a session is opened first (JSESSION
     cookie), and reopened once if the server answers 401/403.
+
+    Parameters
+    ----------
+    server : str
+        URL of the server.
+    auth : XnatAuth, optional
+        Authentication hook.
+    jobs : int
+        Maximum number of concurrent requests.
+    insecure : bool
+        Do not verify the TLS certificate.
+    max_attempts : int
+        Maximum number of attempts of a request.
     """
 
     def __init__(self, server: str = DEFAULT_SERVER,
@@ -65,6 +81,7 @@ class XNATClient:
         self._semaphore = None
 
     async def __aenter__(self):
+        """Open the HTTP session (and the XNAT session)."""
         self.session = new_session()
         self._semaphore = asyncio.Semaphore(self.jobs)
         if self.auth is not None:
@@ -72,6 +89,7 @@ class XNATClient:
         return self
 
     async def __aexit__(self, *exc):
+        """Close the XNAT session (if any) and the HTTP session."""
         if self.auth is not None:
             try:
                 async with self.session.delete(
@@ -88,7 +106,7 @@ class XNATClient:
         return {"ssl": False} if self.insecure else {}
 
     async def get_json(self, path: str) -> dict:
-        """GET `<server>/data/<path>?format=json` (with retries)"""
+        """GET `<server>/data/<path>?format=json` (with retries)."""
         url = f"{self.server}/data/{path.lstrip('/')}"
         authenticated = False
         async with self._semaphore:
@@ -119,6 +137,7 @@ class XNATClient:
         raise RuntimeError(f"Could not get {url}")
 
     async def results(self, path: str) -> list[dict]:
+        """Return the records (`ResultSet.Result`) of a JSON listing."""
         data = await self.get_json(path)
         try:
             return data["ResultSet"]["Result"]
@@ -134,35 +153,41 @@ class XNATClient:
         return path
 
     async def subjects(self, project: str) -> list[dict]:
+        """List the subjects of a project."""
         return await self.results(f"{self._base(project)}/subjects")
 
     async def experiments(self, project: str,
                           subject: str | None = None) -> list[dict]:
+        """List the experiments of a project (or of a subject)."""
         return await self.results(
             f"{self._base(project, subject)}/experiments"
         )
 
     async def scans(self, project, subject, experiment) -> list[dict]:
+        """List the scans of an experiment."""
         return await self.results(
             f"{self._base(project, subject, experiment)}/scans"
         )
 
     async def assessors(self, project, subject, experiment) -> list[dict]:
+        """List the assessors of an experiment."""
         return await self.results(
             f"{self._base(project, subject, experiment)}/assessors"
         )
 
     def archive_url(self, project, subject, experiment, id,
                     type: str = "scan") -> str:
-        """URL of the tar.gz archive of a scan or assessor"""
+        """URL of the tar.gz archive of a scan or assessor."""
         base = self._base(project, subject, experiment)
         return f"{self.server}/data/{base}/{type}s/{id}/files?format=tar.gz"
 
 
 class XNAT(Source):
     """
-    Source: scans and assessors of an XNAT project, as server-built
-    archives (`<experiment>/<id>.tar.gz`).
+    Source: scans and assessors of an XNAT project.
+
+    They are downloaded as server-built archives
+    (`<experiment>/<id>.tar.gz`).
 
     Subclasses refine the listing with hooks (all return True by
     default, except `keep_assessor`):
@@ -175,6 +200,15 @@ class XNAT(Source):
 
     Subjects are pruned with the label mapping (`labels`, from the
     subject label). Per-run options: `user`, `password`.
+
+    Parameters
+    ----------
+    project : str, optional
+        XNAT project.
+    server : str, optional
+        URL of the server.
+    **kwargs
+        Options of `Source` (and `user`, `password`, `login`...).
     """
 
     name = "xnat"
@@ -196,6 +230,7 @@ class XNAT(Source):
 
     # ------------------------------------------------------------------
     def auth(self) -> XnatAuth | None:
+        """Return the XNAT login hook (None if `login` is false)."""
         if not self.login:
             return None
         auth = self.__dict__.get("_auth")
@@ -206,10 +241,12 @@ class XNAT(Source):
         return auth
 
     def client(self) -> XNATClient:
+        """Return a client of the server (with the login hook)."""
         return XNATClient(self.server, self.auth(), jobs=self.list_jobs,
                           insecure=self.insecure)
 
     def local_path(self, entry: RemoteEntry) -> str | None:
+        """Path of an entry: `<experiment>/<id>.tar.gz`."""
         return entry.path
 
     # ------------------------------------------------------------------
@@ -218,28 +255,46 @@ class XNAT(Source):
 
     def keep_experiment(self, subject: dict, experiment: dict,
                         wants) -> bool:
+        """Whether to list an experiment (hook; default: True)."""
         return True
 
     def keep_scan(self, subject: dict, experiment: dict, scan: dict,
                   wants) -> bool:
+        """Whether to fetch a scan (hook; default: True)."""
         return True
 
     def keep_assessor(self, subject: dict, experiment: dict,
                       assessor: dict, wants) -> bool:
+        """Whether to fetch an assessor (hook; default: False)."""
         return False
 
     def subject_ids(self, subjects: list[dict], selection) -> list[dict]:
-        """Subjects to list (pruned with the label mapping)"""
+        """Subjects to list (pruned with the label mapping)."""
         return [s for s in subjects
                 if self.keeps_subject(selection, s.get("label", ""))]
 
     def extra(self, client: XNATClient, selection, wants) -> list:
-        """Entries outside the subject tree (coroutine allowed)"""
+        """Entries outside the subject tree (coroutine allowed)."""
         return []
 
     # ------------------------------------------------------------------
     def entry(self, client: XNATClient, subject: dict, experiment: dict,
               record: dict, type: str = "scan") -> RemoteEntry:
+        """Build the entry of a scan or assessor record.
+
+        Parameters
+        ----------
+        client : XNATClient
+            Client (for URLs).
+        subject, experiment, record : dict
+            XNAT records.
+        type : {"scan", "assessor"}
+            Type of the record.
+
+        Returns
+        -------
+        RemoteEntry
+        """
         sub, exp = subject["label"], experiment["label"]
         id = record["ID"] if type == "scan" else record.get(
             "label", record["ID"])
@@ -253,6 +308,19 @@ class XNAT(Source):
 
     async def list_async(self, selection=None, keys=None
                          ) -> list[RemoteEntry]:
+        """List scans and assessors (async version of `list`).
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+
+        Returns
+        -------
+        list[RemoteEntry]
+        """
         wants = as_wants(keys)
         async with self.client() as client:
             out = []
@@ -296,6 +364,24 @@ class XNAT(Source):
         return out
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List scans and assessors.
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+
+        Returns
+        -------
+        list[RemoteEntry]
+
+        Raises
+        ------
+        SourceUnavailable
+            If the server cannot be reached.
+        """
         try:
             return asyncio.run(self.list_async(selection, keys))
         except (aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
@@ -306,7 +392,7 @@ class XNAT(Source):
 
 def filter_list(full_list: Iterable[str],
                 patterns: str | Iterable[str] | None) -> list[str]:
-    """Elements of a list that match glob patterns (all if None)"""
+    """Elements of a list that match glob patterns (all if None)."""
     full_list = list(full_list)
     if not patterns:
         return full_list

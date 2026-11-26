@@ -30,12 +30,13 @@ TOKEN_ENV = ("DATAVERSE_TOKEN",)
 
 
 def get_token(token: str | None = None) -> str:
-    """Dataverse API token: given, else `DATAVERSE_TOKEN`, else a prompt"""
+    """Dataverse API token: given, else `DATAVERSE_TOKEN`, else a prompt."""
     return get_secret("Dataverse token", token, TOKEN_ENV, hidden=True,
                       option="--token")
 
 
 def server_url(server: str | None) -> str:
+    """URL of a Dataverse server, from its URL or a name of `servers`."""
     server = server or servers["default"]
     if "://" not in server:
         server = servers[server]
@@ -44,7 +45,7 @@ def server_url(server: str | None) -> str:
 
 def file_url(server: str, persistent_id: str,
              version: str | None = None) -> str:
-    """Download URL of a file, by persistent identifier"""
+    """Download URL of a file, by persistent identifier."""
     url = f"{server_url(server)}/api/access/datafile/:persistentId/"
     if version:
         url += f"versions/{version}"
@@ -89,6 +90,7 @@ class Dataverse(StaticURLs):
             self.token_required = token_required
 
     def download_options(self, options) -> dict:
+        """Add the API token (if any) to the options of `Source`."""
         opts = super().download_options(options)
         token = get_token(self.token) if self.token_required else \
             (self.token or None)

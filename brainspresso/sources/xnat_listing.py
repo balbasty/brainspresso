@@ -33,7 +33,7 @@ lg = getLogger(__name__)
 
 
 def xnat_entry(experiment, experiment_id, scan, collection, name, size, url):
-    """A file of an XNAT scan, as a `RemoteEntry`"""
+    """Build the `RemoteEntry` of a file of an XNAT scan."""
     return RemoteEntry(
         path=f"{experiment}/{scan}/{collection}/{name}",
         url=url,
@@ -135,5 +135,5 @@ async def list_project_files_async(
 
 
 def list_project_files(*args, **kwargs):
-    """Synchronous version of `list_project_files_async`"""
+    """List project files (synchronous `list_project_files_async`)."""
     return asyncio.run(list_project_files_async(*args, **kwargs))

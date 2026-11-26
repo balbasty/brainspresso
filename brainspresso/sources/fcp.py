@@ -26,7 +26,7 @@ PROJECTS = "data/Projects"
 
 
 def get_bucket() -> S3Bucket:
-    """The fcp-indi bucket (a function, so that tests can patch it)"""
+    """Return the fcp-indi bucket (a function, so that tests can patch it)."""
     return S3Bucket(BUCKET)
 
 
@@ -52,6 +52,17 @@ class FCP(S3Prefix):
 
 
 def list_entries(prefix: str) -> list[RemoteEntry]:
-    """All objects under `data/Projects/<prefix>`, with paths relative
-    to it (synchronous)"""
+    """
+    List all objects under `data/Projects/<prefix>` (synchronous).
+
+    Parameters
+    ----------
+    prefix : str
+        Path relative to `data/Projects`.
+
+    Returns
+    -------
+    list[RemoteEntry]
+        Entries, with paths relative to the prefix.
+    """
     return FCP(prefix).entries()

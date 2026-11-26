@@ -1,6 +1,8 @@
 """
-Anonymous listing of public S3 buckets, using the `ListObjectsV2` REST API
-over aiohttp (no boto/fsspec dependency).
+Anonymous listing of public S3 buckets.
+
+It uses the `ListObjectsV2` REST API over aiohttp (no boto/fsspec
+dependency).
 
 ```python
 bucket = S3Bucket("openneuro.org")
@@ -49,7 +51,8 @@ _MD5 = re.compile(r"^[0-9a-f]{32}$")
 
 @dataclass(frozen=True)
 class S3Object:
-    """An object in a bucket, as returned by `ListObjectsV2`"""
+    """An object in a bucket, as returned by `ListObjectsV2`."""
+
     key: str
     size: int
     mtime: datetime.datetime | None = None
@@ -57,12 +60,12 @@ class S3Object:
 
     @property
     def md5(self) -> str | None:
-        """MD5 of the object, if it can be inferred from its ETag"""
+        """MD5 of the object, if it can be inferred from its ETag."""
         etag = (self.etag or "").strip('"').lower()
         return etag if _MD5.match(etag) else None
 
     def entry(self, url: str, path: str | None = None) -> RemoteEntry:
-        """The object as a `RemoteEntry` (`path` defaults to the key)"""
+        """Return the object as a `RemoteEntry` (`path` defaults to key)."""
         return RemoteEntry(
             path=self.key if path is None else path,
             url=url,
@@ -75,8 +78,16 @@ class S3Object:
 
 def parse_s3_url(url: str) -> tuple[str, str]:
     """
-    Split `s3://bucket/prefix` (or a path-style https URL) into
-    `(bucket, prefix)`.
+    Split an S3 URL into `(bucket, prefix)`.
+
+    Parameters
+    ----------
+    url : str
+        `s3://bucket/prefix`, or a path-style https URL.
+
+    Returns
+    -------
+    bucket, prefix : str
     """
     parsed = urlparse(url)
     if parsed.scheme == "s3":
@@ -88,7 +99,7 @@ def parse_s3_url(url: str) -> tuple[str, str]:
 
 
 class S3Bucket:
-    """A public (anonymously readable) S3 bucket"""
+    """A public (anonymously readable) S3 bucket."""
 
     def __init__(
         self,
@@ -99,6 +110,8 @@ class S3Bucket:
         max_attempts: int = 5,
     ):
         """
+        Prepare the listing of a bucket.
+
         Parameters
         ----------
         bucket : str
@@ -122,6 +135,7 @@ class S3Bucket:
 
     @property
     def base_url(self) -> str:
+        """URL of the bucket (custom endpoint, regional or global)."""
         if self.endpoint:
             return f"{self.endpoint}/{self.bucket}"
         if self.region and self.region != "us-east-1":
@@ -129,7 +143,7 @@ class S3Bucket:
         return f"https://s3.amazonaws.com/{self.bucket}"
 
     def url(self, key: str, version_id: str | None = None) -> str:
-        """Public (path-style) URL of an object"""
+        """Public (path-style) URL of an object."""
         url = f"{self.base_url}/{quote(key)}"
         if version_id:
             url += f"?versionId={quote(version_id)}"
@@ -209,7 +223,9 @@ class S3Bucket:
 
     async def ls(self, prefix: str = "") -> tuple[list[S3Object], list[str]]:
         """
-        List a "directory" in one pass: the objects directly under
+        List a "directory" in one pass.
+
+        It returns the objects directly under
         `prefix` and its subdirectories (common prefixes, with a
         trailing slash).
         """
@@ -224,7 +240,7 @@ class S3Bucket:
         return objects, dirs
 
     async def dirs(self, prefix: str = "") -> AsyncIterator[str]:
-        """List "subdirectories" (common prefixes) under a prefix"""
+        """List "subdirectories" (common prefixes) under a prefix."""
         if prefix and not prefix.endswith("/"):
             prefix += "/"
         async for page in self._iter_pages(prefix, "/"):
@@ -236,12 +252,13 @@ class S3Bucket:
     # ------------------------------------------------------------------
 
     def list_all(self, prefix: str = "", recursive: bool = True) -> list:
-        """Synchronous version of `list` (returns a list)"""
+        """List objects (synchronous version of `list`, returns a list)."""
         async def run():
             return [obj async for obj in self.list(prefix, recursive)]
         return asyncio.run(run())
 
     def iter_all(self, prefix: str = "") -> Iterator[S3Object]:
+        """Iterate over all objects under `prefix` (synchronous)."""
         yield from self.list_all(prefix)
 
 
@@ -259,9 +276,10 @@ def _parse_object(elem: ElementTree.Element) -> S3Object:
 
 class S3Prefix(Source):
     """
-    Source: the objects under a prefix of a public bucket, mirrored
-    under `destination(layout)` with their path relative to the prefix
-    (or `local_path(entry)`).
+    Source: the objects under a prefix of a public bucket.
+
+    They are mirrored under `destination(layout)` with their path relative to
+    the prefix (or `local_path(entry)`).
 
     Subclasses (or the `keep`/`rename` arguments) filter and map entries:
     `keep(entry, selection, wants) -> bool` and `local_path(entry)`.
@@ -275,7 +293,9 @@ class S3Prefix(Source):
     prefix : str
         Prefix (a folder: a trailing "/" is added)
     keep : callable(RemoteEntry, selection, wants) -> bool
+        Filter
     rename : callable(RemoteEntry) -> str | None
+        Local path, relative to `destination(layout)` (None: skip)
     """
 
     jobs = 4
@@ -292,6 +312,7 @@ class S3Prefix(Source):
 
     @property
     def bucket(self) -> S3Bucket:
+        """The bucket (a callable is called at each access)."""
         bucket = self._bucket
         if isinstance(bucket, str):
             return S3Bucket(bucket)
@@ -300,11 +321,23 @@ class S3Prefix(Source):
         return bucket
 
     def keep(self, entry: RemoteEntry, selection, wants) -> bool:
+        """Whether to fetch an entry (filter that subclasses override)."""
         return True
 
     def entries(self, prefix: str = "") -> list[RemoteEntry]:
-        """All objects under `self.prefix + prefix` (paths relative to
-        `self.prefix`)"""
+        """
+        List all objects under `self.prefix + prefix`.
+
+        Parameters
+        ----------
+        prefix : str
+            Sub-prefix.
+
+        Returns
+        -------
+        list[RemoteEntry]
+            Entries, with paths relative to `self.prefix`.
+        """
         bucket = self.bucket
         root = self.prefix
         out = []
@@ -326,5 +359,18 @@ class S3Prefix(Source):
         return out
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List the objects under the prefix, filtered by `keep`.
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+
+        Returns
+        -------
+        list[RemoteEntry]
+        """
         wants = as_wants(keys)
         return [e for e in self.entries() if self.keep(e, selection, wants)]

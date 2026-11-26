@@ -48,6 +48,8 @@ ResourceType = Literal["collection", "folder"]
 
 @dataclass(frozen=True)
 class GirderFolder:
+    """A folder met during a walk (path relative to its root, id, meta)."""
+
     path: PurePosixPath         # relative to the root of the walk
     folder_id: str
     meta: dict = field(default_factory=dict, compare=False, hash=False)
@@ -76,7 +78,7 @@ def parse_girder_url(url: str) -> tuple[str, ResourceType, str]:
 
 
 class Girder:
-    """Minimal async client for the Girder REST API (read-only)"""
+    """Minimal async client for the Girder REST API (read-only)."""
 
     def __init__(
         self,
@@ -92,9 +94,11 @@ class Girder:
 
     @property
     def headers(self) -> dict:
+        """Headers of authenticated requests (the token, if any)."""
         return {"Girder-Token": self.token} if self.token else {}
 
     def download_url(self, file_id: str) -> str:
+        """Download URL of a file."""
         return f"{self.api}/file/{file_id}/download"
 
     # ------------------------------------------------------------------
@@ -124,7 +128,7 @@ class Girder:
         raise RuntimeError(f"Could not get {url}")
 
     async def _get_all(self, session, path: str, **params) -> list[dict]:
-        """GET a paginated list endpoint"""
+        """GET a paginated list endpoint."""
         out, offset = [], 0
         while True:
             page = await self._get(
@@ -136,7 +140,7 @@ class Girder:
             offset += PAGE
 
     async def info(self, rtype: ResourceType, rid: str) -> dict:
-        """Metadata of a collection or folder (name, size, description)"""
+        """Metadata of a collection or folder (name, size, description)."""
         async with new_session(headers=self.headers) as session:
             return await self._get(session, f"{rtype}/{rid}")
 
@@ -222,23 +226,35 @@ class Girder:
         return sorted(files, key=lambda f: f.path)
 
     def walk(self, *args, **kwargs) -> list[RemoteEntry]:
-        """Synchronous version of `walk_async`"""
+        """Walk the resource (synchronous version of `walk_async`)."""
         return asyncio.run(self.walk_async(*args, **kwargs))
 
 
 
 class GirderSource(Source):
     """
-    Source: the files under a Girder collection or folder, mirrored
-    under `destination(layout)` with their path relative to it (or
-    `local_path(entry)`). Sizes and SHA-512 checksums (when Girder
-    computed them) come from the listing, so downloads are verified.
+    Source: the files under a Girder collection or folder.
+
+    They are mirrored under `destination(layout)` with their path
+    relative to it (or `local_path(entry)`). Sizes and SHA-512 checksums (when
+    Girder computed them) come from the listing, so downloads are verified.
 
     Hooks: `keep_folder(path, selection, wants)` prunes the walk,
     `keep(entry, selection, wants)` filters files, and
     `folder_entries(folders, selection, wants)` adds files generated from
     the folder records (e.g. their metadata). Per-run option: `token`
     (else `GIRDER_TOKEN`; public collections need none).
+
+    Parameters
+    ----------
+    rtype : {"collection", "folder"}, optional
+        Type of the root resource.
+    rid : str, optional
+        Identifier of the root resource.
+    api : str, optional
+        URL of the Girder API.
+    **kwargs
+        Options of `Source`.
     """
 
     name = "girder"
@@ -260,19 +276,24 @@ class GirderSource(Source):
             self.api = api
 
     def client(self) -> Girder:
+        """Return a Girder client for this source."""
         return Girder(self.api, token=self.token)
 
     def keep_folder(self, path: PurePosixPath, selection, wants) -> bool:
+        """Whether to walk a folder (hook that subclasses override)."""
         return True
 
     def keep(self, entry: RemoteEntry, selection, wants) -> bool:
+        """Whether to fetch a file (hook that subclasses override)."""
         return True
 
     def folder_entries(self, folders: list[GirderFolder], selection,
                        wants) -> list[RemoteEntry]:
+        """Files generated from the folder records (hook; default: none)."""
         return []
 
     def download_options(self, options) -> dict:
+        """Add the Girder token (if any) to the options of `Source`."""
         opts = super().download_options(options)
         headers = self.client().headers
         if headers:
@@ -280,6 +301,19 @@ class GirderSource(Source):
         return opts
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
+        """List the files of the walk, filtered by the hooks.
+
+        Parameters
+        ----------
+        selection : Selection | None
+            Subject selection.
+        keys : Wants | list[str] | None
+            Wanted keys.
+
+        Returns
+        -------
+        list[RemoteEntry]
+        """
         wants = as_wants(keys)
         folders: list[GirderFolder] = []
         try:

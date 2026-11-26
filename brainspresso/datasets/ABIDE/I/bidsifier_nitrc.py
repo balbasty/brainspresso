@@ -10,6 +10,7 @@ from brainspresso.actions import Action
 from brainspresso.actions import CopyJSON
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
+from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
 
 lg = getLogger(__name__)
 
@@ -108,13 +109,13 @@ class Bidsifier(BidsifierBase):
                     continue
                 cat = 'anat'
                 mod = 'T1w'
-                json = self.template(site, 'T1w.json')
+                tpl = 'T1w.json'
             elif base == 'rest':
                 if not (compat_keys('bold', allkeys) & self.keys):
                     continue
                 cat = 'func'
                 mod = 'task-rest_bold'
-                json = self.template(site, 'bold.json')
+                tpl = 'bold.json'
             else:
                 continue
             dst = self.raw / f'sub-{id:05d}' / cat
@@ -123,6 +124,11 @@ class Bidsifier(BidsifierBase):
                     srcpath, dst / f'sub-{id:05d}_{mod}{ext}', write
                 ), mod
             if self.json != 'no' and ext == ".nii.gz":
+                try:
+                    json = self.template(site, tpl)
+                except TemplateError as e:
+                    lg.error(f"{srcpath}: {memberpath}: {e}")
+                    continue
                 yield CopyJSON(
                     json, dst / f'sub-{id:05d}_{mod}.json'
                 ), mod

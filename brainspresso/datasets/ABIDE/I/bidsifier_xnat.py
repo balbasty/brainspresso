@@ -11,6 +11,7 @@ from brainspresso.actions import WriteBytes
 from brainspresso.actions import CopyJSON
 from brainspresso.datasets.ABIDE.I.keys import allleaves, allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
+from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
 
 lg = getLogger(__name__)
 
@@ -99,11 +100,11 @@ class Bidsifier(BidsifierBase):
         if memberpath.name.split('.')[0] in ('anat', 'mprage'):
             cat = 'anat'
             mod = 'T1w'
-            json = self.template(site, 'T1w.json')
+            tpl = 'T1w.json'
         elif memberpath.name.split('.')[0] == 'rest':
             cat = 'func'
             mod = 'task-rest_bold'
-            json = self.template(site, 'bold.json')
+            tpl = 'bold.json'
         else:
             return
         dst = self.raw / f'sub-{id:05d}' / cat
@@ -113,6 +114,11 @@ class Bidsifier(BidsifierBase):
                 lambda f: write_from_buffer(tar.extractfile(member), f)
             )
         if self.json != 'no':
+            try:
+                json = self.template(site, tpl)
+            except TemplateError as e:
+                lg.error(f"{tar.name}: {e}")
+                return
             yield CopyJSON(json, dst / f'sub-{id:05d}_{mod}.json')
 
     # ------------------------------------------------------------------

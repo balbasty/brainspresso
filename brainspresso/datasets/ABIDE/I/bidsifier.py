@@ -20,6 +20,10 @@ from brainspresso.datasets.ABIDE.I.keys import allkeys
 lg = getLogger(__name__)
 
 
+class TemplateError(LookupError):
+    """No sidecar template for a (site, template) pair."""
+
+
 class BidsifierBase:
     """ABIDE-I - common bidsifying logic"""
 
@@ -36,19 +40,71 @@ class BidsifierBase:
         'UM', 'USM', 'Yale',
     )
 
+    # Sites whose sidecars are per sample (`templates/<Site>_<sample>/`).
+    # The first sample is the default, used when the data does not name
+    # the sample (e.g. `CMU`, `MaxMun`, `MAX_MUN`). It is the sample that
+    # the former site-level template (`templates/<Site>/`) described:
+    # CMU_a for CMU (TR 2 s; CMU_b has TR 1.5 s); the samples of the
+    # other sites share their protocol.
+    SAMPLES: dict[str, tuple[str, ...]] = {
+        'CMU': ('a', 'b'),
+        'Leuven': ('1', '2'),
+        'MaxMun': ('a', 'b', 'c', 'd'),
+        'UCLA': ('1', '2'),
+        'UM': ('1', '2'),
+    }
+
+    @classmethod
+    def parse_site(cls, site: str) -> tuple[str, str | None]:
+        """Split a site name found in the data into (Site, sample).
+
+        Accepts the spellings of all sources: S3/NITRC folders and
+        tarballs (`MaxMun_a`, `UCLA_1`, `NYU_a`), XNAT subject labels and
+        scan-parameter folders (`CMU`, `Leuven-1`, `UCLA1`) and phenotypic
+        site IDs (`MAX_MUN`, `LEUVEN_1`). The sample is None when the data
+        does not give it, or for a site without per-sample sidecars (a
+        suffix, such as the NYU tarball part `_a`, is then ignored).
+        """
+        flat = ''.join(c for c in site if c.isalnum()).lower()
+        for name in sorted(cls.SITES, key=len, reverse=True):
+            if flat.startswith(name.lower()):
+                break
+        else:
+            raise TemplateError(f'ABIDE-I: unknown site {site!r}')
+        if name not in cls.SAMPLES:
+            return name, None
+        sample = flat[len(name):] or None
+        if sample is not None and sample not in cls.SAMPLES[name]:
+            raise TemplateError(
+                f'ABIDE-I: unknown sample {sample!r} of site {name} '
+                f'(from {site!r}); known samples: {cls.SAMPLES[name]}')
+        return name, sample
+
     @classmethod
     def template(cls, site: str, name: str) -> Path:
         """Sidecar template for a scan.
 
-        `site` is the site name found in the data, possibly carrying a
-        sample suffix (`MaxMun_a`, `UCLA_1`, ...). The sample-specific
-        template (`templates/<Site>_<sample>/<name>`) is used if it
-        exists, else the site template (`templates/<Site>/<name>`).
+        `site` is the site name found in the data (see `parse_site`).
+        For a site with per-sample sidecars (`SAMPLES`), the template is
+        `templates/<Site>_<sample>/<name>` (default sample if the data
+        does not name one), else `templates/<Site>/<name>` (e.g.
+        `CMU/T1w.json`, used by CMU_a, which has no anatomical printout).
+        Raises `TemplateError`, naming the site and template, if none
+        exists.
         """
-        path = cls.TPLDIR / site / name
-        if path.exists():
-            return path
-        return cls.TPLDIR / site.split('_')[0] / name
+        site_name, sample = cls.parse_site(site)
+        candidates = []
+        if site_name in cls.SAMPLES:
+            sample = sample or cls.SAMPLES[site_name][0]
+            candidates.append(f'{site_name}_{sample}/{name}')
+        candidates.append(f'{site_name}/{name}')
+        for candidate in candidates:
+            path = cls.TPLDIR / candidate
+            if path.is_file():
+                return path
+        raise TemplateError(
+            f'ABIDE-I: no template {name!r} for site {site!r} '
+            f'(tried {", ".join(candidates)})')
 
     # ------------------------------------------------------------------
     #   Initialise

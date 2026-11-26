@@ -529,3 +529,81 @@ def test_dwi_exclude_trace(tmp_path, layout):
     roaster.roast(root, layout=layout, display=False)
     assert any(p.endswith("_desc-trace_dwimap.nii.gz")
                for p in outputs(root)[2])
+
+
+def test_dwi_subs_prune_before_loading(tmp_path, monkeypatch):
+    """Subjects dropped by `--subs` are not loaded"""
+    root = tmp_path / "IXI"
+    make_dti(root, {**dti_files(), **dti_files("IXI012-HH-1211")})
+    loaded = []
+    load = roaster.load_volume
+    monkeypatch.setattr(roaster, "load_volume", lambda a, m: (
+        loaded.append(m.name), load(a, m))[1])
+    report = roast_dti(root, "flat", subs=[2], jobs=1)
+    assert not report.errors
+    assert loaded and all("IXI002" in name for name in loaded)
+    assert not (root / "sub-012").exists()
+
+
+def test_dwi_rerun_skip_does_not_classify(tmp_path, monkeypatch):
+    root = tmp_path / "IXI"
+    make_dti(root, dti_files())
+    roast_dti(root, "flat")
+    calls = []
+    classify = roaster.classify_derived
+    monkeypatch.setattr(roaster, "classify_derived", lambda v: (
+        calls.append(1), classify(v))[1])
+    report = roast_dti(root, "flat", ifexists="skip", jobs=1)
+    assert not report.errors
+    assert not calls
+
+
+def test_dwi_keys_trace_only(tmp_path):
+    root = tmp_path / "IXI"
+    make_dti(root, dti_files())
+    report = roast_dti(root, "study", keys=("trace",))
+    assert not report.errors
+    found, raw, drv = outputs(root)
+    assert not any(p.startswith(("sub-", "dwi.")) for p in raw)
+    assert drv == {"dataset_description.json", ".bidsignore",
+                   "sub-002/dwi/sub-002_desc-trace_dwimap.nii.gz",
+                   "sub-002/dwi/sub-002_desc-trace_dwimap.json"}
+
+
+def test_dwi_invalid_canonical_table(tmp_path):
+    """An invalid dataset-level table is one error; subjects with their
+    own NITRC table are still roasted, the others fail"""
+    root = tmp_path / "IXI"
+    make_dti(root, {
+        **dti_files(count=16), **dti_files("IXI012-HH-1211", count=16),
+        "IXI002-Guys-0828-bvals.txt": BVALS,
+        "IXI002-Guys-0828-bvecs.txt": BVECS,
+    })
+    (root / "sourcedata/bvals.txt").write_text("0 1000\n1000\n")
+    report = roast_dti(root, "flat")
+    errors = sorted(e[2] for e in report.errors)
+    assert len(errors) == 2
+    assert "bvals.txt has rows of 2, 1 entries, expected 16" in errors
+    assert any("sub-012: no valid bvals.txt" in e for e in errors)
+    assert (root / "sub-002/dwi/sub-002_dwi.nii.gz").exists()
+    assert (root / "sub-002/dwi/sub-002_dwi.bval").read_bytes() == BVALS
+    assert not (root / "sub-012/dwi/sub-012_dwi.nii.gz").exists()
+    assert not (root / "dwi.bval").exists()
+
+
+def test_dwi_16_volumes_no_derivative(tmp_path):
+    root = tmp_path / "IXI"
+    make_dti(root, dti_files(count=16))
+    report = roast_dti(root, "study")
+    assert not report.errors
+    assert not (root / "derivatives/ixi-scanner").exists()
+
+
+def test_dwi_ragged_table_message(tmp_path):
+    root = tmp_path / "IXI"
+    make_dti(root, {**dti_files(count=16),
+                    "IXI002-Guys-0828-bvals.txt": b"0 1000\n1000\n",
+                    "IXI002-Guys-0828-bvecs.txt": BVECS})
+    report = roast_dti(root, "flat")
+    assert any("has rows of 2, 1 entries" in e[2] for e in report.errors)
+    assert not any("None" in e[2] for e in report.errors)

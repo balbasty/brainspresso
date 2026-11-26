@@ -36,6 +36,7 @@ import numpy as np
 import xlrd  # extra: brainspresso[ixi]
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
+from brainspresso.actions.action import IfExists
 from brainspresso.actions.writers import WriteJSON, WriteText
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.actions.helpers import copy_templates
@@ -76,7 +77,7 @@ def roast_ixi(ctx: RoastContext) -> Iterator:
     for ixi, key in IXI2BIDS.items():
         if key != "dwi" and ctx.wants(key):
             yield Shard(roast_anat, ixi, key, tag=key)
-    if ctx.wants("dwi"):
+    if ctx.wants("dwi") or ctx.wants("trace"):
         yield Shard(roast_dwi, tag="dwi")
 
 
@@ -159,39 +160,65 @@ MIN_CORRELATION = 0.95
 
 def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
     drv = ctx.layout.derivative(DERIV_NAME)
-    want_trace = ctx.wants("trace")
+    want_dwi, want_trace = ctx.wants("dwi"), ctx.wants("trace")
 
     archive = open_images(ctx, "DTI")
     if archive is None:
         yield missing_images("DTI")
         return
     with archive:
-        canonical = {}
+        # canonical (dataset-level) table: None if missing or invalid,
+        # subjects then need their own NITRC table
+        canonical = {"bval": None, "bvec": None}
         for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
+            if not want_dwi:
+                break
             path = ctx.resource(source)
             if path is None:
                 yield Fail(f"{source} not found", name=f"dwi.{ext}")
-                return
+                continue
             rows = read_table(path)
             n = table_length(rows)
             if n not in (NDIR, NDIR + 1):
-                yield Fail(f"{path.name} has {n} entries, expected {NDIR}",
-                           name=f"dwi.{ext}")
-                return
-            canonical[ext] = np.asarray(rows, dtype=float)[:, :NDIR]
+                yield Fail(f"{path.name} has {describe_length(rows)}, "
+                           f"expected {NDIR}", name=f"dwi.{ext}")
+                continue
+            try:
+                canonical[ext] = np.asarray(rows, dtype=float)[:, :NDIR]
+            except ValueError:
+                yield Fail(f"{path.name} is not numeric", name=f"dwi.{ext}")
+                continue
             if n == NDIR:
                 yield CopyBytes(path, ctx.layout.raw / f"dwi.{ext}")
             else:
                 yield WriteText(format_table(rows), ctx.layout.raw /
                                 f"dwi.{ext}", src=path)
-        series = group_members(archive)
+        series = {sub: value for sub, value in group_members(archive).items()
+                  if ctx.selection.keeps_subject(sub)}
         ctx.progress(total=len(series))
-        if want_trace:
-            yield from derivative_description(drv)
+        described = []      # derivative description written (once)
         for sub, (site, volumes) in sorted(series.items()):
             yield from roast_dwi_subject(ctx, archive, drv, sub, site,
-                                         volumes, want_trace, canonical)
+                                         volumes, want_dwi, want_trace,
+                                         canonical, described)
             ctx.progress(advance=1)
+
+
+def describe_length(rows) -> str:
+    """"16 entries", or the row lengths of a ragged table"""
+    n = table_length(rows)
+    if n is not None:
+        return f"{n} entries"
+    return f"rows of {', '.join(str(len(row)) for row in rows)} entries"
+
+
+def needed(ctx, path, kind="data") -> bool:
+    """Whether an output may be written by this roast (selected, accepted
+    by the JSON policy, and not already there under `IfExists` skip)"""
+    if not ctx.accepts(kind) or ctx.keeps(path) is False:
+        return False
+    skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
+    return not (skip and Path(path).exists())
 
 
 def read_table(path) -> list[list[str]]:
@@ -214,6 +241,8 @@ def same_table(ext, rows, canonical) -> bool:
     except ValueError:
         return False
     ref = canonical[ext]
+    if ref is None:
+        return False
     if table.shape != ref.shape:
         return False
     if ext == "bval":
@@ -221,8 +250,8 @@ def same_table(ext, rows, canonical) -> bool:
     return bool(np.allclose(table, ref, atol=1e-4))
 
 
-def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace,
-                      canonical):
+def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_dwi,
+                      want_trace, canonical, described):
     raw, src = ctx.layout.raw, ctx.source
     dwi = raw / f"sub-{sub}" / "dwi"
     base = f"sub-{sub}_dwi"
@@ -248,9 +277,15 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace,
         return
     names = [names[i] for i in range(count)]
 
-    # 2. 17th volume: scanner-derived isotropic image?
+    # 2. 17th volume: scanner-derived isotropic image? (only computed
+    #    when the raw DWI or the derived map will be written)
+    out = drv.root / f"sub-{sub}" / "dwi"
+    want_nii = want_dwi and needed(ctx, dwi / f"{base}.nii.gz")
+    want_map = want_trace and all(
+        needed(ctx, out / f"sub-{sub}_desc-{d}_dwimap.nii.gz")
+        for d in DERIVED_DESC.values())
     desc = None
-    if count == NDIR + 1:
+    if count == NDIR + 1 and (want_nii or want_map):
         vols = [load_volume(archive, archive.getmember(n)) for n in names]
         desc = classify_derived(vols)
         if desc is None:
@@ -269,17 +304,35 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace,
             continue
         rows = read_table(path)
         n = table_length(rows)
-        if n == NDIR + 1 and desc is not None:
+        if n == NDIR + 1 and count == NDIR + 1:
             text = format_table(rows)
         elif n == NDIR:
             text = None
         else:
-            yield Fail(f"sub-{sub}: {path.name} has {n} entries, expected "
-                       f"{NDIR}", name=f"{base}.{ext}")
+            yield Fail(f"sub-{sub}: {path.name} has {describe_length(rows)}"
+                       f", expected {NDIR}", name=f"{base}.{ext}")
             return
         if not same_table(ext, rows, canonical):
             tables[ext] = (path, text)
+    if want_dwi:
+        for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
+            if canonical[ext] is None and ext not in tables:
+                yield Fail(f"sub-{sub}: no valid {source} (neither "
+                           f"dataset-level nor per-subject)",
+                           name=f"{base}.{ext}")
+                return
 
+    if want_dwi:
+        yield from roast_dwi_raw(ctx, archive, dwi, base, site, names,
+                                 tables)
+    if desc is not None and want_map:
+        if not described:
+            described.append(True)
+            yield from derivative_description(drv)
+        yield from roast_dwi_map(archive, out, sub, base, desc, names)
+
+
+def roast_dwi_raw(ctx, archive, dwi, base, site, names, tables):
     yield CopyJSON(ctx.resource(f"{site}/dwi.json"), dwi / f"{base}.json")
     yield Action(
         archive.sources(*names), dwi / f"{base}.nii.gz",
@@ -291,22 +344,23 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace,
         else:
             yield WriteText(text, dwi / f"{base}.{ext}", src=path)
 
-    if desc is not None and want_trace:
-        out = drv.root / f"sub-{sub}" / "dwi"
-        stem = f"sub-{sub}_desc-{desc}_dwimap"
-        yield Action(
-            archive.sources(names[-1]), out / f"{stem}.nii.gz",
-            partial(stack_volumes, archive, names[-1:]), input="path",
-            tag="trace",
-        )
-        mean = "geometric" if desc == "trace" else "arithmetic"
-        yield WriteJSON({
-            "Description": f"Scanner-derived isotropic DWI ({mean} mean "
-                           f"of the {NDIR - 1} b=1000 volumes), "
-                           f"volume {NDIR} of the IXI DTI series",
-            "Sources": [f"bids:raw:sub-{sub}/dwi/{base}.nii.gz"],
-            "SkullStripped": False,
-        }, out / f"{stem}.json", tag="trace")
+
+
+def roast_dwi_map(archive, out, sub, base, desc, names):
+    stem = f"sub-{sub}_desc-{desc}_dwimap"
+    yield Action(
+        archive.sources(names[-1]), out / f"{stem}.nii.gz",
+        partial(stack_volumes, archive, names[-1:]), input="path",
+        tag="trace",
+    )
+    mean = "geometric" if desc == "trace" else "arithmetic"
+    yield WriteJSON({
+        "Description": f"Scanner-derived isotropic DWI ({mean} mean "
+                       f"of the {NDIR - 1} b=1000 volumes), "
+                       f"volume {NDIR} of the IXI DTI series",
+        "Sources": [f"bids:raw:sub-{sub}/dwi/{base}.nii.gz"],
+        "SkullStripped": False,
+    }, out / f"{stem}.json", tag="trace")
 
 
 def derivative_description(drv) -> Iterator[Action]:

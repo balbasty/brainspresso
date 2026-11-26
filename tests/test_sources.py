@@ -8,6 +8,7 @@ import datetime
 import hashlib
 import io
 import json
+import os
 import socket
 import ssl
 import tarfile
@@ -18,9 +19,16 @@ import pytest
 from aiohttp import web
 from cli_utils import bx
 
+from brainspresso.actions import File
+from brainspresso.actions.locks import (
+    LOCAL_DIR_ENV,
+    TIMEOUT_ENV,
+    LockTimeout,
+)
 from brainspresso.bids.layout import Layout
 from brainspresso.bids.select import Selection
 from brainspresso.download import Downloader, DownloadManager
+from brainspresso.download.manager import DownloadTable
 from brainspresso.sources import credentials
 from brainspresso.sources.base import (
     DownloadOptions,
@@ -37,6 +45,7 @@ from brainspresso.sources.base import (
     plan_sources,
     select_roaster,
     subject_labels,
+    write_content,
 )
 from brainspresso.sources.credentials import (
     CredentialsError,
@@ -229,6 +238,17 @@ def test_mirror_downloaders(tmp_path):
         list(mirror([RemoteEntry("no-url")], tmp_path))
 
 
+def test_mirror_filters_before_requiring_a_url(tmp_path):
+    entries = [RemoteEntry("a.txt", "http://h/a"), RemoteEntry("dropped"),
+               RemoteEntry("renamed-away")]
+    dls = list(mirror(
+        entries, tmp_path,
+        keep=lambda e: e.path != "dropped",
+        rename=lambda e: None if e.path == "renamed-away" else e.path,
+    ))
+    assert [d.dst for d in dls] == [tmp_path / "a.txt"]
+
+
 def test_mirror_downloads_and_generated_files(host, tmp_path):
     url = host["url"]
     md5 = hashlib.md5(FILES["/data/a.txt"]).hexdigest()
@@ -249,6 +269,56 @@ def test_mirror_downloads_and_generated_files(host, tmp_path):
         FILES["/data/a.txt"]
     # keys filter the static lists
     assert [e.path for e in source.list(keys=["meta"])] == ["meta/c.txt"]
+
+
+@pytest.mark.parametrize("on_error", ["yield", "raise"])
+def test_generated_file_in_use_does_not_stop_the_harvest(
+        host, tmp_path, monkeypatch, on_error):
+    monkeypatch.setenv(LOCAL_DIR_ENV, str(tmp_path / "locks"))
+    monkeypatch.setenv(TIMEOUT_ENV, "0.3")
+    source = StaticURLs()
+    entries = [
+        RemoteEntry("first.json", meta={"content": "new"}),
+        RemoteEntry("a.txt", f"{host['url']}/data/a.txt"),
+        RemoteEntry("second.json", meta={"content": "new"}),
+    ]
+    first = tmp_path / "first.json"
+    first.write_text("old")
+    with File(first, "r"):      # a roast reads it for longer than the wait
+        if on_error == "raise":
+            with pytest.raises(LockTimeout):
+                source.fetch(entries, tmp_path,
+                             DownloadOptions(on_error=on_error))
+            return
+        done = source.fetch(entries, tmp_path,
+                            DownloadOptions(on_error=on_error))
+    assert first.read_text() == "old"
+    # the other entries were fetched, and written
+    assert (tmp_path / "a.txt").read_bytes() == FILES["/data/a.txt"]
+    assert (tmp_path / "second.json").read_text() == "new"
+    assert {d.dst.name for d in done} == {"first.json", "a.txt"}
+
+
+def test_unwritten_generated_file_fails_as_a_download(host, tmp_path,
+                                                      monkeypatch):
+    monkeypatch.setenv(LOCAL_DIR_ENV, str(tmp_path / "locks"))
+    monkeypatch.setenv(TIMEOUT_ENV, "0.3")
+    rows = []
+    monkeypatch.setattr(DownloadTable, "__call__",
+                        lambda self, row: rows.append(row))
+    entries = [
+        RemoteEntry("first.json", meta={"content": "new"}),
+        RemoteEntry("missing.txt", f"{host['url']}/data/missing.txt"),
+    ]
+    first = tmp_path / "first.json"
+    first.write_text("old")
+    with File(first, "r"):
+        StaticURLs().fetch(entries, tmp_path, DownloadOptions(path="name"))
+    # the same final row as a failed download (there is no other count)
+    final = {row["path"]: row for row in rows if row.get("status")}
+    assert final["first.json"]["status"] == "error"
+    assert final["first.json"]["message"].startswith("[LockTimeout]")
+    assert final["missing.txt"]["status"] == "error"
 
 
 def test_dry_run_downloads_nothing(host, tmp_path, capsys):
@@ -638,12 +708,57 @@ def test_wants_exclude_key_aliases_group():
 
 
 def test_write_content_with_stale_tmp_dir(tmp_path):
-    from brainspresso.sources.base import write_content
     (tmp_path / "a.json.tmp").mkdir()
     assert write_content(tmp_path / "a.json", "{}")
     assert (tmp_path / "a.json").read_text() == "{}"
     assert sorted(p.name for p in tmp_path.iterdir()) == \
         ["a.json", "a.json.tmp"]
+
+
+@pytest.fixture
+def umask_002():
+    old = os.umask(0o002)
+    try:
+        yield
+    finally:
+        os.umask(old)
+
+
+def test_write_content_mode_follows_the_umask(tmp_path, umask_002):
+    path = tmp_path / "a.json"
+    assert write_content(path, "{}")
+    assert path.stat().st_mode & 0o777 == 0o664
+    assert write_content(path, "[]", "overwrite")
+    assert path.stat().st_mode & 0o777 == 0o664
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["a.json"]
+
+
+def test_write_content_of_a_long_name(tmp_path):
+    path = tmp_path / ("x" * 250)       # near the limit of file names
+    assert write_content(path, "{}")
+    assert sorted(p.name for p in tmp_path.iterdir()) == [path.name]
+
+
+def test_write_content_waits_for_a_reader(tmp_path, monkeypatch):
+    monkeypatch.setenv(LOCAL_DIR_ENV, str(tmp_path / "locks"))
+    path = tmp_path / "data" / "a.json"
+    path.parent.mkdir()
+    path.write_text("old")
+    written = threading.Event()
+
+    def writer():
+        write_content(path, "new", "overwrite")
+        written.set()
+
+    with File(path, "r"):
+        thread = threading.Thread(target=writer)
+        thread.start()
+        # a roast reads the file: it is not replaced under it
+        assert not written.wait(0.5)
+        assert path.read_text() == "old"
+    thread.join(60)
+    assert written.is_set() and path.read_text() == "new"
+    assert sorted(p.name for p in path.parent.iterdir()) == ["a.json"]
 
 
 def test_dry_run_nitrc_without_credentials(host, no_credentials, tmp_path):

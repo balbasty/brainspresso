@@ -465,11 +465,15 @@ layer in 2b-iv):
   parent never waits on its children, so a full pool cannot deadlock. Unpicklable shards run where they are
   yielded, an unpicklable `ctx` runs the roast in the main process
   (warnings). A dying worker (`BrokenProcessPool`): shards that had
-  started (their state file says so) are errors, the others and all
-  later ones run in the main process.
+  started (their state file says so, or a start marker that a worker
+  of the local pool writes in `<tmp>/bx-shards-<host>-<pid>-*`: the state
+  folder may be missing or not writable) are errors, never run again,
+  the others and all later ones run in the main process. Other
+  executors (workers on other machines) get no markers.
 * After all actions and shards: the `finalize(ctx)` hook of every
-  roaster that has one, children first, the top-level one last (each
-  may yield actions and shards); then, in a `finally`,
+  roaster that has one, once per run (also that of a shard skipped as
+  unchanged), children first, the top-level one last (each may yield
+  actions and shards); then, in a `finally`,
   `trim_originals(layout)` (every table under `<state>/orig/`; sessions
   and scans tables only where their folder exists) and `finish_roast`
   (keys, json policy, counts and `status`: "complete", "partial" if

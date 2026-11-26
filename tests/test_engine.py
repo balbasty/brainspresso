@@ -1,11 +1,20 @@
 """Stage-agnostic engine (`actions.engine`): context, policy, shards."""
 import ast
 import json
+import os
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from concurrent.futures import Future
 from pathlib import Path
 
 import pytest
 
 import brainspresso.actions as actions_pkg
+import brainspresso.actions.engine as engine_module
+import brainspresso.actions.state as state_module
 from brainspresso.actions import (
     Action,
     CopyJSON,
@@ -22,7 +31,7 @@ from brainspresso.actions.engine import (
     Shard,
     run,
 )
-from brainspresso.actions.state import read_task_states
+from brainspresso.actions.state import read_task_states, write_task_state
 
 ACTIONS = Path(actions_pkg.__file__).parent
 
@@ -224,3 +233,291 @@ def test_shard_signature_includes_policy_fingerprint(tmp_path):
     second = json.loads(next((tmp_path / "state").rglob("*.json"))
                         .read_text())["config_hash"]
     assert first != second
+
+
+# ----------------------------------------------------------------------
+#   Pool failures, finalize, children, task state writes
+# ----------------------------------------------------------------------
+
+def crash_in_worker(ctx, i, main_pid):
+    if os.getpid() != main_pid:
+        if i == 1:
+            os._exit(1)         # a worker dies (segfault, OOM killer...)
+        # held until the broken pool kills its worker
+        time.sleep(60)
+    elif i == 1:
+        # run again in the main process, it would crash it as well
+        (ctx.root / "rerun").touch()
+        return
+    yield WriteText(str(os.getpid()), ctx.root / "out" / f"{i}.txt",
+                    tag="units")
+
+
+@pytest.mark.parametrize("state", ["none", "unwritable"])
+@pytest.mark.parametrize("pause", [0, 0.4])
+def test_crashed_shard_without_state_is_an_error(tmp_path, monkeypatch,
+                                                 pause, state):
+    markers = tmp_path / "tmp"
+    markers.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(markers))
+    seen = []
+    mkdtemp = tempfile.mkdtemp
+
+    def spy(*args, **kwargs):
+        seen.append(mkdtemp(*args, **kwargs))
+        return seen[-1]
+
+    monkeypatch.setattr(tempfile, "mkdtemp", spy)
+    main = os.getpid()
+
+    def producer(ctx):
+        for i in range(6):
+            yield Shard(crash_in_worker, i, main, tag="units")
+            # (pause: the pool breaks while the producer yields shards)
+            time.sleep(pause)
+
+    if state == "unwritable":
+        # no state file can be written, from before the shards start
+        # (a file in the place of the tasks folder: even root fails)
+        (tmp_path / "state").mkdir()
+        (tmp_path / "state" / "tasks").write_text("")
+        ctx = Context(tmp_path / "root", state=tmp_path / "state")
+    else:
+        ctx = Context(tmp_path / "root")
+    report = run(producer, ctx, jobs=2, display=False)
+    assert report.status == "partial"
+    # the shard that crashed its worker is not run again
+    assert not (tmp_path / "root" / "rerun").exists()
+    died = [e for e in report.errors if "worker process died" in e[2]]
+    assert len(report.errors) == len(died)
+    assert f"crash_in_worker(1, {main})" in {e[1] for e in died}
+    assert report.counts["units"]["done"] + len(died) == 6
+    # shards that had not started ran in the main process
+    assert (tmp_path / "root" / "out" / "5.txt").read_text() == str(main)
+    # no start marker left (other files: lock files outside datasets)
+    assert any("bx-shards-" in path for path in seen)
+    assert not list(markers.glob("bx-shards-*"))
+
+
+def leaf(ctx, name):
+    yield WriteText(name, ctx.root / "out" / f"{name}.txt")
+
+
+def leaf_finalize(ctx, name):
+    with open(ctx.root / "finalized.txt", "a") as f:
+        f.write(f"{name}\n")
+
+
+leaf.finalize = leaf_finalize
+
+
+@pytest.mark.parametrize("jobs", [1, 2])
+def test_finalize_of_a_skipped_shard_runs(tmp_path, jobs):
+    src = tmp_path / "src.txt"
+    src.write_text("input")
+
+    def producer(ctx):
+        yield Shard(leaf, "a", id="demo/a", inputs=[src])
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=jobs, display=False)
+    assert report.counts["run"] == {"done": 1}
+    report = run(producer, ctx, jobs=jobs, display=False)
+    assert report.counts["run"] == {"skipped": 1}
+    # once per run, run or skipped
+    assert (tmp_path / "finalized.txt").read_text() == "a\na\n"
+
+
+def parent(ctx):
+    for name in ("x", "y"):
+        yield Shard(leaf, name)
+
+
+@pytest.mark.parametrize("jobs", [1, 2])
+def test_children_of_a_shard_are_counted_once(tmp_path, jobs):
+    def producer(ctx):
+        yield Shard(parent, id="demo/parent")
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=jobs, display=False)
+    assert report.status == "complete"
+    assert read_task_states(tmp_path / "state")["demo/parent"][
+        "children"] == 2
+
+
+def test_concurrent_writes_of_a_task_state(tmp_path):
+    errors = []
+
+    def write(n):
+        try:
+            for i in range(200):
+                write_task_state(tmp_path, "demo/x", {"n": n, "i": i})
+        except OSError as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=write, args=(n,)) for n in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(60)
+    assert errors == []
+    assert set(read_task_states(tmp_path)) == {"demo/x"}
+    assert [p.name for p in (tmp_path / "tasks").iterdir()] == \
+        ["demo%2Fx.json"]
+
+
+def test_worker_death_with_an_unwritable_state(tmp_path, monkeypatch,
+                                               caplog):
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    reporter = engine_module._MainReporter(root=tmp_path)
+    engine = engine_module.Engine(ctx, reporter, run="r1")
+    write_task_state(ctx.state, "demo/a", {"run": "r1"})
+
+    def fail(*args, **kwargs):
+        raise OSError("read-only state folder")
+
+    monkeypatch.setattr(engine_module, "write_task_state", fail)
+    pending = engine_module._Pending(Shard(leaf, "a"), "run", "demo/a",
+                                     False)
+    engine.broken(pending)
+    assert [e[2] for e in reporter.report.errors] == [
+        "the worker process died while this shard ran (it, or a shard "
+        "running at the same time, crashed it)"]
+    assert "Could not write the state of demo/a" in caplog.text
+    assert not (tmp_path / "out").exists()          # not run again
+
+
+def test_handed_back_children_are_counted_on_their_parent(tmp_path):
+    out = tmp_path / "out"
+
+    def local(ctx):
+        # unpicklable (a closure): runs in the main process, while the
+        # worker of `parent` hands back its children (run in the pool)
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            yield WriteText("busy", ctx.root / "busy.txt")
+            if (out / "x.txt").exists() and (out / "y.txt").exists():
+                return
+            time.sleep(0.05)
+        raise TimeoutError("the children did not run")
+
+    def producer(ctx):
+        yield Shard(parent, id="demo/parent")
+        yield Shard(local, id="demo/local")
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=2, display=False)
+    assert not report.errors
+    states = read_task_states(tmp_path / "state")
+    assert states["demo/parent"]["children"] == 2
+    assert states["demo/local"]["children"] == 0
+
+
+class InlineExecutor:
+    """An executor of the submit protocol that is not the local pool."""
+
+    def __init__(self):
+        self.tasks = []
+
+    def submit(self, task, resources=None):
+        self.tasks.append(task)
+        future = Future()
+        future.set_result(task())
+        return future
+
+    def shutdown(self):
+        pass
+
+
+def test_other_executors_get_no_start_markers(tmp_path, caplog):
+    executor = InlineExecutor()
+
+    def producer(ctx):
+        for name in ("a", "b"):
+            yield Shard(leaf, name)
+
+    report = run(producer, Context(tmp_path), executor=executor,
+                 display=False)
+    assert report.summary() == {"run": {"done": 2}}
+    assert [task.started for task in executor.tasks] == [None, None]
+    assert "Could not mark" not in caplog.text
+
+
+def test_stale_start_markers_are_removed(tmp_path, monkeypatch):
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    proc = subprocess.run([sys.executable, "-c",
+                           "import os; print(os.getpid())"],
+                          capture_output=True, text=True, check=True)
+    dead = int(proc.stdout)
+    host = engine_module._host()
+    stale = tmp_path / f"bx-shards-{host}-{dead}-abc"
+    alive = tmp_path / f"bx-shards-{host}-{os.getppid()}-def"
+    other = tmp_path / f"bx-shards-another_host-{dead}-abc"
+    old = tmp_path / f"bx-shards-{dead}-abc"       # (older format)
+    for folder in (stale, alive, other, old):
+        folder.mkdir()
+        (folder / "1.started").touch()
+    folder = engine_module._marker_folder()
+    assert folder.name.startswith(f"bx-shards-{host}-{os.getpid()}-")
+    assert not stale.exists() and folder.is_dir()
+    # only the dead pids of this host
+    assert alive.exists() and other.exists() and old.exists()
+
+
+@pytest.mark.parametrize("state", [None, "state"])
+def test_marker_failures_warn_only_without_state(tmp_path, monkeypatch,
+                                                 caplog, state):
+    (tmp_path / "file").write_text("")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "file"))
+    if state is not None:
+        state = tmp_path / state
+        state.mkdir()
+    with caplog.at_level("DEBUG", logger="brainspresso.actions.engine"):
+        assert engine_module._marker_folder(state) is None
+    [record] = [r for r in caplog.records if "start markers" in r.message]
+    assert record.levelname == ("WARNING" if state is None else "DEBUG")
+
+
+def test_stale_task_state_temporary_files_are_removed(tmp_path,
+                                                      monkeypatch):
+    monkeypatch.setattr(state_module, "_swept", set())
+    tasks = tmp_path / "tasks"
+    tasks.mkdir()
+    stale, fresh = tasks / ".1-dead.tmp", tasks / ".2-live.tmp"
+    old = tasks / "demo%2Fx.json.tmp"      # (name of an older version)
+    mine = tasks / f".{os.getpid()}-mine.tmp"
+    for path in (stale, fresh, old, mine):
+        path.write_text("{")
+    past = time.time() - state_module.STALE_TMP_AGE - 60
+    for path in (stale, old, mine):
+        os.utime(path, (past, past))
+    write_task_state(tmp_path, "demo/x", {})
+    assert sorted(p.name for p in tasks.iterdir()) == sorted([
+        mine.name, ".2-live.tmp", "demo%2Fx.json"])
+    assert state_module.STALE_TMP_AGE >= 24 * 3600
+
+
+def test_task_state_of_a_long_task_id(tmp_path):
+    task = "x" * 245              # the longest file name: 250 characters
+    path = write_task_state(tmp_path, task, {"status": "done"})
+    assert len(path.name) == 250
+    assert read_task_states(tmp_path)[task]["status"] == "done"
+
+
+def finalized_parent(ctx):
+    yield from ()
+
+
+# an unpicklable hook: it runs in the worker of its shard
+finalized_parent.finalize = lambda ctx: iter([Shard(leaf, "z")])
+
+
+def test_children_of_a_finalize_run_in_a_worker_are_counted(tmp_path):
+    def producer(ctx):
+        yield Shard(finalized_parent, id="demo/fp")
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=2, display=False)
+    assert not report.errors
+    assert (tmp_path / "out" / "z.txt").exists()
+    assert read_task_states(tmp_path / "state")["demo/fp"]["children"] == 1

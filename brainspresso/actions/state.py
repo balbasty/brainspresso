@@ -12,6 +12,8 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import secrets
+import time
 from logging import getLogger
 from pathlib import Path
 from urllib.parse import quote, unquote
@@ -28,6 +30,13 @@ __all__ = [
 TASKS_DIR = "tasks"
 #: Version of the format of task state files
 TASK_SCHEMA = 1
+#: Seconds after which a temporary file of the tasks folder is stale (a
+#: write takes milliseconds: its process was killed before the rename;
+#: a day, for the clocks of machines that share the folder)
+STALE_TMP_AGE = 24 * 3600
+
+# tasks folders swept for stale temporary files by this process
+_swept: set[str] = set()
 
 
 def now() -> str:
@@ -80,14 +89,58 @@ def write_task_state(
     -------
     Path
         The state file
+
+    Raises
+    ------
+    OSError
+        If it cannot be written
     """
     path = task_path(state, task)
     path.parent.mkdir(parents=True, exist_ok=True)
+    _sweep(path.parent)
     record = {"schema": TASK_SCHEMA, "task": task, **record}
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(record, indent=2, default=str))
-    os.replace(tmp, path)
+    # unique temporary file: another process (a worker, another run)
+    # may write the state of the same task at the same time; short: a
+    # long task id plus a suffix could exceed the limit of file names
+    tmp = path.with_name(f".{os.getpid()}-{secrets.token_hex(4)}.tmp")
+    try:
+        tmp.write_text(json.dumps(record, indent=2, default=str))
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return path
+
+
+def _sweep(folder: Path) -> None:
+    """
+    Remove the stale temporary files of a tasks folder (once a process).
+
+    A temporary file is stale when it is older than `STALE_TMP_AGE`.
+    Its age, not its pid, decides: the folder may be shared by
+    processes of other machines. Those of this process are kept.
+
+    Parameters
+    ----------
+    folder : Path
+        Tasks folder
+    """
+    if str(folder) in _swept:
+        return
+    _swept.add(str(folder))
+    limit = time.time() - STALE_TMP_AGE
+    mine = f".{os.getpid()}-"
+    try:
+        for path in folder.glob("*.tmp"):
+            if path.name.startswith(mine):        # never our own
+                continue
+            try:
+                if path.is_file() and path.stat().st_mtime < limit:
+                    path.unlink()
+            except OSError:
+                continue
+    except OSError as e:
+        lg.debug(f"Could not sweep {folder}: {e}")
 
 
 def read_task(state: str | os.PathLike, task: str) -> dict | None:

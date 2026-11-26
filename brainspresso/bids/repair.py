@@ -18,11 +18,20 @@ JSON files
   seconds) -> seconds.
 * `dataset_description.json`: string fields given as lists are joined,
   list fields (`Authors`, `Funding`...) given as a string become lists.
+* `*_mt-on_*.json`/`*_mt-off_*.json` without `MTState`: true/false.
 * `*_MP2RAGE.json` with `RepetitionTime` but no
   `RepetitionTimePreparation`: the former is the latter.
 * `*_phasediff.json` without `EchoTime1`/`EchoTime2` (dcm2niix output):
   taken from `EchoTime` of the sibling `magnitude1` and of the phase
   difference image itself.
+
+Field maps
+----------
+* `IntendedFor` given as a free-text tag instead of paths (`"fMRI"`,
+  `"dwi"`): replaced with the subject's (and session's) local images of
+  that datatype, or removed if there are none.
+* With `trim`, targets that are not present locally are removed (as
+  for tables, so that a subset is self-consistent).
 
 TSV files
 ---------
@@ -35,6 +44,7 @@ TSV files
 """
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 from logging import getLogger
@@ -156,6 +166,9 @@ def repair_json(path: Path) -> bool:
     if not isinstance(meta, dict):
         return False
     fixed = fix_sidecar(meta, path.name)
+    mt = re.search(r"_mt-(on|off)_", path.name)
+    if mt and "MTState" not in fixed:
+        fixed["MTState"] = mt.group(1) == "on"
     if path.name.endswith("_MP2RAGE.json") and \
             "RepetitionTimePreparation" not in fixed and \
             isinstance(fixed.get("RepetitionTime"), (int, float)):
@@ -262,6 +275,83 @@ def _sessions(header: list[str], body: list[list[str]]):
     return [header[j] for j in keep], [
         [g[0][j] for j in keep] for g in groups.values()
     ]
+
+
+# ----------------------------------------------------------------------
+#   Field maps
+# ----------------------------------------------------------------------
+
+# free-text tags found in `IntendedFor` -> datatype
+INTENDED_TAGS = {
+    "fmri": "func", "func": "func", "bold": "func", "rest": "func",
+    "dwi": "dwi", "dti": "dwi", "diffusion": "dwi",
+    "asl": "perf", "perf": "perf", "anat": "anat",
+}
+IMAGE_EXTENSIONS = (".nii.gz", ".nii")
+
+
+def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
+    """Repair (and trim) `IntendedFor` of a field map sidecar in place"""
+    path, root = Path(path), Path(root)
+    try:
+        rel = path.relative_to(root)
+    except ValueError:
+        return False
+    if not rel.parts or not rel.parts[0].startswith("sub-"):
+        return False
+    subject = root / rel.parts[0]
+    session = subject / rel.parts[1] \
+        if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
+    try:
+        meta = loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return False
+    if not isinstance(meta, dict) or "IntendedFor" not in meta:
+        return False
+    targets = meta["IntendedFor"]
+    targets = [targets] if isinstance(targets, str) else list(targets or [])
+
+    ignore = _bidsignore(root)
+    out = []
+    for target in targets:
+        if not isinstance(target, str):
+            continue
+        datatype = INTENDED_TAGS.get(target.strip().lower())
+        if datatype and "/" not in target:
+            folder = (session or subject) / datatype
+            out += sorted(
+                p.relative_to(subject).as_posix()
+                for p in folder.glob("*")
+                if p.name.endswith(IMAGE_EXTENSIONS)
+                and not any(fnmatch.fnmatch(p.name, pat) for pat in ignore)
+            )
+            continue
+        if trim:
+            if target.startswith("bids::"):
+                exists = (root / target[len("bids::"):]).exists()
+            else:
+                exists = (subject / target).exists()
+            if not exists:
+                continue
+        out.append(target)
+
+    fixed = dict(meta)
+    if out:
+        fixed["IntendedFor"] = out
+    else:
+        fixed.pop("IntendedFor")
+    if fixed == meta:
+        return False
+    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    return True
+
+
+def _bidsignore(root: Path) -> list[str]:
+    path = Path(root) / ".bidsignore"
+    if not path.exists():
+        return []
+    return [line.strip().lstrip("/") for line in path.read_text().splitlines()
+            if line.strip() and not line.startswith("#")]
 
 
 # ----------------------------------------------------------------------

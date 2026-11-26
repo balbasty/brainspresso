@@ -85,6 +85,12 @@ Child Mind Institute Healthy Brain Network (HBN), MRI data
     def participants(self, tables):
         return _merge({s: read_table(t) for s, t in tables.items()})
 
+    def remap(self, items):
+        # Magnetization transfer on/off pairs (`MT-on_PD`): the BIDS
+        # entity is `mt`, and the file collection is `MTR`
+        for path, it in super().remap(items):
+            yield re.sub(r"_MT-(on|off)_PD\.", r"_mt-\1_MTR.", path), it
+
 
 # ----------------------------------------------------------------------
 #   Southwest University (SALD, SLIM)

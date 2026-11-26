@@ -19,7 +19,7 @@
   "GeneratedBy": [
     {
       "Name": "brainspresso",
-      "Description": "Reorganised from the per-site folders of s3://fcp-indi (labels prefixed with a site code, runs and file names normalised, sidecars generated)",
+      "Description": "Reorganised from the per-site folders of s3://fcp-indi (runs and file names normalised, sidecars generated; see the README)",
       "CodeURL": "https://github.com/balbasty/brainspresso"
     }
   ]

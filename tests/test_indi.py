@@ -63,6 +63,9 @@ OBJECTS = {
     f"{F}/Atlanta/sourcedata/sub-00448/anat/no_T1w": b"",
     f"{F}/Atlanta/sourcedata/sub-00448/func/sub-00448_task-rest_bold.nii.gz":
         None,
+    # its TR differs from the site's (templates/fcon1000/_repetition_times)
+    f"{F}/Atlanta/sourcedata/sub-06870/func/sub-06870_task-rest_bold.nii.gz":
+        None,
     # --- ACPI: multi-site BIDS with site-level sidecars ---------------
     f"{A}/RawDataBIDS/du_1/T1w.json":
         b'{"MagneticFieldStrength": "3T", "EchoTime": "Min Full"}',
@@ -222,6 +225,8 @@ def test_fcon1000_harvest(tmp_path):
         # `no_T1w` marker skipped
         "sub-Atlanta00448/func/sub-Atlanta00448_task-rest_bold.nii.gz",
         "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json",
+        "sub-Atlanta06870/func/sub-Atlanta06870_task-rest_bold.nii.gz",
+        "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json",
     }
     src = root / "sub-ICBM11111/anat/sub-ICBM11111_T1w.nii.gz"
     assert src.read_bytes() == OBJECTS[
@@ -236,6 +241,10 @@ def test_fcon1000_harvest(tmp_path):
         root / "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json"
     ).read_text())
     assert sidecar["RepetitionTime"] == 2.02
+    sidecar = json.loads((
+        root / "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json"
+    ).read_text())
+    assert sidecar["RepetitionTime"] == 2.0
     # derivatives
     assert "derivatives/fcon1000/sub-ICBM00448/anat/" \
         "sub-ICBM00448_desc-brain_T1w.nii.gz" in files(root)
@@ -247,10 +256,66 @@ def test_fcon1000_harvest(tmp_path):
     assert rows[0][:6] == ["participant_id", "site", "site_participant_id",
                            "age", "sex", "handedness"]
     assert sorted(r[0] for r in rows[1:]) == [
-        "sub-Atlanta00448", "sub-ICBM00448", "sub-ICBM11111",
+        "sub-Atlanta00448", "sub-Atlanta06870", "sub-ICBM00448",
+        "sub-ICBM11111",
     ]
     for name in ("README", "dataset_description.json", "participants.json"):
         assert name in files(root)
+
+
+def test_fcon1000_layout_sites(tmp_path):
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+    root = tmp_path / "FCON1000"
+    # one BIDS dataset per site, with the labels of the bucket
+    assert {p for p in files(root / "ICBM") if p.startswith("sub-")} == {
+        "sub-00448/anat/sub-00448_T1w.nii.gz",
+        "sub-00448/func/sub-00448_task-rest_run-1_bold.nii.gz",
+        "sub-00448/func/sub-00448_task-rest_run-2_bold.nii.gz",
+        "sub-11111/anat/sub-11111_T1w.nii.gz",
+        "sub-11111/func/sub-11111_task-rest_run-1_bold.nii.gz",
+    }
+    assert "derivatives/fcon1000/sub-00448/anat/" \
+        "sub-00448_desc-brain_T1w.nii.gz" in files(root / "ICBM")
+    # site-level sidecar, and a subject sidecar where the TR differs
+    atlanta = root / "Atlanta"
+    assert json.loads((atlanta / "task-rest_bold.json").read_text()) == {
+        "TaskName": "rest", "RepetitionTime": 2.02,
+    }
+    assert json.loads(
+        (atlanta / "sub-06870/sub-06870_task-rest_bold.json").read_text()
+    )["RepetitionTime"] == 2.0
+    assert not (atlanta / "sub-00448/sub-00448_task-rest_bold.json").exists()
+    # site tables: labels of the site, no site columns
+    rows = table(atlanta / "participants.tsv")
+    assert rows[0] == ["participant_id", "age", "sex", "handedness"]
+    assert {r[0] for r in rows[1:]} == {"sub-00448", "sub-06870"}
+    columns = json.loads((atlanta / "participants.json").read_text())
+    assert set(columns) == {"age", "sex", "handedness"}
+    desc = json.loads((atlanta / "dataset_description.json").read_text())
+    assert desc["Name"].endswith(": Atlanta")
+    assert "../README" in (atlanta / "README").read_text()
+    # parent folder: README and merged table of what was downloaded
+    assert {"README", "participants.tsv", "participants.json"} <= {
+        p.name for p in root.iterdir() if p.is_file()
+    }
+    assert not (root / "dataset_description.json").exists()
+    rows = table(root / "participants.tsv")
+    assert sorted(r[0] for r in rows[1:]) == [
+        "sub-Atlanta00448", "sub-Atlanta06870", "sub-ICBM00448",
+        "sub-ICBM11111",
+    ]
+
+
+def test_fcon1000_layout_sites_labels(tmp_path):
+    # labels of the site datasets and merged labels are both accepted
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
+    root = tmp_path / "FCON1000"
+    assert sorted(p.name for p in root.glob("*/sub-*")) == [
+        "sub-00448", "sub-00448", "sub-11111",
+    ]
+    assert not (root / "Atlanta" / "sub-06870").exists()
 
 
 def test_fcon1000_prunes_listing(tmp_path):
@@ -318,6 +383,21 @@ def test_acpi_harvest(tmp_path):
     assert by_id["sub-0028160"][1:5] == ["nyu_1", "37.77", "M", "R"]
 
 
+def test_acpi_layout_sites(tmp_path):
+    bx("acpi", "harvest", tmp_path, "--layout", "sites")
+    root = tmp_path / "ACPI"
+    # site-level sidecars stay at the site level
+    assert (root / "du_1" / "T1w.json").exists()
+    assert not (root / "du_1" / "sub-0028631" / "sub-0028631_T1w.json"
+                ).exists()
+    assert table(root / "du_1" / "participants.tsv")[1][:4] == [
+        "sub-0028631", "22", "M", "R",
+    ]
+    assert (root / "nyu_1" / "sub-0028160").is_dir()
+    rows = table(root / "participants.tsv")
+    assert rows[0][:2] == ["participant_id", "site"]
+
+
 # ----------------------------------------------------------------------
 #   SLIM (tables outside the BIDS folder)
 # ----------------------------------------------------------------------
@@ -376,6 +456,9 @@ def test_complete_participants():
     assert complete_participants(text, {"sub-1", "sub-2"}) == \
         "participant_id\tage\nsub-1\t20\nsub-2\tn/a\n"
     assert complete_participants(text, {"sub-1"}) == text
+    text = "participant_id\tsite\nsub-1\tA\n"
+    assert complete_participants(text, {"sub-2"}, {"sub-2": "B"}) == \
+        "participant_id\tsite\nsub-1\tA\nsub-2\tB\n"
 
 
 def test_selection_filters_derivatives():
@@ -417,9 +500,12 @@ def test_repair_json(tmp_path):
     magnitude.write_text('{"EchoTime": 0.00492}')
     phasediff = tmp_path / "sub-1_phasediff.json"
     phasediff.write_text('{"EchoTime": 0.00738}')
+    mton = tmp_path / "sub-1_mt-on_MTR.json"
+    mton.write_text('{"FlipAngle": 15}')
     good = tmp_path / "T2w.json"
     good.write_text('{"EchoTime": 0.1}')
-    changed = repair([bad, desc, mp2rage, phasediff, magnitude, good])
+    changed = repair([bad, desc, mp2rage, phasediff, magnitude, mton, good])
+    assert json.loads(mton.read_text()) == {"FlipAngle": 15, "MTState": True}
     assert good not in changed and magnitude not in changed
     assert json.loads(bad.read_text()) == {
         "EchoTime": 0.00164, "FlipAngle": 7.0, "RepetitionTime": 2.73,
@@ -434,6 +520,42 @@ def test_repair_json(tmp_path):
     assert json.loads(phasediff.read_text()) == {
         "EchoTime": 0.00738, "EchoTime1": 0.00492, "EchoTime2": 0.00738,
     }
+
+
+def test_intended_for(tmp_path):
+    from brainspresso.bids.repair import fix_intended_for
+    sub = tmp_path / "sub-1"
+    for name in ("func/sub-1_task-rest_bold.nii.gz",
+                 "dwi/sub-1_dwi.nii.gz", "dwi/sub-1_acq-TRACEW_dwi.nii.gz",
+                 "fmap/sub-1_dir-AP_epi.nii.gz"):
+        (sub / name).parent.mkdir(parents=True, exist_ok=True)
+        (sub / name).write_bytes(b"")
+    (tmp_path / ".bidsignore").write_text("*TRACEW_dwi.nii.gz\n")
+    fmap = sub / "fmap" / "sub-1_dir-AP_epi.json"
+    # free-text tags -> local images of that datatype (not ignored ones)
+    fmap.write_text('{"IntendedFor": "dwi"}')
+    assert fix_intended_for(fmap, tmp_path)
+    assert json.loads(fmap.read_text()) == {
+        "IntendedFor": ["dwi/sub-1_dwi.nii.gz"]
+    }
+    fmap.write_text('{"IntendedFor": "fMRI"}')
+    fix_intended_for(fmap, tmp_path)
+    assert json.loads(fmap.read_text())["IntendedFor"] == [
+        "func/sub-1_task-rest_bold.nii.gz"
+    ]
+    fmap.write_text('{"IntendedFor": "asl", "EchoTime": 0.03}')
+    fix_intended_for(fmap, tmp_path)
+    assert json.loads(fmap.read_text()) == {"EchoTime": 0.03}
+    # trim: targets that are not present are dropped
+    fmap.write_text('{"IntendedFor": ["func/sub-1_task-rest_bold.nii.gz",'
+                    ' "func/sub-1_task-other_bold.nii.gz",'
+                    ' "bids::sub-1/dwi/sub-1_dwi.nii.gz"]}')
+    assert not fix_intended_for(fmap, tmp_path, trim=False)
+    assert fix_intended_for(fmap, tmp_path, trim=True)
+    assert json.loads(fmap.read_text())["IntendedFor"] == [
+        "func/sub-1_task-rest_bold.nii.gz",
+        "bids::sub-1/dwi/sub-1_dwi.nii.gz",
+    ]
 
 
 def test_repair_tsv(tmp_path):

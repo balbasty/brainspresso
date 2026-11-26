@@ -129,7 +129,9 @@ class FCON1000(Project):
             if len(parts) == 1:
                 if parts[0] not in ("participants.tsv", "task-rest_bold.json",
                                     "dataset_description.json"):
-                    yield f"sourcedata/{site.name}/{parts[0]}", it
+                    folder = f"sourcedata/{site.name}" if self.multisite \
+                        else "sourcedata"
+                    yield f"{folder}/{parts[0]}", it
                 continue
             if parts[0] == "derivatives":
                 m = re.match(r"sub-([A-Za-z0-9]+)", parts[-1])
@@ -172,17 +174,32 @@ class FCON1000(Project):
             yield f"{prefix}anat/{stem}_desc-brain_T1w.nii.gz", it
 
     def generated(self, items: list[Item], tables):
-        """Bold sidecars (task name and repetition time), per subject"""
+        """
+        Bold sidecars (task name and repetition time): per subject when
+        sites are merged; for a site dataset, at the top level, with
+        subject sidecars only for subjects whose TR differs.
+        """
         site_trs, subject_trs = repetition_times()
         subjects = {}
         for it in items:
             m = re.match(r"sourcedata/sub-([A-Za-z0-9]+)/(?:ses-[^/]+/)?func",
                          it.rel)
             if m and it.obj.size > 0:
-                subjects[it.site.label(m.group(1))] = it.site
-        for label, site in sorted(subjects.items()):
+                subjects[it.site.label(m.group(1))] = (it.site, m.group(1))
+        sites = {site.name for site, _ in subjects.values()}
+        if not self.multisite and len(sites) == 1:
+            name, = sites
+            yield InlineEntry("task-rest_bold.json", json_bytes(
+                {"TaskName": "rest", "RepetitionTime": site_trs[name]}
+                if name in site_trs else {"TaskName": "rest"}
+            ))
+        for label, (site, original) in sorted(subjects.items()):
+            merged = f"sub-{CODES.get(site.name, '')}{original}"
+            if not self.multisite and len(sites) == 1:
+                if merged not in subject_trs:
+                    continue
             sidecar = {"TaskName": "rest"}
-            tr = subject_trs.get(f"sub-{label}", site_trs.get(site.name))
+            tr = subject_trs.get(merged, site_trs.get(site.name))
             if tr:
                 sidecar["RepetitionTime"] = tr
             yield InlineEntry(

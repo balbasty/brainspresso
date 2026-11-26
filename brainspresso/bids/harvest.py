@@ -21,6 +21,7 @@ from typing import Iterable
 
 from humanize import naturalsize
 
+from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
 from brainspresso.bids.tables import is_trimmable, query_participants
@@ -152,6 +153,8 @@ def harvest(
         Rewrite participants/sessions/scans tables so that they only
         list what is present locally, so that they describe the
         subset. Untouched copies are kept in `.brainspresso/orig/`.
+        Field map `IntendedFor` targets that are not present locally
+        are removed too.
     if_exists : {"skip", "overwrite", "different", "refresh", "error"}
         Behaviour if a file already exists
     jobs : int
@@ -220,6 +223,17 @@ def harvest(
         repaired = repair_metadata(targets)
         if repaired:
             lg.info(f"Repaired {len(repaired)} metadata files")
+
+    if repair or trim:
+        # field maps: repair free-text `IntendedFor`, drop missing targets
+        fmaps = [Path(d.dst) for d in downloaders
+                 if Path(d.dst).parent.name == "fmap"
+                 and str(d.dst).endswith(".json")]
+        for path in fmaps:
+            if repair:
+                fix_intended_for(path, root, trim=False)
+            if trim:
+                fix_intended_for(path, root, trim=True)
 
     if trim:
         written = trim_tables(root, originals)

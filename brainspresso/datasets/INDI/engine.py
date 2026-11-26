@@ -18,13 +18,23 @@ selection by subject/session/datatype/suffix/task/globs, participant
 queries (`--where`), trimmed tables and a manifest. Listing is pruned:
 only the subjects that are selected are listed.
 
-Local layout: `<root>/<Project.folder>/` is a BIDS dataset, with
-derivatives in `derivatives/<pipeline>/`.
+Local layouts:
+
+* "merged" (default): `<root>/<Project.folder>/` is one BIDS dataset,
+  with derivatives in `derivatives/<pipeline>/`. Sites are merged:
+  labels are prefixed with a site code when they are not unique
+  across sites, and `participants.tsv` has a `site` column.
+* "sites": `<root>/<Project.folder>/<site>/` is one BIDS dataset per
+  site, with the labels of the bucket (BIDS "Option 1" for multi-site
+  studies). The parent folder is not a BIDS dataset: it holds the
+  README and the merged `participants.tsv`, for pooled lookups.
 """
 from __future__ import annotations
 
 import asyncio
+import copy
 import csv
+import dataclasses
 import io
 import json
 import re
@@ -211,6 +221,46 @@ class Project:
 
     def templates(self) -> list[InlineEntry]:
         """Curated files in `templates/<name>/` (mirrored at the root)"""
+        entries = self._templates()
+        site = getattr(self, "site", None)
+        if site is None:
+            return entries
+        # Site dataset: own README and name; site columns are gone
+        out = []
+        for e in entries:
+            if e.path == "README":
+                continue
+            if e.path == "dataset_description.json":
+                desc = json.loads(e.content)
+                desc["Name"] = f"{desc.get('Name', self.title)}: {site.name}"
+                e = InlineEntry(e.path, json_bytes(desc))
+            if e.path == "participants.json":
+                # describe the columns of the site table only
+                keep = set(getattr(self, "columns", None) or ()) - {
+                    "participant_id"
+                }
+                columns = {k: v for k, v in json.loads(e.content).items()
+                           if k in keep}
+                e = InlineEntry(e.path, json_bytes(columns))
+            out.append(e)
+        paths = {e.path for e in out}
+        if "dataset_description.json" not in paths:
+            out.append(InlineEntry("dataset_description.json", json_bytes({
+                "Name": f"{self.title}: {site.name}",
+                "BIDSVersion": "1.9.0",
+                "DatasetType": "raw",
+            })))
+        out.append(InlineEntry("README", (
+            f"{self.title}: site {site.name}\n\n"
+            f"One site of a multi-site dataset, downloaded by brainspresso "
+            f"with `--layout sites`.\nSee ../README for the description of "
+            f"the dataset, how to cite it, and how the files of the bucket "
+            f"were curated. ../participants.tsv lists the participants of "
+            f"all sites.\n"
+        )))
+        return out
+
+    def _templates(self) -> list[InlineEntry]:
         root = TEMPLATES / self.name
         if not root.is_dir():
             return []
@@ -225,10 +275,52 @@ class Project:
             for p in sorted(root.rglob("*")) if keep(p)
         ]
 
+    # ------------------------------------------------------------------
+    #   Layout "sites": one BIDS dataset per site
+    # ------------------------------------------------------------------
+
+    def site_view(self, site: Site, tables: dict[str, str]) -> "Project":
+        """
+        The project restricted to one site, as a single-site project with
+        the labels of the bucket (no site code).
+        """
+        view = copy.copy(self)
+        local = dataclasses.replace(site, code="")
+        view.sites = (local,)
+        view.parent = self
+        view.site = site
+        merged = self.participants(tables)
+        local = None if merged is None else split_participants(merged, site)
+        view.participants = lambda tables: local
+        view.columns = None if local is None else \
+            local.split("\n", 1)[0].split("\t")
+        return view
+
+    def site_items(self, items: list[Item], site: Site) -> list[Item]:
+        """Items of a site, as seen from its site view"""
+        local = dataclasses.replace(site, code="")
+        return [dataclasses.replace(it, site=local)
+                for it in items if it.site == site]
+
+    def site_entries(
+        self, items: list[Item], tables: dict[str, str], site: Site
+    ) -> list:
+        """Local listing of the BIDS dataset of one site"""
+        view = self.site_view(site, tables)
+        return view.entries(self.site_items(items, site), tables)
+
+    def parent_files(self) -> list[InlineEntry]:
+        """Files of the parent folder (layout "sites")"""
+        return [e for e in self._templates()
+                if e.path in ("README", "participants.json")]
+
     def entries(self, items: list[Item], tables: dict[str, str]) -> list:
         """Local listing: remote files, generated files and templates"""
         out: dict[str, object] = {}
+        site_of: dict[str, str] = {}
         for path, it in self.remap(items):
+            if path.startswith("sub-"):
+                site_of.setdefault(path.split("/")[0], it.site.name)
             if path in out:
                 lg.warning(
                     f"{self.name}: {it.site.prefix}/{it.rel} skipped "
@@ -246,7 +338,10 @@ class Project:
         if participants is not None:
             subjects = {p.split("/")[0] for p in out if p.startswith("sub-")
                         and "/" in p}
-            participants = complete_participants(participants, subjects)
+            participants = complete_participants(
+                participants, subjects,
+                site_of if self.multisite else None,
+            )
             inline.append(InlineEntry("participants.tsv", participants))
         inline += self.templates()
         for entry in inline:        # generated files override the bucket's
@@ -254,15 +349,64 @@ class Project:
         return [out[k] for k in sorted(out)]
 
 
-def complete_participants(text: str, subjects: Iterable[str]) -> str:
-    """Add a row (with `n/a` values) for subjects missing from the table"""
+def split_participants(text: str, site: Site) -> str:
+    """
+    Rows of a merged participants table that belong to a site, with the
+    labels of the site (`site_participant_id`, or the label without the
+    site code), without the site columns and without the columns that
+    are empty for this site.
+    """
+    rows, header = read_table(text, "\t"), text.split("\n", 1)[0].split("\t")
+    out = []
+    for row in rows:
+        if row.get("site", site.name) != site.name:
+            continue
+        row = dict(row)
+        row.pop("site", None)
+        pid = row.pop("site_participant_id", None)
+        if not pid:
+            pid = row["participant_id"]
+            if site.code and pid.startswith(f"sub-{site.code}"):
+                pid = "sub-" + pid[len(f"sub-{site.code}"):]
+        row["participant_id"] = pid
+        out.append(row)
+    header = [
+        h for h in header
+        if h not in ("site", "site_participant_id")
+        and (h == "participant_id"
+             or any(r.get(h, "n/a") not in ("", "n/a") for r in out))
+    ]
+    out = [{h: r.get(h) for h in header} for r in out]
+    return format_tsv(out, header)
+
+
+def site_label(label: str, site: Site) -> str | None:
+    """Label of a site dataset, from a merged label (None if not this site)"""
+    if not site.code:
+        return label
+    if label.startswith(site.code):
+        return label[len(site.code):]
+    return None
+
+
+def complete_participants(
+    text: str, subjects: Iterable[str], sites: dict[str, str] | None = None
+) -> str:
+    """
+    Add a row (with `n/a` values) for subjects missing from the table,
+    with their site if `sites` (`{participant_id: site}`) is given.
+    """
     rows = read_table(text, "\t")
     header = text.split("\n", 1)[0].split("\t")
     known = {r.get("participant_id") for r in rows}
     missing = sorted(set(subjects) - known)
     if not missing:
         return text
-    rows += [{"participant_id": s} for s in missing]
+    for s in missing:
+        row = {"participant_id": s}
+        if sites and "site" in header:
+            row["site"] = sites.get(s)
+        rows.append(row)
     return format_tsv(rows, header)
 
 

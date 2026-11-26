@@ -173,7 +173,21 @@ bx fcon1000 info
 bx fcon1000 harvest /data --sites ICBM NYU_TRT --datatypes func --dry-run
 bx fcon1000 harvest /data --where "age>=60" --folders derivatives
 bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
+bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
 ```
+
+Multi-site datasets (`fcon1000`, `hbn`, `acpi`) have two layouts:
+
+* `--layout merged` (default): one BIDS dataset. Labels that are not
+  unique across sites get a site prefix (`AnnArbor_a/sub-04111` ->
+  `sub-AnnArborA04111`), and `participants.tsv` has a `site` column.
+* `--layout sites`: one BIDS dataset per site (`FCON1000/<site>/`), with
+  the labels of the bucket and site-level metadata (e.g. one
+  `task-rest_bold.json` per site). This is "option 1" of the BIDS
+  recommendations for multi-site studies. The parent folder is not a
+  BIDS dataset: it holds the README and the merged `participants.tsv`,
+  which is also what `--where` queries. `--subs` accepts both the site
+  labels and the merged labels.
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
 curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
@@ -183,5 +197,6 @@ headers; multi-site participant tables are merged with a `site` column;
 missing descriptions, READMEs and sidecars are generated; entities are
 put in BIDS order; and common metadata defects (numbers stored as text,
 slice timing in milliseconds, invalid JSON, sessions tables without
-`session_id`...) are repaired after download (`brainspresso/bids/repair.py`).
+`session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
+are repaired after download (`brainspresso/bids/repair.py`).
 Each dataset's `README` lists what was changed.

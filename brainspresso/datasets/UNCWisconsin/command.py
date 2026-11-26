@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 uncwisc_help = """
 UNC-Wisconsin Rhesus Macaque Neurodevelopment Database
@@ -12,3 +13,4 @@ UNC-Wisconsin Rhesus Macaque Neurodevelopment Database
 """
 
 app.command(uncwisc := App(name="unc-wisconsin", help=uncwisc_help))
+add_compost(uncwisc, "UNC-Wisconsin")

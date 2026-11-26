@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 bullitt_help = """
 Designed Database of MR Brain Images of Healthy Volunteers (Bullitt, UNC)
@@ -10,3 +11,4 @@ Designed Database of MR Brain Images of Healthy Volunteers (Bullitt, UNC)
 """
 
 app.command(bullitt := App(name="bullitt", help=bullitt_help))
+add_compost(bullitt, "Bullitt")

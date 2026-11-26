@@ -567,3 +567,20 @@ def test_bullitt_roast_keys(bullitt, tmp_path):
         "sub-001/anat/sub-001_T2w.nii.gz"
     }
     assert not (root / "derivatives").exists()
+
+
+def test_compost_commands():
+    from brainspresso.cli import app
+    assert "compost" in app["unc-wisconsin"]._commands
+    assert "compost" in app["bullitt"]._commands
+
+
+def test_bullitt_compost_sourcedata(bullitt, tmp_path):
+    from brainspresso.bids.compost import compost
+    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    bullitt.download(tmp_path, subs=["001"])
+    root = tmp_path / "Bullitt"
+    Bidsifier(root).run()
+    compost(root, yes=True)
+    assert not (root / "sourcedata").exists()
+    assert (root / "rawdata/sub-001/anat/sub-001_T2w.nii.gz").exists()

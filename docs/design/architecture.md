@@ -262,45 +262,101 @@ and glob conditions, as prototyped in `wiip-grind`
 
 Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III):
 
-* `Action(src, dst | None, fn, *, claim=Claim(folder, fragment),
-  kind=None, tag=None, ifexists=None)`: `declared` outputs, `outputs`
-  after running; `kind` defaults to `default_kind` (`*.tsv`, dataset
-  files such as README/`.bidsignore` and the JSON of tables or of the
-  dataset: "table"; other `*.json`: "sidecar"; else "data");
-  `ifexists=None` is the runner's policy (still `different` outside
-  it). A claim action's `fn()` yields concrete sub-actions (selected
-  one by one) or writes files itself after `self.keeps(path)` and lists
-  them in `self.outputs`. `ExtractMember`, `ExtractMembers` (claim) in
-  `actions/archive.py`; `Fail(message)` reports a missing input.
-* `run_roast(roaster, ctx, *, jobs=1, display=True) -> RoastReport`
-  (counts per tag, errors, outputs, progress). `RoastContext(layout,
-  selection, keys, json, ifexists, options, templates, tag)` with
-  `wants(category)`, `resource(name)`, `progress(total=, advance=,
-  tag=)`, `keeps(path, partial)` (`selection` on the raw dataset, its
-  subject/session filters elsewhere; `<state>/orig/` paths judged as
-  the table they copy) and `accepts(kind, path)` (JSON policy; never
-  applied to files in `sourcedata/`). `make_context(root, keys,
-  select_keys=, exclude_keys=, **filters)` builds it from CLI values.
+Implemented (step 2b-ii, revised by the review fixes of 2b-ii-fix):
+
+* `Action(src, dst | None, fn, *, claim=Claim(folder | [folders],
+  fragment), kind=None, tag=None, ifexists=None, staging=False)`:
+  `declared` outputs, `outputs` after running. `kind` defaults to
+  `default_kind` (`*.tsv`, dataset files such as README/`.bidsignore`
+  and the JSON of tables or of the dataset: "table"; other `*.json`:
+  "sidecar"; `*.bval`/`*.bvec`: "meta", non-JSON metadata as in
+  `bids.select`; else "data"); outputs of several default kinds
+  (`[nii, json]`, `[nii, bval, bvec]`) need an explicit `kind`, else the
+  runner counts the action as an error. JSON policy: `--json no` drops
+  sidecars, `--json only` drops data; tables and "meta" always pass;
+  `staging=True` actions (intermediate files, e.g. an unpacked
+  FreeSurfer tree in `derivatives/<fs>/sourcedata/`) and the
+  sub-actions of a staging claim are exempt (there is no implicit
+  exemption of `sourcedata/` any more). `ifexists=None` is the runner's
+  policy (still `different` outside it); under `skip`, tables use
+  `different`, which (without size/digests) regenerates a table and
+  replaces it only if its content changed, so pristine tables follow
+  new harvests. A claim action's `fn()` yields concrete sub-actions
+  (selected one by one; it never writes files itself); a claim is
+  selected if any of its paths can be; one that yields nothing is
+  counted as "empty". `ExtractMember`, `ExtractMembers` (claim,
+  `staging=`) in `actions/archive.py`; `Fail(message)` reports a
+  missing input and is never hidden (no outputs). Readers (`File` in
+  read mode) take no lock and create nothing next to sources; writers
+  lock and write `<dst>.tmp/` then rename.
+* `run_roast(roaster, ctx, *, jobs=1, display=True | callable,
+  executor=None) -> RoastReport` (counts per tag, errors, outputs,
+  progress, `status`). `RoastContext(layout, selection, aliases, json,
+  ifexists, options, templates, tag, source)` with `wants(key)`,
+  `resource(name)` (`ctx.source`, then templates), `progress(total=,
+  advance=, tag=)`, `keeps(path, partial)` (`selection` on the raw
+  dataset, its subject/session filters elsewhere; `<state>/orig/` paths
+  judged as the table they copy; False in the folder of an unwanted
+  category, `KeyAliases(folders=)`) and `accepts(kind)`. `ctx.source`
+  is the source folder of the running roaster (default `layout.source`;
+  a roaster or `Shard(source=)` sets it for itself and what it yields),
+  the seam for `LocalSource`/per-source folders in step 3.
+  `make_context(root, aliases, select_keys=, exclude_keys=, source=,
+  **filters)` builds it from CLI values; `roast_dataset(roaster, root,
+  aliases, keys=, ..., **options)` is the `roast()` of a dataset.
   `ctx.tag` is the tag of the running roaster. Roaster exceptions are
   counted as errors of its tag; the rest of the roast goes on.
-* Shards: any callable yielded (`Shard(fn, *args, tag=)` is a picklable
-  one). `jobs > 1`: top-level shards run in a "spawn" process pool;
-  unpicklable shards run in the main process with a warning; worker
-  events (outcomes, progress) are replayed when a shard finishes.
-* After all actions: `roaster.finalize(ctx)` (may yield actions), then
+* Shards: any callable yielded; `Shard(fn, *args, tag=, id=, inputs=,
+  advance=, unit=, source=)` is a picklable one. With `jobs > 1` every
+  shard runs in the pool, through `submit(task, resources=None) ->
+  Future` (`LocalExecutor`, "spawn" process pool; `resources` ignored
+  locally): shards yielded in the main process are submitted, shards
+  yielded in a worker are handed back and submitted when it finishes
+  (a shard runs asynchronously: roasters must not rely on the outputs
+  of the shards they yield). Unpicklable shards run where they are
+  yielded, an unpicklable `ctx` runs the roast in the main process
+  (warnings). A dying worker (`BrokenProcessPool`): shards that had
+  started (their state file says so) are errors, the others and all
+  later ones run in the main process.
+* After all actions and shards: the `finalize(ctx)` hook of every
+  roaster that has one, children first, the top-level one last (each
+  may yield actions and shards); then, in a `finally`,
   `trim_originals(layout)` (every table under `<state>/orig/`; sessions
   and scans tables only where their folder exists) and `finish_roast`
-  (keys, json policy and counts in the run record). No repair yet.
+  (keys, json policy, counts and `status`: "complete", "partial" if
+  anything failed, "failed" if the runner stopped). No repair yet.
+* Task state (§7): a shard with an `id`, and every shard run in a
+  worker, writes `<state>/tasks/<id>.json` as it runs; the main process
+  reads the progress of running shards from these files. A shard with
+  `id` and `inputs` (its source archives) that is "done" with the same
+  input signature (paths, sizes, mtimes; selection; JSON policy) and
+  whose outputs exist is skipped under `skip` without reopening its
+  archives (a shard that yielded shards never is).
 * Keys: `bids/keys.py`. `KeyAliases(tree, bids={leaf: Selection
-  filters})`; other leaves are categories; groups expand to their
-  leaves; lookup is exact, then case-insensitive. A group may also be a
-  category (OASIS-III `meta`). `KeyAliases.selection(keys, exclude_keys,
-  **filters) -> KeySelection`: a **union** of selections (one per BIDS
-  key, each with the CLI subject/session filters), since keys such as
-  `T1w` + `TSE` (acq-TSE T2w) are not one conjunction; with all BIDS
-  keys and no exclusion it is the plain CLI selection (files no key
-  describes are kept). Same `keeps`/`keeps_subject`/`select` interface
-  as `Selection`, plus `wants(category)`, `base`, `keys`.
+  filters}, folders={category: [folders]})`; other leaves are
+  categories; groups expand to their leaves; lookup is exact, then
+  case-insensitive. A group may also be a category (OASIS-III `meta`).
+  `KeyAliases.selection(keys, exclude_keys, **filters) ->
+  KeySelection` **classifies** paths: `key_of(path)` is the first BIDS
+  key, in declared order, whose predicate keeps the path as a data file
+  (specific keys first: OASIS-III `TSE` before `T2w`). Dataset files
+  and sessions/scans tables follow the subject/session filters only;
+  without a key filter (all BIDS keys wanted) so does every path; with
+  one, a data file is kept iff its key is wanted, a metadata file iff a
+  wanted key up to its class may describe it (inheritance), an
+  unclassified metadata file iff a wanted key may describe it, and other
+  unclassified files (`_sbref`, `_m0scan`) iff a wanted key's predicate
+  without its suffix keeps them (they follow their scans), else they are
+  dropped. Claims are judged on the wanted keys only: `--keys meta` or
+  `--keys fs` answer False for every subject claim, so no tarball is
+  opened. Same `keeps`/`keeps_subject`/`select` interface as
+  `Selection`, plus `wants(key)`, `key_of`, `base`, `keys` (wanted
+  leaves).
+* Helpers for ports (`actions/helpers.py`): `copy_templates(ctx,
+  names | {name: dst})` (a missing resource is a `Fail`) and
+  `subject_shards(ctx, labels, fn, *args, inputs=)` (pruning, progress
+  total, one `Shard` per subject with id `roast/subjects/sub-<label>`,
+  advanced when done). Missing inputs are `Fail`s, never warnings only.
 
 ## 6. Dataset registration
 
@@ -338,7 +394,9 @@ dataset overrides or adds any command. Optional dependencies keep using
   long (session). Pipelines declare `requires=(...)` on other pipelines.
   Everything stays declarative; no wiring syntax.
 * Skip/redo: per-unit **done-marker + config hash** (BIDS-App outputs
-  cannot be enumerated; outputs depend on config).
+  cannot be enumerated; outputs depend on config). Roast shards already
+  do this with the task state below (`config_hash`: their input
+  signature).
 * Partial failures: a group stage runs on the units that succeeded, unless
   the pipeline requires all; the failure list is recorded.
 * Cross-dataset group outputs live outside any dataset, in a
@@ -350,12 +408,14 @@ dataset overrides or adds any command. Optional dependencies keep using
   (`resources`: CPUs, memory, GPU, walltime, container), implemented over
   `concurrent.futures` (local pool), `submitit` (SLURM/SGE/PBS, job arrays,
   `afterok` dependencies) and optionally Dask/Ray. Profiles in a user config
-  file. Containers: Docker locally, Apptainer on HPC.
+  file. Containers: Docker locally, Apptainer on HPC. The local backend
+  exists (`actions.runner.LocalExecutor.submit(task, resources=None) ->
+  Future`, used by roast; `task` is a picklable callable).
 * State: **one state file per task** under `.brainspresso/` (concurrent jobs
   never write the same file); the manifest is an index rebuilt from them.
-  Format (defined in step 2b-i, not used yet): `<state>/tasks/<task
-  id>.json`, the task id URL-quoted into the file name, written
-  atomically:
+  Format (defined in step 2b-i, written by roast shards since 2b-ii-fix):
+  `<state>/tasks/<task id>.json`, the task id URL-quoted into the file
+  name, written atomically:
 
   ```json
   {"schema": 1, "task": "grind/fs/sub-01/ses-1",
@@ -367,6 +427,14 @@ dataset overrides or adds any command. Optional dependencies keep using
    "error": "<message> | null",
    "outputs": ["<path relative to <DS>>"]}
   ```
+
+  Roast shards add `run` (id of the roast that wrote it), `counts`
+  (`{tag: {outcome: n}}`), `progress` (`{tag: [total, advance]}`) and
+  `children` (shards it yielded); they write it when they start, on
+  every progress event, at most every 0.5 s on outcomes, and when done
+  (`done` without errors, else `failed`). Shards without an id that run
+  in a worker use a temporary `roast/.auto/...` id, removed once
+  collected.
 * Roast shares reporting, the state format and the submit protocol with
   grind (local backend only), not the `Action` class.
 * `bx <ds> grind <pipeline>` applies dataset defaults/overrides (which T1w,
@@ -385,6 +453,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | done (333 passed) |
 | 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
 | 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | done (461 passed, 28 xfailed: OASIS-III sessions name and exclude-keys fixed) |
+| 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
@@ -443,3 +512,9 @@ up as an XPASS failure once fixed (then drop the marker).
 * r4: step 2b-ii. Keys select a union of selections (`KeySelection`);
   the JSON policy skips `sourcedata/`; tables trimmed from
   `.brainspresso/orig/` in every roast.
+* r5: step 2b-ii-fix (review). Keys classify paths (first matching key)
+  instead of a union; the `sourcedata/` exemption becomes
+  `Action(staging=True)`; claims never write directly; tables default
+  to `different`; every shard runs in the pool and every `finalize`
+  runs; roast shards write the per-task state of §7 and go through the
+  local `submit` protocol; `ctx.source` prepares step 3.

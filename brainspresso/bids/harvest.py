@@ -296,9 +296,10 @@ def harvest(
 #
 # `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
 # unit...), so that concurrent jobs never write the same file. The
-# manifest is an index that can be rebuilt from them. Not used by
-# roast/grind yet. Task ids are free-form (e.g. "grind/fs/sub-01/ses-1")
-# and URL-quoted into file names.
+# manifest is an index that can be rebuilt from them. Written by roast
+# shards (`actions.runner`, which adds `run`, `counts`, `progress` and
+# `children`). Task ids are free-form (e.g. "grind/fs/sub-01/ses-1") and
+# URL-quoted into file names.
 #
 #     {
 #       "schema": 1,

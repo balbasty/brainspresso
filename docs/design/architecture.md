@@ -115,8 +115,17 @@ harvest, roast, compost and grind. Before anything else depends on it, it must:
 * offer a generic `entities={name: values}` filter instead of one field per
   entity (subjects/sessions/tasks stay as shortcuts);
 * expose two operations: `select(listing)` (whole listing, adds inherited
-  metadata) and a **per-path predicate** `keeps(relpath, dataset_kind)`
-  that may answer "maybe" for partially known paths (§5 claims).
+  metadata) and a **per-path predicate** `keeps(relpath, partial=False)
+  -> bool | None` that may answer "maybe" (`None`) for claims, i.e.
+  partially known paths written as `dir/` or `dir/<name fragment>` (§5),
+  plus `keeps_subject(label)` for early pruning.
+
+Implemented (step 2a): built-in companion table (checked against
+`bidsschematools` in an optional test), any directory inside a datatype
+folder is a recording unit, `entities=` with `subs`/`sessions`/`tasks` as
+shortcuts. Not yet: links outside inheritance (`IntendedFor` field maps,
+ASL `m0scan`), a CLI flag for `entities`, filters on derivative datasets
+beyond subject/session.
 
 Dataset-specific **keys** (`raw`, `meta`, `fs`, ...) remain as per-dataset
 aliases expanding to selection predicates and/or non-BIDS categories
@@ -261,8 +270,10 @@ Each step lands as commits on the refactor branch with its tests green.
 | # | Step | Tier | Status |
 |---|------|------|--------|
 | 1 | Characterization tests for roasts without tests (COBRE, OASIS-I/II/III, ABIDE-II, ABIDE-I nitrc); known bugs as strict xfail | Low-Effort Opus | done (300 passed, 16 xfailed) |
-| 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | |
-| 2b | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`); runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim; pilot on UNC-Wisconsin, IXI, OASIS-III and one INDI project (hybrid placement); remove `rawdata/` from compost/harvest | High-Effort Opus, Fable review | |
+| 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | done (333 passed) |
+| 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | |
+| 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |

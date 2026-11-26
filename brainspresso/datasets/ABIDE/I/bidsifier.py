@@ -41,17 +41,17 @@ class BidsifierBase:
     )
 
     # Sites whose sidecars are per sample (`templates/<Site>_<sample>/`).
-    # The first sample is the default, used when the data does not name
-    # the sample (e.g. `CMU`, `MaxMun`, `MAX_MUN`). It is the sample that
-    # the former site-level template (`templates/<Site>/`) described:
-    # CMU_a for CMU (TR 2 s; CMU_b has TR 1.5 s); the samples of the
-    # other sites share their protocol.
     SAMPLES: dict[str, tuple[str, ...]] = {
         'CMU': ('a', 'b'),
         'Leuven': ('1', '2'),
         'MaxMun': ('a', 'b', 'c', 'd'),
         'UCLA': ('1', '2'),
         'UM': ('1', '2'),
+    }
+    # Parts of the NITRC tarballs of sites without samples (`NYU_a.tgz`)
+    # (`sources.PARTS`, whose CMU and MaxMun parts are samples here)
+    PARTS: dict[str, tuple[str, ...]] = {
+        'NYU': ('a', 'b', 'c', 'd', 'e'),
     }
 
     @classmethod
@@ -62,8 +62,9 @@ class BidsifierBase:
         tarballs (`MaxMun_a`, `UCLA_1`, `NYU_a`), XNAT subject labels and
         scan-parameter folders (`CMU`, `Leuven-1`, `UCLA1`) and phenotypic
         site IDs (`MAX_MUN`, `LEUVEN_1`). The sample is None when the data
-        does not give it, or for a site without per-sample sidecars (a
-        suffix, such as the NYU tarball part `_a`, is then ignored).
+        does not give it, or for a site without per-sample sidecars (whose
+        only accepted suffix is a tarball part, e.g. `NYU_a`). Raises
+        `TemplateError` for an unknown site, sample or suffix.
         """
         flat = ''.join(c for c in site if c.isalnum()).lower()
         for name in sorted(cls.SITES, key=len, reverse=True):
@@ -71,36 +72,62 @@ class BidsifierBase:
                 break
         else:
             raise TemplateError(f'ABIDE-I: unknown site {site!r}')
+        suffix = flat[len(name):] or None
         if name not in cls.SAMPLES:
+            if suffix is not None and suffix not in cls.PARTS.get(name, ()):
+                raise TemplateError(
+                    f'ABIDE-I: unknown suffix {suffix!r} of site {name} '
+                    f'(from {site!r}); known parts: '
+                    f'{cls.PARTS.get(name, ())}')
             return name, None
-        sample = flat[len(name):] or None
-        if sample is not None and sample not in cls.SAMPLES[name]:
+        if suffix is not None and suffix not in cls.SAMPLES[name]:
             raise TemplateError(
-                f'ABIDE-I: unknown sample {sample!r} of site {name} '
+                f'ABIDE-I: unknown sample {suffix!r} of site {name} '
                 f'(from {site!r}); known samples: {cls.SAMPLES[name]}')
-        return name, sample
+        return name, suffix
+
+    _warned: set = set()
 
     @classmethod
     def template(cls, site: str, name: str) -> Path:
         """Sidecar template for a scan.
 
         `site` is the site name found in the data (see `parse_site`).
-        For a site with per-sample sidecars (`SAMPLES`), the template is
-        `templates/<Site>_<sample>/<name>` (default sample if the data
-        does not name one), else `templates/<Site>/<name>` (e.g.
-        `CMU/T1w.json`, used by CMU_a, which has no anatomical printout).
+
+        * Site without samples: `templates/<Site>/<name>`.
+        * Known sample: `templates/<Site>_<sample>/<name>`, else
+          `templates/<Site>/<name>` (e.g. `CMU/T1w.json`, used by CMU_a,
+          which has no anatomical printout).
+        * Unknown sample (e.g. XNAT `CMU_50642`, `MaxMun`):
+          `templates/<Site>/<name>` if it exists, a template holding only
+          what the samples share (e.g. `CMU/bold.json`; a warning is
+          logged); else the first sample's, which is only used where all
+          samples share one protocol (see tests/test_abide1_templates.py).
+
         Raises `TemplateError`, naming the site and template, if none
         exists.
         """
         site_name, sample = cls.parse_site(site)
         candidates = []
-        if site_name in cls.SAMPLES:
-            sample = sample or cls.SAMPLES[site_name][0]
-            candidates.append(f'{site_name}_{sample}/{name}')
-        candidates.append(f'{site_name}/{name}')
+        common = f'{site_name}/{name}'
+        if site_name in cls.SAMPLES and sample is None:
+            candidates = [common, f'{site_name}_{cls.SAMPLES[site_name][0]}'
+                          f'/{name}']
+        elif site_name in cls.SAMPLES:
+            candidates = [f'{site_name}_{sample}/{name}', common]
+        else:
+            candidates = [common]
         for candidate in candidates:
             path = cls.TPLDIR / candidate
             if path.is_file():
+                if (sample is None and site_name in cls.SAMPLES
+                        and candidate == common
+                        and (site, name) not in cls._warned):
+                    cls._warned.add((site, name))
+                    lg.warning(
+                        f'ABIDE-I: site {site!r} names no sample of '
+                        f'{site_name}: using the site template '
+                        f'{candidate} (only what the samples share)')
                 return path
         raise TemplateError(
             f'ABIDE-I: no template {name!r} for site {site!r} '

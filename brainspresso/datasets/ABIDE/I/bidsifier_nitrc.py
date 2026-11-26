@@ -8,6 +8,7 @@ from brainspresso.utils.io import write_from_buffer
 from brainspresso.utils.keys import compat_keys
 from brainspresso.actions import Action
 from brainspresso.actions import CopyJSON
+from brainspresso.actions import Fail
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
 from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
@@ -49,7 +50,8 @@ class Bidsifier(BidsifierBase):
 
         def run(members: Iterator[Member]) -> Iterator[Status]:
             for action, mod in self._iter_raw_actions(members):
-                fname = action.dst.name
+                fname = (action.name if isinstance(action, Fail)
+                         else action.dst.name)
                 for status in action:
                     yield from self.fixstatus(status, fname, mod)
 
@@ -127,7 +129,9 @@ class Bidsifier(BidsifierBase):
                 try:
                     json = self.template(site, tpl)
                 except TemplateError as e:
-                    lg.error(f"{srcpath}: {memberpath}: {e}")
+                    # counted as an error: the run ends partial
+                    yield Fail(f"{srcpath}: {memberpath}: {e}",
+                               name=f'sub-{id:05d}_{mod}.json'), mod
                     continue
                 yield CopyJSON(
                     json, dst / f'sub-{id:05d}_{mod}.json'

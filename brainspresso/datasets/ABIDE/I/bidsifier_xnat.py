@@ -9,6 +9,7 @@ from brainspresso.freesurfer import bidsify as fs
 from brainspresso.actions import Action
 from brainspresso.actions import WriteBytes
 from brainspresso.actions import CopyJSON
+from brainspresso.actions import Fail
 from brainspresso.datasets.ABIDE.I.keys import allleaves, allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
 from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
@@ -74,8 +75,10 @@ class Bidsifier(BidsifierBase):
         yield {'progress': 0}
         for i, id in enumerate(self.subs):
             for action in self._make_raw(key, id):
+                fname = (action.name if isinstance(action, Fail)
+                         else action.dst.name)
                 for status in action:
-                    yield from self.fixstatus(status, action.dst.name)
+                    yield from self.fixstatus(status, fname)
             yield {'progress': 100*(i+1)/len(self.subs)}
         yield {'status': 'done', 'message': ''}
 
@@ -117,7 +120,9 @@ class Bidsifier(BidsifierBase):
             try:
                 json = self.template(site, tpl)
             except TemplateError as e:
-                lg.error(f"{tar.name}: {e}")
+                # counted as an error: the run ends partial
+                yield Fail(f"{tar.name}: {e}",
+                           name=f'sub-{id:05d}_{mod}.json')
                 return
             yield CopyJSON(json, dst / f'sub-{id:05d}_{mod}.json')
 

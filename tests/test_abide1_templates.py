@@ -64,12 +64,14 @@ def test_template_hires(site):
     ("CMU_b", "bold.json", "CMU_b/bold.json"),
     # no anatomical printout for CMU_a: site sidecar
     ("CMU_a", "T1w.json", "CMU/T1w.json"),
-    # sample unknown: default sample of the site
-    ("CMU", "bold.json", "CMU_a/bold.json"),
+    # sample unknown, samples differ: what the samples share
+    ("CMU", "bold.json", "CMU/bold.json"),
+    ("CMU_50642".rsplit("_", 1)[0], "bold.json", "CMU/bold.json"),
     ("CMU", "T1w.json", "CMU/T1w.json"),
+    ("MaxMun", "bold.json", "MaxMun/bold.json"),
+    ("MAX_MUN", "bold.json", "MaxMun/bold.json"),
+    # sample unknown, samples share one protocol: first sample
     ("MaxMun", "T1w.json", "MaxMun_a/T1w.json"),
-    ("MaxMun", "bold.json", "MaxMun_a/bold.json"),
-    ("MAX_MUN", "bold.json", "MaxMun_a/bold.json"),
     ("Leuven", "bold.json", "Leuven_1/bold.json"),
     ("UCLA", "T1w.json", "UCLA_1/T1w.json"),
     ("UM", "bold.json", "UM_1/bold.json"),
@@ -89,6 +91,57 @@ def test_template_errors():
         BidsifierBase.template("MaxMun_e", "T1w.json")
     with pytest.raises(TemplateError, match="'dwi.json' for site 'CMU_a'"):
         BidsifierBase.template("CMU_a", "dwi.json")
+    # sites without samples: only a tarball part is accepted as suffix
+    with pytest.raises(TemplateError, match="unknown suffix 'backup'.*SDSU"):
+        BidsifierBase.template("SDSU_backup", "T1w.json")
+    with pytest.raises(TemplateError, match="unknown suffix 'f'.*NYU"):
+        BidsifierBase.template("NYU_f", "T1w.json")
+    with pytest.raises(TemplateError, match="unknown suffix 'a'.*Caltech"):
+        BidsifierBase.template("Caltech_a", "T1w.json")
+
+
+def test_parts_match_sources():
+    """Tarball parts of sites without samples are those of the sources."""
+    expected = {site: tuple(p.lstrip("_") for p in parts)
+                for site, parts in sources.PARTS.items()
+                if site not in BidsifierBase.SAMPLES}
+    assert BidsifierBase.PARTS == expected
+
+
+def _load(path):
+    return json.loads(path.read_text())
+
+
+@pytest.mark.parametrize("name", NAMES + ("acq-hires_T1w.json",))
+@pytest.mark.parametrize("site", sorted(BidsifierBase.SAMPLES))
+def test_unknown_sample_never_borrows(site, name):
+    """With no sample in the data, a site whose samples differ uses a
+    template holding only what they share, never one sample's values."""
+    samples = [TPL / f"{site}_{s}" / name
+               for s in BidsifierBase.SAMPLES[site]]
+    samples = [_load(p) for p in samples if p.is_file()]
+    if not samples:
+        return
+    common = TPL / site / name
+    got = _load(BidsifierBase.template(site, name))
+    if all(s == samples[0] for s in samples):
+        assert got in samples
+    else:
+        assert common.is_file()
+        assert got == {k: v for k, v in samples[0].items()
+                       if all(s.get(k, object()) == v for s in samples)}
+
+
+def test_unknown_sample_warns(caplog):
+    BidsifierBase._warned.clear()
+    with caplog.at_level(logging.WARNING):
+        BidsifierBase.template("CMU", "bold.json")
+        BidsifierBase.template("CMU", "bold.json")
+        BidsifierBase.template("CMU_b", "bold.json")
+        BidsifierBase.template("Leuven", "bold.json")
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "'CMU' names no sample" in warnings[0].getMessage()
 
 
 def test_samples_match_templates():
@@ -119,8 +172,9 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     make_tar(src / "Nowhere.tgz", {
         "Nowhere/0099999/session_1/anat_1/mprage.nii.gz": nii_bytes(),
     })
+    roast = Bidsifier(root, keys={"T1w", "rest"})
     with caplog.at_level(logging.ERROR):
-        Bidsifier(root, keys={"T1w", "rest"}).run()
+        roast.run()
 
     def sidecar(path):
         return json.loads(raw_file(root, path).read_text())
@@ -128,11 +182,13 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     def tpl(path):
         return json.loads((TPL / path).read_text())
 
-    assert sidecar("sub-50642/func/sub-50642_task-rest_bold.json") \
-        == tpl("CMU_a/bold.json")
+    bold = sidecar("sub-50642/func/sub-50642_task-rest_bold.json")
+    assert bold == tpl("CMU/bold.json")
+    assert "RepetitionTime" not in bold     # CMU_a: 2 s, CMU_b: 1.5 s
     assert sidecar("sub-51330/anat/sub-51330_T1w.json") \
         == tpl("MaxMun_a/T1w.json")
-    # unknown site: image converted, sidecar error logged
+    # unknown site: image converted, sidecar error logged and counted
     assert raw_file(root, "sub-99999/anat/sub-99999_T1w.nii.gz").exists()
     assert not raw_file(root, "sub-99999/anat/sub-99999_T1w.json").exists()
     assert "unknown site 'Nowhere'" in caplog.text
+    assert roast.nb_errors == {"T1w": 1}

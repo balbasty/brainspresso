@@ -28,6 +28,7 @@ from brainspresso.actions.locks import (
 from brainspresso.bids.layout import Layout
 from brainspresso.bids.select import Selection
 from brainspresso.download import Downloader, DownloadManager
+from brainspresso.download.manager import DownloadTable
 from brainspresso.sources import credentials
 from brainspresso.sources.base import (
     DownloadOptions,
@@ -296,6 +297,28 @@ def test_generated_file_in_use_does_not_stop_the_harvest(
     assert (tmp_path / "a.txt").read_bytes() == FILES["/data/a.txt"]
     assert (tmp_path / "second.json").read_text() == "new"
     assert {d.dst.name for d in done} == {"first.json", "a.txt"}
+
+
+def test_unwritten_generated_file_fails_as_a_download(host, tmp_path,
+                                                      monkeypatch):
+    monkeypatch.setenv(LOCAL_DIR_ENV, str(tmp_path / "locks"))
+    monkeypatch.setenv(TIMEOUT_ENV, "0.3")
+    rows = []
+    monkeypatch.setattr(DownloadTable, "__call__",
+                        lambda self, row: rows.append(row))
+    entries = [
+        RemoteEntry("first.json", meta={"content": "new"}),
+        RemoteEntry("missing.txt", f"{host['url']}/data/missing.txt"),
+    ]
+    first = tmp_path / "first.json"
+    first.write_text("old")
+    with File(first, "r"):
+        StaticURLs().fetch(entries, tmp_path, DownloadOptions(path="name"))
+    # the same final row as a failed download (there is no other count)
+    final = {row["path"]: row for row in rows if row.get("status")}
+    assert final["first.json"]["status"] == "error"
+    assert final["first.json"]["message"].startswith("[LockTimeout]")
+    assert final["missing.txt"]["status"] == "error"
 
 
 def test_dry_run_downloads_nothing(host, tmp_path, capsys):

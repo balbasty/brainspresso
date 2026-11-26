@@ -593,8 +593,9 @@ def write_content(dst: str | os.PathLike, content: bytes | str,
                 raise FileExistsError(dst)
             if ifexists == "skip":
                 return False
-        # short: a valid name plus a suffix may be too long
-        tmp = dst.with_name(f".{secrets.token_hex(8)}.part")
+        # short (a valid name plus a suffix may be too long), with the
+        # start of the name, so that a leftover tells its file
+        tmp = dst.with_name(f".{dst.name[:40]}.{secrets.token_hex(8)}.part")
         # created as `open` creates files (0o666 less the umask), unlike
         # `tempfile.mkstemp` (0o600, kept by the rename)
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL

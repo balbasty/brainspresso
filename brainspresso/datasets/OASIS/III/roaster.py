@@ -48,9 +48,8 @@ from typing import Iterator
 
 from brainspresso.actions import Action, Claim, Fail, WriteJSON, WriteTSV
 from brainspresso.actions.archive import ExtractMembers
-from brainspresso.actions.helpers import copy_templates, subject_shards
-from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import as_list, roast_dataset
+from brainspresso.roast import RoastContext, Shard, as_list
+from brainspresso.roast import copy_templates, roast_dataset, subject_shards
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.OASIS.III.keys import allkeys
 from brainspresso.freesurfer import bidsify as fs
@@ -234,7 +233,7 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
     # unpacked files are inputs of the bidsification (`staging`: the
     # JSON policy does not apply to them)
     yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
-    # (the shard runs after the tree is unpacked: the runner runs each
+    # (the shard runs after the tree is unpacked: the engine runs each
     # action before asking for the next item)
     yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
 

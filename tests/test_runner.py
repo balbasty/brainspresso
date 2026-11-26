@@ -1,4 +1,5 @@
-"""Roast runner (`actions.runner`), action outputs/claims, key aliases."""
+"""Engine (`actions.engine`) and roast layer (`roast`): action outputs,
+claims, kinds, shards, key aliases."""
 import json
 from pathlib import Path
 
@@ -6,7 +7,7 @@ import pytest
 
 from brainspresso.actions import Action, Claim, WriteJSON, WriteText
 from brainspresso.actions.archive import ExtractMembers
-from brainspresso.actions.runner import (
+from brainspresso.roast import (
     RoastContext, Shard, make_context, run_roast,
 )
 from brainspresso.bids.keys import KeyAliases
@@ -605,9 +606,14 @@ def test_nested_shards(layout, jobs):
 def crashing(ctx, i, main_pid):
     import os
     import time
-    if i == 1 and os.getpid() != main_pid:
-        os._exit(1)             # a worker dies (segfault, OOM killer...)
-    time.sleep(0.3)
+    if os.getpid() != main_pid:
+        if i == 1:
+            os._exit(1)         # a worker dies (segfault, OOM killer...)
+        # The other worker holds its shard (the first one) until the
+        # broken pool kills it: so no other shard starts in a worker,
+        # however late the worker of shard 1 is spawned (a sleep here
+        # let one worker run shards 0, 2..5 before shard 1 crashed).
+        time.sleep(60)
     yield text(ctx.layout.raw / f"sub-{i:02d}" / "anat" /
                f"sub-{i:02d}_T1w.nii.gz", str(os.getpid()), tag="anat")
 
@@ -695,7 +701,7 @@ def test_kinds_and_json_policy(layout):
     """bval/bvec are metadata written under every policy; nothing hides
     a `Fail`; tables ignore --json"""
     from brainspresso.actions import Fail
-    from brainspresso.actions.action import default_kind
+    from brainspresso.bids.kinds import default_kind
     raw = layout.raw
     assert default_kind("dwi.bval") == default_kind("x_dwi.bvec") == "meta"
 
@@ -854,7 +860,7 @@ def test_ctx_source(layout, tmp_path):
 
 
 def test_helpers(layout, tmp_path):
-    from brainspresso.actions.helpers import copy_templates, subject_shards
+    from brainspresso.roast import copy_templates, subject_shards
     templates = tmp_path / "templates"
     templates.mkdir()
     (templates / "README").write_text("readme")

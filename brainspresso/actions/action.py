@@ -1,3 +1,19 @@
+"""
+Actions: units of work that write files in the tree.
+
+```python
+WriteJSON({"Name": "x"}, "x.json")()                     # run it
+for status in CopyBytes(src, dst):                       # with statuses
+    print(status)
+```
+
+An `Action` declares its outputs (`dst`, or a `Claim` when they are only
+known once it has run), reads its sources under shared locks and writes
+its outputs under exclusive locks, to temporary files renamed into place
+(`actions.file`). `IfExists` decides what to do with outputs that
+already exist. The engine (`actions.engine`) runs actions that its
+producers yield, through the acceptance policy of a stage layer.
+"""
 import datetime
 import filecmp
 import os
@@ -22,64 +38,48 @@ FilenameLike = str | os.PathLike
 FileLike = FilenameLike | IO
 FilenamesLike = Iterable[FilenameLike] | FilenameLike
 FilesLike = Iterable[FileLike] | FileLike
-Kind = Literal['data', 'sidecar', 'meta', 'table']
+#: Kind of the outputs of an action: an opaque label, set by the action or
+#: by the layer that runs it (e.g. `bids.kinds.Kind` for roast)
+Kind = str
 
-# Dataset-level JSON files that describe tables or the dataset, not data
-# files (kind "table", so that `--json no` does not drop them)
-_TABLE_JSON_SUFFIXES = ('participants', 'sessions', 'scans', 'samples')
-_DATASET_JSON = ('dataset_description.json', 'genetic_info.json')
-_DATASET_FILES = (
-    'README', 'README.md', 'README.txt', 'README.rst', 'CHANGES',
-    'LICENSE', 'LICENSE.md', 'LICENSE.txt', 'CITATION.cff', '.bidsignore',
-)
+__all__ = [
+    "Action", "Claim", "Fail", "FileLike", "FilenameLike", "FilenamesLike",
+    "FilesLike", "IfExists", "IfExistsChoice", "Kind", "WrapAction",
+]
 
 
-def default_kind(path: FilenameLike) -> Kind:
-    """
-    Kind of an output, from its name:
-
-    * `*.tsv`, dataset files (`README`, `.bidsignore`...) and the JSON
-      files that describe tables or the dataset (`participants.json`,
-      `sub-*_sessions.json`, `phenotype/*.json`,
-      `dataset_description.json`): "table";
-    * other `*.json`: "sidecar";
-    * `*.bval`, `*.bvec`: "meta" (metadata that is not JSON: written
-      under every `--json` policy, as `bids.select` treats them as
-      metadata of the DWI series);
-    * anything else (images, surfaces...): "data".
-    """
-    path = Path(path)
-    name = path.name
-    if name.endswith(('.bval', '.bvec')):
-        return 'meta'
-    if name.endswith('.tsv') or name in _DATASET_FILES:
-        return 'table'
-    if name.endswith('.json'):
-        stem = name[:-len('.json')]
-        if (
-            name in _DATASET_JSON or
-            stem.split('_')[-1] in _TABLE_JSON_SUFFIXES or
-            path.parent.name == 'phenotype'
-        ):
-            return 'table'
-        return 'sidecar'
-    return 'data'
+def __getattr__(name: str):
+    """Re-export deprecated names (moved to `bids.kinds`)."""
+    if name == "default_kind":
+        from brainspresso.bids.kinds import default_kind
+        return default_kind
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass(frozen=True)
 class Claim:
     """
-    Outputs that are only known once an action has run: an output
-    directory (or a list of them, e.g. the `func/` and `perf/` folders
-    of a session), optionally followed by the known start of the file
-    names (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
-    `Selection.keeps(..., partial=True)`: the claim can be selected if
-    any of its paths can.
+    Outputs that are only known once an action has run.
+
+    An output directory (or a list of them, e.g. the `func/` and `perf/`
+    folders of a session), optionally followed by the known start of the
+    file names (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
+    `Selection.keeps(..., partial=True)` by roast: the claim can be
+    selected if any of its paths can.
+
+    Parameters
+    ----------
+    folder : path | list[path]
+        Output folder(s)
+    fragment : str
+        Known start of the file names (in each folder)
     """
+
     folder: Path | tuple[Path, ...]
     fragment: str = ''
 
     def __post_init__(self):
+        """Normalize `folder` (a path, or a tuple of several)."""
         folder = self.folder
         if not isinstance(folder, (str, os.PathLike)):
             folder = tuple(map(Path, folder))
@@ -93,27 +93,35 @@ class Claim:
 
     @property
     def folders(self) -> tuple[Path, ...]:
+        """Claimed folders, as a tuple."""
         folder = self.folder
         return folder if isinstance(folder, tuple) else (folder,)
 
     @property
     def paths(self) -> tuple[Path, ...]:
-        """Claimed paths (one per folder)"""
+        """Claimed paths (one per folder)."""
         return tuple(f / self.fragment if self.fragment else f
                      for f in self.folders)
 
     @property
     def path(self) -> Path:
-        """First claimed path"""
+        """First claimed path."""
         return self.paths[0]
 
 
 class IfExists:
     """
-    This class both:
+    What to do with outputs that already exist.
+
+    This class:
+
     - holds the set of singleton values (as an Enum)
-    - defines constant (such as the default value)
+    - defines constants (such as the default value)
     - serves as a context manager to override whichever value was set
+
+    Values: "skip" (if all outputs exist), "overwrite", "different"
+    (if the size, digest or, with `Action.compare`, the content differs),
+    "refresh" (if the mtime differs from that of the sources), "error".
 
     ```python
     action = Action(..., ifexists='overwrite')
@@ -125,6 +133,8 @@ class IfExists:
     Choice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
 
     class Enum(_Enum):
+        """Singleton values."""
+
         SKIP = S = 1
         OVERWRITE = O = 2       # noqa: E741
         DIFFERENT = D = 3
@@ -144,7 +154,20 @@ class IfExists:
 
     @classmethod
     def from_any(cls, x: int | Choice | Enum | None) -> Enum:
-        """Return the singleton representation of a value"""
+        """
+        Return the singleton representation of a value.
+
+        Parameters
+        ----------
+        x : int | str | Enum | None
+            A value (a string is matched on its first letter; None: the
+            default)
+
+        Returns
+        -------
+        Enum
+            The singleton
+        """
         if x is None:
             return cls.default
         elif isinstance(x, str):
@@ -157,19 +180,21 @@ class IfExists:
         self._prev = None
 
     def __enter__(self) -> None:
+        """Override the value of every action, until exit."""
         # restore the previous override on exit (not the default, which
         # would leave an override in place for the whole process)
         self._prev = type(self).current
         type(self).current = self.value
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restore the previous override."""
         type(self).current = self._prev
         self._prev = None
 
 
 class Action:
     """
-    This object represents an action that generates a file in the tree.
+    An action that generates a file (or several) in the tree.
 
     The file written by the action is given the latest "mtime" of all
     its sources, from which it is derived.
@@ -195,27 +220,38 @@ class Action:
     action()  # or action.run()
     ```
 
-    Outputs (used by the roast runner, `actions.runner`)
-    ----------------------------------------------------
+    Outputs
+    -------
     An action declares its outputs either as `dst` (one path, or a list
     of paths written together, e.g. DWI nii + bval + bvec) or as a
     `claim` (`Claim(folder, fragment)`) when they are only known once
     it has run (members of an archive, dcm2niix, FreeSurfer trees). A
     claim action is run with `dst=None`: `action()` takes no argument,
     and yields (besides status dictionaries) the concrete actions that
-    write each output, which the runner then selects and runs like any
-    other (so that `IfExists`, atomic writes and counters apply). A
-    claim never writes files itself. Once run, `outputs` lists what was
-    written (or found already there).
+    write each output, which the engine (`actions.engine`) then accepts
+    and runs like any other (so that `IfExists`, atomic writes and
+    counters apply). A claim never writes files itself. Once run,
+    `outputs` lists what was written (or found already there).
 
-    * `kind` ("data", "sidecar", "meta" or "table"; default:
-      `default_kind` of the outputs, which must agree) drives the
-      `--json yes|no|only` policy;
+    * `kind` is an opaque label of the outputs, used by the acceptance
+      policy of the layer that runs the action (`actions.engine.Policy`;
+      roast computes it from the names of the outputs with
+      `bids.kinds.default_kind` when it is not given, for its
+      `--json yes|no|only` policy);
     * `tag` groups actions in the progress display;
     * `staging=True` marks intermediate files (e.g. a FreeSurfer tree
       unpacked to `derivatives/<fs>/sourcedata/`, input of later
-      actions): the JSON policy does not apply to them (nor to the
-      sub-actions of a staging claim).
+      actions), for the acceptance policy (roast does not apply its
+      JSON policy to them, nor to the sub-actions of a staging claim);
+    * `compare=True` (outputs that are cheap to make, e.g. tables):
+      under `IfExists` "different", without an expected size or digest,
+      the outputs are written to temporary files and replace the
+      existing ones only if their content differs.
+
+    Sources are read under shared locks, outputs written under exclusive
+    locks (`actions.file`). A source that is also an output (an update
+    in place, e.g. `WrapAction(path, path, fix)`) is only locked as an
+    output: the actor reads the current file under the exclusive lock.
     """
 
     def __init__(
@@ -234,8 +270,11 @@ class Action:
         kind: Kind | None = None,
         tag: str | None = None,
         staging: bool = False,
+        compare: bool | None = None,
     ) -> None:
         """
+        Build an action.
+
         Parameters
         ----------
         src : [sequence of] str | Path | None
@@ -257,7 +296,8 @@ class Action:
             Path or a string.
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file(s) already exist (default:
-            the runner's policy, else 'different'). With several
+            that of the policy of the engine, else 'different'). With
+            several
             outputs, it applies to the set (e.g. 'skip' if all exist).
         size : int
             Expected output size, in bytes
@@ -269,13 +309,18 @@ class Action:
             digests.
         claim : Claim | None
             Outputs only known once run (instead of `dst`)
-        kind : {'data', 'sidecar', 'meta', 'table'} | None
-            Kind of output (default: from the names of the outputs; the
-            roast runner rejects outputs of several kinds without it)
+        kind : str | None
+            Kind of the outputs (default: set by the layer that runs
+            the action, e.g. roast's `bids.kinds.default_kind`)
         tag : str | None
-            Progress group (default: that of the roaster)
+            Progress group (default: that of the producer that yields
+            the action)
         staging : bool
-            Intermediate files, not subject to the JSON policy
+            Intermediate files (see `Outputs`)
+        compare : bool | None
+            Compare regenerated outputs under "different" (see
+            `Outputs`; None: not given, False unless the layer that
+            runs the action sets it)
         """
         if (dst is None) == (claim is None):
             raise ValueError('An action has either `dst` or a `claim`')
@@ -283,8 +328,11 @@ class Action:
         self.dst = dst
         self.claim = claim
         self.tag = tag
-        self._kind = kind
+        self.kind: Kind | None = kind
+        self.kind_given = kind is not None
         self.staging = staging
+        self.compare_given = compare is not None
+        self.compare = bool(compare)
         self.outputs: list[Path] | None = None
         self.action = action
         self.input = input
@@ -303,7 +351,7 @@ class Action:
 
     @property
     def declared(self) -> list[Path]:
-        """Declared outputs (`dst` as a list; empty for a claim)"""
+        """Declared outputs (`dst` as a list; empty for a claim)."""
         dst = self.dst
         if dst is None:
             return []
@@ -311,33 +359,13 @@ class Action:
             dst = [dst]
         return list(map(Path, dst))
 
-    @property
-    def kinds(self) -> set[Kind]:
-        """Default kinds of the declared outputs"""
-        return set(map(default_kind, self.declared))
-
-    @property
-    def kind(self) -> Kind:
-        if self._kind:
-            return self._kind
-        outputs = self.declared
-        return default_kind(outputs[0]) if outputs else 'data'
-
-    @property
-    def kind_given(self) -> bool:
-        return bool(self._kind)
-
-    @kind.setter
-    def kind(self, value: Kind | None) -> None:
-        self._kind = value
-
     def run(self) -> None:
-        """Run the action"""
+        """Run the action."""
         for _ in self:
             pass
 
     def __call__(self) -> None:
-        """Run the action (`run` alias)"""
+        """Run the action (`run` alias)."""
         return self.run()
 
     def _should_overwrite(self) -> Generator[dict, None, bool]:
@@ -411,9 +439,8 @@ class Action:
                     )
                     return True
 
-            # tables are cheap to generate: write them and compare
-            if not self.digests and self.size is None and \
-                    self.kind == 'table':
+            # cheap outputs (e.g. tables): write them and compare
+            if not self.digests and self.size is None and self.compare:
                 return _COMPARE
 
             # all identical -> skip
@@ -465,12 +492,10 @@ class Action:
         return True
 
     def __iter__(self) -> Iterator[dict]:
+        """Run the action, yielding statuses (and a claim's actions)."""
         try:
             # Protect source files for reading and perform action
-            src = self.src
-            if isinstance(src, (str, Path)):
-                src = [src]
-            with Files(*[File(src1, "r") for src1 in src]):
+            with Files(*[File(src1, "r") for src1 in self._read_sources()]):
                 if self.claim is not None:
                     yield from self._iter_claim()
                     return
@@ -485,8 +510,22 @@ class Action:
             lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
 
+    def _read_sources(self) -> list[FilenameLike]:
+        """
+        List the sources to lock for reading (those that are not outputs).
+
+        An action that updates a file in place (a source that is also
+        a destination) reads it under the exclusive lock of its output,
+        which a shared lock taken first would forbid (lock upgrade).
+        """
+        src = self.src
+        if isinstance(src, (str, os.PathLike)):
+            src = [src]
+        outputs = {_same_file_key(dst) for dst in self.declared}
+        return [s for s in src if _same_file_key(s) not in outputs]
+
     def _iter_claim(self) -> Iterator["dict | Action"]:
-        """Run a claim action: statuses and sub-actions"""
+        """Run a claim action: statuses and sub-actions."""
         if self.outputs is None:
             self.outputs = []
         out = self.action()
@@ -639,15 +678,32 @@ def _keep_all(path) -> bool:
     return True
 
 
+def _same_file_key(path: FilenameLike) -> str:
+    """Absolute path, with the links of its folder resolved (as locks)."""
+    path = os.path.abspath(path)
+    folder, name = os.path.split(path)
+    return os.path.join(os.path.realpath(folder), name)
+
+
 # `_should_overwrite`: write to a temporary file, keep it if different
 _COMPARE = 'compare'
 
 
 class Fail(Action):
     """
-    An action that only reports an error (e.g. a missing input), so that
-    the roast runner counts and displays it. It has no outputs: neither
-    the selection nor the JSON policy can hide it.
+    An action that only reports an error (e.g. a missing input).
+
+    The engine counts and displays it. It has no outputs: no policy
+    hides it (neither the selection nor the JSON policy of roast).
+
+    Parameters
+    ----------
+    message : str
+        The error
+    name : str
+        Name shown in the display
+    tag : str
+        Progress group
     """
 
     def __init__(self, message: str, *, name: str = '', tag: str = None):
@@ -656,6 +712,7 @@ class Fail(Action):
         self.name = name
 
     def __iter__(self) -> Iterator[dict]:
+        """Report the error."""
         lg.error(self.message)
         self.outputs = []
         yield {'status': 'error', 'message': self.message}
@@ -663,8 +720,10 @@ class Fail(Action):
 
 class WrapAction(Action):
     """
-    An action whose actor takes the source files as input on top of the
-    destination path.
+    An action whose actor also takes the source files.
+
+    `action(src, dst)` instead of `action(dst)`; same arguments as
+    `Action`.
     """
 
     def __init__(self, *args, **kwargs) -> None:

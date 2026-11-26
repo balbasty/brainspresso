@@ -11,7 +11,7 @@ them to:
   (metadata, phenotypes, a derivative pipeline, source-only files).
   Roasters ask `ctx.wants(category)`. A category may also be mapped to
   folders of the dataset (`folders={"fs": ["derivatives/fs"]}`), which
-  the runner then drops when the category is not wanted.
+  the roast policy then drops when the category is not wanted.
 
 Keys may be grouped (`raw` -> `anat` -> `T1w`...). A group selects all
 the keys below it.
@@ -63,7 +63,8 @@ _TABLES = frozenset({"sessions", "scans"})
 
 @dataclass(frozen=True)
 class _Key:
-    """Predicates of a BIDS key"""
+    """Predicates of a BIDS key."""
+
     name: str
     bare: Selection             # the key's filters alone (classification)
     branch: Selection           # with the subject/session filters (claims)
@@ -72,15 +73,14 @@ class _Key:
 
 
 def _restrict(base: Selection, predicate: Mapping) -> Selection:
-    """`base` (subjects, sessions...) with the filters of a key"""
+    """Restrict `base` (subjects, sessions...) to the filters of a key."""
     predicate = dict(predicate)
     entities = {**base.entities, **predicate.pop("entities", {})}
     return dataclasses.replace(base, entities=entities, **predicate)
 
 
 def _scans(predicate: Mapping) -> dict | None:
-    """Predicate of the scans of a key (its suffix filter removed), or
-    None if nothing is left"""
+    """Predicate of the scans of a key (suffix filter removed) or None."""
     out = {k: v for k, v in predicate.items() if k != "suffixes" and v}
     return out or None
 
@@ -88,8 +88,10 @@ def _scans(predicate: Mapping) -> dict | None:
 @dataclass
 class KeySelection:
     """
-    Selection of a roast: subject/session filters, wanted keys and
-    their predicates. See the module docstring for the rules.
+    Selection of a roast.
+
+    Subject/session filters, wanted keys and their predicates. See the
+    module docstring for the rules.
 
     Attributes
     ----------
@@ -103,6 +105,7 @@ class KeySelection:
     filtered : bool
         Whether the BIDS keys are filtered (rules 3-5 apply)
     """
+
     base: Selection = field(default_factory=Selection)
     predicates: tuple = ()
     wanted: frozenset | None = None
@@ -110,19 +113,20 @@ class KeySelection:
 
     @property
     def keys(self) -> frozenset | None:
-        """Leaves wanted, for the record (None: everything)"""
+        """Leaves wanted, for the record (None: everything)."""
         return self.wanted
 
     def wants(self, key: str) -> bool:
-        """Whether a key (a category, or a BIDS key) is wanted"""
+        """Whether a key (a category, or a BIDS key) is wanted."""
         return self.wanted is None or key in self.wanted
 
     def keeps_subject(self, label: str) -> bool:
+        """Whether a subject is kept (`base.keeps_subject`)."""
         return self.base.keeps_subject(label)
 
     # ------------------------------------------------------------------
     def key_of(self, relpath: str) -> str | None:
-        """Key of a path of the raw dataset (first match), or None"""
+        """Key of a path of the raw dataset (first match), or None."""
         kind, name = _classify(str(relpath))
         if kind not in (_DATA, _META):
             return None
@@ -139,7 +143,7 @@ class KeySelection:
         return self.predicates[i].name in self.wanted
 
     def _describes(self, name: BidsName, kind: int) -> bool:
-        """Rules 3-4 on a file that the base selection keeps"""
+        """Rules 3-4 on a file that the base selection keeps."""
         index = self._index(name)
         if kind == _DATA:
             if index is not None:
@@ -158,7 +162,7 @@ class KeySelection:
         )
 
     def keeps(self, relpath: str, partial: bool = False) -> bool | None:
-        """`Selection.keeps` on a path of the raw dataset (or a claim)"""
+        """`Selection.keeps` on a path of the raw dataset (or a claim)."""
         relpath = str(relpath)
         if partial:
             return self._keeps_claim(relpath)
@@ -196,7 +200,7 @@ class KeySelection:
         return None
 
     def select(self, paths: Iterable[str]) -> list[str]:
-        """Paths of a listing to keep (with metadata inheritance)"""
+        """Paths of a listing to keep (with metadata inheritance)."""
         kept = self.base.select(paths)
         if not self.filtered:
             return kept
@@ -226,7 +230,7 @@ class KeySelection:
         return sorted(out)
 
     def fingerprint(self) -> str:
-        """Stable description (state signatures)"""
+        """Stable description (state signatures)."""
         def norm(obj):
             if dataclasses.is_dataclass(obj):
                 return norm(dataclasses.asdict(obj))
@@ -269,7 +273,7 @@ class KeyAliases:
     folders : dict[str, list[str]]
         Category -> folders it writes, as paths of a flat BIDS view of
         the dataset (`phenotype`, `derivatives/<name>`; placed with
-        `Layout.resolve`). The runner drops outputs in a folder whose
+        `Layout.resolve`). The roast policy drops outputs in a folder whose
         categories are all unwanted.
     """
 
@@ -312,11 +316,12 @@ class KeyAliases:
 
     @property
     def names(self) -> set[str]:
-        """All keys (leaves and groups)"""
+        """All keys (leaves and groups)."""
         return self.leaves | set(self.groups)
 
     @property
     def categories(self) -> set[str]:
+        """Leaves that are categories (not BIDS keys)."""
         return self.leaves - set(self.bids)
 
     def _lookup(self, key: str) -> set[str]:
@@ -332,7 +337,7 @@ class KeyAliases:
         )
 
     def expand(self, keys: Iterable[str] | str) -> set[str]:
-        """Leaves selected by keys (or groups of keys)"""
+        """Leaves selected by keys (or groups of keys)."""
         if isinstance(keys, str):
             keys = [keys]
         out = set()
@@ -341,8 +346,12 @@ class KeyAliases:
         return out
 
     def key_of(self, relpath: str) -> str | None:
-        """Key of a path of the raw dataset: the first BIDS key, in
-        declared order, whose predicate keeps it as a data file"""
+        """
+        Key of a path of the raw dataset.
+
+        The first BIDS key, in declared order, whose predicate keeps it
+        as a data file.
+        """
         return self.selection().key_of(relpath)
 
     def selection(
@@ -352,7 +361,7 @@ class KeyAliases:
         **filters,
     ) -> KeySelection:
         """
-        Selection of a roast.
+        Build the selection of a roast.
 
         Parameters
         ----------

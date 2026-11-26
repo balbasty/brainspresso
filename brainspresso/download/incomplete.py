@@ -1,8 +1,16 @@
-"""Partial files of downloads that can be resumed."""
+"""
+Partial files of downloads that can be resumed.
+
+A download writes `<name>.download` under a `fasteners` lock of its own
+(`<name>.lock`, one downloader per file), and renames it to `<name>`
+under the exclusive reader/writer lock of `<name>` (`actions.locks`),
+so that it never replaces a file while an action reads it.
+"""
 __all__ = ['IncompleteFile']
 # stdlib
 import asyncio
 import hashlib
+import os
 import time
 from pathlib import Path
 from shutil import rmtree
@@ -16,6 +24,7 @@ import aiofiles.os as aos
 from fasteners import InterProcessLock
 
 # internals
+from brainspresso.actions.locks import FileLock
 from brainspresso.utils.digests import get_digester
 
 lg = getLogger(__name__)
@@ -204,30 +213,27 @@ class IncompleteFile:
         # remove temporary file if the download was successful (i.e.
         # the context was not interrupted by an exception)
         success = exc_type is None and not self._discard
+        installed = False
         try:
             if success:
                 lg.debug(
                     f"renaming file...  {self.tempname} -> {self.filename}"
                 )
-                try:
-                    await aos.rename(self.tempname, self.filename)
-                    # await run_async(self.tempname.replace, self.filename)
-                except IsADirectoryError:
-                    await run_async(rmtree, self.filename)
-                    await aos.rename(self.tempname, self.filename)
-                    # await run_async(self.tempname.replace, self.filename)
+                await run_async(self._install)
+                installed = True
                 lg.debug(f"renamed file:  {self.tempname} -> {self.filename}")
                 if self.digester:
                     lg.debug(f"saving digest...  {self.filename}")
                     self._digest = await run_async(self.digester.hexdigest)
                     lg.debug(f"saved digest:  {self.filename}")
         finally:
-            # Release lock and delete existing files
+            # Release lock and delete existing files (a complete file
+            # that could not be renamed is kept, to be resumed)
             assert self.lock is not None
             lg.debug(f"releasing lock...  {self.lockname}")
             await run_async(self.lock.release)
             lg.debug(f"released lock:  {self.lockname}")
-            if success or self._discard:
+            if installed or self._discard:
                 lg.debug(f"deleting file...  {self.tempname}")
                 await run_async(self.tempname.unlink, missing_ok=True)
                 lg.debug(f"deleted file:  {self.tempname}")
@@ -242,6 +248,23 @@ class IncompleteFile:
             self.file = None
             self.offset = None
             self._discard = False
+
+    def _install(self) -> None:
+        """
+        Rename the complete file into place.
+
+        Under the exclusive lock of the destination (`actions.locks`,
+        default timeout): readers of the file (e.g. a roast that reads
+        a source) and other writers exclude this replacement, as they
+        exclude each other. `LockTimeout` (a `TimeoutError`) if they
+        hold it too long.
+        """
+        with FileLock(self.filename, exclusive=True):
+            try:
+                os.rename(self.tempname, self.filename)
+            except IsADirectoryError:
+                rmtree(self.filename)
+                os.rename(self.tempname, self.filename)
 
     async def append(self, blob: bytes) -> "IncompleteFile":
         """Append bytes to the file and update its digest.

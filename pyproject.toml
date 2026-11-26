@@ -15,12 +15,15 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "W", "D"]
 
-[tool.ruff.lint.per-file-ignores]
-# pydocstyle is enforced package by package; drop paths as they comply.
-"!brainspresso/{sources,download}/**" = ["D"]
-
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+# Docstrings (pydocstyle, numpy convention) are enforced package by
+# package, in the packages ported to the new architecture only; extend
+# this one (negated) pattern as packages comply (two negated patterns
+# would exempt every file): docs/design/architecture.md, "Conventions".
+"!brainspresso/{actions,bids,download,roast,sources}/**" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

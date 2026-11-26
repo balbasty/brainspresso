@@ -60,6 +60,8 @@ class Bidsifier:
     # ------------------------------------------------------------------
     def run(self):
         """Run all actions"""
+        # the state folder holds the lock files (`actions.locks`)
+        self.layout.ensure_state()
         self.init()
         with self.out as self.out:
             self._run()
@@ -113,13 +115,15 @@ class Bidsifier:
                 CopyJSON(
                     self.TPLDIR / 'dataset_description.json',
                     self.raw / 'dataset_description.json',
-                    **opt
+                    **opt,
+                    compare=True,
                 ),
             'participants.json':
                 CopyJSON(
                     self.TPLDIR / 'participants.json',
                     self.raw / 'participants.json',
-                    **opt
+                    **opt,
+                    compare=True,
                 ),
             'participants.tsv':
                 WrapAction(
@@ -127,6 +131,7 @@ class Bidsifier:
                     self.raw / 'participants.tsv',
                     self.make_participants,
                     mode="t", input="path",
+                    compare=True,
                     **opt
                 ),
         }

@@ -122,6 +122,7 @@ class BidsName:
     session of its directories. Files inside a directory-format recording
     take the components of the recording (`unit` is its path).
     """
+
     path: str
     entities: dict = field(hash=False)
     suffix: str | None
@@ -131,6 +132,7 @@ class BidsName:
 
     @classmethod
     def parse(cls, path: str) -> "BidsName":
+        """Parse a path relative to a BIDS dataset."""
         parts = _parts(path)
         if not parts:
             return cls(path, {}, None, "", None)
@@ -159,7 +161,7 @@ class BidsName:
 
     @property
     def companion(self) -> frozenset | None:
-        """Own entities if this is a companion file, else None"""
+        """Own entities if this is a companion file, else None."""
         if self.unit is not None:
             return None
         if self.suffix in COMPANIONS:
@@ -171,6 +173,7 @@ class BidsName:
 
     @property
     def is_metadata(self) -> bool:
+        """Whether this is a metadata file (sidecar or companion)."""
         if self.unit is not None:
             return False
         return (self.extension in SIDECAR_EXTENSIONS
@@ -178,17 +181,17 @@ class BidsName:
 
     @property
     def directory(self) -> PurePosixPath:
-        """Directory that contains the file (or its recording)"""
+        """Directory that contains the file (or its recording)."""
         return PurePosixPath(self.unit or self.path).parent
 
     @property
     def _dir(self) -> str:
-        """`directory` as a string ("" for the dataset root)"""
+        """`directory` as a string ("" for the dataset root)."""
         return "/".join(_parts(self.unit or self.path)[:-1])
 
 
 def _parts(path: str) -> tuple[str, ...]:
-    """Components of a relative POSIX path (faster than `PurePosixPath`)"""
+    """Components of a relative POSIX path (faster than `PurePosixPath`)."""
     return tuple(p for p in path.split("/") if p and p != ".")
 
 
@@ -222,7 +225,7 @@ def _strip(value, prefix: str) -> str:
 
 
 def _fold(verdicts: Iterable[bool | None]) -> bool | None:
-    """False if any is False, else None if any is None, else True"""
+    """Fold verdicts: False if any is, else None if any is, else True."""
     out = True
     for v in verdicts:
         if v is False:
@@ -233,7 +236,7 @@ def _fold(verdicts: Iterable[bool | None]) -> bool | None:
 
 
 def _hidden(parts: tuple[str, ...]) -> bool:
-    """Hidden file or folder, outside of directory-format recordings"""
+    """Hidden file or folder, outside of directory-format recordings."""
     for part in parts:
         if part.startswith("."):
             return True
@@ -304,6 +307,7 @@ class Selection:
         `{"acq": ["mprage"], "run": ["1", "2"]}`. Index entities (`run`,
         `echo`...) compare as numbers: `"1"` matches `run-01`.
     """
+
     subs: Collection[str] = ()
     exclude_subs: Collection[str] = ()
     sessions: Collection[str] = ()
@@ -316,6 +320,7 @@ class Selection:
     entities: Mapping[str, Collection[str]] = field(default_factory=dict)
 
     def __post_init__(self):
+        """Normalize the entity filters."""
         entities = {}
         for key, values in dict(self.entities or {}).items():
             if isinstance(values, str):
@@ -350,8 +355,9 @@ class Selection:
     # ------------------------------------------------------------------
     def keeps_subject(self, label: str) -> bool:
         """
-        Whether files of subject `label` (with or without `sub-`) may be
-        kept. Use it to prune a listing early (e.g. not to list or extract
+        Whether files of subject `label` (with or without `sub-`) may be kept.
+
+        Use it to prune a listing early (e.g. not to list or extract
         the members of a subject that is dropped anyway).
         """
         label = _strip(label, "sub-")
@@ -363,8 +369,9 @@ class Selection:
 
     def keeps(self, relpath: str, partial: bool = False) -> bool | None:
         """
-        Whether a path relative to the BIDS dataset root is kept, without
-        a listing.
+        Whether a path relative to the BIDS dataset root is kept.
+
+        This needs no listing.
 
         With `partial=False`, `relpath` is the path of a file (or of a
         directory-format recording):
@@ -437,7 +444,7 @@ class Selection:
         return self._unless_excluded(verdict)
 
     def _unless_excluded(self, verdict: bool | None) -> bool | None:
-        """A claim cannot be matched against exclude globs"""
+        """Leave a claim undecided when exclude globs could match it."""
         if verdict is True and self.exclude:
             return None
         return verdict
@@ -446,7 +453,7 @@ class Selection:
     #   Listing
     # ------------------------------------------------------------------
     def select(self, paths: Iterable[str]) -> list[str]:
-        """Return the subset of `paths` to keep (sorted)"""
+        """Return the subset of `paths` to keep (sorted)."""
         filters = self._filters()
         data, meta, kept = [], [], set()
         units = {}      # path -> path of its recording
@@ -510,7 +517,7 @@ class Selection:
     #   Internals
     # ------------------------------------------------------------------
     def _filters(self) -> dict[str, set[str]]:
-        """Entity filters (shortcuts included), with normalised values"""
+        """Entity filters (shortcuts included), with normalised values."""
         filters = {"sub": self.subs, "ses": self.sessions,
                    "task": self.tasks, **self.entities}
         return {k: {_norm(k, v) for v in values}
@@ -528,7 +535,9 @@ class Selection:
 
     def _check(self, name: BidsName, filters, missing: bool | None):
         """
-        Evaluate all filters (but exclude globs) on a name. `missing` is
+        Evaluate all filters (but exclude globs) on a name.
+
+        `missing` is
         the verdict of a filter on something the name does not have:
         False for data files, True for metadata (it applies to files with
         any value), None for claims (unknown).
@@ -563,9 +572,11 @@ class Selection:
 
     def _keeps_folder_file(self, path: str, missing=True) -> bool | None:
         """
-        Subject and session filters, applied to files of optional
-        folders (e.g. `derivatives/<pipeline>/sub-01/...`). Files that
-        do not belong to a subject (or session) are kept (`missing`).
+        Apply subject and session filters to files of optional folders.
+
+        Files of optional folders: e.g.
+        `derivatives/<pipeline>/sub-01/...`. Files that do not belong to
+        a subject (or session) are kept (`missing`).
         """
         entities = {}
         for key, value in re.findall(
@@ -585,8 +596,10 @@ class Selection:
 
 def _inherits(meta: BidsName, by_dir) -> bool | None:
     """
-    True if a metadata file applies to a kept data file, False if it
-    applies only to dropped ones, None if it applies to none.
+    Whether a metadata file applies to kept data files.
+
+    True if it applies to a kept data file, False if it applies only to
+    dropped ones, None if it applies to none.
     """
     verdict = None
     for data, keep in by_dir.get(meta._dir, ()):
@@ -598,7 +611,7 @@ def _inherits(meta: BidsName, by_dir) -> bool | None:
 
 
 def _applies(meta: BidsName, data: BidsName) -> bool:
-    """Whether a metadata file applies to a data file (inheritance)"""
+    """Whether a metadata file applies to a data file (inheritance)."""
     own = meta.companion
     if own is None:
         # sidecar: same suffix

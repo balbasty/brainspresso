@@ -12,22 +12,22 @@ host lacks) that are selected and written like downloaded files.
 from __future__ import annotations
 
 import asyncio
-import datetime
 import json
-import os
 import shutil
 from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import quote, unquote
 
 from humanize import naturalsize
 
+from brainspresso.actions.state import (       # noqa: F401 (re-exports)
+    TASK_SCHEMA, now, read_task_states, task_path, write_task_state,
+)
 from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
-    MANIFEST, ORIG_DIR, STATE_DIR, TASKS_DIR, Layout, resolve_layout,
+    MANIFEST, ORIG_DIR, STATE_DIR, Layout, resolve_layout,
 )
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
@@ -47,7 +47,8 @@ __all__ = [
 
 @dataclass
 class InlineEntry:
-    """A file of the dataset generated locally (not downloaded)"""
+    """A file of the dataset generated locally (not downloaded)."""
+
     path: str                   # relative to dataset root
     content: bytes
 
@@ -56,11 +57,13 @@ class InlineEntry:
     digests = None
 
     def __post_init__(self):
+        """Encode text content."""
         if isinstance(self.content, str):
             self.content = self.content.encode()
 
     @property
     def size(self) -> int:
+        """Size of the content, in bytes."""
         return len(self.content)
 
 
@@ -81,8 +84,10 @@ def write_inline(entry: InlineEntry, dst: Path, ifexists: str) -> bool:
 
 def resolve_participants(entries, selection: Selection, where: Iterable[str]):
     """
-    Apply participant queries (`age>=60`, `sex==F`...) by reading the
-    remote `participants.tsv`, and restrict `selection.subs` accordingly.
+    Apply participant queries (`age>=60`, `sex==F`...).
+
+    The remote `participants.tsv` is read, and `selection.subs`
+    restricted accordingly.
     """
     where = list(where or [])
     if not where:
@@ -108,7 +113,7 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
 
 
 def summarize(entries) -> dict:
-    """Summary of a list of entries (for display)"""
+    """Summary of a list of entries (for display)."""
     subs, datatypes = set(), Counter()
     for e in entries:
         name = BidsName.parse(e.path)
@@ -207,6 +212,8 @@ def harvest(
         return selected
 
     layout = resolve_layout(root, layout)
+    # before any download takes a lock (`actions.locks`)
+    layout.ensure_state()
     originals = {}
     destinations = {}
     downloaders = []
@@ -303,9 +310,9 @@ def harvest(
 # `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
 # unit...), so that concurrent jobs never write the same file. The
 # manifest is an index that can be rebuilt from them. Written by roast
-# shards (`actions.runner`, which adds `run`, `counts`, `progress` and
-# `children`). Task ids are free-form (e.g. "grind/fs/sub-01/ses-1") and
-# URL-quoted into file names.
+# shards (`actions.engine`, which adds `run`, `counts`, `progress` and
+# `children`; helpers in `actions.state`). Task ids are free-form (e.g.
+# "grind/fs/sub-01/ses-1") and URL-quoted into file names.
 #
 #     {
 #       "schema": 1,
@@ -322,15 +329,10 @@ def harvest(
 #     }
 
 MANIFEST_SCHEMA = 1
-TASK_SCHEMA = 1
-
-
-def now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
 def read_manifest(state: Path) -> dict | None:
-    """Content of `<state>/manifest.json` (None if missing or invalid)"""
+    """Content of `<state>/manifest.json` (None if missing or invalid)."""
     path = Path(state) / MANIFEST
     if not path.exists():
         return None
@@ -352,8 +354,9 @@ def record_run(
     create: bool = True,
 ) -> Path | None:
     """
-    Record a stage run in `<state>/manifest.json` (merged with previous
-    runs), with the layout of the dataset.
+    Record a stage run in `<state>/manifest.json`.
+
+    It is merged with previous runs, with the layout of the dataset.
 
     Parameters
     ----------
@@ -394,7 +397,7 @@ def record_run(
     for f in deleted:
         entries.pop(f, None)
     entries.update(files or {})
-    state.mkdir(parents=True, exist_ok=True)
+    layout.ensure_state()
     path.write_text(json.dumps(manifest, indent=2, default=str))
     return path
 
@@ -413,8 +416,9 @@ def write_manifest(
     destinations: dict[str, Path] | None = None,
 ):
     """
-    Save what was requested and downloaded by `harvest` in the manifest
-    (see `record_run`). `destinations` maps entry paths to their local
+    Save what `harvest` requested and downloaded in the manifest.
+
+    See `record_run`. `destinations` maps entry paths to their local
     path (default: `layout.resolve(entry.path)`).
     """
     destinations = destinations or {}
@@ -441,9 +445,11 @@ def write_manifest(
 
 def trim_originals(layout: Layout) -> list[str]:
     """
-    Derive the visible participants/sessions/scans tables of a roasted
-    dataset from their pristine copies (`<state>/orig/<path>`, written
-    complete by roasters), keeping the rows that refer to something on
+    Derive the visible tables of a roasted dataset from pristine copies.
+
+    The participants/sessions/scans tables are derived from their
+    pristine copies (`<state>/orig/<path>`, written complete by
+    roasters), keeping the rows that refer to something on
     disk. A sessions or scans table whose folder does not exist (subject
     or session not roasted) is not written.
 
@@ -470,43 +476,12 @@ def trim_originals(layout: Layout) -> list[str]:
 
 def finish_roast(layout: Layout, **info) -> None:
     """
-    Steps shared by all roasts, once their actions have run: write the
-    descriptions that depend on the layout (study description,
+    Run the steps shared by all roasts, once their actions have run.
+
+    Write the descriptions that depend on the layout (study description,
     `SourceDatasets` of derivatives) and record the run in the manifest.
     """
     layout.write_descriptions()
     info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
             for k, v in info.items()}
     record_run(layout, "roast", info)
-
-
-def task_path(state: Path, task: str) -> Path:
-    """Path of the state file of a task"""
-    return Path(state) / TASKS_DIR / (quote(task, safe="") + ".json")
-
-
-def write_task_state(state: Path, task: str, record: dict) -> Path:
-    """Write the state file of a task (atomically)"""
-    path = task_path(state, task)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    record = {"schema": TASK_SCHEMA, "task": task, **record}
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(record, indent=2, default=str))
-    os.replace(tmp, path)
-    return path
-
-
-def read_task_states(state: Path) -> dict[str, dict]:
-    """State of all tasks `{task id: record}`"""
-    folder = Path(state) / TASKS_DIR
-    out = {}
-    if not folder.is_dir():
-        return out
-    for path in sorted(folder.glob("*.json")):
-        try:
-            record = json.loads(path.read_text())
-        except (OSError, json.JSONDecodeError):
-            lg.warning(f"Could not parse {path}")
-            continue
-        out[record.get("task") or unquote(path.stem)] = record
-    return out

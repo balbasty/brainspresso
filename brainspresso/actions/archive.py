@@ -19,10 +19,22 @@ from brainspresso.utils.io import copy_from_buffer
 
 class ExtractMember(Action):
     """
-    Copy one member of an *open* archive (`TarArchive`, `FolderArchive`,
-    `tarfile.TarFile`) to `dst`. The archive must stay open until the
-    action has run (the roast runner runs each action before asking the
-    roaster for the next one).
+    Copy one member of an *open* archive to `dst`.
+
+    The archive (`TarArchive`, `FolderArchive`, `tarfile.TarFile`) must
+    stay open until the action has run (the engine, `actions.engine`,
+    runs each action before asking its producer for the next one).
+
+    Parameters
+    ----------
+    archive : TarArchive | FolderArchive | tarfile.TarFile
+        The open archive
+    member : str | TarInfo
+        The member
+    dst : str | PathLike
+        Output file
+    kind, tag, **kwargs
+        See `Action`
     """
 
     def __init__(
@@ -46,18 +58,35 @@ class ExtractMember(Action):
         )
 
     def extract(self, file) -> None:
+        """Copy the member into an opened output file."""
         with self.archive.extractfile(self.member) as f:
             copy_from_buffer(f, file)
 
 
 class ExtractMembers(Action):
     """
-    Extract the members of an archive whose outputs are only known once
-    it is opened (a claim on one folder or a list of folders).
-    `rename(member_name)` returns the output path of a member, or None to
-    ignore it. Each member is extracted by an `ExtractMember` sub-action,
-    which the runner selects (and to which it applies `IfExists`) like
-    any other action. `staging=True`: intermediate files (see `Action`).
+    Extract the members of an archive (outputs known once it is opened).
+
+    A claim on one folder or a list of folders. Each member is extracted
+    by an `ExtractMember` sub-action, which the engine accepts (and to
+    which it applies `IfExists`) like any other action.
+
+    Parameters
+    ----------
+    archive : str | PathLike
+        Path of the archive
+    claim : Claim | str | PathLike
+        Claimed outputs (a folder, a list of folders, or a `Claim`)
+    rename : callable(member_name) -> Path | None
+        Output path of a member (None: ignore it)
+    opener : callable(path) -> archive
+        Opens the archive (default: `TarArchive`)
+    tag : str
+        Progress group
+    staging : bool
+        Intermediate files (see `Action`)
+    **kwargs
+        Options of the `ExtractMember` sub-actions
     """
 
     def __init__(
@@ -83,6 +112,7 @@ class ExtractMembers(Action):
         )
 
     def extract(self) -> Iterator[Action]:
+        """Open the archive and yield one `ExtractMember` per member."""
         with self.opener(self.archive) as archive:
             for member in archive:
                 if getattr(member, "isfile", lambda: True)() is False:

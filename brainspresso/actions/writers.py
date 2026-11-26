@@ -1,5 +1,5 @@
 """
-Collection of simple writers wrapped in an Action:
+Simple writers wrapped in an `Action`.
 
 ```python
 Tabular = Iterable[Iterable[str]]
@@ -15,9 +15,10 @@ BabelConvert(src: Path, dst: Path): ...     # Convert a neuroimaging file
 Freesurfer2Gifti(src: Path, dst: Path): ... # Convert a surface file
 ```
 """
-from pathlib import Path
 from datetime import datetime
-from typing import Iterable, BinaryIO, TextIO, Mapping
+from logging import getLogger
+from pathlib import Path
+from typing import Iterable, Iterator, BinaryIO, TextIO, Mapping
 
 from brainspresso.utils.io import write_json
 from brainspresso.utils.io import copy_json
@@ -30,10 +31,13 @@ from brainspresso.freesurfer.io import nibabel_fs2gii
 from brainspresso.actions.action import Action
 from brainspresso.actions.action import IfExistsChoice
 from brainspresso.actions.action import Kind
+from brainspresso.actions.locks import FileLock
+
+lg = getLogger(__name__)
 
 
 def _check_source(action: Action) -> None:
-    """A copy needs a source (e.g. `ctx.resource(name)` found nothing)"""
+    """Raise if a copy has no source (e.g. no `ctx.resource(name)`)."""
     if not action.src:
         raise FileNotFoundError(
             f"No source to copy to {Path(action.dst).name} "
@@ -42,7 +46,7 @@ def _check_source(action: Action) -> None:
 
 
 class WriteJSON(Action):
-    """Write a JSON dictionary"""
+    """Write a JSON dictionary."""
 
     def __init__(
         self,
@@ -57,9 +61,12 @@ class WriteJSON(Action):
         size: int | None = None,
         mtime: datetime | None = None,
         digests: Mapping[str, str] | None = None,
+        compare: bool | None = None,
         **json_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         json : dict
@@ -73,10 +80,10 @@ class WriteJSON(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -87,6 +94,9 @@ class WriteJSON(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         **json_opt : dict
             JSON options
         """
@@ -106,14 +116,16 @@ class WriteJSON(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         return write_json(self.json, file, **self.json_opt)
 
 
 class CopyJSON(Action):
-    """Copy a JSON file"""
+    """Copy a JSON file."""
 
     def __init__(
         self,
@@ -127,9 +139,12 @@ class CopyJSON(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
         **json_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -141,10 +156,10 @@ class CopyJSON(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -155,6 +170,9 @@ class CopyJSON(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         **json_opt : dict
             JSON options
         """
@@ -173,14 +191,17 @@ class CopyJSON(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         _check_source(self)
         return copy_json(self.src, file, **self.json_opt)
 
 
 class WriteTSV(Action):
+    """Write a TSV table."""
 
     def __init__(
         self,
@@ -195,9 +216,12 @@ class WriteTSV(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = True,
         **tsv_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         tsv : Iterable[Iterable[str]]
@@ -211,10 +235,10 @@ class WriteTSV(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -225,6 +249,9 @@ class WriteTSV(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: True: a table is cheap to make)
         **tsv_opt : dict
             TSV options
         """
@@ -244,14 +271,16 @@ class WriteTSV(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return write_tsv(self.tsv, path, **self.tsv_opt)
 
 
 class WriteBytes(Action):
-    """Write from a buffer"""
+    """Write from a buffer."""
 
     def __init__(
         self,
@@ -266,8 +295,11 @@ class WriteBytes(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         bytes : dict
@@ -281,10 +313,10 @@ class WriteBytes(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -295,6 +327,9 @@ class WriteBytes(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         self.bytes = bytes
 
@@ -311,14 +346,16 @@ class WriteBytes(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: BinaryIO):
+        """Write the output (the actor of the action)."""
         return write_from_buffer(self.bytes, file)
 
 
 class CopyBytes(Action):
-    """Copy from a buffer"""
+    """Copy from a buffer."""
 
     def __init__(
         self,
@@ -332,8 +369,11 @@ class CopyBytes(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -345,10 +385,10 @@ class CopyBytes(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -359,6 +399,9 @@ class CopyBytes(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -373,15 +416,17 @@ class CopyBytes(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: BinaryIO):
+        """Write the output (the actor of the action)."""
         _check_source(self)
         return copy_from_buffer(self.src, file)
 
 
 class WriteText(Action):
-    """Write a string of text"""
+    """Write a string of text."""
 
     def __init__(
         self,
@@ -396,8 +441,11 @@ class WriteText(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         text : str
@@ -411,10 +459,10 @@ class WriteText(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -425,6 +473,9 @@ class WriteText(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         self.text = text
 
@@ -441,14 +492,16 @@ class WriteText(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         return write_text(self.text, file)
 
 
 class BabelConvert(Action):
-    """Conversion with nibabel"""
+    """Convert a neuroimaging file with nibabel."""
 
     def __init__(
         self,
@@ -465,8 +518,11 @@ class BabelConvert(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -484,10 +540,10 @@ class BabelConvert(Action):
             Orientation matrix (default: from input)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -498,6 +554,9 @@ class BabelConvert(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -512,12 +571,14 @@ class BabelConvert(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
         self.inp_format = inp_format
         self.out_format = out_format
         self.affine = affine
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return nibabel_convert(
             self.src, path,
             inp_format=self.inp_format,
@@ -527,7 +588,7 @@ class BabelConvert(Action):
 
 
 class Freesurfer2Gifti(Action):
-    """Conversion of freesurfer surface files"""
+    """Convert a FreeSurfer surface file to GIfTI."""
 
     def __init__(
         self,
@@ -541,8 +602,11 @@ class Freesurfer2Gifti(Action):
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
+        compare: bool | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -554,10 +618,10 @@ class Freesurfer2Gifti(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'meta', 'table'}
-            Kind of output (default: from its name)
+        kind : str
+            Kind of output (default: set by the layer that runs it)
         tag : str
-            Progress group (roast runner)
+            Progress group (`actions.engine`)
         staging : bool
             Intermediate file, not subject to the JSON policy
         size : int
@@ -568,6 +632,9 @@ class Freesurfer2Gifti(Action):
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        compare : bool | None
+            Regenerate and compare the output under "different"
+            (`Action`; default: set by the layer that runs it)
         """
         super().__init__(
             src=src,
@@ -582,27 +649,40 @@ class Freesurfer2Gifti(Action):
             size=size,
             mtime=mtime,
             digests=digests,
+            compare=compare,
         )
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return nibabel_fs2gii(self.src, path)
 
 
 class Unlink(Action):
+    """
+    Remove a file.
+
+    The file is deleted under its exclusive lock (`actions.locks`), so
+    that no reader of the file is interrupted.
+    """
 
     def __init__(
         self,
         dst: str,
         *,
         missing_ok=True,
+        tag: str | None = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         dst : str | Path
             Path to file to remove/unlink
         missing_ok : bool
-            Whether to raise an error is the file is missing
+            Whether a missing file is not an error
+        tag : str
+            Progress group (`actions.engine`)
         """
         super().__init__(
             src=[],
@@ -611,8 +691,22 @@ class Unlink(Action):
             mode="w",
             input="path",
             ifexists="overwrite",
+            tag=tag,
         )
         self.missing_ok = missing_ok
 
-    def action(self, path: Path):
-        path.unlink(missing_ok=self.missing_ok)
+    def action(self, path: Path | None = None) -> None:
+        """Delete the destination (`path` is ignored: it is `dst`)."""
+        Path(self.dst).unlink(missing_ok=self.missing_ok)
+
+    def __iter__(self) -> Iterator[dict]:
+        """Delete the destination under its exclusive lock."""
+        self.outputs = []
+        try:
+            with FileLock(self.dst, exclusive=True):
+                self.action()
+        except Exception as e:
+            lg.error(f"Could not delete {self.dst}: {e}")
+            yield {'status': 'error', 'message': str(e)}
+            return
+        yield {'status': 'done'}

@@ -81,7 +81,7 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 # ----------------------------------------------------------------------
 
 def loads(text: str):
-    """Parse JSON, repairing common syntax errors if needed"""
+    """Parse JSON, repairing common syntax errors if needed."""
     try:
         return json.loads(text, strict=False)
     except json.JSONDecodeError:
@@ -101,7 +101,7 @@ def loads(text: str):
 
 
 def to_number(value, key: str = ""):
-    """Convert a string holding a number to a number (or return None)"""
+    """Convert a string holding a number to a number (or return None)."""
     if isinstance(value, (int, float)) or not isinstance(value, str):
         return None
     text = value.strip()
@@ -126,7 +126,7 @@ def to_number(value, key: str = ""):
 
 
 def fix_sidecar(meta: dict, name: str = "") -> dict:
-    """Coerce values of a sidecar or dataset description"""
+    """Coerce values of a sidecar or dataset description."""
     out = {}
     for key, value in meta.items():
         if isinstance(value, str):
@@ -210,6 +210,7 @@ def _phasediff(path: Path, meta: dict) -> dict:
 # ----------------------------------------------------------------------
 
 def read_rows(text: str) -> list[list[str]]:
+    """Parse TSV text into rows (blank lines dropped)."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     rows = [line.split("\t") for line in text.split("\n")]
     rows = [r for r in rows if any(c.strip() for c in r)]
@@ -291,7 +292,7 @@ IMAGE_EXTENSIONS = (".nii.gz", ".nii")
 
 
 def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
-    """Repair (and trim) `IntendedFor` of a field map sidecar in place"""
+    """Repair (and trim) `IntendedFor` of a field map sidecar in place."""
     path, root = Path(path), Path(root)
     try:
         rel = path.relative_to(root)
@@ -357,7 +358,7 @@ def _bidsignore(root: Path) -> list[str]:
 # ----------------------------------------------------------------------
 
 def repair(paths: Iterable[Path]) -> list[Path]:
-    """Repair JSON and TSV files (others are ignored)"""
+    """Repair JSON and TSV files (others are ignored)."""
     changed = []
     paths = sorted(Path(p) for p in paths)
     # phase difference maps need their magnitude sidecar: do them last

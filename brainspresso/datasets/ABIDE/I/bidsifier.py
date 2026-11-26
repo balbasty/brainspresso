@@ -95,6 +95,8 @@ class BidsifierBase:
     # ------------------------------------------------------------------
     def run(self) -> None:
         """Run all actions"""
+        # the state folder holds the lock files (`actions.locks`)
+        self.layout.ensure_state()
         self.init()
         with self.out as self.out:
             self._run()
@@ -170,11 +172,13 @@ class BidsifierBase:
                     CopyJSON(
                         self.TPLDIR / 'dataset_description.json',
                         self.raw / 'dataset_description.json',
+                        compare=True,
                     ),
                 'participants.json':
                     CopyJSON(
                         self.TPLDIR / 'participants.json',
                         self.raw / 'participants.json',
+                        compare=True,
                     ),
                 'participants.tsv':
                     self.make_participants(),
@@ -306,7 +310,8 @@ class BidsifierBase:
 
             write_tsv(yield_rows(), opath)
 
-        return Action(input_paths, output_path, action_tsv, input="path")
+        return Action(input_paths, output_path, action_tsv, input="path",
+                      compare=True)
 
     # ------------------------------------------------------------------
     #   Write phenotypes
@@ -452,6 +457,7 @@ class BidsifierBase:
             write_tsv(yield_rows(), opath)
 
         if self.json != 'only':
-            yield Action(input_paths, output_path, action_tsv, input="path")
+            yield Action(input_paths, output_path, action_tsv,
+                         input="path", compare=True)
         if self.json != 'no':
-            yield CopyJSON(input_json_path, output_json_path)
+            yield CopyJSON(input_json_path, output_json_path, compare=True)

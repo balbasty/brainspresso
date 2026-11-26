@@ -260,6 +260,48 @@ and glob conditions, as prototyped in `wiip-grind`
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
 
+Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III):
+
+* `Action(src, dst | None, fn, *, claim=Claim(folder, fragment),
+  kind=None, tag=None, ifexists=None)`: `declared` outputs, `outputs`
+  after running; `kind` defaults to `default_kind` (`*.tsv`, dataset
+  files such as README/`.bidsignore` and the JSON of tables or of the
+  dataset: "table"; other `*.json`: "sidecar"; else "data");
+  `ifexists=None` is the runner's policy (still `different` outside
+  it). A claim action's `fn()` yields concrete sub-actions (selected
+  one by one) or writes files itself after `self.keeps(path)` and lists
+  them in `self.outputs`. `ExtractMember`, `ExtractMembers` (claim) in
+  `actions/archive.py`; `Fail(message)` reports a missing input.
+* `run_roast(roaster, ctx, *, jobs=1, display=True) -> RoastReport`
+  (counts per tag, errors, outputs, progress). `RoastContext(layout,
+  selection, keys, json, ifexists, options, templates, tag)` with
+  `wants(category)`, `resource(name)`, `progress(total=, advance=,
+  tag=)`, `keeps(path, partial)` (`selection` on the raw dataset, its
+  subject/session filters elsewhere; `<state>/orig/` paths judged as
+  the table they copy) and `accepts(kind, path)` (JSON policy; never
+  applied to files in `sourcedata/`). `make_context(root, keys,
+  select_keys=, exclude_keys=, **filters)` builds it from CLI values.
+  `ctx.tag` is the tag of the running roaster. Roaster exceptions are
+  counted as errors of its tag; the rest of the roast goes on.
+* Shards: any callable yielded (`Shard(fn, *args, tag=)` is a picklable
+  one). `jobs > 1`: top-level shards run in a "spawn" process pool;
+  unpicklable shards run in the main process with a warning; worker
+  events (outcomes, progress) are replayed when a shard finishes.
+* After all actions: `roaster.finalize(ctx)` (may yield actions), then
+  `trim_originals(layout)` (every table under `<state>/orig/`; sessions
+  and scans tables only where their folder exists) and `finish_roast`
+  (keys, json policy and counts in the run record). No repair yet.
+* Keys: `bids/keys.py`. `KeyAliases(tree, bids={leaf: Selection
+  filters})`; other leaves are categories; groups expand to their
+  leaves; lookup is exact, then case-insensitive. A group may also be a
+  category (OASIS-III `meta`). `KeyAliases.selection(keys, exclude_keys,
+  **filters) -> KeySelection`: a **union** of selections (one per BIDS
+  key, each with the CLI subject/session filters), since keys such as
+  `T1w` + `TSE` (acq-TSE T2w) are not one conjunction; with all BIDS
+  keys and no exclusion it is the plain CLI selection (files no key
+  describes are kept). Same `keeps`/`keeps_subject`/`select` interface
+  as `Selection`, plus `wants(category)`, `base`, `keys`.
+
 ## 6. Dataset registration
 
 A dataset is a class (generalising INDI's `Project`) with overridable
@@ -342,7 +384,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 1 | Characterization tests for roasts without tests (COBRE, OASIS-I/II/III, ABIDE-II, ABIDE-I nitrc); known bugs as strict xfail | Low-Effort Opus | done (300 passed, 16 xfailed) |
 | 2a | `Selection`: modality-agnostic companions, directory formats, generic entities, per-path `keeps` | High-Effort Opus | done (333 passed) |
 | 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
-| 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | |
+| 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | done (461 passed, 28 xfailed: OASIS-III sessions name and exclude-keys fixed) |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
@@ -370,9 +412,9 @@ up as an XPASS failure once fixed (then drop the marker).
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
   relabel saved to `dst` instead of the action's path.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
-* OASIS-III: sessions written as `sub-X/sessions.tsv` instead of
-  `sub-X/sub-X_sessions.tsv`; `set(*map(lower_keys, exclude_keys))` raises
-  with more than one exclude key (same construct in ABIDE-I/II).
+* `set(*map(lower_keys, exclude_keys))` raises with more than one
+  exclude key: ABIDE-I/II (fixed in OASIS-III, step 2b-ii, with its
+  sessions table name).
 * Harvest (not covered by tests, needs network): ABIDE-II and ABIDE-I xnat
   use the sync `nitrc_authentifier` with aiohttp sessions.
 
@@ -398,3 +440,6 @@ up as an XPASS failure once fixed (then drop the marker).
   `bids`, `datasets`, `resolve_layout`), manifest schema 1 and per-task
   state format; INDI `--layout merged` becomes `--layout study|flat`,
   `--layout sites` gains `--site-layout`.
+* r4: step 2b-ii. Keys select a union of selections (`KeySelection`);
+  the JSON policy skips `sourcedata/`; tables trimmed from
+  `.brainspresso/orig/` in every roast.

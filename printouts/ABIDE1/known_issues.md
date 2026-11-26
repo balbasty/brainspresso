@@ -77,9 +77,49 @@ The old (hand-parsed) value was not a valid BIDS value.
 - `USM/bold.json` <- `USM/rest.pdf`: `RepetitionTimeExcitation` in a bold sidecar
 - `Yale/bold.json` <- `Yale/rest.pdf`: `RepetitionTimeExcitation` in a bold sidecar
 
-### invalid `InversionTime` dropped (1)
+### invalid `InversionTime` corrected (1)
 
-- `Trinity/T1w.json` <- `Trinity/anat.pdf`: `InversionTime` 1060.17468 outside plausible [0.001, 5]
+- `Trinity/T1w.json` <- `Trinity/anat.pdf`: `InversionTime` 1060.17468 outside plausible [0.001, 5]; now 1.06017468
+
+## Accepted protocol2bids conventions
+
+Differences that are documented protocol2bids conventions or verified old-template errors (protocol2bids `notes/conversion_rules.md`); one reason per group (`ACCEPTED` in `scripts/make_sidecars.py`).
+
+### no repetition time produced: MPRAGE-like scan: `RepetitionTime` is the inversion TR and is not written when only the excitation TR is known (conversion_rules.md, "MPRAGE-like sequences") (3)
+
+- `SDSU/T1w.json` <- `SDSU/anat.pdf`
+- `UM_1/T1w.json` <- `UM_1/anat.pdf` (select `1`)
+- `UM_2/T1w.json` <- `UM_2/anat.pdf` (select `1`)
+
+### `ParallelReductionFactorInPlane` differs: KKI/Trinity: the template's in-plane SENSE factor is the through-plane `S reduction` (conversion_rules.md, Philips "SENSE factors" and cross-checks) (2)
+
+- `KKI/T1w.json` <- `KKI/anat.pdf`: 2 -> 1.0
+- `Trinity/T1w.json` <- `Trinity/anat.pdf`: 1.5 -> 1.0
+
+### `ParallelReductionFactorOutOfPlane` differs: KKI/Trinity: the template's in-plane SENSE factor is the through-plane `S reduction` (conversion_rules.md, Philips "SENSE factors" and cross-checks) (2)
+
+- `KKI/T1w.json` <- `KKI/anat.pdf`: 1 -> 2.0
+- `Trinity/T1w.json` <- `Trinity/anat.pdf`: 1 -> 1.5
+
+### `ParallelAcquisitionTechnique` differs: the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes protocol 0 (conversion_rules.md, cross-checks) (1)
+
+- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): "SENSE" -> "GRAPPA"
+
+### `EchoTime` differs: the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes protocol 0 (conversion_rules.md, cross-checks) (1)
+
+- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.00173 -> 0.00296
+
+### `InversionTime` differs: the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes protocol 0 (conversion_rules.md, cross-checks) (1)
+
+- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.624 -> 0.9
+
+### `RepetitionTimeExcitation` differs: the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes protocol 0 (conversion_rules.md, cross-checks) (1)
+
+- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.0054 -> 0.0074
+
+### `RepetitionTimePreparation` differs: the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes protocol 0 (conversion_rules.md, cross-checks) (1)
+
+- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 1.23 -> 1.9000000000000001
 
 ## (b) Suspected protocol2bids issues
 
@@ -108,7 +148,7 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `USM/bold.json` <- `USM/rest.pdf`: "Sum of Squares" -> "rSOS"
 - `Yale/bold.json` <- `Yale/rest.pdf`: "Sum of Squares" -> "rSOS"
 
-### `EchoTime` differs (15)
+### `EchoTime` differs (14)
 
 - `Caltech/T1w.json` <- `Caltech/anat.pdf`: 0.00273 -> 0.0027300000000000002
 - `Leuven_1/T1w.json` <- `Leuven_1/anat.pdf`: 0.00460331869 -> 0.0046
@@ -124,7 +164,6 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `UM_1/T1w.json` <- `UM_1/anat.pdf` (select `1`): 0.0018 -> 0.0018000000000000002
 - `UM_2/T1w.json` <- `UM_2/anat.pdf` (select `1`): 0.0018 -> 0.0018000000000000002
 - `USM/T1w.json` <- `USM/anat.pdf`: 0.00291 -> 0.0029100000000000003
-- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.00173 -> 0.00296
 
 ### `ManufacturersModelName` not produced (11)
 
@@ -174,7 +213,7 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `SDSU/bold.json` <- `SDSU/rest.pdf`: was 1
 - `Trinity/bold.json` <- `Trinity/rest.pdf`: was 1
 
-### `RepetitionTimePreparation` differs (7)
+### `RepetitionTimePreparation` differs (6)
 
 - `NYU/T1w.json` <- `NYU/anat.pdf`: 2.53 -> 2.5300000000000002
 - `OHSU/T1w.json` <- `OHSU/anat.pdf`: 2.3 -> 2.3000000000000003
@@ -182,54 +221,32 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `UCLA_1/T1w.json` <- `UCLA_1/anat.pdf` (select `0`): 2.3 -> 2.3000000000000003
 - `UCLA_2/T1w.json` <- `UCLA_2/anat.pdf` (select `0`): 2.3 -> 2.3000000000000003
 - `USM/T1w.json` <- `USM/anat.pdf`: 2.3 -> 2.3000000000000003
-- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 1.23 -> 1.9000000000000001
 
-### `MagneticFieldStrength` dropped (7)
+### `MagneticFieldStrength` dropped (6)
 
 - `SDSU/T1w.json` <- `SDSU/anat.pdf`: was 3
 - `SDSU/bold.json` <- `SDSU/rest.pdf`: was 3
-- `Stanford/bold.json` <- `Stanford/rest.pdf`: was 3
 - `UM_1/T1w.json` <- `UM_1/anat.pdf` (select `1`): was 3
 - `UM_1/bold.json` <- `UM_1/rest.pdf`: was 3
 - `UM_2/T1w.json` <- `UM_2/anat.pdf` (select `1`): was 3
 - `UM_2/bold.json` <- `UM_2/rest.pdf`: was 3
 
-### `RepetitionTimeExcitation` differs (5)
+### `RepetitionTimeExcitation` differs (4)
 
 - `Leuven_1/T1w.json` <- `Leuven_1/anat.pdf`: 0.009 -> 0.0096
 - `Leuven_2/T1w.json` <- `Leuven_2/anat.pdf`: 0.009 -> 0.0096
 - `OHSU/T1w.json` <- `OHSU/anat.pdf`: 0.0082 -> 0.008199999999999999
 - `SBL/T1w.json` <- `SBL/anat.pdf`: 0.009 -> 0.009000000000000001
-- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.0054 -> 0.0074
-
-### `ParallelReductionFactorInPlane` differs (4)
-
-- `KKI/T1w.json` <- `KKI/anat.pdf`: 2 -> 1.0
-- `SDSU/T1w.json` <- `SDSU/anat.pdf`: 2 -> 1.0
-- `SDSU/bold.json` <- `SDSU/rest.pdf`: 2 -> 1.0
-- `Trinity/T1w.json` <- `Trinity/anat.pdf`: 1.5 -> 1.0
-
-### `ParallelAcquisitionTechnique` differs (3)
-
-- `SDSU/T1w.json` <- `SDSU/anat.pdf`: "SENSE" -> "ASSET"
-- `SDSU/bold.json` <- `SDSU/rest.pdf`: "SENSE" -> "ASSET"
-- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): "SENSE" -> "GRAPPA"
-
-### no repetition time produced (3)
-
-- `SDSU/T1w.json` <- `SDSU/anat.pdf`
-- `UM_1/T1w.json` <- `UM_1/anat.pdf` (select `1`)
-- `UM_2/T1w.json` <- `UM_2/anat.pdf` (select `1`)
-
-### `ParallelReductionFactorOutOfPlane` differs (2)
-
-- `KKI/T1w.json` <- `KKI/anat.pdf`: 1 -> 2.0
-- `Trinity/T1w.json` <- `Trinity/anat.pdf`: 1 -> 1.5
 
 ### `SequenceName` differs (2)
 
 - `NYU/bold.json` <- `NYU/rest.pdf`: "ep2d_bold" -> "cbi_seg_epi_gre"
 - `Olin/T1w.json` <- `Olin/anat.pdf`: "tfl" -> "tfl_onrc"
+
+### `ParallelAcquisitionTechnique` differs (2)
+
+- `SDSU/T1w.json` <- `SDSU/anat.pdf`: "SENSE" -> "ASSET"
+- `SDSU/bold.json` <- `SDSU/rest.pdf`: "SENSE" -> "ASSET"
 
 ### `PulseSequenceType` dropped (2)
 
@@ -257,10 +274,6 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 ### `RepetitionTimeExcitation` dropped (1)
 
 - `Stanford/T1w.json` <- `Stanford/anat.pdf`: was 0.0084
-
-### `InversionTime` differs (1)
-
-- `Yale/T1w.json` <- `Yale/anat.pdf` (select `1`): 0.624 -> 0.9
 
 ## Non-BIDS keys of the old templates (dropped or changed)
 

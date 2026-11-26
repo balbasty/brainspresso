@@ -404,6 +404,25 @@ The old (hand-parsed) value was not a valid BIDS value.
 - `BNU/2/ses-1_bold.json` <- `BNU_2/rest1.pdf`: `EffectiveEchoSpacing` 6.200396825396825e-06 outside plausible [1e-05, 0.01]; now 0.00046
 - `BNU/2/ses-2_bold.json` <- `BNU_2/rest2.pdf`: `EffectiveEchoSpacing` 6.200396825396825e-06 outside plausible [1e-05, 0.01]; now 0.00046
 
+## Accepted protocol2bids conventions
+
+Differences that are documented protocol2bids conventions or verified old-template errors (protocol2bids `notes/conversion_rules.md`); one reason per group (`ACCEPTED` in `scripts/make_sidecars.py`).
+
+### `RepetitionTimeExcitation` dropped: templates store the EPI TR in `RepetitionTimeExcitation`; protocol2bids writes `RepetitionTime` (conversion_rules.md, cross-checks) (3)
+
+- `NKI/2/bold_TE=1400.json` <- `NKI_2/scantable.pdf` (select `*Rest 1400`): was 1.4000000000000001
+- `NKI/2/bold_TE=2500.json` <- `NKI_2/scantable.pdf` (select `*Rest 2500`): was 2.5
+- `NKI/2/bold_TE=645.json` <- `NKI_2/scantable.pdf` (select `*Rest 645`): was 0.645
+
+### `RepetitionTimePreparation` dropped: the template's `RepetitionTimePreparation` was the TE, TI or excitation TR, not the inversion TR (conversion_rules.md, "MPRAGE-like sequences" and cross-checks) (2)
+
+- `HNU/1/T1w.json` <- `HNU_1/scantable.pdf` (select `*Anatomical`): was 0.008060000000000001
+- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: was 0.007788000000000001
+
+### no repetition time produced: MPRAGE-like scan: `RepetitionTime` is the inversion TR and is not written when only the excitation TR is known (conversion_rules.md, "MPRAGE-like sequences") (1)
+
+- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`
+
 ## (b) Suspected protocol2bids issues
 
 The new value is invalid, or a valid old value was dropped or changed. Values were NOT hand-fixed: fix protocol2bids (or add `defaults`/`assigns` in `sidecars.toml`) and re-run.
@@ -443,33 +462,6 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `Utah/2/bold.json` <- `Utah_2/rest.pdf`: "EPI" -> "Gradient Echo EPI"
 - `BNU/2/ses-1_bold.json` <- `BNU_2/rest1.pdf`: "EPI" -> "Gradient Echo EPI"
 - `BNU/2/ses-2_bold.json` <- `BNU_2/rest2.pdf`: "EPI" -> "Gradient Echo EPI"
-
-### `RepetitionTimePreparation` dropped (24)
-
-- `DC/1/T1w.json` <- `DC_1/scantable.pdf` (select `*Anatomical`): was 2.375
-- `HNU/1/T1w.json` <- `HNU_1/scantable.pdf` (select `*Anatomical`): was 0.008060000000000001
-- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: was 0.007788000000000001
-- `IBA/TRT/T1w.json` <- `IBA_TRT/scantable.pdf` (select `*Anatomical`): was 2.6
-- `IPCAS/1/T1w.json` <- `IPCAS_1/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `IPCAS/2/T1w.json` <- `IPCAS_2/scantable.pdf` (select `*Anatomical`): was 2.3000000000000003
-- `IPCAS/3/T1w.json` <- `IPCAS_3/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `IPCAS/4/T1w.json` <- `IPCAS_4/scantable.pdf` (select `*Anatomical`): was 8.068
-- `IPCAS/6/T1w.json` <- `IPCAS_6/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `IPCAS/7/T1w.json` <- `IPCAS_7/scantable.pdf` (select `*Anatomical`): was 2.6
-- `IPCAS/8/T1w.json` <- `IPCAS_8/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `JHNU/1/T1w.json` <- `JHNU_1/scantable.pdf` (select `*Anatomical`): was 2.3000000000000003
-- `LMU/1/T1w.json` <- `LMU_1/scantable.pdf` (select `*Anatomical`): was 2.375
-- `LMU/2/T1w.json` <- `LMU_2/scantable.pdf` (select `*Anatomical`): was 2.4
-- `LMU/3/T1w.json` <- `LMU_3/scantable.pdf` (select `*Anatomical`): was 2.4
-- `MPG/1/T1w.json` <- `MPG_1/scantable.pdf` (select `*Anatomical`): was 5.0
-- `MRN/1/T1w.json` <- `MRN_1/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `NKI/2/T1w.json` <- `NKI_2/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `NYU/1/T1w.json` <- `NYU_1/scantable.pdf` (select `*Anatomical`): was 2.5
-- `SWU/1/T1w.json` <- `SWU_1/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/2/T1w.json` <- `SWU_2/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/3/T1w.json` <- `SWU_3/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/4/T1w.json` <- `SWU_4/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `UPSM/1/T1w.json` <- `UPSM_1/scantable.pdf` (select `*Anatomical`): was 2.1
 
 ### `DwellTime` dropped (23)
 
@@ -517,24 +509,11 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: old (misspelt) `ManufacturerModelName` was "Signa HDx"
 - `IACAS/1/bold.json` <- `IACAS_1/rest.pdf`: old (misspelt) `ManufacturerModelName` was "Signa HDx"
 
-### no repetition time produced (4)
+### no repetition time produced (3)
 
-- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`
 - `IPCAS/1/dwi.json` <- `IPCAS_1/scantable.pdf` (select `*DTI`)
 - `IPCAS/2/dwi.json` <- `IPCAS_2/scantable.pdf` (select `*DTI`)
 - `SWU/4/dwi.json` <- `SWU_4/scantable.pdf` (select `*DTI`)
-
-### `MRAcquisitionType` differs (3)
-
-- `IPCAS/1/T1w.json` <- `IPCAS_1/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-- `IPCAS/2/T1w.json` <- `IPCAS_2/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-- `NYU/1/T1w.json` <- `NYU_1/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-
-### `RepetitionTimeExcitation` dropped (3)
-
-- `NKI/2/bold_TE=1400.json` <- `NKI_2/scantable.pdf` (select `*Rest 1400`): was 1.4000000000000001
-- `NKI/2/bold_TE=2500.json` <- `NKI_2/scantable.pdf` (select `*Rest 2500`): was 2.5
-- `NKI/2/bold_TE=645.json` <- `NKI_2/scantable.pdf` (select `*Rest 645`): was 0.645
 
 ### `EchoTime` differs (2)
 

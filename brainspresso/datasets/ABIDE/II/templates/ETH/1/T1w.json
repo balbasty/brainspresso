@@ -4,7 +4,7 @@
     "ImagingFrequency": 127.728,
     "Modality": "MR",
     "ProtocolName": "anat",
-    "RepetitionTime": 0.008400000000000001,
+    "RepetitionTime": 3.0,
     "EchoTime": 0.0039,
     "FlipAngle": 8.0,
     "InversionTime": 1.1500000000000001,

@@ -6,6 +6,7 @@
     "PulseSequenceType": "3D MP2RAGE",
     "MRAcquisitionType": "3D",
     "RepetitionTime": 5.0,
+    "RepetitionTimePreparation": 5.0,
     "EchoTime": 0.0024500000000000004,
     "InversionTime": 0.9,
     "FlipAngle": 3.0,

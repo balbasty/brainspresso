@@ -4,7 +4,7 @@
     "ImagingFrequency": 127.728,
     "Modality": "MR",
     "ProtocolName": "T1w",
-    "RepetitionTime": 0.0094,
+    "RepetitionTime": 2.0,
     "EchoTime": 0.0046,
     "FlipAngle": 8.0,
     "InversionTime": 0.9,

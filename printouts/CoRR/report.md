@@ -406,6 +406,25 @@ The old (hand-parsed) value was not a valid BIDS value.
 - `BNU/2/ses-1_bold.json` <- `BNU_2/rest1.pdf`: `EffectiveEchoSpacing` 6.200396825396825e-06 outside plausible [1e-05, 0.01]; now 0.00046
 - `BNU/2/ses-2_bold.json` <- `BNU_2/rest2.pdf`: `EffectiveEchoSpacing` 6.200396825396825e-06 outside plausible [1e-05, 0.01]; now 0.00046
 
+## Accepted protocol2bids conventions
+
+Differences that are documented protocol2bids conventions or verified old-template errors (protocol2bids `notes/conversion_rules.md`); one reason per group (`ACCEPTED` in `scripts/make_sidecars.py`).
+
+### `RepetitionTimeExcitation` dropped: templates store the EPI TR in `RepetitionTimeExcitation`; protocol2bids writes `RepetitionTime` (conversion_rules.md, cross-checks) (3)
+
+- `NKI/2/bold_TE=1400.json` <- `NKI_2/scantable.pdf` (select `*Rest 1400`): was 1.4000000000000001
+- `NKI/2/bold_TE=2500.json` <- `NKI_2/scantable.pdf` (select `*Rest 2500`): was 2.5
+- `NKI/2/bold_TE=645.json` <- `NKI_2/scantable.pdf` (select `*Rest 645`): was 0.645
+
+### `RepetitionTimePreparation` dropped: the template's `RepetitionTimePreparation` was the TE, TI or excitation TR, not the inversion TR (conversion_rules.md, "MPRAGE-like sequences" and cross-checks) (2)
+
+- `HNU/1/T1w.json` <- `HNU_1/scantable.pdf` (select `*Anatomical`): was 0.008060000000000001
+- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: was 0.007788000000000001
+
+### no repetition time produced: MPRAGE-like scan: `RepetitionTime` is the inversion TR and is not written when only the excitation TR is known (conversion_rules.md, "MPRAGE-like sequences") (1)
+
+- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`
+
 ## (b) Suspected protocol2bids issues
 
 The new value is invalid, or a valid old value was dropped or changed. Values were NOT hand-fixed: fix protocol2bids (or add `defaults`/`assigns` in `sidecars.toml`) and re-run.
@@ -445,33 +464,6 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `Utah/2/bold.json` <- `Utah_2/rest.pdf`: "EPI" -> "Gradient Echo EPI"
 - `BNU/2/ses-1_bold.json` <- `BNU_2/rest1.pdf`: "EPI" -> "Gradient Echo EPI"
 - `BNU/2/ses-2_bold.json` <- `BNU_2/rest2.pdf`: "EPI" -> "Gradient Echo EPI"
-
-### `RepetitionTimePreparation` dropped (24)
-
-- `DC/1/T1w.json` <- `DC_1/scantable.pdf` (select `*Anatomical`): was 2.375
-- `HNU/1/T1w.json` <- `HNU_1/scantable.pdf` (select `*Anatomical`): was 0.008060000000000001
-- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: was 0.007788000000000001
-- `IBA/TRT/T1w.json` <- `IBA_TRT/scantable.pdf` (select `*Anatomical`): was 2.6
-- `IPCAS/1/T1w.json` <- `IPCAS_1/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `IPCAS/2/T1w.json` <- `IPCAS_2/scantable.pdf` (select `*Anatomical`): was 2.3000000000000003
-- `IPCAS/3/T1w.json` <- `IPCAS_3/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `IPCAS/4/T1w.json` <- `IPCAS_4/scantable.pdf` (select `*Anatomical`): was 8.068
-- `IPCAS/6/T1w.json` <- `IPCAS_6/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `IPCAS/7/T1w.json` <- `IPCAS_7/scantable.pdf` (select `*Anatomical`): was 2.6
-- `IPCAS/8/T1w.json` <- `IPCAS_8/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `JHNU/1/T1w.json` <- `JHNU_1/scantable.pdf` (select `*Anatomical`): was 2.3000000000000003
-- `LMU/1/T1w.json` <- `LMU_1/scantable.pdf` (select `*Anatomical`): was 2.375
-- `LMU/2/T1w.json` <- `LMU_2/scantable.pdf` (select `*Anatomical`): was 2.4
-- `LMU/3/T1w.json` <- `LMU_3/scantable.pdf` (select `*Anatomical`): was 2.4
-- `MPG/1/T1w.json` <- `MPG_1/scantable.pdf` (select `*Anatomical`): was 5.0
-- `MRN/1/T1w.json` <- `MRN_1/scantable.pdf` (select `*Anatomical`): was 2.5300000000000002
-- `NKI/2/T1w.json` <- `NKI_2/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `NYU/1/T1w.json` <- `NYU_1/scantable.pdf` (select `*Anatomical`): was 2.5
-- `SWU/1/T1w.json` <- `SWU_1/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/2/T1w.json` <- `SWU_2/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/3/T1w.json` <- `SWU_3/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `SWU/4/T1w.json` <- `SWU_4/scantable.pdf` (select `*Anatomical`): was 1.9000000000000001
-- `UPSM/1/T1w.json` <- `UPSM_1/scantable.pdf` (select `*Anatomical`): was 2.1
 
 ### `DwellTime` dropped (23)
 
@@ -519,24 +511,11 @@ The new value is invalid, or a valid old value was dropped or changed. Values we
 - `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`: old (misspelt) `ManufacturerModelName` was "Signa HDx"
 - `IACAS/1/bold.json` <- `IACAS_1/rest.pdf`: old (misspelt) `ManufacturerModelName` was "Signa HDx"
 
-### no repetition time produced (4)
+### no repetition time produced (3)
 
-- `IACAS/1/T1w.json` <- `IACAS_1/anat.pdf`
 - `IPCAS/1/dwi.json` <- `IPCAS_1/scantable.pdf` (select `*DTI`)
 - `IPCAS/2/dwi.json` <- `IPCAS_2/scantable.pdf` (select `*DTI`)
 - `SWU/4/dwi.json` <- `SWU_4/scantable.pdf` (select `*DTI`)
-
-### `MRAcquisitionType` differs (3)
-
-- `IPCAS/1/T1w.json` <- `IPCAS_1/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-- `IPCAS/2/T1w.json` <- `IPCAS_2/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-- `NYU/1/T1w.json` <- `NYU_1/scantable.pdf` (select `*Anatomical`): "3D" -> "2D"
-
-### `RepetitionTimeExcitation` dropped (3)
-
-- `NKI/2/bold_TE=1400.json` <- `NKI_2/scantable.pdf` (select `*Rest 1400`): was 1.4000000000000001
-- `NKI/2/bold_TE=2500.json` <- `NKI_2/scantable.pdf` (select `*Rest 2500`): was 2.5
-- `NKI/2/bold_TE=645.json` <- `NKI_2/scantable.pdf` (select `*Rest 645`): was 0.645
 
 ### `EchoTime` differs (2)
 
@@ -573,7 +552,7 @@ Vendor/dcm2niix keys that are not BIDS sidecar fields; listed for reference only
 
 None.
 
-protocol2bids 0.0.0 (commit 5b826707154c64f1cf256572f00a158a54e3da27)
+protocol2bids 0.0.0 (commit 198706288dedb5c415a60516044ce1f09c352deb)
 
 Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `aa3e2f1` when the script was run.
 
@@ -762,6 +741,7 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `PartialFourierDirection`: "PHASE"
 - added `TotalReadoutTime`: 0.04699
 - added `DwellTime`: 2.5010000000000003e-06
+- added `FlipAngle`: 90.0
 - added `RepetitionTime`: 8.0
 - added `Modality`: "MR"
 - added `ProtocolName`: "DTI_30_2p2x2p2x2p2_6-8_p2"
@@ -889,6 +869,7 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `NumberShots`: 1
 - added `TotalReadoutTime`: 0.05207
 - added `DwellTime`: 2.798e-06
+- added `FlipAngle`: 90.0
 - added `RepetitionTime`: 7.2
 - added `Modality`: "MR"
 - added `ProtocolName`: "DTI_64_18x18x25_p2_opt"
@@ -925,7 +906,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "N/A"
 - removed `PhaseEncodingDirection`: "RL"
 - removed `SliceEncodingDirection`: "A"
-- removed `RepetitionTimePreparation`: 2.375
 - removed `DwellTime`: 2.176941832114246e-05
 - changed `PulseSequenceType`: "T1-TFE" -> "3D T1-TFE"
 
@@ -949,7 +929,7 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 
 - added `ManufacturersModelName`: "Discovery MR750"
 - added `ReceiveCoilName`: "8 Chan"
-- added `RepetitionTime`: 0.008060000000000001
+- added `RepetitionTimeExcitation`: 0.008060000000000001
 - added `PixelBandwidth`: 125.0
 - added `SliceThickness`: 1.0
 - added `AcquisitionMatrixPE`: 250
@@ -1045,7 +1025,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.6
 - removed `DwellTime`: 3.0048076923076925e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1075,14 +1054,11 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `RepetitionTime`: 2.5300000000000002
 - added `PixelBandwidth`: 170.0
 - added `SliceThickness`: 1.3
-- added `SpacingBetweenSlices`: 1.95
 - added `AcquisitionMatrixPE`: 256
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.5300000000000002
 - removed `DwellTime`: 2.2977941176470588e-05
-- changed `MRAcquisitionType`: "3D" -> "2D"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
 
 ## IPCAS/1/bold.json
@@ -1116,14 +1092,11 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `RepetitionTime`: 2.3000000000000003
 - added `PixelBandwidth`: 130.0
 - added `SliceThickness`: 1.2
-- added `SpacingBetweenSlices`: 1.8
 - added `AcquisitionMatrixPE`: 226
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.3000000000000003
 - removed `DwellTime`: 3.205128205128205e-05
-- changed `MRAcquisitionType`: "3D" -> "2D"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
 
 ## IPCAS/2/bold.json
@@ -1161,7 +1134,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.5300000000000002
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1196,7 +1168,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `PhaseEncodingDirection`: "AP"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 8.068
 - removed `DwellTime`: 0.000128
 - changed `PulseSequenceType`: "SPGR" -> "3D SPGR"
 
@@ -1315,7 +1286,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1348,7 +1318,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `AcquisitionMatrixPE`: 256
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.6
 - removed `DwellTime`: 2.170138888888889e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1382,7 +1351,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.5300000000000002
 - removed `DwellTime`: 2.055921052631579e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1433,7 +1401,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.3000000000000003
 - removed `DwellTime`: 1.6276041666666666e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1469,7 +1436,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `PhaseEncodingDirection`: "RL"
 - removed `SliceEncodingDirection`: "A"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 2.375
 - removed `DwellTime`: 2.175805047867711e-05
 - changed `PulseSequenceType`: "T1-TFE" -> "3D T1-TFE"
 
@@ -1502,7 +1468,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "Verio"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.4
 - removed `DwellTime`: 1.6983695652173913e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1536,7 +1501,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.4
 - removed `DwellTime`: 1.6983695652173913e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1573,7 +1537,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "Magnetom"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 5.0
 - removed `DwellTime`: 1.25e-05
 - changed `PulseSequenceType`: "MP2RAGE" -> "3D MP2RAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1607,7 +1570,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.5300000000000002
 - removed `DwellTime`: 6.000384024577573e-06
 - changed `PulseSequenceType`: "MEMPR" -> "3D MEMPR"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1659,7 +1621,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `PhaseEncodingDirection`: "AP"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 
@@ -1742,8 +1703,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `SliceThickness`: 1.0
 - added `AcquisitionMatrixPE`: 256
 - removed `ManufacturerModelName`: "Allegra"
-- removed `RepetitionTimePreparation`: 2.5
-- changed `MRAcquisitionType`: "3D" -> "2D"
 
 ## NYU/1/bold.json
 
@@ -1847,7 +1806,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1881,7 +1839,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1915,7 +1872,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -1949,7 +1905,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "S"
 - removed `SliceTiming`: "Sequential Ascending"
-- removed `RepetitionTimePreparation`: 1.9000000000000001
 - removed `DwellTime`: 2.2977941176470588e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "AP" -> "j-"
@@ -2073,7 +2028,6 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - removed `ManufacturerModelName`: "TrioTim"
 - removed `SliceEncodingDirection`: "A"
 - removed `SliceTiming`: "Interleaved Ascending"
-- removed `RepetitionTimePreparation`: 2.1
 - removed `DwellTime`: 1.6276041666666666e-05
 - changed `PulseSequenceType`: "MPRAGE" -> "3D MPRAGE"
 - changed `PhaseEncodingDirection`: "RL" -> "i-"
@@ -2750,6 +2704,7 @@ Generated by `scripts/make_sidecars.py`; diffs are against the sidecar at git `a
 - added `SliceTiming`: [1.5, 0.0, 1.65, 0.15, 1.8, 0.3, 1.95, 0.45, 2.1, 0.6, 2.25, 0.75, 2.4, 0.9, 2.55, 1.05, 2.7, 1.2, 2.85, 1.35]
 - added `SliceEncodingDirection`: "k"
 - added `DwellTime`: 2.001e-06
+- added `FlipAngle`: 90.0
 - added `RepetitionTime`: 3.0
 - added `Modality`: "MR"
 - added `ProtocolName`: "ep2d_diff_3scan_trace_p2"

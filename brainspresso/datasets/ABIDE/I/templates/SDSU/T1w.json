@@ -13,7 +13,7 @@
     ],
     "PulseSequenceType": "Inversion Recovery Fast Spoiled Gradient Echo",
     "ParallelAcquisitionTechnique": "ASSET",
-    "ParallelReductionFactorInPlane": 1.0,
+    "ParallelReductionFactorInPlane": 2.0,
     "AcquisitionMatrixPE": 192,
     "PercentPhaseFOV": 100.0,
     "NumberOfAverages": 1.0,

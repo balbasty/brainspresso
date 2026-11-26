@@ -11,6 +11,10 @@
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
 #   assigns   (optional) table of BIDS keys that override protocol2bids
+#   fill_from (optional) other printout of the same acquisition (e.g. the
+#             site scan table) whose keys fill those missing from the
+#             sidecar, as `p2b --fill-from`; never overrides
+#   fill_select (optional) protocol selector in `fill_from` (default: 0)
 #   manual    true if no printout is available: the sidecar is kept as is
 #   note      (optional) free-text comment
 #   previous  (optional) older template (relative to templates/) that a
@@ -211,6 +215,8 @@ nii = "Stanford/nii/anat.nii"
 output = "Stanford/bold.json"
 printout = "Stanford/rest.pdf"
 nii = "Stanford/nii/rest.nii"
+note = "field strength not printed; same scanner as Stanford/anat.pdf (GE SIGNA 3T)"
+defaults = { MagneticFieldStrength = 3.0 }
 
 [[sidecar]]
 output = "Trinity/T1w.json"

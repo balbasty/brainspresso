@@ -26,7 +26,7 @@ printouts/<DATASET>/
                                # map anatomical directions to voxel axes
     sidecars.toml              # conversion table (printout -> sidecar)
     sidecars.lock.json         # provenance of the committed sidecars
-    known_issues.md            # suspected protocol2bids problems (copied
+    known_issues.md            # classified differences (copied
                                # at the top of report.md)
     report.md                  # last regeneration report (diff per sidecar)
 ```
@@ -237,8 +237,11 @@ python scripts/make_sidecars.py ABIDE2 --check       # CI: non-zero if stale
 
 For each entry the script reads the printout with protocol2bids
 (`read_protocols`, `protocol_to_bids(..., extra=False)`, i.e. BIDS keys
-only), applies `defaults` and `assigns`, and writes the sidecar (4-space
-indent, protocol2bids key order, trailing newline). It never adds
+only), fills missing keys from `fill_from` (another printout of the same
+acquisition, e.g. the site scan table, as `p2b --fill-from`; used where
+protocol2bids' `datasets/convert_*.sh` use it), applies `defaults` and
+`assigns`, and writes the sidecar (4-space indent, protocol2bids key order,
+trailing newline). It never adds
 non-BIDS keys to sidecars; provenance (printout SHA-256, selector, NIfTI
 header SHA-256, protocol2bids version and commit) goes to
 `sidecars.lock.json`. `report.md` lists, per sidecar, the keys added,
@@ -249,9 +252,12 @@ it classifies every difference into renames (`ManufacturerModelName` ->
 errors corrected by protocol2bids (invalid values: non-`i`/`j`/`k`
 directions, text `SliceTiming`, `SliceTiming` in anatomical sidecars,
 implausible `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in bold
-sidecars...), (b) suspected protocol2bids issues, and non-BIDS keys of the
-old templates. The committed reports use `--baseline aa3e2f1` (the
-hand-parsed templates).
+sidecars...), accepted protocol2bids conventions (documented in
+protocol2bids `notes/conversion_rules.md`: MPRAGE `RepetitionTime` is the
+inversion TR, EPI TR in `RepetitionTime`, verified template errors; one
+reason each, table `ACCEPTED` in the script), (b) suspected protocol2bids
+issues, and non-BIDS keys of the old templates. The committed reports use
+`--baseline aa3e2f1` (the hand-parsed templates).
 
 Do not hand-fix values in the generated sidecars: fix protocol2bids (or, for
 genuinely missing information, add `defaults`/`assigns`) and re-run.

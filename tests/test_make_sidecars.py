@@ -192,6 +192,96 @@ def test_classify():
     assert "`S/T1w.json` <- `a.pdf`" in md
 
 
+def test_classify_accepted():
+    """Documented protocol2bids conventions are not suspected issues."""
+    # MPRAGE-like (GE): only the excitation TR is known -> no RepetitionTime
+    mprage = {"MRAcquisitionType": "3D", "InversionTime": 0.6,
+              "ScanningSequence": ["GR", "IR"]}
+    old = {"RepetitionTimePreparation": 0.008}
+    got = ms.classify("S/T1w.json", old, mprage)
+    assert {c for c, *_ in got} == {"accepted"}
+    assert all("conversion_rules.md" in t for _, t, _ in got)
+    # ... but not for a non-MPRAGE scan
+    got = ms.classify("S/T1w.json", old, {"MRAcquisitionType": "3D"})
+    assert {c for c, *_ in got} == {"suspect"}
+    # template RepetitionTimePreparation was the TE/TI, now the inversion TR
+    new = {**mprage, "RepetitionTime": 2.3, "RepetitionTimePreparation": 2.3}
+    got = ms.classify("S/T1w.json", {"RepetitionTimePreparation": 0.9,
+                                     "RepetitionTime": 2.3}, new)
+    assert [c for c, *_ in got] == ["accepted"]
+    # a near-identical value stays a (b) difference
+    got = ms.classify("S/T1w.json", {"RepetitionTimePreparation": 2.29,
+                                     "RepetitionTime": 2.3}, new)
+    assert [c for c, *_ in got] == ["suspect"]
+    # EPI TR moved from RepetitionTimeExcitation to RepetitionTime
+    got = ms.classify("S/bold_TE=645.json",
+                      {"RepetitionTimeExcitation": 0.645},
+                      {"RepetitionTime": 0.645, "ScanningSequence": ["EP"]})
+    assert [c for c, *_ in got] == ["accepted"]
+    # dataset-specific verified template errors
+    old = {"EchoTime": 0.03, "RepetitionTime": 2}
+    new = {"EchoTime": 0.015, "RepetitionTime": 2}
+    assert [c for c, *_ in ms.classify("NYU/1/bold.json", old, new,
+                                       "ABIDE2")] == ["accepted"]
+    assert [c for c, *_ in ms.classify("NYU/1/bold.json", old, new,
+                                       "CoRR")] == ["suspect"]
+    # table shape: (dataset, glob(s), keys, kinds, condition, reason)
+    for ds, pattern, keys, kinds, cond, reason in ms.ACCEPTED:
+        assert ds in (None, *DATASETS)
+        assert set(kinds) <= {"dropped", "differs", "missing"}
+        assert "conversion_rules.md" in reason
+    got = ms.classify("S/T1w.json", {"RepetitionTimePreparation": 0.008},
+                      mprage)
+    md = ms.render_issues("X", [("S/T1w.json", {"printout": "a.pdf"}, *i)
+                                for i in got])
+    assert "## Accepted protocol2bids conventions" in md
+    assert "(b) Suspected protocol2bids issues\n\n" in md
+
+
+def test_fill_from(tmp_path, monkeypatch):
+    """`fill_from` fills missing keys only, as `p2b --fill-from`."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    (pdir / "S" / "table.pdf").write_bytes(b"table")
+    toml = pdir / "sidecars.toml"
+    toml.write_text(toml.read_text().replace(
+        'select = "1"\n',
+        'select = "1"\nfill_from = "S/table.pdf"\nfill_select = 2\n'))
+    monkeypatch.setattr(ms, "convert",
+                        lambda p, s=None, n=None: {"EchoTime": 0.002})
+    seen = []
+
+    def fake_fill(printout, select=None):
+        seen.append((Path(printout).name, select))
+        return {"EchoTime": 0.009, "RepetitionTime": 2.0,
+                "MagneticFieldStrength": 1.5, "Manufacturer": "Other"}
+
+    monkeypatch.setattr(ms, "fill", fake_fill)
+    monkeypatch.setattr(ms, "protocol2bids_version",
+                        lambda: {"version": "9.9", "commit": "abc"})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    assert seen == [("table.pdf", 2)]
+    got = json.loads(
+        (root / ms.TEMPLATES["ABIDE1"] / "S/T1w.json").read_text())
+    # printout > defaults > fill; assigns override all
+    assert got == {"EchoTime": 0.002, "RepetitionTime": 2.0,
+                   "MagneticFieldStrength": 3, "Manufacturer": "Acme"}
+    rec = json.loads((pdir / "sidecars.lock.json").read_text())
+    rec = rec["sidecars"]["S/T1w.json"]
+    assert rec["fill_from"] == "S/table.pdf"
+    assert rec["fill_select"] == "2"
+    assert rec["fill_sha256"] == ms.sha256(pdir / "S/table.pdf")
+    # fill_select without fill_from, missing fill_from: table errors
+    toml.write_text(toml.read_text().replace(
+        'fill_from = "S/table.pdf"\n', ''))
+    with pytest.raises(ms.TableError):
+        ms.load_table("ABIDE1", root=root)
+    toml.write_text(toml.read_text().replace(
+        'fill_select = 2\n', 'fill_from = "S/missing.pdf"\n'))
+    with pytest.raises(ms.TableError):
+        ms.load_table("ABIDE1", root=root)
+
+
 @pytest.mark.parametrize("dataset", DATASETS)
 def test_check_real(dataset):
     """Committed sidecars are up to date (needs protocol2bids)."""

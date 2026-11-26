@@ -11,12 +11,17 @@
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
 #   assigns   (optional) table of BIDS keys that override protocol2bids
+#   fill_from (optional) other printout of the same acquisition (e.g. the
+#             site scan table) whose keys fill those missing from the
+#             sidecar, as `p2b --fill-from`; never overrides
+#   fill_select (optional) protocol selector in `fill_from` (default: 0)
 #   manual    true if no printout is available: the sidecar is kept as is
 #   note      (optional) free-text comment
 #
-# Mapping: protocol2bids `datasets/convert_ABIDE2.sh`, except where a
-# richer vendor export (`*.txt`) exists for the same protocol (BNI_1,
-# ETH_1, KUL_3, TCD_1): there the export is kept (see the `note`s).
+# Mapping: protocol2bids `datasets/convert_ABIDE2.sh` (commit 1987062):
+# ExamCard text exports (`*.txt`) for the Philips sites BNI_1, ETH_1,
+# KUL_3, TCD_1; SDSU_1 T1w/bold and NYU_{1,2} dwi filled from the site
+# scan table (`fill_from`).
 # Extra templates not read by the roast yet: KKI/1/acq-rc{8,32}chan_*
 # (8- and 32-channel head coil acquisitions), NYU/{1,2}/fieldmap.json.
 
@@ -29,19 +34,16 @@ note = "not in convert_ABIDE2.sh; nii fetched from S3 (see README)"
 [[sidecar]]
 output = "BNI/1/T1w.json"
 printout = "BNI_1/anat.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 0: fewer keys)"
 nii = "BNI_1/nii/T1w.nii"
 
 [[sidecar]]
 output = "BNI/1/bold.json"
 printout = "BNI_1/rest.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 1: fewer keys)"
 nii = "BNI_1/nii/bold.nii"
 
 [[sidecar]]
 output = "BNI/1/dwi.json"
 printout = "BNI_1/dti.txt"
-note = "not in convert_ABIDE2.sh (scantable has no DTI column); vendor export kept"
 nii = "BNI_1/nii/dwi.nii"
 
 [[sidecar]]
@@ -57,13 +59,11 @@ nii = "EMC_1/nii/bold.nii"
 [[sidecar]]
 output = "ETH/1/T1w.json"
 printout = "ETH_1/anat.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 0: fewer keys)"
 nii = "ETH_1/nii/T1w.nii"
 
 [[sidecar]]
 output = "ETH/1/bold.json"
 printout = "ETH_1/rest.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 1: fewer keys)"
 nii = "ETH_1/nii/bold.nii"
 
 [[sidecar]]
@@ -105,13 +105,11 @@ nii = "IU_1/nii/bold.nii"
 [[sidecar]]
 output = "KUL/3/T1w.json"
 printout = "KUL_3/T1w.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 0: fewer keys)"
 nii = "KUL_3/nii/T1w.nii"
 
 [[sidecar]]
 output = "KUL/3/bold.json"
 printout = "KUL_3/bold.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 1: fewer keys)"
 nii = "KUL_3/nii/bold.nii"
 
 [[sidecar]]
@@ -128,6 +126,9 @@ nii = "NYU_1/nii/bold.nii"
 output = "NYU/1/dwi.json"
 printout = "NYU_1/dwi.pdf"
 nii = "NYU_1/nii/dwi.nii"
+fill_from = "NYU_1/scantable.pdf"
+fill_select = 2
+note = "flip angle (60 deg, user sequence) only in the scan table"
 
 [[sidecar]]
 output = "NYU/2/T1w.json"
@@ -143,6 +144,9 @@ nii = "NYU_2/nii/bold.nii"
 output = "NYU/2/dwi.json"
 printout = "NYU_2/dwi.pdf"
 nii = "NYU_2/nii/dwi.nii"
+fill_from = "NYU_2/scantable.pdf"
+fill_select = 2
+note = "flip angle (60 deg, user sequence) only in the scan table"
 
 [[sidecar]]
 output = "OHSU/1/T1w.json"
@@ -159,11 +163,17 @@ nii = "OHSU_1/nii/bold.nii"
 output = "SDSU/1/T1w.json"
 printout = "SDSU_1/T1w.pdf"
 nii = "SDSU_1/nii/T1w.nii"
+fill_from = "SDSU_1/scantable.pdf"
+fill_select = 0
+note = "scan sheets print TE \"Min Full\" and no TR/field strength"
 
 [[sidecar]]
 output = "SDSU/1/bold.json"
 printout = "SDSU_1/bold.pdf"
 nii = "SDSU_1/nii/bold.nii"
+fill_from = "SDSU_1/scantable.pdf"
+fill_select = 1
+note = "scan sheets print TE \"Min Full\" and no TR/field strength"
 
 [[sidecar]]
 output = "SDSU/1/dwi.json"
@@ -174,19 +184,16 @@ note = "not in convert_ABIDE2.sh; nii fetched from S3 (see README)"
 [[sidecar]]
 output = "TCD/1/T1w.json"
 printout = "TCD_1/T1w.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 0: fewer keys)"
 nii = "TCD_1/nii/T1w.nii"
 
 [[sidecar]]
 output = "TCD/1/bold.json"
 printout = "TCD_1/bold.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 1: fewer keys)"
 nii = "TCD_1/nii/bold.nii"
 
 [[sidecar]]
 output = "TCD/1/dwi.json"
 printout = "TCD_1/dwi.txt"
-note = "richer vendor export kept (convert_ABIDE2.sh uses scantable.pdf select 2: fewer keys)"
 nii = "TCD_1/nii/dwi.nii"
 
 [[sidecar]]

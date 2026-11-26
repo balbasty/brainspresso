@@ -5,7 +5,7 @@
     "Modality": "MR",
     "ProtocolName": "T1w",
     "ReceiveCoilName": "SENSE-Head-8",
-    "RepetitionTime": 0.008400000000000001,
+    "RepetitionTime": 3.0,
     "EchoTime": 0.0039,
     "FlipAngle": 8.0,
     "InversionTime": 1.1500000000000001,

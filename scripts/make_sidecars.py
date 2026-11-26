@@ -30,8 +30,15 @@ Every difference with the previous template is classified automatically
   a valid BIDS value (e.g. `PhaseEncodingDirection: "AP"`, a text
   `SliceTiming`, `SliceTiming` in an anatomical sidecar, an implausible
   `EffectiveEchoSpacing`, `RepetitionTimeExcitation` in a bold sidecar);
+- accepted protocol2bids conventions: differences documented in
+  protocol2bids `notes/conversion_rules.md` (MPRAGE TR convention, EPI TR in
+  `RepetitionTime`, verified template errors), one reason each (`ACCEPTED`);
 - (b) suspected protocol2bids issues: the new value is invalid, or a valid
   old value was dropped or changed.
+
+An entry may set `fill_from` (and `fill_select`) to fill the keys missing
+from the sidecar from another printout of the same acquisition (e.g. the
+site scan table), as `p2b --fill-from` does.
 
 An entry may set `previous` (path relative to the templates) to diff a new
 sidecar against an older template at another path (e.g. a per-site template
@@ -41,6 +48,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import math
 import sys
 import tomllib
 from pathlib import Path
@@ -55,7 +63,7 @@ TEMPLATES = {
 # template JSON files that are not acquisition sidecars
 NON_SIDECARS = ('dataset_description.json', 'participants.json')
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
-              'manual', 'note', 'previous'}
+              'fill_from', 'fill_select', 'manual', 'note', 'previous'}
 
 
 class TableError(ValueError):
@@ -102,7 +110,10 @@ def load_table(dataset, root=ROOT):
         if 'printout' not in e:
             raise TableError(f'{path}: {e["output"]}: no printout '
                              '(use manual = true)')
-        for key in ('printout', 'nii'):
+        if 'fill_select' in e and 'fill_from' not in e:
+            raise TableError(f'{path}: {e["output"]}: fill_select without '
+                             'fill_from')
+        for key in ('printout', 'nii', 'fill_from'):
             if key in e and not (path.parent / e[key]).is_file():
                 raise TableError(f'{path}: {e["output"]}: missing {key} '
                                  f'{e[key]}')
@@ -142,7 +153,24 @@ def protocol2bids_version():
 def convert(printout, select=None, nii=None):
     """Convert one protocol of a printout to a BIDS sidecar (dict)."""
     from protocol2bids import protocol_to_bids, read_protocols
-    prots = read_protocols(printout)
+    prots = _select(read_protocols(printout), printout, select)
+    return protocol_to_bids(prots[0], nii=nii, extra=False)
+
+
+def fill(printout, select=None):
+    """Sidecar used to fill missing keys (as `p2b --fill-from`).
+
+    Like the protocol2bids CLI, the fill document is converted without
+    NIfTI header and defaults to its first protocol; its keys never
+    override the converted printout, `defaults` or `assigns`.
+    """
+    from protocol2bids import protocol_to_bids, read_protocols
+    prots = _select(read_protocols(printout), printout,
+                    0 if select is None else select)
+    return protocol_to_bids(prots[0], extra=False)
+
+
+def _select(prots, printout, select):
     if select is not None:
         sel = str(select)
         if sel.isdigit():
@@ -152,7 +180,7 @@ def convert(printout, select=None, nii=None):
     if len(prots) != 1:
         raise TableError(f'{printout}: selector {select!r} matches '
                          f'{len(prots)} protocols')
-    return protocol_to_bids(prots[0], nii=nii, extra=False)
+    return prots
 
 
 # ---------------------------------------------------------------------------
@@ -296,15 +324,108 @@ def invalid(output, key, value):
     return None
 
 
-def classify(output, old, new):
+def _seq(sidecar):
+    """ScanningSequence of a sidecar as a set of codes."""
+    seq = sidecar.get('ScanningSequence') or []
+    if isinstance(seq, str):
+        seq = seq.split('\\')
+    return set(seq)
+
+
+def _mprage(sidecar):
+    """MPRAGE-like: 3D gradient-echo inversion recovery.
+
+    Scan tables give no ScanningSequence: 3D with an inversion time.
+    """
+    seq = _seq(sidecar)
+    return (sidecar.get('MRAcquisitionType') == '3D'
+            and 'InversionTime' in sidecar and ('GR' in seq or not seq))
+
+
+def _not_inversion_tr(value):
+    # an inversion TR is >= 0.5 s (conversion_rules.md: scan tables
+    # reporting a TR < 0.5 s for a 3D IR scan only know the excitation TR)
+    return _is_num(value) and value < 0.5
+
+
+# Differences that look like protocol2bids issues but are its documented
+# conventions, or verified template errors (protocol2bids
+# `notes/conversion_rules.md`). Each rule:
+#   (dataset or None, output glob(s), keys ('*': any), kinds, condition,
+#    reason)
+# kinds: 'dropped', 'differs', 'missing' (no repetition time produced);
+# condition(old_value, new_value, new_sidecar) or None. The first matching
+# rule wins (dataset-specific rules first).
+_MPRAGE_TR = ('MPRAGE-like scan: `RepetitionTime` is the inversion TR and is '
+              'not written when only the excitation TR is known '
+              '(conversion_rules.md, "MPRAGE-like sequences")')
+_RTP = ('the template\'s `RepetitionTimePreparation` was the TE, TI or '
+        'excitation TR, not the inversion TR (conversion_rules.md, '
+        '"MPRAGE-like sequences" and cross-checks)')
+ACCEPTED = [
+    ('ABIDE2', 'NYU/[12]/bold.json', ('EchoTime', 'FlipAngle',
+                                      'SliceThickness'), ('differs',), None,
+     'printouts match the NIfTI geometry; the scan tables and templates '
+     'swap NYU_1/NYU_2 bold parameters (conversion_rules.md, cross-checks)'),
+    ('ABIDE1', 'Yale/T1w.json', ('*',), ('dropped', 'differs'), None,
+     'the NIfTI is protocol 1 (`Sag_3D_short_ipat`); the template describes '
+     'protocol 0 (conversion_rules.md, cross-checks)'),
+    ('ABIDE1', ('KKI/T1w.json', 'Trinity/T1w.json'),
+     ('ParallelReductionFactorInPlane', 'ParallelReductionFactorOutOfPlane'),
+     ('differs',), None,
+     'KKI/Trinity: the template\'s in-plane SENSE factor is the '
+     'through-plane `S reduction` (conversion_rules.md, Philips "SENSE '
+     'factors" and cross-checks)'),
+    (None, '*T1w.json', ('RepetitionTime',), ('missing',),
+     lambda a, b, new: _mprage(new), _MPRAGE_TR),
+    (None, '*T1w.json', ('RepetitionTimePreparation',), ('dropped',),
+     lambda a, b, new: _mprage(new) and _not_inversion_tr(a), _RTP),
+    (None, '*T1w.json', ('RepetitionTimePreparation',), ('differs',),
+     lambda a, b, new: (_mprage(new) and b == new.get('RepetitionTime')
+                        and _is_num(a) and not math.isclose(a, b,
+                                                            rel_tol=1e-2)),
+     _RTP),
+    (None, '*', ('RepetitionTimeExcitation',), ('dropped',),
+     lambda a, b, new: 'EP' in _seq(new) and new.get('RepetitionTime') == a,
+     'templates store the EPI TR in `RepetitionTimeExcitation`; '
+     'protocol2bids writes `RepetitionTime` (conversion_rules.md, '
+     'cross-checks)'),
+]
+
+
+def accepted(dataset, output, kind, key, a=None, b=None, new=None):
+    """Reason why a suspect difference is an accepted convention (or None)."""
+    for ds, pattern, keys, kinds, cond, reason in ACCEPTED:
+        if ds not in (None, dataset) or kind not in kinds:
+            continue
+        if keys != ('*',) and key not in keys:
+            continue
+        patterns = (pattern,) if isinstance(pattern, str) else pattern
+        if not any(fnmatch.fnmatch(output, pat) for pat in patterns):
+            continue
+        if cond is None or cond(a, b, new or {}):
+            return reason
+    return None
+
+
+def classify(output, old, new, dataset=None):
     """Classify the differences between an old and a new sidecar.
 
     Returns a list of (category, title, detail), with category one of
-    'rename', 'fixed' (old-template error corrected), 'suspect'
-    (suspected protocol2bids issue), 'nonbids' (non-BIDS key of the old
-    template).
+    'rename', 'fixed' (old-template error corrected), 'accepted'
+    (protocol2bids convention or verified template error, see
+    `ACCEPTED`), 'suspect' (suspected protocol2bids issue), 'nonbids'
+    (non-BIDS key of the old template).
     """
     out = []
+
+    def suspect(title, detail, kind=None, key=None, a=None, b=None):
+        why = kind and accepted(dataset, output, kind, key, a, b, new)
+        if why:
+            out.append(('accepted', f'{title}: {why}', detail))
+        else:
+            out.append(('suspect', title, detail))
+
     added, removed, changed = diff(old, new)
     for a, b in RENAMES.items():
         if a in removed and b in new:
@@ -321,7 +442,7 @@ def classify(output, old, new):
         elif why:
             out.append(('fixed', f'invalid `{k}` dropped', why))
         else:
-            out.append(('suspect', f'`{k}` dropped', f'was {_fmt(v)}'))
+            suspect(f'`{k}` dropped', f'was {_fmt(v)}', 'dropped', k, v)
     for k, (a, b) in changed.items():
         why_old, why_new = invalid(output, k, a), invalid(output, k, b)
         if k not in BIDS_KEYS:
@@ -333,8 +454,8 @@ def classify(output, old, new):
             out.append(('fixed', f'invalid `{k}` corrected',
                         f'{why_old}; now {_fmt(b)}'))
         else:
-            out.append(('suspect', f'`{k}` differs',
-                        f'{_fmt(a)} -> {_fmt(b)}'))
+            suspect(f'`{k}` differs', f'{_fmt(a)} -> {_fmt(b)}',
+                    'differs', k, a, b)
     for k, v in added.items():
         why = invalid(output, k, v)
         if why:
@@ -342,7 +463,7 @@ def classify(output, old, new):
     for key in ('RepetitionTime',):
         if key not in new and not any(
                 k.startswith(key) for k in new):
-            out.append(('suspect', 'no repetition time produced', ''))
+            suspect('no repetition time produced', '', 'missing', key)
     return out
 
 
@@ -354,6 +475,11 @@ def render_issues(dataset, issues):
          'BIDS name. Not a loss.'),
         ('fixed', '(a) Old-template errors corrected by protocol2bids',
          'The old (hand-parsed) value was not a valid BIDS value.'),
+        ('accepted', 'Accepted protocol2bids conventions',
+         'Differences that are documented protocol2bids conventions or '
+         'verified old-template errors (protocol2bids '
+         '`notes/conversion_rules.md`); one reason per group (`ACCEPTED` in '
+         '`scripts/make_sidecars.py`).'),
         ('suspect', '(b) Suspected protocol2bids issues',
          'The new value is invalid, or a valid old value was dropped or '
          'changed. Values were NOT hand-fixed: fix protocol2bids (or add '
@@ -424,21 +550,30 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
             continue
         printout = pdir / e['printout']
         nii = pdir / e['nii'] if 'nii' in e else None
+        fill_from = pdir / e['fill_from'] if 'fill_from' in e else None
         try:
             sidecar = convert(printout, e.get('select'), nii)
+            filled = (fill(fill_from, e.get('fill_select'))
+                      if fill_from else {})
         except Exception as exc:
             failures.append(output)
             report.append((output, 'error', f'{type(exc).__name__}: {exc}'))
             if output in old_lock.get('sidecars', {}):
                 lock['sidecars'][output] = old_lock['sidecars'][output]
             continue
-        sidecar = {**e.get('defaults', {}), **sidecar, **e.get('assigns', {})}
+        sidecar = {**filled, **e.get('defaults', {}), **sidecar,
+                   **e.get('assigns', {})}
         entry = {'printout': e['printout'], 'sha256': sha256(printout)}
         if 'select' in e:
             entry['select'] = str(e['select'])
         if nii is not None:
             entry['nii'] = e['nii']
             entry['nii_sha256'] = sha256(nii)
+        if fill_from is not None:
+            entry['fill_from'] = e['fill_from']
+            entry['fill_sha256'] = sha256(fill_from)
+            if 'fill_select' in e:
+                entry['fill_select'] = str(e['fill_select'])
         lock['sidecars'][output] = entry
 
         dst = tpl / output
@@ -453,7 +588,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         # roundtrip so that the comparison is done on json values
         new = json.loads(text)
         report.append((output, 'ok', diff(old, new)))
-        issues += [(output, e, *i) for i in classify(output, old, new)]
+        issues += [(output, e, *i)
+                   for i in classify(output, old, new, dataset)]
         if old_text != text:
             dirty.append(output)
             if not check:

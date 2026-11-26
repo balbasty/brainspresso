@@ -1,7 +1,7 @@
 {
     "protocol2bids": {
         "version": "0.0.0",
-        "commit": "5b826707154c64f1cf256572f00a158a54e3da27"
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
     },
     "sidecars": {
         "BNI/1/FLAIR.json": {
@@ -122,7 +122,10 @@
             "printout": "NYU_1/dwi.pdf",
             "sha256": "18b9c009e22ede2f7c2662334169870405513289c2ece23cf82e4d6c17e88499",
             "nii": "NYU_1/nii/dwi.nii",
-            "nii_sha256": "0d17b7748a7b7f58ef51c5434b666d5d487ba614bb20c8f592a504cd0c5c1485"
+            "nii_sha256": "0d17b7748a7b7f58ef51c5434b666d5d487ba614bb20c8f592a504cd0c5c1485",
+            "fill_from": "NYU_1/scantable.pdf",
+            "fill_sha256": "58319b281d3ec7d4caa4f5b5044c80972262974a85e9976ed1a73809969e29ae",
+            "fill_select": "2"
         },
         "NYU/2/T1w.json": {
             "printout": "NYU_2/T1w.pdf",
@@ -140,7 +143,10 @@
             "printout": "NYU_2/dwi.pdf",
             "sha256": "18b9c009e22ede2f7c2662334169870405513289c2ece23cf82e4d6c17e88499",
             "nii": "NYU_2/nii/dwi.nii",
-            "nii_sha256": "ea9d61ba253c2d256ead8ef4a19809f527ab4547d5d6c2a7ceec9b65b213c510"
+            "nii_sha256": "ea9d61ba253c2d256ead8ef4a19809f527ab4547d5d6c2a7ceec9b65b213c510",
+            "fill_from": "NYU_2/scantable.pdf",
+            "fill_sha256": "71ab6378586a5b38c238307660c3b06f67385ae474398c3ffef433593f591030",
+            "fill_select": "2"
         },
         "OHSU/1/T1w.json": {
             "printout": "OHSU_1/T1w.pdf",
@@ -159,13 +165,19 @@
             "printout": "SDSU_1/T1w.pdf",
             "sha256": "df28e198b8bc9425193b0ff5c71bd504fa836c1d8e561521329330aefbb106b5",
             "nii": "SDSU_1/nii/T1w.nii",
-            "nii_sha256": "d9fbb593307e8725a0af038fee00fa106516738511889bce762f87274d4963b3"
+            "nii_sha256": "d9fbb593307e8725a0af038fee00fa106516738511889bce762f87274d4963b3",
+            "fill_from": "SDSU_1/scantable.pdf",
+            "fill_sha256": "364887dc0681eb7ea5921618814092d4ec2a5be964230b289519a62e3eb21668",
+            "fill_select": "0"
         },
         "SDSU/1/bold.json": {
             "printout": "SDSU_1/bold.pdf",
             "sha256": "1fccb888f19a6cd311e4d9697c7d7481bf64234ce52c71a89828b429bc9a49b2",
             "nii": "SDSU_1/nii/bold.nii",
-            "nii_sha256": "dc8c657ef70e7e39528852816ba2365cdc70281ad8fc3c87e4fe7342a2db00e8"
+            "nii_sha256": "dc8c657ef70e7e39528852816ba2365cdc70281ad8fc3c87e4fe7342a2db00e8",
+            "fill_from": "SDSU_1/scantable.pdf",
+            "fill_sha256": "364887dc0681eb7ea5921618814092d4ec2a5be964230b289519a62e3eb21668",
+            "fill_select": "1"
         },
         "SDSU/1/dwi.json": {
             "printout": "SDSU_1/dwi.pdf",

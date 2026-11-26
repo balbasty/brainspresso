@@ -1,0 +1,107 @@
+1000 Functional Connectomes Project (FCON1000)
+==============================================
+
+Resting-state fMRI and T1-weighted images of ~1300 participants (mostly
+healthy) acquired at 33 sites, released in 2009-2010 by the 1000
+Functional Connectomes Project (INDI).
+
+    Biswal BB, Mennes M, Zuo X-N, et al. (2010) Toward discovery
+    science of human brain function. PNAS 107(10):4734-4739.
+    https://doi.org/10.1073/pnas.0911855107
+
+Data use follows the terms of the FCON1000 release (non-commercial use;
+see the INDI website). Acknowledge the contributing sites.
+
+Organisation
+------------
+This dataset was assembled by brainspresso from the per-site folders of
+s3://fcp-indi/data/Projects/FCON1000/:
+
+* Subject labels are only unique within a site, so they are prefixed
+  with a site code: `AnnArbor_a/sub-04111` -> `sub-AnnArborA04111`.
+  `participants.tsv` lists the site and the original label.
+* Several resting-state runs (`func`, `func_2`... in the source)
+  become `run-1`, `run-2`... (ICBM, NewHaven_a, NewHaven_b).
+  NYU_TRT has three sessions (`ses-1` to `ses-3`).
+* Files were matched by folder, so typos in the source file names
+  (`tast-rest`, `test-rest`, `_boldt`, `T1wnii.gz`...) are corrected.
+* Repetition times were read from the NIfTI headers (most common value
+  per site; 7 Atlanta subjects have TR = 2.0 s instead of 2.02 s).
+* Skull-stripped T1w images are in `derivatives/fcon1000`. NewHaven_a
+  and NewHaven_b only have skull-stripped anatomical images.
+* Site notes and extra tables are kept in `sourcedata/<site>/`.
+* `participants.tsv` merges the site tables (`handed` -> `handedness`,
+  sex as M/F, `9999` -> n/a). The NewYork_a table has 4 column names
+  for 5 columns: the 4th column (7.88 to 49.16) is taken to be the
+  age. Several sites have no demographics.
+
+Sites
+-----
+| Site               | Label code   |  TR (s) |    N |
+|--------------------|--------------|--------:|-----:|
+| AnnArbor_a         | AnnArborA    |     2 |   25 |
+| AnnArbor_b         | AnnArborB    |  0.75 |   36 |
+| Atlanta            | Atlanta      |  2.02 |   29 |
+| Baltimore          | Baltimore    |   2.5 |   23 |
+| Bangor             | Bangor       |     2 |   20 |
+| Beijing_Zang       | Beijing      |     2 |  200 |
+| Berlin_Margulies   | Berlin       |   2.3 |   26 |
+| Cambridge_Buckner  | Cambridge    |     3 |  198 |
+| Dallas             | Dallas       |     2 |   24 |
+| ICBM               | ICBM         |     2 |   86 |
+| Leiden_2180        | LeidenA      |  2.18 |   13 |
+| Leiden_2200        | LeidenB      |   2.2 |   19 |
+| Leipzig            | Leipzig      |   2.3 |   37 |
+| Milwaukee_a        | MilwaukeeA   |     2 |   18 |
+| Milwaukee_b        | MilwaukeeB   |     2 |   46 |
+| Munchen            | Munchen      |     3 |   16 |
+| NYU_TRT            | NYUTRT       |     2 |   25 |
+| NewHaven_a         | NewHavenA    |     1 |   19 |
+| NewHaven_b         | NewHavenB    |   1.5 |   16 |
+| NewYork_a          | NewYorkA     |     2 |   84 |
+| NewYork_a_ADHD     | NewYorkADHD  |     2 |   25 |
+| NewYork_b          | NewYorkB     |     2 |   20 |
+| Newark             | Newark       |     2 |   19 |
+| Ontario            | Ontario      |     3 |   12 |
+| Orangeburg         | Orangeburg   |     2 |   20 |
+| Oulu               | Oulu         |   1.8 |  103 |
+| Oxford             | Oxford       |     2 |   22 |
+| PaloAlto           | PaloAlto     |     2 |   18 |
+| Pittsburgh         | Pittsburgh   |   1.5 |   17 |
+| Queensland         | Queensland   |   2.1 |   19 |
+| SaintLouis         | SaintLouis   |   2.5 |   31 |
+| Taipei_a           | TaipeiA      |     2 |   14 |
+| Taipei_b           | TaipeiB      |     2 |    8 |
+
+Notes from the sites
+--------------------
+* AnnArbor_a: no resting-state scan for sub-47191 and sub-56686; no
+  demographic data available.
+* Beijing_Zang: the resting-state scan of sub-62966 seems to be acquired
+  in a different orientation. sub-26713, sub-49782, sub-66889, sub-82714
+  and sub-85818 were excluded from the group analyses in the paper.
+* Berlin_Margulies: resting-state scans acquired without fat suppression.
+* ICBM: two ambidextrous subjects (labelled A); three resting-state
+  scans per subject.
+* Leiden_2180, Leiden_2200: same magnet.
+* Leipzig: some T1w images are missing, because defacing failed.
+* Milwaukee_a, Milwaukee_b: same magnet; no demographics for Milwaukee_a.
+* Munchen: the first 5 time points of sub-70942 were not removed (fewer
+  time points than the other subjects).
+* NewHaven_a: sub-64608 was excluded from the analyses in the paper (no
+  high-resolution anatomical image).
+* NewHaven_b: not included in the analyses of the paper; four
+  resting-state scans per subject (sub-47998 has three).
+* NewYork_a, NewYork_a_ADHD, NewYork_b: same magnet; NewYork_a and
+  NewYork_a_ADHD use the same sequence.
+* Newark: the anatomical scan of sub-71042 seems stretched at the top of
+  the brain.
+* Ontario: 4T magnet; no anatomical scan for sub-71760 and sub-75684;
+  no demographics.
+* Orangeburg: 1.5T magnet.
+* Queensland: the first 5 time points of sub-68733 were not removed;
+  this subject was excluded from the analyses in the paper.
+* Taipei_a, Taipei_b: same magnet (295 and 175 volumes respectively); no
+  resting-state scan for Taipei_a sub-45138; no demographics.
+
+Labels in these notes are the original (site) labels.

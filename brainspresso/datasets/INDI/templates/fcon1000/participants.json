@@ -1,0 +1,26 @@
+{
+  "participant_id": {
+    "Description": "Unique label: site code followed by the label used by the site"
+  },
+  "site": {
+    "Description": "Contributing site (folder name in s3://fcp-indi/data/Projects/FCON1000)"
+  },
+  "site_participant_id": {
+    "Description": "Label of the participant in the site folder (only unique within a site)"
+  },
+  "age": {
+    "Description": "Age of the participant",
+    "Units": "years"
+  },
+  "sex": {
+    "Description": "Sex of the participant",
+    "Levels": {"M": "male", "F": "female"}
+  },
+  "handedness": {
+    "Description": "Handedness, as reported by the site",
+    "Levels": {"R": "right", "L": "left", "A": "ambidextrous"}
+  },
+  "psych_eval": {
+    "Description": "NewYork_a only; column of the site table (unnamed in the source, the site header was truncated)"
+  }
+}

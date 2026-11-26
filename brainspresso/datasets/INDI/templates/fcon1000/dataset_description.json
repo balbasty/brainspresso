@@ -1,0 +1,26 @@
+{
+  "Name": "1000 Functional Connectomes Project (FCON1000)",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "raw",
+  "Authors": [
+    "Bharat B. Biswal",
+    "Maarten Mennes",
+    "Xi-Nian Zuo",
+    "Michael P. Milham",
+    "and the 1000 Functional Connectomes Project contributors"
+  ],
+  "HowToAcknowledge": "Cite Biswal et al. (2010), Toward discovery science of human brain function, PNAS 107(10):4734-4739, and acknowledge the contributing sites.",
+  "ReferencesAndLinks": [
+    "https://doi.org/10.1073/pnas.0911855107"
+  ],
+  "DatasetLinks": {
+    "fcp-indi": "s3://fcp-indi/data/Projects/FCON1000/"
+  },
+  "GeneratedBy": [
+    {
+      "Name": "brainspresso",
+      "Description": "Reorganised from the per-site folders of s3://fcp-indi (labels prefixed with a site code, runs and file names normalised, sidecars generated)",
+      "CodeURL": "https://github.com/balbasty/brainspresso"
+    }
+  ]
+}

@@ -143,3 +143,45 @@ and provides SHA256 checksums for annexed files. If the API cannot be
 reached, the listing falls back to the public `s3://openneuro.org` bucket,
 which only holds the latest snapshot (checksums: MD5 from S3 ETags).
 Use `--source graphql|s3` to choose explicitly.
+
+## INDI projects on `s3://fcp-indi`, as BIDS
+
+Curated commands for projects of the International Neuroimaging
+Data-sharing Initiative mirrored on the public `fcp-indi` bucket (no
+login needed). Each dataset is harvested straight to a BIDS dataset in
+`<path>/<DATASET>/`, with the same selection options as `bx openneuro
+harvest` (`--subs`, `--sessions`, `--datatypes`, `--suffixes`,
+`--tasks`, `--include`/`--exclude`, `--where`, `--folders derivatives`,
+`--dry-run`...) plus `--sites` for multi-site datasets. Only the
+selected subjects are listed, so small selections of large datasets
+start immediately.
+
+| Command        | Dataset                                              | Notes                                   |
+|----------------|------------------------------------------------------|-----------------------------------------|
+| `fcon1000`     | 1000 Functional Connectomes Project (33 sites)       | T1w, rest fMRI; skull-stripped T1w      |
+| `nki-rs`       | NKI Rockland Sample (enhanced)                       | lifespan, multimodal, several sessions  |
+| `hbn`          | Healthy Brain Network, MRI (4 sites)                 | children/adolescents; no phenotypes     |
+| `sald`         | Southwest University Adult Lifespan Dataset          | T1w, rest fMRI                          |
+| `slim`         | Southwest University Longitudinal Imaging Multimodal | T1w, DWI, rest fMRI; 3 time points      |
+| `mpi-lemon`    | MPI-Leipzig Mind-Brain-Body: LEMON (MRI)             | MP2RAGE, SWI, DWI, rest fMRI            |
+| `acpi`         | Addiction Connectome Preprocessed Initiative (3 sites) | T1w, rest fMRI                        |
+| `natview`      | Naturalistic viewing, simultaneous EEG-fMRI          | EEG, eye tracking, physiology           |
+| `simon`        | SIMON, one individual scanned in ~70 sessions        | `--folders derivatives`: NIAK outputs   |
+
+```shell
+bx fcon1000 info
+bx fcon1000 harvest /data --sites ICBM NYU_TRT --datatypes func --dry-run
+bx fcon1000 harvest /data --where "age>=60" --folders derivatives
+bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
+```
+
+Bucket copies are rarely valid BIDS as they are, so each dataset is
+curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
+are merged with site-prefixed labels (`sub-AnnArborA04111`), runs and
+typos in file names are fixed and repetition times read from the NIfTI
+headers; multi-site participant tables are merged with a `site` column;
+missing descriptions, READMEs and sidecars are generated; entities are
+put in BIDS order; and common metadata defects (numbers stored as text,
+slice timing in milliseconds, invalid JSON, sessions tables without
+`session_id`...) are repaired after download (`brainspresso/bids/repair.py`).
+Each dataset's `README` lists what was changed.

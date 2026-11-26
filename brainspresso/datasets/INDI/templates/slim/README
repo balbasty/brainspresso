@@ -1,0 +1,22 @@
+Southwest University Longitudinal Imaging Multimodal (SLIM)
+===========================================================
+
+T1-weighted, diffusion and resting-state fMRI of ~600 healthy young
+adults (university students), scanned up to three times (2011 to 2014)
+at Southwest University (Chongqing, China) on a 3T Siemens Trio.
+
+    Liu W, Wei D, Chen Q, et al. (2017) Longitudinal test-retest
+    neuroimaging data from healthy young adults in southwest China.
+    Sci Data 4:170017. https://doi.org/10.1038/sdata.2017.17
+
+Downloaded by brainspresso from s3://fcp-indi/data/Projects/INDI/SLIM/.
+
+* `participants.tsv` (sex, age at the first scan) and the per-subject
+  `sessions.tsv` (scan date) were built from the
+  `swu_slim_phenodata_time{1,2,3}.tsv` tables of the bucket.
+* The bucket has no sidecars. `task-rest_bold.json` gives the task name
+  and a repetition time of 2 s. The NIfTI headers disagree (1 s for
+  most first-session scans, 2 s otherwise), but all scans have the
+  geometry of the SALD resting-state scans (same scanner and site,
+  64x64x32 voxels of 3.4375x3.4375x3.99 mm, 242 volumes), whose
+  DICOM-derived sidecars give TR = 2 s.

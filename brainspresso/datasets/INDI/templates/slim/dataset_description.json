@@ -1,0 +1,9 @@
+{
+  "Name": "Southwest University Longitudinal Imaging Multimodal (SLIM)",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "raw",
+  "Authors": ["Wei Liu", "Dongtao Wei", "Qunlin Chen", "Jiang Qiu", "and colleagues"],
+  "HowToAcknowledge": "Cite Liu et al. (2017), Scientific Data 4:170017.",
+  "ReferencesAndLinks": ["https://doi.org/10.1038/sdata.2017.17"],
+  "DatasetLinks": {"fcp-indi": "s3://fcp-indi/data/Projects/INDI/SLIM/"}
+}

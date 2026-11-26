@@ -1,0 +1,4 @@
+{
+  "sex": {"Description": "Sex of the participant", "Levels": {"M": "male", "F": "female"}},
+  "age_group": {"Description": "Age range of the participant, in years (5-year bins)"}
+}

@@ -15,6 +15,7 @@ _datasets = [
     'IXI',
     'OASIS.I', 'OASIS.II', 'OASIS.III',
     "OpenNeuro",
+    "INDI",
 ]
 for _dataset in _datasets:
     try:

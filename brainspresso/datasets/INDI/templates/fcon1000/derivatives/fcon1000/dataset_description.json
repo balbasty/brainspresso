@@ -1,0 +1,17 @@
+{
+  "Name": "1000 Functional Connectomes Project (FCON1000): skull-stripped T1w",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "derivative",
+  "GeneratedBy": [
+    {
+      "Name": "FCON1000 release",
+      "Description": "Skull-stripped anatomical images distributed with the release (mprage_skullstripped / T1w_brain)"
+    }
+  ],
+  "SourceDatasets": [
+    {"URL": "s3://fcp-indi/data/Projects/FCON1000/"}
+  ],
+  "ReferencesAndLinks": [
+    "https://doi.org/10.1073/pnas.0911855107"
+  ]
+}

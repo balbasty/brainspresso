@@ -1,0 +1,18 @@
+NKI Rockland Sample (NKI-RS, enhanced)
+======================================
+
+Multimodal, lifespan (6 to 85 years) community sample collected at the
+Nathan Kline Institute (Orangeburg, NY). Sessions are named after the
+visit (`BAS1`, `BAS2`, `FLU1`...); several fMRI protocols are
+distinguished by `acq` (`645`, `1400`, `CAP` for resting state).
+
+    Nooner KB, Colcombe SJ, Tobe RH, et al. (2012) The NKI-Rockland
+    Sample: a model for accelerating the pace of discovery science in
+    psychiatry. Front Neurosci 6:152.
+    https://doi.org/10.3389/fnins.2012.00152
+
+Imaging data are openly available; most phenotypic data require a data
+usage agreement with NKI and are not included. Downloaded by brainspresso
+from s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/.
+Files of the bucket that are not BIDS (MIVAC link lists, conversion
+log) are in `sourcedata/`.

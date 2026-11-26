@@ -1,0 +1,6 @@
+{
+  "site": {"Description": "INDI collection (du_1, mta_1, nyu_1)"},
+  "age": {"Description": "Age at the (first) scan", "Units": "years"},
+  "sex": {"Description": "Sex of the participant", "Levels": {"M": "male", "F": "female"}},
+  "handedness": {"Description": "Handedness", "Levels": {"R": "right", "L": "left", "A": "ambidextrous"}}
+}

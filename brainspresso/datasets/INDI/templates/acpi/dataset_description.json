@@ -1,0 +1,7 @@
+{
+  "Name": "Addiction Connectome Preprocessed Initiative (ACPI), raw data",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "raw",
+  "Authors": ["International Neuroimaging Data-sharing Initiative (INDI)"],
+  "DatasetLinks": {"fcp-indi": "s3://fcp-indi/data/Projects/ACPI/"}
+}

@@ -1,0 +1,9 @@
+{
+  "Name": "Southwest University Adult Lifespan Dataset (SALD)",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "raw",
+  "Authors": ["Dongtao Wei", "Kaixiang Zhuang", "Jiang Qiu", "and colleagues"],
+  "HowToAcknowledge": "Cite Wei et al. (2018), Scientific Data 5:180134.",
+  "ReferencesAndLinks": ["https://doi.org/10.1038/sdata.2018.134"],
+  "DatasetLinks": {"fcp-indi": "s3://fcp-indi/data/Projects/INDI/SALD/"}
+}

@@ -26,7 +26,8 @@ Rules
   (`ctx.keeps(path)`, i.e. `ctx.selection.keeps` on the path relative
   to the BIDS dataset that contains it, the subject/session filters only
   outside the raw dataset), and if its `kind` passes the JSON policy
-  (`--json no` drops sidecars, `--json only` drops data). A claim
+  (`--json no` drops sidecars, `--json only` drops data; files written
+  to `sourcedata/` are inputs of later actions and always pass). A claim
   action runs unless its claim cannot be selected
   (`keeps(claim, partial=True) is False`); the sub-actions it yields are
   selected one by one. All outputs of an action that runs are written;
@@ -51,7 +52,9 @@ picklable** (module-level functions, `functools.partial` of them, or
 cannot be pickled runs in the main process, with a warning. Shards must
 not write the same files as each other or as the top-level roaster.
 Their statuses are reported when they finish. With `jobs=1` (default),
-everything runs sequentially, in order.
+everything runs sequentially, in order. ("spawn" re-imports the main
+module in each worker: a script that calls `run_roast` with `jobs > 1`
+needs an `if __name__ == "__main__":` guard; the `bx` command does.)
 """
 from __future__ import annotations
 
@@ -72,6 +75,7 @@ from brainspresso.actions.action import Action, IfExists, Kind
 from brainspresso.actions.action import default_kind
 from brainspresso.bids.keys import KeyAliases, KeySelection
 from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
+from brainspresso.bids.select import OPTIONAL_FOLDERS
 
 lg = getLogger(__name__)
 
@@ -177,13 +181,38 @@ class RoastContext:
         if self._reporter is not None:
             self._reporter.progress(tag or self.tag, total, advance)
 
-    def accepts(self, kind: Kind) -> bool:
-        """JSON policy"""
+    def accepts(self, kind: Kind, path: str | os.PathLike | None = None
+                ) -> bool:
+        """JSON policy. It does not apply to files written to optional
+        folders (`sourcedata/`...: inputs of later actions, e.g. an
+        unpacked FreeSurfer tree)."""
+        if path is not None and self._optional_folder(path):
+            return True
         if self.json == "no":
             return kind != "sidecar"
         if self.json == "only":
             return kind != "data"
         return True
+
+    def _relative(self, path) -> tuple[Path, str] | None:
+        """(BIDS dataset, relative path) of an output (pristine tables
+        are mapped to the table they are the copy of)"""
+        layout = self.layout
+        path = Path(path)
+        try:
+            path = layout.root / path.relative_to(layout.state / ORIG_DIR)
+        except ValueError:
+            pass
+        try:
+            dataset, rel = layout.relative(path)
+        except ValueError:
+            return None
+        return Path(dataset), "" if rel == "." else rel
+
+    def _optional_folder(self, path) -> bool:
+        found = self._relative(path)
+        return found is not None and \
+            found[1].split("/")[0] in OPTIONAL_FOLDERS
 
     def keeps(
         self, path: str | os.PathLike, partial: bool = False
@@ -195,18 +224,11 @@ class RoastContext:
         (derivatives, `sourcedata/`). Pristine tables (`<state>/orig/`)
         are judged as the table they are the copy of.
         """
-        layout = self.layout
-        path = Path(path)
-        try:
-            path = layout.root / path.relative_to(layout.state / ORIG_DIR)
-        except ValueError:
-            pass
-        try:
-            dataset, rel = layout.relative(path)
-        except ValueError:
+        found = self._relative(path)
+        if found is None:
             return True             # not in the dataset: not ours to filter
-        rel = "" if rel == "." else rel
-        if Path(dataset) == Path(layout.raw):
+        dataset, rel = found
+        if dataset == Path(self.layout.raw):
             return self.selection.keeps(rel, partial)
         return self.selection.base.keeps(rel, partial)
 
@@ -523,7 +545,7 @@ def _run_action(action: Action, ctx, reporter, tag) -> list[Path]:
         name = str(action.claim.path.name) or str(action.claim.path)
     else:
         outputs = action.declared
-        if not ctx.accepts(action.kind):
+        if not ctx.accepts(action.kind, outputs[0] if outputs else None):
             return []
         if outputs and all(ctx.keeps(o) is False for o in outputs):
             return []
@@ -532,7 +554,8 @@ def _run_action(action: Action, ctx, reporter, tag) -> list[Path]:
     if not action.ifexists_given:
         action.ifexists = IfExists.from_any(ctx.ifexists)
     action.keeps = lambda path: (
-        ctx.keeps(path) is not False and ctx.accepts(default_kind(path))
+        ctx.keeps(path) is not False
+        and ctx.accepts(default_kind(path), path)
     )
 
     outcome, message, nb_sub, outputs = None, "", 0, []

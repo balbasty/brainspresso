@@ -466,7 +466,7 @@ layer in 2b-iv):
   yielded, an unpicklable `ctx` runs the roast in the main process
   (warnings). A dying worker (`BrokenProcessPool`): shards that had
   started (their state file says so, or a start marker that a worker
-  of the local pool writes in `<tmp>/bx-shards-<pid>-*`: the state
+  of the local pool writes in `<tmp>/bx-shards-<host>-<pid>-*`: the state
   folder may be missing or not writable) are errors, never run again,
   the others and all later ones run in the main process. Other
   executors (workers on other machines) get no markers.

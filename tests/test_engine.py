@@ -449,14 +449,33 @@ def test_stale_start_markers_are_removed(tmp_path, monkeypatch):
                            "import os; print(os.getpid())"],
                           capture_output=True, text=True, check=True)
     dead = int(proc.stdout)
-    stale = tmp_path / f"bx-shards-{dead}-abc"
-    alive = tmp_path / f"bx-shards-{os.getppid()}-def"
-    for folder in (stale, alive):
+    host = engine_module._host()
+    stale = tmp_path / f"bx-shards-{host}-{dead}-abc"
+    alive = tmp_path / f"bx-shards-{host}-{os.getppid()}-def"
+    other = tmp_path / f"bx-shards-another_host-{dead}-abc"
+    old = tmp_path / f"bx-shards-{dead}-abc"       # (older format)
+    for folder in (stale, alive, other, old):
         folder.mkdir()
         (folder / "1.started").touch()
     folder = engine_module._marker_folder()
-    assert folder.name.startswith(f"bx-shards-{os.getpid()}-")
-    assert not stale.exists() and alive.exists() and folder.is_dir()
+    assert folder.name.startswith(f"bx-shards-{host}-{os.getpid()}-")
+    assert not stale.exists() and folder.is_dir()
+    # only the dead pids of this host
+    assert alive.exists() and other.exists() and old.exists()
+
+
+@pytest.mark.parametrize("state", [None, "state"])
+def test_marker_failures_warn_only_without_state(tmp_path, monkeypatch,
+                                                 caplog, state):
+    (tmp_path / "file").write_text("")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "file"))
+    if state is not None:
+        state = tmp_path / state
+        state.mkdir()
+    with caplog.at_level("DEBUG", logger="brainspresso.actions.engine"):
+        assert engine_module._marker_folder(state) is None
+    [record] = [r for r in caplog.records if "start markers" in r.message]
+    assert record.levelname == ("WARNING" if state is None else "DEBUG")
 
 
 def test_stale_task_state_temporary_files_are_removed(tmp_path,
@@ -466,14 +485,16 @@ def test_stale_task_state_temporary_files_are_removed(tmp_path,
     tasks.mkdir()
     stale, fresh = tasks / ".1-dead.tmp", tasks / ".2-live.tmp"
     old = tasks / "demo%2Fx.json.tmp"      # (name of an older version)
-    for path in (stale, fresh, old):
+    mine = tasks / f".{os.getpid()}-mine.tmp"
+    for path in (stale, fresh, old, mine):
         path.write_text("{")
     past = time.time() - state_module.STALE_TMP_AGE - 60
-    for path in (stale, old):
+    for path in (stale, old, mine):
         os.utime(path, (past, past))
     write_task_state(tmp_path, "demo/x", {})
-    assert sorted(p.name for p in tasks.iterdir()) == [
-        ".2-live.tmp", "demo%2Fx.json"]
+    assert sorted(p.name for p in tasks.iterdir()) == sorted([
+        mine.name, ".2-live.tmp", "demo%2Fx.json"])
+    assert state_module.STALE_TMP_AGE >= 24 * 3600
 
 
 def test_task_state_of_a_long_task_id(tmp_path):
@@ -481,3 +502,22 @@ def test_task_state_of_a_long_task_id(tmp_path):
     path = write_task_state(tmp_path, task, {"status": "done"})
     assert len(path.name) == 250
     assert read_task_states(tmp_path)[task]["status"] == "done"
+
+
+def finalized_parent(ctx):
+    yield from ()
+
+
+# an unpicklable hook: it runs in the worker of its shard
+finalized_parent.finalize = lambda ctx: iter([Shard(leaf, "z")])
+
+
+def test_children_of_a_finalize_run_in_a_worker_are_counted(tmp_path):
+    def producer(ctx):
+        yield Shard(finalized_parent, id="demo/fp")
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=2, display=False)
+    assert not report.errors
+    assert (tmp_path / "out" / "z.txt").exists()
+    assert read_task_states(tmp_path / "state")["demo/fp"]["children"] == 1

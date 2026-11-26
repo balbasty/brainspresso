@@ -111,6 +111,9 @@ def pid_alive(pid: int) -> bool:
     """
     Tell whether a process of this host is alive.
 
+    POSIX only, as the locks (`fcntl`): Windows is not supported, and
+    there `os.kill(pid, 0)` is no probe, so every pid counts as alive.
+
     Parameters
     ----------
     pid : int

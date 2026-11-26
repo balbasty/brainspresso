@@ -61,8 +61,6 @@ def bidsify(
         Path to log file
     """
     setup_filelog(log)
-    if isinstance(keys, str):
-        keys = [keys]
     roast(
         Path(get_tree_path(path)) / DATASET,
         keys=keys,

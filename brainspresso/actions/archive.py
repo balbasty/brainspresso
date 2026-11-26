@@ -53,10 +53,11 @@ class ExtractMember(Action):
 class ExtractMembers(Action):
     """
     Extract the members of an archive whose outputs are only known once
-    it is opened (a claim). `rename(member_name)` returns the output path
-    of a member, or None to ignore it. Each member is extracted by an
-    `ExtractMember` sub-action, which the runner selects (and to which it
-    applies `IfExists`) like any other action.
+    it is opened (a claim on one folder or a list of folders).
+    `rename(member_name)` returns the output path of a member, or None to
+    ignore it. Each member is extracted by an `ExtractMember` sub-action,
+    which the runner selects (and to which it applies `IfExists`) like
+    any other action. `staging=True`: intermediate files (see `Action`).
     """
 
     def __init__(
@@ -67,16 +68,18 @@ class ExtractMembers(Action):
         *,
         opener: Callable = TarArchive,
         tag: str | None = None,
+        staging: bool = False,
         **kwargs,
     ):
         if not isinstance(claim, Claim):
-            claim = Claim(Path(claim))
+            claim = Claim(claim)
         self.archive = Path(archive)
         self.rename = rename
         self.opener = opener
         self.kwargs = kwargs
         super().__init__(
             self.archive, None, self.extract, claim=claim, tag=tag,
+            staging=staging,
         )
 
     def extract(self) -> Iterator[Action]:
@@ -87,5 +90,6 @@ class ExtractMembers(Action):
                 dst = self.rename(member.name)
                 if dst is not None:
                     yield ExtractMember(
-                        archive, member, dst, tag=self.tag, **self.kwargs
+                        archive, member, dst, tag=self.tag,
+                        staging=self.staging, **self.kwargs
                     )

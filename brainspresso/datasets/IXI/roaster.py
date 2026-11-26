@@ -33,8 +33,9 @@ import xlrd  # extra: brainspresso[ixi]
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
 from brainspresso.actions.archive import ExtractMember
+from brainspresso.actions.helpers import copy_templates
 from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import make_context, run_roast
+from brainspresso.actions.runner import as_list, roast_dataset
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.utils.archive import open_archive
 from brainspresso.utils.io import write_tsv
@@ -52,31 +53,36 @@ KEYS = KeyAliases(
 )
 
 
-def roast(root, *, keys=(), subs=(), exclude_subs=(), json="yes",
-          ifexists="skip", layout=None, jobs=1, display=True):
-    """Roast `<root>` (the `IXI` folder). Subjects are numbers."""
-    ctx = make_context(
-        root, KEYS, layout=layout, select_keys=keys,
-        subs=[f"{int(s):03d}" for s in subs],
-        exclude_subs=[f"{int(s):03d}" for s in exclude_subs],
-        json=json, ifexists=ifexists, templates=TEMPLATES,
+def roast(root, *, subs=(), exclude_subs=(), **options):
+    """Roast `<root>` (the `IXI` folder). Subjects are numbers. Other
+    options: those of the command line (`keys`, `json`, `ifexists`,
+    `layout`), `jobs` and `display`."""
+    return roast_dataset(
+        roast_ixi, root, KEYS, templates=TEMPLATES,
+        subs=as_list(subs, "{:03d}"),
+        exclude_subs=as_list(exclude_subs, "{:03d}"), **options,
     )
-    return run_roast(roast_ixi, ctx, jobs=jobs, display=display)
 
 
 def roast_ixi(ctx: RoastContext) -> Iterator:
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
     for ixi, key in IXI2BIDS.items():
-        if key != "dwi":
+        if key != "dwi" and ctx.wants(key):
             yield Shard(roast_anat, ixi, key, tag=key)
-    yield Shard(roast_dwi, tag="dwi")
+    if ctx.wants("dwi"):
+        yield Shard(roast_dwi, tag="dwi")
 
 
 def open_images(ctx: RoastContext, ixi: str):
     """Tarball `IXI-<ixi>.tar`, else folder `IXI-<ixi>/`, else None"""
-    src = ctx.layout.source
+    src = ctx.source
     return open_archive(src / f"IXI-{ixi}.tar", src / f"IXI-{ixi}")
+
+
+def missing_images(ixi: str) -> Fail:
+    return Fail(f"IXI-{ixi}.tar (or IXI-{ixi}/) not found",
+                name=f"IXI-{ixi}")
 
 
 def parse_name(name: str) -> tuple[str, str]:
@@ -91,9 +97,8 @@ def parse_name(name: str) -> tuple[str, str]:
 
 def roast_meta(ctx: RoastContext) -> Iterator[Action]:
     raw = ctx.layout.raw
-    for name in ("README", "dataset_description.json", "participants.json"):
-        copy = CopyJSON if name.endswith(".json") else CopyBytes
-        yield copy(ctx.resource(name), raw / name, tag="meta")
+    yield from copy_templates(ctx, ["README", "dataset_description.json",
+                                    "participants.json"])
 
     # Sites are only given by image names
     sites = {}
@@ -120,7 +125,7 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
 def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
     archive = open_images(ctx, ixi)
     if archive is None:
-        lg.warning(f"IXI-{ixi}(.tar) not found")
+        yield missing_images(ixi)
         return
     with archive:
         members = archive.getmembers()
@@ -140,7 +145,7 @@ def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
 # ----------------------------------------------------------------------
 
 def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
-    raw, src = ctx.layout.raw, ctx.layout.source
+    raw, src = ctx.layout.raw, ctx.source
 
     # The original release has a single bvals.txt/bvecs.txt, common to
     # all subjects, placed at the top of the raw dataset. NITRC-IR has
@@ -154,7 +159,7 @@ def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
 
     archive = open_images(ctx, "DTI")
     if archive is None:
-        lg.warning("IXI-DTI(.tar) not found")
+        yield missing_images("DTI")
         return
     with archive:
         # subject -> (site, volumes ordered by direction)

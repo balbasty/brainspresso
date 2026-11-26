@@ -46,14 +46,15 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
-from brainspresso.actions import Action, Claim, CopyBytes, CopyJSON, Fail
-from brainspresso.actions import WriteJSON, WriteTSV
+from brainspresso.actions import Action, Claim, Fail, WriteJSON, WriteTSV
 from brainspresso.actions.archive import ExtractMembers
+from brainspresso.actions.helpers import copy_templates, subject_shards
 from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import make_context, run_roast
+from brainspresso.actions.runner import as_list, roast_dataset
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.OASIS.III.keys import allkeys
 from brainspresso.freesurfer import bidsify as fs
+from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import read_json
 
 lg = getLogger(__name__)
@@ -95,7 +96,9 @@ KEYS = KeyAliases({**allkeys, "meta": {"meta", "pheno"}}, bids={
     "AV45": _pet("AV45"),
     "AV1451": _pet("AV1451"),
     "CT": {"datatypes": ["ct"], "suffixes": ["CT"]},
-})
+}, folders={"fs": [f"derivatives/{FS_NAME}"],
+            "fs-all": [f"derivatives/{FS_NAME}"],
+            "pheno": ["phenotype"]})
 
 # Tarball name prefix -> datatype of its members (None: func or perf)
 TARBALLS = {"anat": "anat", "swi": "anat", "func": None, "fmap": "fmap",
@@ -104,17 +107,15 @@ PERF_SUFFIXES = ("asl", "pasl", "m0scan", "aslcontext")
 EXTENSIONS = (".nii.gz", ".json", ".bval", ".bvec")
 
 
-def roast(root, *, keys=(), exclude_keys=(), subs=(), exclude_subs=(),
-          json="yes", ifexists="skip", layout=None, jobs=1, display=True):
-    """Roast `<root>` (the `OASIS-3` folder). Subjects are numbers."""
-    ctx = make_context(
-        root, KEYS, layout=layout, select_keys=keys,
-        exclude_keys=exclude_keys,
-        subs=[f"{int(s):04d}" for s in subs],
-        exclude_subs=[f"{int(s):04d}" for s in exclude_subs],
-        json=json, ifexists=ifexists, templates=TEMPLATES,
+def roast(root, *, subs=(), exclude_subs=(), **options):
+    """Roast `<root>` (the `OASIS-3` folder). Subjects are numbers.
+    Other options: those of the command line (`keys`, `exclude_keys`,
+    `json`, `ifexists`, `layout`), `jobs` and `display`."""
+    return roast_dataset(
+        roast_oasis3, root, KEYS, templates=TEMPLATES,
+        subs=as_list(subs, "{:04d}"),
+        exclude_subs=as_list(exclude_subs, "{:04d}"), **options,
     )
-    return run_roast(roast_oasis3, ctx, jobs=jobs, display=display)
 
 
 def roast_oasis3(ctx: RoastContext) -> Iterator:
@@ -124,23 +125,15 @@ def roast_oasis3(ctx: RoastContext) -> Iterator:
     if ctx.wants("pheno"):
         yield from roast_phenotypes(ctx)
     if ctx.wants("fs") or ctx.wants("fs-all"):
-        root = ctx.layout.derivative(FS_NAME).root
-        for action in fs.bidsify_toplevel(root, (5, 3)):
-            action.tag = "fs"
-            yield action
-    subjects = [sub for sub in sorted(sessions)
-                if ctx.selection.keeps_subject(sub)]   # early pruning
-    ctx.progress(total=len(subjects), tag="subjects")
-    for sub in subjects:
-        folders = sorted(f for group in sessions[sub].values()
-                         for f in group)
-        yield Shard(roast_subject, sub, folders, tag="subjects")
+        yield Shard(roast_freesurfer_tables, tag="fs")
+    yield from subject_shards(ctx, sorted(sessions), roast_subject,
+                              inputs=partial(subject_tarballs, ctx))
 
 
 def source_sessions(ctx: RoastContext) -> dict[str, dict[str, Path]]:
     """{sub: {session: [folders]}} of `OAS3<sub>_<category>_<session>/`"""
     out = {}
-    for folder in sorted(ctx.layout.source.glob("OAS3*_*_d*")):
+    for folder in sorted(ctx.source.glob("OAS3*_*_d*")):
         match = re.fullmatch(r"OAS3(\d+)_\w+_(d\d+)", folder.name)
         if match and folder.is_dir():
             sub, ses = match.groups()
@@ -166,9 +159,21 @@ def fix_name(name: str, sub: str) -> str:
 #   Images
 # ----------------------------------------------------------------------
 
-def roast_subject(ctx: RoastContext, sub: str, folders: list[Path]):
+def subject_folders(ctx: RoastContext, sub: str) -> list[Path]:
+    """Folders `OAS3<sub>_<category>_<session>/` of a subject"""
+    return sorted(f for f in ctx.source.glob(f"OAS3{sub}_*_d*")
+                  if f.is_dir())
+
+
+def subject_tarballs(ctx: RoastContext, sub: str) -> list[Path]:
+    """Tarballs of a subject (inputs of its shard)"""
+    return [tarball for folder in subject_folders(ctx, sub)
+            for tarball in sorted(folder.glob("*.tar.gz"))]
+
+
+def roast_subject(ctx: RoastContext, sub: str):
     """All tarballs of a subject (a shard)"""
-    for folder in folders:
+    for folder in subject_folders(ctx, sub):
         for tarball in sorted(folder.glob("*.tar.gz")):
             if "Freesurfer" in tarball.name:
                 if ctx.wants("fs") or ctx.wants("fs-all"):
@@ -186,7 +191,6 @@ def roast_subject(ctx: RoastContext, sub: str, folders: list[Path]):
                 partial(raw_path, ctx.layout.raw, sub, ses, datatype),
                 tag=datatype or "func",
             )
-    ctx.progress(advance=1, tag="subjects")
 
 
 def raw_path(raw: Path, sub: str, ses: str, datatype: str | None,
@@ -204,9 +208,15 @@ def raw_path(raw: Path, sub: str, ses: str, datatype: str | None,
     return raw / f"sub-{sub}" / f"ses-{ses}" / datatype / name
 
 
+def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
+    """Lookup tables of the FreeSurfer segmentations"""
+    yield from fs.bidsify_toplevel(ctx.layout.derivative(FS_NAME).root,
+                                   (5, 3))
+
+
 def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
-    """Unpack a FreeSurfer tree in `derivatives/<fs>/sourcedata/`,
-    then bidsify it"""
+    """Unpack a FreeSurfer tree in `derivatives/<fs>/sourcedata/`
+    (only its bidsifiable files, unless `fs-all`), then bidsify it"""
     drv = ctx.layout.derivative(FS_NAME)
     ses = tarball.name.split(".")[0].split("_")[-1]
     src = drv.source / f"sub-{sub}" / f"ses-{ses}"
@@ -217,14 +227,33 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
             return None
         return src.joinpath(*PurePosixPath(member).parts[6:])
 
-    yield ExtractMembers(tarball, Claim(src), rename, tag="fs")
+    if ctx.json == "only" and not everything:
+        # sidecars only: the names of the members are enough
+        yield Shard(bidsify_freesurfer, sub, ses, tarball, tag="fs")
+        return
+    # unpacked files are inputs of the bidsification (`staging`: the
+    # JSON policy does not apply to them)
+    yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
+    # (the shard runs after the tree is unpacked: the runner runs each
+    # action before asking for the next item)
+    yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
+
+
+def bidsify_freesurfer(ctx: RoastContext, sub: str, ses: str,
+                       tarball: Path | None = None) -> Iterator[Action]:
+    """BIDS derivatives of an unpacked FreeSurfer tree (or, from the
+    member names of its `tarball`, their sidecars only)"""
+    drv = ctx.layout.derivative(FS_NAME)
+    src = drv.source / f"sub-{sub}" / f"ses-{ses}"
+    exists = None
+    if tarball is not None:
+        with TarArchive(tarball) as archive:
+            members = {src.joinpath(*PurePosixPath(name).parts[6:])
+                       for name in archive.getnames()}
+        exists = members.__contains__
     t1 = f"bids:raw:sub-{sub}/ses-{ses}/anat/sub-{sub}_ses-{ses}_T1w.nii.gz"
-    # (actions are created once the tree is unpacked: the runner runs
-    # each action before asking for the next one)
-    for action in fs.bidsify(src, drv.root / f"sub-{sub}" / f"ses-{ses}",
-                             [t1], json="yes"):
-        action.tag = "fs"
-        yield action
+    yield from fs.bidsify(src, drv.root / f"sub-{sub}" / f"ses-{ses}",
+                          [t1], json=ctx.json, exists=exists)
 
 
 # ----------------------------------------------------------------------
@@ -293,13 +322,11 @@ def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
 
 def roast_meta(ctx: RoastContext, sessions: dict) -> Iterator[Action]:
     raw, original = ctx.layout.raw, ctx.layout.original
-    for name in ("README", "dataset_description.json", "participants.json",
-                 "sessions.json"):
-        copy = CopyJSON if name.endswith(".json") else CopyBytes
-        yield copy(ctx.resource(name), raw / name, tag="meta")
+    yield from copy_templates(ctx, ["README", "dataset_description.json",
+                                    "participants.json", "sessions.json"])
 
-    demo = ctx.layout.source / DATA_FILES / "demo.tar.gz"
-    cdr = ctx.layout.source / DATA_FILES / "UDSb4.tar.gz"
+    demo = ctx.source / DATA_FILES / "demo.tar.gz"
+    cdr = ctx.source / DATA_FILES / "UDSb4.tar.gz"
     demo = demo if demo.exists() else None
     cdr = cdr if cdr.exists() else None
     if demo:
@@ -405,7 +432,7 @@ PHENOCOLMAP = {
 def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
     for form, base in PHENOFILES.items():
         name = "pychometrics" if form == "c1" else f"UDS{form}"
-        tarball = ctx.layout.source / DATA_FILES / f"{name}.tar.gz"
+        tarball = ctx.source / DATA_FILES / f"{name}.tar.gz"
         if not tarball.exists():
             lg.debug(f"{tarball} not found")
             continue

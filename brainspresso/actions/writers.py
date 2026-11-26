@@ -32,6 +32,15 @@ from brainspresso.actions.action import IfExistsChoice
 from brainspresso.actions.action import Kind
 
 
+def _check_source(action: Action) -> None:
+    """A copy needs a source (e.g. `ctx.resource(name)` found nothing)"""
+    if not action.src:
+        raise FileNotFoundError(
+            f"No source to copy to {Path(action.dst).name} "
+            f"(missing input or resource)"
+        )
+
+
 class WriteJSON(Action):
     """Write a JSON dictionary"""
 
@@ -44,6 +53,7 @@ class WriteJSON(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int | None = None,
         mtime: datetime | None = None,
         digests: Mapping[str, str] | None = None,
@@ -63,10 +73,12 @@ class WriteJSON(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -90,6 +102,7 @@ class WriteJSON(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -110,6 +123,7 @@ class CopyJSON(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -127,10 +141,12 @@ class CopyJSON(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -153,12 +169,14 @@ class CopyJSON(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
         )
 
     def action(self, file: TextIO):
+        _check_source(self)
         return copy_json(self.src, file, **self.json_opt)
 
 
@@ -173,6 +191,7 @@ class WriteTSV(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -192,10 +211,12 @@ class WriteTSV(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -219,6 +240,7 @@ class WriteTSV(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -240,6 +262,7 @@ class WriteBytes(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -258,10 +281,12 @@ class WriteBytes(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -282,6 +307,7 @@ class WriteBytes(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -302,6 +328,7 @@ class CopyBytes(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -318,10 +345,12 @@ class CopyBytes(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -340,12 +369,14 @@ class CopyBytes(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
         )
 
     def action(self, file: BinaryIO):
+        _check_source(self)
         return copy_from_buffer(self.src, file)
 
 
@@ -361,6 +392,7 @@ class WriteText(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -379,10 +411,12 @@ class WriteText(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -403,6 +437,7 @@ class WriteText(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -426,6 +461,7 @@ class BabelConvert(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -448,10 +484,12 @@ class BabelConvert(Action):
             Orientation matrix (default: from input)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -470,6 +508,7 @@ class BabelConvert(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -498,6 +537,7 @@ class Freesurfer2Gifti(Action):
         ifexists: IfExistsChoice | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -514,10 +554,12 @@ class Freesurfer2Gifti(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
-        kind : {'data', 'sidecar', 'table'}
+        kind : {'data', 'sidecar', 'meta', 'table'}
             Kind of output (default: from its name)
         tag : str
             Progress group (roast runner)
+        staging : bool
+            Intermediate file, not subject to the JSON policy
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -536,6 +578,7 @@ class Freesurfer2Gifti(Action):
             ifexists=ifexists,
             kind=kind,
             tag=tag,
+            staging=staging,
             size=size,
             mtime=mtime,
             digests=digests,

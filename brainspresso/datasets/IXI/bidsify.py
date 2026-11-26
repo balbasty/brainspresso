@@ -54,17 +54,11 @@ def bidsify(
         Path to log file
     """
     setup_filelog(log)
-    if isinstance(keys, str):
-        keys = [keys]
-    if isinstance(subs, int):
-        subs = [subs]
-    if isinstance(exclude_subs, int):
-        exclude_subs = [exclude_subs]
-    roast(
+    roast(              # (one value or a list: see `runner.as_list`)
         get_tree_path(path) / 'IXI',
-        keys=keys or (),
-        subs=subs or (),
-        exclude_subs=exclude_subs or (),
+        keys=keys,
+        subs=subs,
+        exclude_subs=exclude_subs,
         json=json,
         layout=layout,
         ifexists=if_exists,

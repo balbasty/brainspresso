@@ -267,3 +267,21 @@ def test_roast_shards_in_processes(tmp_path):
     }
     assert report.counts["dwi"]["done"] == 3
     assert not report.errors
+
+
+def test_missing_images_are_errors(tmp_path):
+    """A wanted modality whose images are missing is a `Fail` (it used
+    to be a warning); modalities not wanted are not looked for"""
+    root = tmp_path / "IXI"
+    folder = root / "sourcedata" / "IXI-T1"
+    folder.mkdir(parents=True)
+    data = SUBJECTS[("NITRC_IR_E10452", "2_Guys")]["T1"]["NIfTI"]
+    for name, blob in data.items():
+        (folder / name).write_bytes(blob)
+    report = roaster.roast(root, keys={"T1w"}, display=False)
+    assert not report.errors
+    report = roaster.roast(root, keys={"T1w", "PDw", "dwi"}, display=False)
+    assert sorted(e[2] for e in report.errors) == [
+        "IXI-DTI.tar (or IXI-DTI/) not found",
+        "IXI-PD.tar (or IXI-PD/) not found"]
+    assert report.status == "partial"

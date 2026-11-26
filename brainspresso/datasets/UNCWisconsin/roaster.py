@@ -33,27 +33,28 @@ import re
 from pathlib import Path
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
-from brainspresso.actions import WriteJSON, WriteTSV
-from brainspresso.actions.runner import RoastContext, Shard
-from brainspresso.actions.runner import make_context, run_roast
+from brainspresso.actions import Action, Fail, WriteJSON, WriteTSV
+from brainspresso.actions.helpers import copy_templates, subject_shards
+from brainspresso.actions.runner import RoastContext, roast_dataset
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.UNCWisconsin.keys import allkeys
 from brainspresso.utils.nrrd import nrrd_to_nifti
 
 TEMPLATES = Path(__file__).parent / "templates"
 
+# Derivatives -> derivatives/unc-wisconsin/
+DERIV_NAME = "unc-wisconsin"
+DERIV_KEYS = ("reg", "dti-qc", "dti-proc")
+
 KEYS = KeyAliases(allkeys, bids={
     "T1w": {"suffixes": ["T1w"]},
     "T2w": {"suffixes": ["T2w"]},
     "dwi": {"suffixes": ["dwi"]},
-})
+}, folders={key: [f"derivatives/{DERIV_NAME}"] for key in DERIV_KEYS})
 
 SPECIES = "Macaca mulatta"
 ANAT = {"T1": "T1w", "T2": "T2w"}
 
-# Derivatives -> derivatives/unc-wisconsin/
-DERIV_NAME = "unc-wisconsin"
 SPACE = "UNCEmoryWisconsin12mo"     # UNC-Emory-Wisconsin 12 month atlas
 ATLAS_URL = "https://www.nitrc.org/projects/primate_atlas/"
 # (key, folder in session, file stem after "<sub>_<ses>_", datatype,
@@ -94,18 +95,14 @@ DERIVATIVES = [
     ("dti-proc", "DTI/MASKMANUAL", "brainmask_final",
      "dwi", "desc-brain_mask", False),
 ]
-DERIV_KEYS = ("reg", "dti-qc", "dti-proc")
 
 
-def roast(root, *, keys=(), subs=(), exclude_subs=(), sessions=(),
-          ifexists="skip", layout=None, jobs=1, display=True):
-    """Roast `<root>` (the `UNC-Wisconsin` folder)"""
-    ctx = make_context(
-        root, KEYS, layout=layout, select_keys=keys, subs=subs,
-        exclude_subs=exclude_subs, sessions=sessions, ifexists=ifexists,
-        templates=TEMPLATES,
-    )
-    return run_roast(roast_uncwisc, ctx, jobs=jobs, display=display)
+def roast(root, **options):
+    """Roast `<root>` (the `UNC-Wisconsin` folder). Options: those of
+    the command line (`keys`, `subs`, `exclude_subs`, `sessions`,
+    `ifexists`, `layout`), `jobs` and `display`."""
+    return roast_dataset(roast_uncwisc, root, KEYS, templates=TEMPLATES,
+                         **options)
 
 
 def roast_uncwisc(ctx: RoastContext) -> Iterator:
@@ -114,17 +111,13 @@ def roast_uncwisc(ctx: RoastContext) -> Iterator:
         yield from roast_meta(ctx, meta)
     if any(map(ctx.wants, DERIV_KEYS)):
         drv = ctx.layout.derivative(DERIV_NAME)
-        for src, dst in [("derivatives_description.json", drv.description),
-                         ("derivatives_README", drv.root / "README"),
-                         ("derivatives_bidsignore", drv.bidsignore)]:
-            copy = CopyJSON if src.endswith(".json") else CopyBytes
-            yield copy(ctx.resource(src), dst, tag="meta")
-    scan_data = ctx.layout.source / "scan_data"
-    subjects = [p.name for p in _dirs(scan_data)
-                if ctx.selection.keeps_subject(p.name)]     # early pruning
-    ctx.progress(total=len(subjects), tag="subjects")
-    for sub in subjects:
-        yield Shard(roast_subject, sub, tag="subjects")
+        yield from copy_templates(ctx, {
+            "derivatives_description.json": drv.description,
+            "derivatives_README": drv.root / "README",
+            "derivatives_bidsignore": drv.bidsignore,
+        })
+    subjects = [p.name for p in _dirs(ctx.source / "scan_data")]
+    yield from subject_shards(ctx, subjects, roast_subject)
 
 
 # ----------------------------------------------------------------------
@@ -133,21 +126,19 @@ def roast_uncwisc(ctx: RoastContext) -> Iterator:
 
 def folders(ctx: RoastContext) -> dict:
     """Girder metadata of subject and session folders"""
-    path = ctx.layout.source / "folders.json"
+    path = ctx.source / "folders.json"
     return json.loads(path.read_text()) if path.exists() else {}
 
 
 def roast_meta(ctx: RoastContext, meta: dict) -> Iterator[Action]:
     raw = ctx.layout.raw
-    for name in ("README", "dataset_description.json",
-                 "participants.json", "sessions.json"):
-        copy = CopyJSON if name.endswith(".json") else CopyBytes
-        yield copy(ctx.resource(name), raw / name, tag="meta")
+    yield from copy_templates(ctx, ["README", "dataset_description.json",
+                                    "participants.json", "sessions.json"])
     if not meta:
         yield Fail("sourcedata/folders.json not found: harvest with "
                    "--keys meta", name="folders.json", tag="meta")
         return
-    src = ctx.layout.source / "folders.json"
+    src = ctx.source / "folders.json"
     original = ctx.layout.original
     yield WriteTSV(participants(meta), original(raw / "participants.tsv"),
                    src=src, tag="meta")
@@ -197,9 +188,8 @@ def _age_months(label: str) -> str:
 
 def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
     """All sessions of a subject (a shard)"""
-    for sesdir in _dirs(ctx.layout.source / "scan_data" / sub):
+    for sesdir in _dirs(ctx.source / "scan_data" / sub):
         yield from roast_session(ctx, sub, sesdir.name, sesdir)
-    ctx.progress(advance=1, tag="subjects")
 
 
 def roast_session(ctx, sub: str, ses: str, sesdir: Path) -> Iterator[Action]:
@@ -239,11 +229,13 @@ def _convert(src: Path, stem: Path, tag: str, dwi=None) -> Action:
         return Action(src, nii, lambda path: nrrd_to_nifti(src, path),
                       input="path", tag=tag)
     dwi = stem if dwi is True else dwi
+    # one conversion writes the three files: a data action (`--json
+    # only` writes none of them)
     return Action(
         src, [nii, Path(f"{dwi}.bval"), Path(f"{dwi}.bvec")],
         lambda nii, bval, bvec: nrrd_to_nifti(src, nii, bval=bval,
                                               bvec=bvec),
-        input="path", tag=tag,
+        input="path", tag=tag, kind="data",
     )
 
 

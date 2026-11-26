@@ -165,29 +165,40 @@ def test_claims(layout, tmp_path):
     assert (raw / "sub-02/ses-1/anat/sub-02_ses-1_T1w.json").exists()
 
 
-def test_claim_direct_writes(layout):
-    """A claim action may write files itself, after asking `keeps`"""
+def test_claims_yield_actions_only(layout):
+    """A claim yields sub-actions (no direct writes); one that yields
+    nothing is counted as "empty"; a claim may list several folders"""
     raw = layout.raw
-    anat = raw / "sub-01" / "anat"
-    action = None
+    ses = raw / "sub-01" / "ses-1"
 
-    def convert():
-        for suffix in ("T1w", "T2w"):
-            path = anat / f"sub-01_{suffix}.nii.gz"
-            if action.keeps(path):
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(suffix)
-                action.outputs.append(path)
+    def nothing():
+        return iter(())
+
+    def writes_itself():
+        (ses / "func").mkdir(parents=True, exist_ok=True)
+        return [ses / "func" / "sub-01_ses-1_task-x_bold.nii.gz"]
+
+    def both():
+        yield text(ses / "func" / "sub-01_ses-1_task-x_bold.nii.gz")
+        yield text(ses / "perf" / "sub-01_ses-1_asl.nii.gz")
 
     def roaster(ctx):
-        nonlocal action
-        action = Action([], None, convert, claim=Claim(anat, "sub-01"))
-        yield action
+        yield Action([], None, nothing, claim=Claim(ses / "anat"), tag="a")
+        yield Action([], None, writes_itself, claim=Claim(ses / "func"),
+                     tag="b")
+        yield Action([], None, both, tag="c",
+                     claim=Claim([ses / "func", ses / "perf"]))
 
-    report = run(roaster, ctx_of(layout, select_keys=["T1w"]))
-    assert tree(anat) == {"sub-01_T1w.nii.gz"}
-    assert action.outputs == [anat / "sub-01_T1w.nii.gz"]
-    assert report.total("done") == 1
+    report = run(roaster, ctx_of(layout))
+    assert report.counts["a"] == {"empty": 1}
+    assert report.counts["b"] == {"error": 1}
+    assert report.counts["c"] == {"done": 2}
+    assert tree(ses) == {"func/sub-01_ses-1_task-x_bold.nii.gz",
+                         "perf/sub-01_ses-1_asl.nii.gz"}
+    # a list of folders: selected if any of them can be
+    report = run(roaster, ctx_of(layout, select_keys=["dwi"]))
+    assert report.counts == {}
+    assert Claim([ses / "func"]).folder == ses / "func"
 
 
 def test_multi_output_and_ifexists(layout):
@@ -201,7 +212,15 @@ def test_multi_output_and_ifexists(layout):
             Path(path).write_text("new")
 
     def roaster(ctx):
+        yield Action([], names, write, input="path", tag="dwi", kind="data")
+
+    # outputs of several kinds need an explicit `kind`
+    def mixed(ctx):
         yield Action([], names, write, input="path", tag="dwi")
+
+    report = run(mixed, ctx_of(layout))
+    assert calls == [] and report.counts["dwi"] == {"error": 1}
+    assert "explicit `kind`" in report.errors[0][2]
 
     # selected by its bval/bvec (top-level `--keys dwi` style): written all
     run(roaster, ctx_of(layout, select_keys=["dwi"]))
@@ -223,7 +242,8 @@ def test_multi_output_and_ifexists(layout):
 
     # an action's own `ifexists` wins over the runner's
     def own(ctx):
-        yield Action([], names, write, input="path", ifexists="overwrite")
+        yield Action([], names, write, input="path", ifexists="overwrite",
+                     kind="data")
 
     run(own, ctx_of(layout, ifexists="skip"))
     assert calls == [3, 3, 3]
@@ -516,3 +536,360 @@ def test_key_classification():
     sel = keys.selection(exclude_keys=["meta", "fs"])
     assert sel.keeps(b + "beh/sub-1_ses-1_beh.tsv")
     assert sel.keeps(b + "anat/sub-1_ses-1_PDT2.nii.gz")
+
+
+# Nested shards: every shard runs in the pool, every finalize runs
+def nested_leaf(ctx, site, i):
+    import os
+    import time
+    anat = ctx.layout.raw / f"sub-{site}{i}" / "anat"
+    yield WriteJSON({"pid": os.getpid()}, anat / f"sub-{site}{i}_T1w.json")
+    time.sleep(ctx.options.get("sleep", 0))     # leaves run concurrently
+
+
+def nested_site(ctx, site):
+    for i in range(3):
+        yield Shard(nested_leaf, site, i)
+
+
+def nested_site_finalize(ctx, site):
+    yield text(ctx.layout.raw / f"site-{site}.txt", tag="final")
+
+
+nested_site.finalize = nested_site_finalize
+
+
+def nested_top(ctx):
+    for site in ("a", "b"):
+        yield Shard(nested_site, site, tag="sites")
+
+    def local(ctx):             # unpicklable: driven in the main process
+        yield Shard(nested_leaf, "c", 0)
+
+    def local_finalize(ctx):
+        yield text(ctx.layout.raw / "site-c.txt", tag="final")
+
+    local.finalize = local_finalize
+    yield local
+
+
+@pytest.mark.parametrize("jobs", [1, 6])
+def test_nested_shards(layout, jobs):
+    import os
+    order = []
+
+    def top(ctx):
+        yield from nested_top(ctx)
+
+    def finalize(ctx):
+        order.append(sorted(p.name for p in layout.raw.glob("site-*")))
+        yield from ()
+
+    top.finalize = finalize
+    report = run(top, ctx_of(layout, options={"sleep": 0.5 * (jobs > 1)}),
+                 jobs=jobs)
+    assert not report.errors
+    leaves = list(layout.raw.rglob("*_T1w.json"))
+    assert len(leaves) == 7
+    pids = {json.loads(p.read_text())["pid"] for p in leaves}
+    if jobs > 1:
+        # leaves of a site are handed back to the pool, not run in the
+        # worker of their site; shards of a main-process roaster too
+        assert os.getpid() not in pids and len(pids) > 2
+    # finalize of every roaster, children first, the top-level one last
+    assert order == [["site-a.txt", "site-b.txt", "site-c.txt"]]
+    assert report.counts["final"] == {"done": 3}
+
+
+# Pool failures
+def crashing(ctx, i, main_pid):
+    import os
+    import time
+    if i == 1 and os.getpid() != main_pid:
+        os._exit(1)             # a worker dies (segfault, OOM killer...)
+    time.sleep(0.3)
+    yield text(ctx.layout.raw / f"sub-{i:02d}" / "anat" /
+               f"sub-{i:02d}_T1w.nii.gz", str(os.getpid()), tag="anat")
+
+
+@pytest.mark.parametrize("pause", [0, 0.4])
+def test_worker_death_does_not_abort_the_roast(layout, pause):
+    import os
+    import time
+
+    def roaster(ctx):
+        yield text(layout.original(layout.raw / "participants.tsv"),
+                   "participant_id\nsub-00\nsub-05\nsub-99\n", tag="meta")
+        for i in range(6):
+            yield Shard(crashing, i, os.getpid(), id=f"roast/sub-{i:02d}")
+            # (pause: the pool breaks while the roaster yields shards)
+            time.sleep(pause)
+
+    report = run(roaster, ctx_of(layout), jobs=2)
+    assert report.status == "partial"
+    died = [e for e in report.errors if "worker process died" in e[2]]
+    assert died and len(report.errors) == len(died)
+    done = {p.parts[-3]: p.read_text()
+            for p in layout.raw.rglob("*_T1w.nii.gz")}
+    assert "sub-01" not in done and "sub-05" in done
+    assert report.counts["anat"]["done"] + len(died) == 6
+    # shards that had not started ran in the main process
+    assert done["sub-05"] == str(os.getpid())
+    # common steps ran: tables trimmed, manifest written with a status
+    rows = read_tsv(layout.raw / "participants.tsv")[1:]
+    assert {r[0] for r in rows} == {"sub-00", "sub-05"} & set(done)
+    run_record = json.loads(layout.manifest.read_text())["runs"][-1]
+    assert run_record["status"] == "partial"
+
+
+def test_unpicklable_context_runs_in_main_process(layout):
+    ctx = ctx_of(layout, options={"f": lambda x: x})
+    report = run(sharded, ctx, jobs=2)
+    # (the error is that of `shard_subject`: no pickling error)
+    assert [e[2] for e in report.errors] == ["boom"]
+    assert report.counts["anat"]["done"] == 6
+
+
+def test_failed_roast_still_runs_common_steps(layout):
+    def roaster(ctx):
+        yield text(layout.original(layout.raw / "participants.tsv"),
+                   "participant_id\nsub-01\n", tag="meta")
+        yield text(layout.raw / "sub-01" / "anat" / "sub-01_T1w.nii.gz")
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        run(roaster, ctx_of(layout))
+    run_record = json.loads(layout.manifest.read_text())["runs"][-1]
+    assert run_record["status"] == "failed"
+    assert (layout.raw / "participants.tsv").exists()
+    report = run(lambda ctx: iter(()), ctx_of(layout))
+    assert report.status == "complete"
+
+
+def test_pristine_tables_follow_new_harvests(layout):
+    """Tables (kind "table") use `different` under "skip": a re-roast
+    after a new harvest updates them"""
+    raw = layout.raw
+    calls = []
+
+    def roaster(ctx):
+        n = ctx.options["n"]
+        for k in range(n):
+            yield text(raw / "sub-01" / f"ses-{k}" / "anat" /
+                       f"sub-01_ses-{k}_T1w.nii.gz")
+        rows = "session_id\n" + "".join(f"ses-{k}\n" for k in range(n))
+        yield Action([], layout.original(raw / "sub-01/sub-01_sessions.tsv"),
+                     lambda f: calls.append(f.write(rows)), mode="t")
+
+    for n in (1, 2, 2):
+        report = run(roaster, ctx_of(layout, options={"n": n}))
+        assert read_tsv(raw / "sub-01/sub-01_sessions.tsv") == [
+            ["session_id"], *([f"ses-{k}"] for k in range(n))]
+    # the identical table is not replaced (counted as skipped)
+    assert report.counts["roast"] == {"skipped": 3}
+    # an explicit policy wins
+    run(roaster, ctx_of(layout, options={"n": 3}, ifexists="refresh"))
+
+
+def test_kinds_and_json_policy(layout):
+    """bval/bvec are metadata written under every policy; nothing hides
+    a `Fail`; tables ignore --json"""
+    from brainspresso.actions import Fail
+    from brainspresso.actions.action import default_kind
+    raw = layout.raw
+    assert default_kind("dwi.bval") == default_kind("x_dwi.bvec") == "meta"
+
+    def roaster(ctx):
+        yield text(raw / "dwi.bval", "0 1000")
+        yield text(raw / "sub-01" / "dwi" / "sub-01_dwi.nii.gz")
+        yield text(raw / "sub-01" / "dwi" / "sub-01_dwi.bvec")
+        yield WriteJSON({}, raw / "sub-01" / "dwi" / "sub-01_dwi.json")
+        yield text(raw / "participants.tsv", "participant_id\n")
+        yield Fail("missing input", name="x", tag="fail")
+
+    for policy, expected in [
+        ("only", {"dwi.bval", "sub-01/dwi/sub-01_dwi.bvec",
+                  "sub-01/dwi/sub-01_dwi.json", "participants.tsv"}),
+        ("no", {"dwi.bval", "sub-01/dwi/sub-01_dwi.bvec",
+                "sub-01/dwi/sub-01_dwi.nii.gz", "participants.tsv"}),
+    ]:
+        for path in raw.rglob("*"):
+            if path.is_file() and ".brainspresso" not in path.parts:
+                path.unlink()
+        report = run(roaster, ctx_of(layout, json=policy))
+        assert raw_tree(layout.root) == expected
+        assert report.counts["fail"] == {"error": 1}
+
+
+def test_staging_and_category_folders(layout):
+    """The JSON policy skips `staging` actions only (no implicit
+    exemption of sourcedata/); writes in the folder of an unwanted
+    category are dropped by the runner"""
+    keys = KeyAliases({"meta", "T1w", "fs"}, bids={"T1w": {
+        "suffixes": ["T1w"]}}, folders={"fs": ["derivatives/fs"]})
+    drv = layout.derivative("fs")
+    unpacked = drv.source / "sub-01" / "mri" / "aseg.mgz"
+    loose = layout.source / "sub-01" / "loose.nii.gz"
+
+    def roaster(ctx):
+        # forgets to check `ctx.wants("fs")`
+        yield text(unpacked, staging=True)
+        yield text(drv.root / "sub-01" / "anat" / "sub-01_dseg.json")
+        yield text(loose)
+
+    run(roaster, make_context(layout, keys, json="only"))
+    assert unpacked.exists() and not loose.exists()
+    assert (drv.root / "sub-01/anat/sub-01_dseg.json").exists()
+    unpacked.unlink()
+    report = run(roaster, make_context(layout, keys, select_keys=["T1w"],
+                                       ifexists="overwrite"))
+    assert not unpacked.exists() and loose.exists()
+    assert report.total("done") == 1
+
+
+# Task state
+def stateful(ctx, sub, archive):
+    from brainspresso.utils.archive import TarArchive
+    ctx.progress(total=1, tag="units")
+    with TarArchive(archive) as tar:
+        for member in tar:
+            yield WriteText("x", ctx.layout.raw / f"sub-{sub}" / "anat" /
+                            f"sub-{sub}_{member.name}")
+    (ctx.layout.root / f"opened-{sub}").touch()
+    ctx.progress(advance=1, tag="units")
+
+
+@pytest.mark.parametrize("jobs", [1, 2])
+def test_task_state_and_skip(layout, tmp_path, jobs):
+    from brainspresso.bids.harvest import read_task_states
+    archive = make_tar(tmp_path / "a.tar", {"T1w.nii.gz": b"1"})
+    opened = layout.root / "opened-01"
+
+    def roaster(ctx):
+        yield Shard(stateful, "01", archive, id="roast/sub-01",
+                    inputs=[archive], unit={"sub": "01"}, tag="anat")
+
+    report = run(roaster, ctx_of(layout), jobs=jobs)
+    state = read_task_states(layout.state)["roast/sub-01"]
+    assert state["status"] == "done" and state["unit"] == {"sub": "01"}
+    assert state["outputs"] == [
+        (layout.raw / "sub-01/anat/sub-01_T1w.nii.gz")
+        .relative_to(layout.root).as_posix()]
+    assert state["counts"] == {"anat": {"done": 1}}
+    assert state["progress"] == {"units": [1, 1]}
+    assert state["started"] and state["finished"]
+    assert report.progress["units"] == (1, 1)
+
+    # unchanged inputs, under "skip": the archive is not reopened
+    opened.unlink()
+    report = run(roaster, ctx_of(layout), jobs=jobs)
+    assert not opened.exists()
+    assert report.counts["anat"] == {"skipped": 1}
+    assert report.progress["units"] == (1, 1)
+    # another selection, policy or input: run again
+    for kw in ({"exclude_subs": ["02"]}, {"ifexists": "overwrite"}):
+        run(roaster, ctx_of(layout, **kw), jobs=jobs)
+        assert opened.exists()
+        opened.unlink()
+    import os
+    os.utime(archive, (1, 1))
+    run(roaster, ctx_of(layout), jobs=jobs)
+    assert opened.exists()
+    # no stale state files of anonymous worker tasks
+    assert set(read_task_states(layout.state)) == {"roast/sub-01"}
+
+
+def slow_units(ctx):
+    import time
+    ctx.progress(total=4, tag="units")
+    ctx.progress(advance=1, tag="units")
+    time.sleep(1.5)
+    yield text(ctx.layout.raw / "README")
+    ctx.progress(advance=3, tag="units")
+
+
+def test_progress_read_from_task_state(layout):
+    import time
+    rows = []
+
+    def roaster(ctx):
+        yield Shard(slow_units, id="roast/slow")
+
+    start = time.monotonic()
+    report = run_roast(roaster, ctx_of(layout), jobs=2,
+                       display=lambda row: rows.append(
+                           (time.monotonic() - start, row)))
+    assert report.progress["units"] == (4, 4)
+    # 25% shown while the shard was running, not only when it returned
+    early = [t for t, row in rows
+             if row.get("modality") == "units" and row.get("progress") == 25]
+    end = max(t for t, row in rows if row.get("status") == "done")
+    assert early and early[0] < end - 0.5
+
+
+def test_ctx_source(layout, tmp_path):
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "README").write_text("other")
+    ctx = make_context(layout, KEYS, source=other)
+    assert ctx.source == other and ctx.resource("README") == other / "README"
+    assert ctx_of(layout).source == layout.source
+    seen = []
+
+    def shard(ctx):
+        seen.append(ctx.source)
+        yield from ()
+
+    def parent(ctx):
+        yield Shard(shard)
+
+    def roaster(ctx):
+        seen.append(ctx.source)
+        yield Shard(shard, source=other)
+        yield shard
+        yield Shard(parent, source=other)     # nested: that of its parent
+
+    run(roaster, ctx_of(layout))
+    assert seen == [layout.source, other, layout.source, other]
+
+
+def test_helpers(layout, tmp_path):
+    from brainspresso.actions.helpers import copy_templates, subject_shards
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    (templates / "README").write_text("readme")
+    (templates / "participants.json").write_text("{}")
+    calls = []
+
+    def subject(ctx, sub, extra):
+        calls.append((sub, extra))
+        yield text(ctx.layout.raw / f"sub-{sub}" / "anat" /
+                   f"sub-{sub}_T1w.nii.gz", tag="anat")
+
+    def roaster(ctx):
+        yield from copy_templates(ctx, ["README", "participants.json",
+                                        "missing.json"])
+        yield from subject_shards(ctx, ["01", "02", "03"], subject, "x")
+
+    report = run(roaster, ctx_of(layout, templates=templates,
+                                 exclude_subs=["02"]))
+    assert (layout.raw / "README").read_text() == "readme"
+    assert report.counts["meta"] == {"done": 2, "error": 1}
+    assert "missing.json not found" in report.errors[0][2]
+    assert calls == [("01", "x"), ("03", "x")]
+    assert report.progress["subjects"] == (2, 2)
+    from brainspresso.bids.harvest import read_task_states
+    assert set(read_task_states(layout.state)) == {
+        "roast/subjects/sub-01", "roast/subjects/sub-03"}
+
+
+def test_missing_resource_is_a_clear_error(layout):
+    from brainspresso.actions import CopyJSON
+
+    def roaster(ctx):
+        yield CopyJSON(ctx.resource("nope.json"),
+                       layout.raw / "dataset_description.json")
+
+    report = run(roaster, ctx_of(layout))
+    assert report.errors[0][2].startswith(
+        "No source to copy to dataset_description.json")

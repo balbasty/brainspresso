@@ -1,4 +1,5 @@
 import datetime
+import filecmp
 import os
 import time
 import traceback
@@ -21,7 +22,7 @@ FilenameLike = str | os.PathLike
 FileLike = FilenameLike | IO
 FilenamesLike = Iterable[FilenameLike] | FilenameLike
 FilesLike = Iterable[FileLike] | FileLike
-Kind = Literal['data', 'sidecar', 'table']
+Kind = Literal['data', 'sidecar', 'meta', 'table']
 
 # Dataset-level JSON files that describe tables or the dataset, not data
 # files (kind "table", so that `--json no` does not drop them)
@@ -42,10 +43,15 @@ def default_kind(path: FilenameLike) -> Kind:
       `sub-*_sessions.json`, `phenotype/*.json`,
       `dataset_description.json`): "table";
     * other `*.json`: "sidecar";
-    * anything else (images, `bval`/`bvec`, surfaces...): "data".
+    * `*.bval`, `*.bvec`: "meta" (metadata that is not JSON: written
+      under every `--json` policy, as `bids.select` treats them as
+      metadata of the DWI series);
+    * anything else (images, surfaces...): "data".
     """
     path = Path(path)
     name = path.name
+    if name.endswith(('.bval', '.bvec')):
+        return 'meta'
     if name.endswith('.tsv') or name in _DATASET_FILES:
         return 'table'
     if name.endswith('.json'):
@@ -64,17 +70,42 @@ def default_kind(path: FilenameLike) -> Kind:
 class Claim:
     """
     Outputs that are only known once an action has run: an output
-    directory, optionally followed by the known start of the file names
-    (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
-    `Selection.keeps(..., partial=True)`.
+    directory (or a list of them, e.g. the `func/` and `perf/` folders
+    of a session), optionally followed by the known start of the file
+    names (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
+    `Selection.keeps(..., partial=True)`: the claim can be selected if
+    any of its paths can.
     """
-    folder: Path
+    folder: Path | tuple[Path, ...]
     fragment: str = ''
+
+    def __post_init__(self):
+        folder = self.folder
+        if not isinstance(folder, (str, os.PathLike)):
+            folder = tuple(map(Path, folder))
+            if not folder:
+                raise ValueError('A claim needs at least one folder')
+            if len(folder) == 1:
+                folder = folder[0]
+        else:
+            folder = Path(folder)
+        object.__setattr__(self, 'folder', folder)
+
+    @property
+    def folders(self) -> tuple[Path, ...]:
+        folder = self.folder
+        return folder if isinstance(folder, tuple) else (folder,)
+
+    @property
+    def paths(self) -> tuple[Path, ...]:
+        """Claimed paths (one per folder)"""
+        return tuple(f / self.fragment if self.fragment else f
+                     for f in self.folders)
 
     @property
     def path(self) -> Path:
-        return Path(self.folder) / self.fragment if self.fragment \
-            else Path(self.folder)
+        """First claimed path"""
+        return self.paths[0]
 
 
 class IfExists:
@@ -171,15 +202,20 @@ class Action:
     `claim` (`Claim(folder, fragment)`) when they are only known once
     it has run (members of an archive, dcm2niix, FreeSurfer trees). A
     claim action is run with `dst=None`: `action()` takes no argument,
-    and may yield (besides status dictionaries) the concrete actions
-    that write each output, which the runner then selects and runs like
-    any other, or write files itself, after checking `self.keeps(path)`,
-    and list them in `self.outputs`. Once run, `outputs` lists what was
+    and yields (besides status dictionaries) the concrete actions that
+    write each output, which the runner then selects and runs like any
+    other (so that `IfExists`, atomic writes and counters apply). A
+    claim never writes files itself. Once run, `outputs` lists what was
     written (or found already there).
 
-    * `kind` ("data", "sidecar" or "table"; default: `default_kind` of
-      the first output) drives the `--json yes|no|only` policy;
-    * `tag` groups actions in the progress display.
+    * `kind` ("data", "sidecar", "meta" or "table"; default:
+      `default_kind` of the outputs, which must agree) drives the
+      `--json yes|no|only` policy;
+    * `tag` groups actions in the progress display;
+    * `staging=True` marks intermediate files (e.g. a FreeSurfer tree
+      unpacked to `derivatives/<fs>/sourcedata/`, input of later
+      actions): the JSON policy does not apply to them (nor to the
+      sub-actions of a staging claim).
     """
 
     def __init__(
@@ -197,6 +233,7 @@ class Action:
         claim: Claim | None = None,
         kind: Kind | None = None,
         tag: str | None = None,
+        staging: bool = False,
     ) -> None:
         """
         Parameters
@@ -232,10 +269,13 @@ class Action:
             digests.
         claim : Claim | None
             Outputs only known once run (instead of `dst`)
-        kind : {'data', 'sidecar', 'table'} | None
-            Kind of output (default: from the name of the first output)
+        kind : {'data', 'sidecar', 'meta', 'table'} | None
+            Kind of output (default: from the names of the outputs; the
+            roast runner rejects outputs of several kinds without it)
         tag : str | None
             Progress group (default: that of the roaster)
+        staging : bool
+            Intermediate files, not subject to the JSON policy
         """
         if (dst is None) == (claim is None):
             raise ValueError('An action has either `dst` or a `claim`')
@@ -244,8 +284,8 @@ class Action:
         self.claim = claim
         self.tag = tag
         self._kind = kind
+        self.staging = staging
         self.outputs: list[Path] | None = None
-        self.keeps: Callable[[Path], bool] = _keep_all
         self.action = action
         self.input = input
         if mode == "b" or mode == "t" or mode == "":
@@ -272,11 +312,20 @@ class Action:
         return list(map(Path, dst))
 
     @property
+    def kinds(self) -> set[Kind]:
+        """Default kinds of the declared outputs"""
+        return set(map(default_kind, self.declared))
+
+    @property
     def kind(self) -> Kind:
         if self._kind:
             return self._kind
         outputs = self.declared
         return default_kind(outputs[0]) if outputs else 'data'
+
+    @property
+    def kind_given(self) -> bool:
+        return bool(self._kind)
 
     @kind.setter
     def kind(self, value: Kind | None) -> None:
@@ -362,6 +411,11 @@ class Action:
                     )
                     return True
 
+            # tables are cheap to generate: write them and compare
+            if not self.digests and self.size is None and \
+                    self.kind == 'table':
+                return _COMPARE
+
             # all identical -> skip
             lg.info(f'File {dst[0]!s} is identical: skip')
             yield {'status': 'skipped', 'message': 'already exists'}
@@ -432,12 +486,22 @@ class Action:
             yield {'status': 'error', 'message': str(e)}
 
     def _iter_claim(self) -> Iterator["dict | Action"]:
-        """Run a claim action: statuses, sub-actions, or direct writes"""
+        """Run a claim action: statuses and sub-actions"""
         if self.outputs is None:
             self.outputs = []
         out = self.action()
-        if isinstance(out, GeneratorType):
-            yield from out
+        if out is not None and not isinstance(out, Iterator):
+            raise TypeError(
+                'A claim yields its sub-actions; it returned '
+                f'{type(out).__name__}'
+            )
+        for item in out or ():
+            if not isinstance(item, (Action, dict)):
+                raise TypeError(
+                    'A claim yields actions or status dictionaries, '
+                    f'not {type(item).__name__}'
+                )
+            yield item
         yield {'status': 'done'}
 
     def _iter(self) -> Iterator[dict]:
@@ -465,8 +529,10 @@ class Action:
         # --------------------------------------------------------------
         # If file exists, select replacement strategy
         # --------------------------------------------------------------
-        if not (yield from self._should_overwrite()):
+        overwrite = yield from self._should_overwrite()
+        if not overwrite:
             return
+        compare = overwrite is _COMPARE
 
         # --------------------------------------------------------------
         # Perform action
@@ -503,6 +569,18 @@ class Action:
                     action = self.action(*files)
                     if isinstance(action, GeneratorType):
                         yield from action
+
+                if compare and all(
+                    filecmp.cmp(tmp_file.safename, dst1, shallow=False)
+                    for tmp_file, dst1 in zip(tmp_files, dst)
+                ):
+                    for tmp_file in tmp_files:
+                        tmp_file.discard = True
+
+            if compare and all(f.discard for f in tmp_files.files):
+                lg.info(f'File {dst[0]!s} is identical: skip')
+                yield {'status': 'skipped', 'message': 'identical'}
+                return
 
             # ----------------------------------------------------------
             # success! -> a few checks then break out of trials loop
@@ -561,10 +639,15 @@ def _keep_all(path) -> bool:
     return True
 
 
+# `_should_overwrite`: write to a temporary file, keep it if different
+_COMPARE = 'compare'
+
+
 class Fail(Action):
     """
     An action that only reports an error (e.g. a missing input), so that
-    the roast runner counts and displays it.
+    the roast runner counts and displays it. It has no outputs: neither
+    the selection nor the JSON policy can hide it.
     """
 
     def __init__(self, message: str, *, name: str = '', tag: str = None):

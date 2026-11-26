@@ -169,3 +169,80 @@ def test_sessions_from_sourcedata_trimmed(root):
     assert [r[0] for r in read_tsv(raw_file(root, "participants.tsv"))] \
         == ["participant_id", "sub-0001"]
 
+
+
+def test_freesurfer_sidecars_only(root):
+    """`--json only --keys fs`: sidecars from the member names, nothing
+    unpacked (fs-all unpacks the whole tree, see `test_freesurfer`)"""
+    add_freesurfer(root)
+    report = roast(root, keys={"fs"}, json="only", display=False)
+    assert not report.errors
+    drv = layout_of(root).derivative(roaster.FS_NAME)
+    assert not drv.source.exists()
+    anat = drv.root / "sub-0001/ses-d0129/anat"
+    assert {p.name for p in anat.iterdir()} == {
+        "sub-0001_ses-d0129_atlas-Aseg_dseg.json"}
+
+
+def test_freesurfer_not_wanted_is_dropped(root, monkeypatch):
+    """A roaster that forgot `ctx.wants("fs")` writes nothing there: the
+    runner drops outputs in the folder of an unwanted category"""
+    add_freesurfer(root)
+    monkeypatch.setattr(roaster.RoastContext, "wants",
+                        lambda self, key: True if key in ("fs", "fs-all")
+                        else self.selection.wants(key))
+    report = roast(root, keys={"T1w"}, json="no", display=False)
+    assert not report.errors
+    assert not layout_of(root).derivative(roaster.FS_NAME).root.exists()
+    assert raw_tree(root) == {f"{T1}.nii.gz"}
+
+
+@pytest.mark.parametrize("keys", [{"meta"}, {"fs"}, {"pheno"}, {"T1w"}])
+def test_category_keys_open_no_image_tarball(root, monkeypatch, keys):
+    from brainspresso.actions import archive
+    opened = []
+    real = archive.TarArchive
+
+    def opener(path, *a, **k):
+        opened.append(path)
+        return real(path, *a, **k)
+
+    monkeypatch.setattr(archive, "TarArchive", opener)
+    monkeypatch.setattr(archive.ExtractMembers.__init__, "__kwdefaults__",
+                        {**archive.ExtractMembers.__init__.__kwdefaults__,
+                         "opener": opener})
+    report = roast(root, keys=keys, display=False)
+    assert not report.errors
+    if keys == {"T1w"}:         # (the check sees the tarballs it opens)
+        assert [p.name for p in opened] == ["anat1.tar.gz"] * 2
+    else:
+        assert opened == []
+
+
+def test_key_classification():
+    """`KeyAliases.key_of` and the review cases of 2b-ii"""
+    keys = roaster.KEYS
+    b = "sub-0001/ses-d0001/"
+    tse = b + "anat/sub-0001_ses-d0001_acq-TSE_T2w.nii.gz"
+    t2w = b + "anat/sub-0001_ses-d0001_T2w.nii.gz"
+    sbref = b + "func/sub-0001_ses-d0001_task-rest_sbref.nii.gz"
+    m0 = b + "perf/sub-0001_ses-d0001_m0scan.nii.gz"
+    events = b + "func/sub-0001_ses-d0001_task-rest_events.tsv"
+    aslcontext = b + "perf/sub-0001_ses-d0001_aslcontext.tsv"
+    assert keys.key_of(tse) == "TSE" and keys.key_of(t2w) == "T2w"
+    assert "fieldmap" not in keys.leaves
+
+    sel = keys.selection(exclude_keys=["TSE"])
+    assert not sel.keeps(tse) and sel.keeps(t2w)
+    sel = keys.selection(exclude_keys=["CT"])
+    assert all(map(sel.keeps, (sbref, m0, events, aslcontext)))
+    sel = keys.selection(["meta"])
+    assert not any(map(sel.keeps, (tse, t2w, sbref, m0, events,
+                                   aslcontext)))
+    for category in ("meta", "fs"):
+        sel = keys.selection([category])
+        for claim in ("sub-0001/ses-d0001", "sub-0001/ses-d0001/anat",
+                      "sub-0001/ses-d0001/pet"):
+            assert sel.keeps(claim, partial=True) is False
+    sel = keys.selection(["asl"])
+    assert sel.keeps(m0) and sel.keeps(aslcontext) and not sel.keeps(events)

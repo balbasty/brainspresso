@@ -55,7 +55,7 @@ anat/
 """  # noqa: E501
 from logging import getLogger
 from functools import partial
-from typing import Literal, Iterable
+from typing import Callable, Literal, Iterable
 from pathlib import Path
 
 from brainspresso.actions import Action
@@ -155,7 +155,8 @@ def bidsify(
         src: str | Path,
         dst: str | Path,
         source_t1: str | Iterable[str] | None = None,
-        json: Literal['yes', 'no', 'only'] | bool = False
+        json: Literal['yes', 'no', 'only'] | bool = False,
+        exists: Callable[[Path], bool] | None = None,
 ) -> Iterable[Action]:
     """
     Yield actions that bidsify a single Freesurfer subject
@@ -170,6 +171,10 @@ def bidsify(
     source_t1 : [list of] str | None
         Path to raw T1w data that was used as input to FreeSurfer
     json : bool or {'yes', 'no, 'only'}
+    exists : callable(Path) -> bool
+        Whether a file of the FreeSurfer subject exists (default:
+        `Path.exists`; e.g. a test on the members of an archive, to
+        write sidecars without unpacking the tree)
 
     Yields
     ------
@@ -187,6 +192,8 @@ def bidsify(
         source_t1 = [source_t1]
     source_t1 = list(map(str, source_t1))
 
+    exists = exists or Path.exists
+
     # Folders
     src = Path(src)
     dst = Path(dst)
@@ -202,7 +209,7 @@ def bidsify(
 
     # --- helpers ------------------------------------------------------
     def make_base(convert: Action, pathinp: Path, pathout: Path, json: dict):
-        if not pathinp.exists():
+        if not exists(pathinp):
             return
         if json_mode != 'only':
             lg.info(f'write {pathout.name}')
@@ -222,7 +229,7 @@ def bidsify(
     # --- average in native space --------------------------------------
     # this is specific to OASIS (I think)
     res = ''
-    if (mri / 'rawavg.mgz').exists():
+    if exists(mri / 'rawavg.mgz'):
         res = '_res-1mm'
 
     yield from make_nii(

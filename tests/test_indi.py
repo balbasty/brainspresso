@@ -362,6 +362,17 @@ def test_fcon1000_layout_sites_labels(tmp_path):
     assert not (raw(root, "Atlanta") / "sub-06870").exists()
 
 
+def test_fcon1000_layout_sites_skipped(tmp_path):
+    # a site without selected files is not recorded as a site
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta", "--subs", "11111")
+    root = tmp_path / "FCON1000"
+    assert set(Layout.detect(root).children) == {"ICBM"}
+    assert not (root / "Atlanta").exists()
+    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "11111", "--yes")
+    assert not (raw(root, "ICBM") / "sub-11111").exists()
+
+
 def test_fcon1000_layout_conflict(tmp_path, capsys):
     bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
        "--subs", "ICBM00448")

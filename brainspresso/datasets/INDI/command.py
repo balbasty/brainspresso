@@ -156,12 +156,15 @@ def harvest_sites(
     for site in chosen:
         if site.derivative:
             continue
+        known = site.name in layout.children
         child = layout.child(site.name)
         entries = project.site_entries(
             items, tables, site, parent=relative_url(layout.root, child.raw),
         )
         local = site_selection(selection, site)
         if not local.select(e.path for e in entries if "/" in e.path):
+            if not known:               # nothing harvested: not a site
+                del layout.children[site.name]
             continue
         print(f"--- {site.name}")
         harvest(entries, child, local, repair=True,

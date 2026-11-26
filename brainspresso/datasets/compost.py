@@ -135,10 +135,11 @@ def run_compost(
     setup_filelog(log, level=level)
     found = resolve_layout(root, layout)
     if isinstance(found, SitesLayout):
-        if not found.children:
+        datasets = [d for d in found.datasets() if Path(d.root).is_dir()]
+        if not datasets:
             raise ValueError(f"No site dataset found in {found.root}")
         plans = []
-        for dataset in found.datasets():
+        for dataset in datasets:
             print(f"--- {dataset.root.name}")
             plans.append(run_compost(
                 dataset,

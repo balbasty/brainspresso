@@ -1,0 +1,10 @@
+{
+  "Name": "Designed Database of MR Brain Images of Healthy Volunteers",
+  "BIDSVersion": "1.8.0",
+  "DatasetType": "raw",
+  "Authors": ["Bullitt, Elizabeth", "Smith, J Keith", "Lin, Weili"],
+  "HowToAcknowledge": "Designed Database of MR Brain Images of Healthy Volunteers, CASILab, Department of Surgery, The University of North Carolina at Chapel Hill (E. Bullitt, J.K. Smith, W. Lin).",
+  "ReferencesAndLinks": [
+    "https://data.kitware.com/#collection/591086ee8d777f16d01e0724"
+  ]
+}

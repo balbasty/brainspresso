@@ -1,0 +1,12 @@
+{
+  "Name": "UNC-Wisconsin Rhesus Macaque Neurodevelopment Database",
+  "BIDSVersion": "1.8.0",
+  "DatasetType": "raw",
+  "HowToAcknowledge": "Please cite: The UNC-Wisconsin Rhesus Macaque Neurodevelopment Database: A Structural MRI and DTI Database of Early Postnatal Development. Frontiers in Neuroscience, 2017. https://doi.org/10.3389/fnins.2017.00029",
+  "Funding": ["NIH 5R01MH091645"],
+  "ReferencesAndLinks": [
+    "https://doi.org/10.3389/fnins.2017.00029",
+    "https://data.kitware.com/#collection/54b582c38d777f4362aa9cb3",
+    "https://www.nitrc.org/projects/uncuw_macdevmri/"
+  ]
+}

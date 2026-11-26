@@ -1,0 +1,21 @@
+{
+  "SoftwareVersions": "syngo MR 2002B 4VA21A",
+  "SequenceName": "*tse2d1_7",
+  "ScanningSequence": "SE",
+  "SequenceVariant": [
+    "SK",
+    "SP",
+    "OSP"
+  ],
+  "MRAcquisitionType": "2D",
+  "ProtocolName": "t2_tra_1mm_128images_0_gap",
+  "MagneticFieldStrength": 3,
+  "RepetitionTime": 7.73,
+  "EchoTime": 0.08,
+  "FlipAngle": 180,
+  "PixelBandwidth": 130,
+  "EchoTrainLength": 7,
+  "ImagingFrequency": 123.3002,
+  "SliceThickness": 1,
+  "SidecarSource": "Sample DICOM header (dicom_header_T2_tra.txt) distributed with the dataset; may differ for individual subjects."
+}

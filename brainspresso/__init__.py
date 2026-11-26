@@ -14,6 +14,8 @@ _datasets = [
     'GSP',
     'IXI',
     'OASIS.I', 'OASIS.II', 'OASIS.III',
+    'UNCWisconsin',
+    'Bullitt',
     "OpenNeuro",
     "INDI",
 ]

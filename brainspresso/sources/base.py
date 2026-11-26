@@ -513,6 +513,9 @@ class Source:
         Default number of concurrent downloads for this source
     name : str
         Name in messages and in the manifest
+    **options
+        Other attributes of the source (credentials, sites...); see
+        also `configure` and `with_options` (per-run copies)
     """
 
     name: str = ""
@@ -527,7 +530,7 @@ class Source:
                  roaster: Callable | None = None,
                  labels: LabelMap | None = None, folder: str | None = None,
                  insecure: bool | None = None, jobs: int | None = None,
-                 name: str | None = None):
+                 name: str | None = None, **options):
         if provides is not None:
             self.provides = frozenset(provides)
         else:
@@ -549,6 +552,10 @@ class Source:
             self.name = name
         if not self.name:
             self.name = type(self).__name__
+        for key, value in options.items():
+            if not self._is_option(key):
+                raise TypeError(f"{self.name}: unknown option {key!r}")
+            setattr(self, key, value)
 
     # ------------------------------------------------------------------
     def configure(self, **options) -> "Source":

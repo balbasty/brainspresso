@@ -37,7 +37,9 @@ import aiohttp
 
 from brainspresso.download.constants import RETRY_STATUSES
 from brainspresso.download.session import new_session
-from brainspresso.sources.base import RemoteEntry, Source, as_wants
+from brainspresso.sources.base import (
+    RemoteEntry, Source, SourceUnavailable, as_wants,
+)
 
 lg = getLogger(__name__)
 
@@ -306,7 +308,15 @@ class S3Prefix(Source):
         bucket = self.bucket
         root = self.prefix
         out = []
-        for obj in bucket.list_all(root + prefix):
+        try:
+            objects = bucket.list_all(root + prefix)
+        except (aiohttp.ClientConnectionError, asyncio.TimeoutError,
+                PermissionError) as e:
+            raise SourceUnavailable(
+                f"s3://{bucket.bucket}/{root + prefix}: "
+                f"[{type(e).__name__}] {e}"
+            ) from e
+        for obj in objects:
             rel = obj.key[len(root):]
             if not rel or rel.endswith("/"):
                 continue

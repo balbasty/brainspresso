@@ -167,6 +167,19 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
     assert requests["files"] == before + 1
 
 
+def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
+    # images from NITRC-IR (default), metadata from the bundled IXI.xls
+    # (nothing to download, the offline imperial host is not tried)
+    from brainspresso.datasets.IXI import download as dl
+    server, _ = xnat
+    monkeypatch.setattr(dl.NitrcIR, "server", server)
+    monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})
+    dl.download(tmp_path, keys=["T2w", "meta"], subs=[12])
+    assert files(tmp_path / "IXI" / "sourcedata") == {
+        "nitrc_experiments.json", "IXI-T2/IXI012-HH-1211-T2.nii.gz",
+    }
+
+
 def check_roast(root: Path, bval_per_subject: bool, layout: str):
     found = Layout.detect(root)
     assert found.kind == layout

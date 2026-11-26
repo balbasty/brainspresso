@@ -132,6 +132,14 @@ def nitrc_credentials(
                            env_user=NITRC_USER, env_password=NITRC_PASS)
 
 
+def basic_auth(user: str, password: str) -> str:
+    """Value of a basic `Authorization` header"""
+    encode = getattr(aiohttp, "encode_basic_auth", None)
+    if encode is not None:
+        return encode(user, password)
+    return aiohttp.BasicAuth(user, password).encode()
+
+
 class NitrcAuth:
     """
     Asynchronous authentication hook for the NITRC website (project
@@ -200,13 +208,14 @@ class XnatAuth:
         return f"XnatAuth({self.server!r}, {self.user!r})"
 
     @property
-    def basic(self) -> aiohttp.BasicAuth:
-        return aiohttp.BasicAuth(self.user, self.password)
+    def headers(self) -> dict:
+        """Basic authentication header"""
+        return {"Authorization": basic_auth(self.user, self.password)}
 
     async def __call__(self, session: aiohttp.ClientSession):
         opt = {"ssl": False} if self.insecure else {}
         async with session.post(f"{self.server}/data/JSESSION",
-                                auth=self.basic, **opt) as r:
+                                headers=self.headers, **opt) as r:
             await r.read()
             if r.status >= 400:
                 lg.warning(f"XNAT login on {self.server} failed "

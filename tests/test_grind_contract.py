@@ -33,7 +33,7 @@ from brainspresso.grind import (
     run,
 )
 
-ROOT = Path(grind.__file__).parents[2]
+ROOT = Path(__file__).resolve().parent.parent  # repo, not site-packages
 GRIND = Path(grind.__file__).parent
 ACTIONS = Path(actions_pkg.__file__).parent
 MODULES = sorted(info.name for info in pkgutil.iter_modules(

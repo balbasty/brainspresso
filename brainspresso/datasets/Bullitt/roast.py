@@ -9,7 +9,7 @@ from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
 from brainspresso.datasets.Bullitt.command import bullitt
 from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
-from brainspresso.datasets.Bullitt.download import DATASET, _labels
+from brainspresso.datasets.Bullitt.harvest import DATASET, _labels
 
 KeyChoice = Literal[
     "meta", "flash", "mprage", "T2w", "angio", "skullstripped", "vessels"

@@ -291,7 +291,7 @@ def test_mirror_verifies_sha512(server, tmp_path):
 
 @pytest.fixture
 def uncwisc(server, monkeypatch):
-    from brainspresso.datasets.UNCWisconsin import download as dl
+    from brainspresso.datasets.UNCWisconsin import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", server.api)
     monkeypatch.setattr(dl, "SCAN_DATA", server.root)
     return dl
@@ -495,14 +495,14 @@ def bullitt_server():
 
 @pytest.fixture
 def bullitt(bullitt_server, monkeypatch):
-    from brainspresso.datasets.Bullitt import download as dl
+    from brainspresso.datasets.Bullitt import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", bullitt_server.api)
     monkeypatch.setattr(dl, "ROOT", bullitt_server.root)
     return dl
 
 
 def test_bullitt_subject_labels():
-    from brainspresso.datasets.Bullitt.download import _labels, subject_label
+    from brainspresso.datasets.Bullitt.harvest import _labels, subject_label
     assert subject_label("Normal-042") == "042"
     assert subject_label("Administration") is None
     assert _labels(["1", "sub-2", "003"], "sub-") == {"001", "002", "003"}

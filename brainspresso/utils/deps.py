@@ -11,7 +11,7 @@ missing dependencies) without being imported.
 from brainspresso.utils.deps import requires
 
 if requires("ixi roast", "xlrd", extra="ixi"):
-    from .bidsify import bidsify as _bidsify
+    from .roast import bidsify as _bidsify
 ```
 """
 from __future__ import annotations

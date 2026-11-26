@@ -15,8 +15,6 @@ from brainspresso.actions.engine import (
 from brainspresso.actions.state import read_task_states
 
 ACTIONS = Path(actions_pkg.__file__).parent
-# deprecated re-exports of the modules moved to `brainspresso.roast`
-SHIMS = {"runner.py", "helpers.py"}
 
 
 def _imports(path: Path) -> set[str]:
@@ -40,8 +38,6 @@ def _imports(path: Path) -> set[str]:
 def test_actions_core_knows_nothing_of_bids_or_roast():
     offenders = {}
     for path in sorted(ACTIONS.glob("*.py")):
-        if path.name in SHIMS:
-            continue
         bad = {m for m in _imports(path)
                if m.startswith(("brainspresso.bids", "brainspresso.roast",
                                 "brainspresso.datasets"))}
@@ -52,35 +48,10 @@ def test_actions_core_knows_nothing_of_bids_or_roast():
 
 def test_actions_core_has_no_bids_constants():
     for path in sorted(ACTIONS.glob("*.py")):
-        if path.name in SHIMS:
-            continue
         source, name = path.read_text(), path.name
         for word in ("participants", "dataset_description", "phenotype",
                      "'sidecar'", '"sidecar"'):
             assert word not in source, (name, word)
-
-
-def test_moved_symbols_keep_their_old_paths():
-    from brainspresso.actions import helpers, runner
-    from brainspresso.actions.action import default_kind
-    from brainspresso import bids, roast
-    import brainspresso.bids.kinds  # noqa: F401
-    import brainspresso.bids.harvest as harvest
-    import brainspresso.actions.state as state
-    assert default_kind is bids.kinds.default_kind
-    assert runner.RoastContext is roast.RoastContext
-    assert runner.run_roast is roast.run_roast
-    assert runner.roast_dataset is roast.roast_dataset
-    assert runner.make_context is roast.make_context
-    assert runner.as_list is roast.as_list
-    assert runner.Shard is roast.Shard
-    assert runner.LocalExecutor is roast.LocalExecutor
-    assert runner.RoastReport is roast.RoastReport
-    assert helpers.copy_templates is roast.copy_templates
-    assert helpers.subject_shards is roast.subject_shards
-    for name in ("task_path", "write_task_state", "read_task_states",
-                 "now"):
-        assert getattr(harvest, name) is getattr(state, name)
 
 
 # ----------------------------------------------------------------------

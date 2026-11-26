@@ -22,9 +22,7 @@ from typing import Iterable
 
 from humanize import naturalsize
 
-from brainspresso.actions.state import (       # noqa: F401 (re-exports)
-    TASK_SCHEMA, now, read_task_states, task_path, write_task_state,
-)
+from brainspresso.actions.state import now
 from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
     MANIFEST, ORIG_DIR, STATE_DIR, Layout, resolve_layout,
@@ -41,7 +39,7 @@ lg = getLogger(__name__)
 __all__ = [
     "InlineEntry", "STATE_DIR", "finish_roast", "harvest", "read_manifest",
     "record_run", "trim_originals",
-    "write_manifest", "read_task_states", "write_task_state",
+    "write_manifest",
 ]
 
 

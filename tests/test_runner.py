@@ -767,7 +767,7 @@ def stateful(ctx, sub, archive):
 
 @pytest.mark.parametrize("jobs", [1, 2])
 def test_task_state_and_skip(layout, tmp_path, jobs):
-    from brainspresso.bids.harvest import read_task_states
+    from brainspresso.actions.state import read_task_states
     archive = make_tar(tmp_path / "a.tar", {"T1w.nii.gz": b"1"})
     opened = layout.root / "opened-01"
 
@@ -884,7 +884,7 @@ def test_helpers(layout, tmp_path):
     assert "missing.json not found" in report.errors[0][2]
     assert calls == [("01", "x"), ("03", "x")]
     assert report.progress["subjects"] == (2, 2)
-    from brainspresso.bids.harvest import read_task_states
+    from brainspresso.actions.state import read_task_states
     assert set(read_task_states(layout.state)) == {
         "roast/subjects/sub-01", "roast/subjects/sub-03"}
 

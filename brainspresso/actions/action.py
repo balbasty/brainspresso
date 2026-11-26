@@ -48,14 +48,6 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
-    """Re-export deprecated names (moved to `bids.kinds`)."""
-    if name == "default_kind":
-        from brainspresso.bids.kinds import default_kind
-        return default_kind
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 @dataclass(frozen=True)
 class Claim:
     """

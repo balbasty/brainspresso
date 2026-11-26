@@ -9,7 +9,7 @@ from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
 from brainspresso.datasets.UNCWisconsin.command import uncwisc
 from brainspresso.datasets.UNCWisconsin.roaster import roast
-from brainspresso.datasets.UNCWisconsin.download import DATASET, _labels
+from brainspresso.datasets.UNCWisconsin.harvest import DATASET, _labels
 
 KeyChoice = Literal[
     "meta", "T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc",

@@ -144,7 +144,7 @@ def xnat():
 
 
 def harvest(server, src, **kwargs):
-    from brainspresso.datasets.IXI.download import nitrc_downloaders
+    from brainspresso.datasets.IXI.harvest import nitrc_downloaders
     kwargs.setdefault("keys", {"T1w", "T2w", "PDw", "angio", "dwi"})
     DownloadManager(
         nitrc_downloaders(src, server=server, **kwargs),
@@ -193,7 +193,7 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
 def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
     # images from NITRC-IR (default), metadata from the bundled IXI.xls
     # (nothing to download, the offline imperial host is not tried)
-    from brainspresso.datasets.IXI import download as dl
+    from brainspresso.datasets.IXI import harvest as dl
     server, _ = xnat
     monkeypatch.setattr(dl.NitrcIR, "server", server)
     monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})

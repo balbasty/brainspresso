@@ -110,3 +110,21 @@ This data is made available under the Creative Commons
 [CC BY-SA 3.0 license](https://creativecommons.org/licenses/by-sa/3.0/legalcode).
 If you use the IXI data please acknowledge the source of the IXI data,
 e.g. this website.
+
+## Diffusion data
+
+Each DTI series is distributed as one 3D image per volume
+(`IXI###-Site-####-DTI-NN.nii.gz`). The gradient table has 16 entries:
+one b=0 volume followed by 15 directions at b=1000 s/mm².
+`sub-*/dwi/sub-*_dwi.nii.gz` holds these 16 volumes; the canonical
+gradient table is at the dataset level (`dwi.bval`, `dwi.bvec`, inherited
+by all subjects), and `sub-*_dwi.bval`/`sub-*_dwi.bvec` exist only for
+subjects whose own (NITRC) table differs from it.
+
+Most series (Philips sites: Guys and HH) have a 17th volume (`-DTI-16`):
+an isotropic image computed by the scanner from the 15 DW volumes. It is
+not part of the raw series; when recognised on the data (correlation
+with the geometric or arithmetic mean of the DW volumes), it is written
+to `derivatives/ixi-scanner/` as `*_desc-trace_dwimap.nii.gz`
+(geometric mean) or `*_desc-powderavg_dwimap.nii.gz` (arithmetic mean).
+Duplicate members of the original `IXI-DTI.tar` are skipped.

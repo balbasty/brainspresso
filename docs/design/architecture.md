@@ -484,17 +484,20 @@ up as an XPASS failure once fixed (then drop the marker).
 * `set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II (fixed in OASIS-III, step 2b-ii, with its
   sessions table name).
-* IXI DWI: the bundled global 16-entry `bvals.txt`/`bvecs.txt` always wins
-  over the per-subject NITRC tables (`ctx.resource` falls back to the
-  package), and the volume count is never checked against the table.
-  Series have 17 (IXI002, Guys: 17 3D files) or 18 volumes; observed
-  pattern: two leading b=0 (second b=0 not in the IXI table) and, on
-  Philips sites, probably a trailing scanner-derived isotropic/trace image
-  (to check: ≈ mean of the DW volumes). Fix: per-subject volume layout from
-  member count/site, checked on the data; derived volume to a derivative
-  (`desc-trace`/`desc-powderavg` `_dwimap`), not the raw series; per-subject
-  `bval`/`bvec` matching the volumes; counted error on unknown patterns.
-  Awaiting a per-site census of `IXI-DTI.tar` member counts.
+* IXI DWI (**fixed** on `claude/bugfix/ixi-dwi-volumes`): the bundled
+  16-entry table always won over per-subject NITRC tables, and the volume
+  count was never checked. `IXI-DTI.tar` has 17 3D members for IXI002
+  (no duplicate entries); the old roast's `sub-002_dwi.nii.gz` has 18
+  volumes, origin unexplained (being checked by matching volumes to
+  members). Now: members de-duplicated, raw DWI = volumes 0..15; the
+  canonical 16-entry table is written once as dataset-level
+  `dwi.bval`/`dwi.bvec` (BIDS inheritance), and a per-subject
+  `bval`/`bvec` only when the subject's NITRC table numerically differs
+  from it; volume 16, if it correlates >= 0.95
+  with the geometric/arithmetic mean of the DW volumes, goes to
+  `derivatives/ixi-scanner/` as `desc-trace`/`desc-powderavg` `_dwimap`
+  (key `trace`); any other layout is a counted error. Checked on synthetic
+  data only; to validate on real IXI subjects of each site.
 * Harvest (not covered by tests, needs network): ABIDE-II and ABIDE-I xnat
   use the sync `nitrc_authentifier` with aiohttp sessions.
 

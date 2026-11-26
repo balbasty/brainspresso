@@ -225,7 +225,7 @@ and glob conditions, as prototyped in `wiip-grind`
   (`--sourcedata` on a hosted dataset says the next harvest re-fetches it).
 * The manifest records each file's origin: `direct`, `roasted`, `generated`.
 
-## 5. Roast: roasters + one action runner
+## 5. Roast: roasters on the action engine
 
 * A **roaster** is a plain callable `roaster(ctx) -> Iterator[Action |
   Roaster]`. It reads source data through `utils/archive.py` (tar, folder,
@@ -239,14 +239,21 @@ and glob conditions, as prototyped in `wiip-grind`
   OASIS-III sessions parsed from member names). After running it reports its
   actual outputs. Multi-output rule: run if any output may be selected,
   write all outputs, apply `IfExists` to the set.
-* `Action.kind` (`data` / `sidecar` / `table`, default from suffix) drives
-  the JSON yes/no/only policy; `Action.tag` groups progress lines.
-* **Runner** (`brainspresso/actions/runner.py`): consumes each action
-  **before requesting the next** (actions may close over open archive
-  handles and are not picklable), applies `Selection.keeps` on outputs or
-  claims, `IfExists`, policies, counters and display. Parallelism is at
-  **shard** level: a roaster yields sub-roasters (one per archive or
-  subject chunk), which also gives progress totals (`ctx.progress(total=)`).
+* `Action.kind` is an opaque label in the action core; roast computes it
+  from the names of the outputs (`bids.kinds.default_kind`: `data` /
+  `sidecar` / `meta` / `table`) for its JSON yes/no/only policy;
+  `Action.tag` groups progress lines.
+* **Engine** (`brainspresso/actions/engine.py`, stage-agnostic, shared
+  with grind): consumes each action **before requesting the next**
+  (actions may close over open archive handles and are not picklable),
+  asks the acceptance **policy** it is given whether each action runs
+  and with which defaults, and keeps counters, display, reports and task
+  states. Parallelism is at **shard** level: a roaster yields
+  sub-roasters (one per archive or subject chunk), which also gives
+  progress totals (`ctx.progress(total=)`). The roast layer
+  (`brainspresso/roast/`) gives it a `RoastContext` and a `RoastPolicy`
+  (`Selection.keeps` on outputs or claims, JSON policy, category
+  folders, `IfExists` of tables).
 * **Dataset-level tables**: roasters write complete tables
   (participants, sessions, scans) to `.brainspresso/orig/`; the common trim
   step derives the visible ones from what is on disk. No table is
@@ -260,35 +267,96 @@ and glob conditions, as prototyped in `wiip-grind`
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
 
-Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III):
+Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III; revised by
+the review fixes of 2b-ii-fix, then split into an action core and a roast
+layer in 2b-iv):
 
-Implemented (step 2b-ii, revised by the review fixes of 2b-ii-fix):
-
+* Packages (2b-iv). `brainspresso/actions/` knows nothing of BIDS or
+  roast (a test checks its imports): `action.py` (`Action`, `Claim`,
+  `Fail`, `IfExists`), `writers.py`, `archive.py`, `file.py` (`File`)
+  and `locks.py` (its locks), `engine.py` (`Context`, `Policy`,
+  `Rejected`, `Shard`, `Engine`, `LocalExecutor`, `Report`, `run`),
+  `state.py` (task state files). `brainspresso/roast/`: `context.py`
+  (`RoastContext`, `make_context`, `as_list`), `policy.py`
+  (`RoastPolicy`), `run.py` (`run_roast`, `roast_dataset`,
+  `RoastReport`), `helpers.py` (`copy_templates`, `subject_shards`).
+  `bids/kinds.py`: `default_kind`, `kinds_of`. `actions/runner.py`,
+  `actions/helpers.py` and `actions.action.default_kind` are thin
+  re-exports of the moved names, to be removed once open branches
+  are rebased.
+* Acceptance policy (2b-iv): the engine calls
+  `policy.accept(action, ctx, staging=) -> bool` (False drops the action
+  silently; raising `Rejected(message)` counts it as an error without
+  running it), then `policy.prepare(action, ctx)` (defaults: the base
+  `Policy` sets `IfExists` from `ctx.ifexists`), and includes
+  `policy.fingerprint(ctx)` (a JSON-able dict) in the input signature of
+  shards. `staging` is inherited by the sub-actions of a staging claim.
+  The policy is pickled to workers with the context. `RoastPolicy`
+  implements the roast rules below (selection, kinds, JSON policy,
+  tables).
+* Context (2b-iv): the engine reads `ctx.root` (outputs are recorded
+  relative to it), `ctx.state` (task states; None: none written, no
+  skip), `ctx.ifexists`, `ctx.tag`, `ctx.source`, `ctx.stage` ("roast":
+  task records and ids of anonymous tasks, `<stage>/.auto/...`) and
+  calls `ctx.progress`. `RoastContext` is a dataclass subclass whose
+  `root`/`state` are those of its layout.
 * `Action(src, dst | None, fn, *, claim=Claim(folder | [folders],
-  fragment), kind=None, tag=None, ifexists=None, staging=False)`:
-  `declared` outputs, `outputs` after running. `kind` defaults to
-  `default_kind` (`*.tsv`, dataset files such as README/`.bidsignore`
-  and the JSON of tables or of the dataset: "table"; other `*.json`:
-  "sidecar"; `*.bval`/`*.bvec`: "meta", non-JSON metadata as in
-  `bids.select`; else "data"); outputs of several default kinds
-  (`[nii, json]`, `[nii, bval, bvec]`) need an explicit `kind`, else the
-  runner counts the action as an error. JSON policy: `--json no` drops
-  sidecars, `--json only` drops data; tables and "meta" always pass;
+  fragment), kind=None, tag=None, ifexists=None, staging=False,
+  compare=None)`: `declared` outputs, `outputs` after running. In roast,
+  `kind` defaults to `bids.kinds.default_kind` (`*.tsv`, dataset files
+  such as README/`.bidsignore` and the JSON of tables or of the
+  dataset: "table"; other `*.json`: "sidecar"; `*.bval`/`*.bvec`:
+  "meta", non-JSON metadata as in `bids.select`; else "data"); outputs
+  of several default kinds (`[nii, json]`, `[nii, bval, bvec]`) need an
+  explicit `kind`, else the roast policy counts the action as an error.
+  JSON policy: `--json no` drops sidecars, `--json only` drops data; tables and "meta" always pass;
   `staging=True` actions (intermediate files, e.g. an unpacked
   FreeSurfer tree in `derivatives/<fs>/sourcedata/`) and the
   sub-actions of a staging claim are exempt (there is no implicit
-  exemption of `sourcedata/` any more). `ifexists=None` is the runner's
-  policy (still `different` outside it); under `skip`, tables use
-  `different`, which (without size/digests) regenerates a table and
-  replaces it only if its content changed, so pristine tables follow
-  new harvests. A claim action's `fn()` yields concrete sub-actions
+  exemption of `sourcedata/` any more). `ifexists=None` is the policy
+  of the engine (still `different` outside it); under `skip`, tables use
+  `different`, and roast sets `Action.compare` on tables: without
+  size/digests a table is regenerated and replaces the existing one
+  only if its content changed, so pristine tables follow new harvests
+  (`compare` is opt-in in the core: actions run outside roast do not
+  compare unless they set it). A claim action's `fn()` yields concrete sub-actions
   (selected one by one; it never writes files itself); a claim is
   selected if any of its paths can be; one that yields nothing is
   counted as "empty". `ExtractMember`, `ExtractMembers` (claim,
   `staging=`) in `actions/archive.py`; `Fail(message)` reports a
-  missing input and is never hidden (no outputs). Readers (`File` in
-  read mode) take no lock and create nothing next to sources; writers
-  lock and write `<dst>.tmp/` then rename.
+  missing input and is never hidden (no outputs).
+* File locks (2b-iv, `actions/locks.py`): a reader (`File(path, "r")`)
+  holds a **shared** lock for its whole context (any number of readers;
+  every reopen inside it sees the same content), a writer an
+  **exclusive** one while it writes `<dst>.tmp/<name>` and renames it
+  into place (writers of one file are serialised; `a`/`r+` copy the
+  file under the exclusive lock only). Acquisition polls up to a
+  timeout (`timeout=`, else `$BRAINSPRESSO_LOCK_TIMEOUT`, else 10 min)
+  and raises `LockTimeout` naming the file and its holder (readers, or
+  a writer with its pid and host). Lock files are never created next to
+  files nor deleted by their holders: inside a dataset (nearest
+  ancestor with `.brainspresso/`) they are
+  `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, `h` the SHA-256 of the
+  dataset-relative path, on the dataset's filesystem (also across
+  cluster nodes where `fcntl` locks work, whatever the mount point);
+  outside datasets (package templates, other source folders) in a
+  private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
+  `$XDG_RUNTIME_DIR/brainspresso/locks`, else
+  `<tmp>/brainspresso-<uid>/locks`), which protects one user's
+  processes on one machine. A reader that cannot create or open its
+  lock file (read-only state folder) reads without a lock; a writer
+  raises `LockError`, as does a filesystem that refuses `fcntl` locks
+  (`$BRAINSPRESSO_LOCKS=0` disables locks: an unsafe escape hatch).
+  POSIX locks belong to a process and closing any descriptor drops
+  them all, so each process opens a lock file once and arbitrates its
+  own holders (nested readers of an archive and its members, threads);
+  a lock upgrade (write a file the thread reads) or a nested writer of
+  one file raises `LockError` at once instead of deadlocking. Not
+  handled: cross-process cycles (A reads X, writes Y; B reads Y, writes
+  X) end in a `LockTimeout`; `fcntl` locks are not fair (steady readers
+  can delay a writer up to its timeout); lock files accumulate (delete
+  `locks/` only when nothing runs). `run_roast` creates the state
+  folder first so that all locks of a roast are in the dataset.
 * `run_roast(roaster, ctx, *, jobs=1, display=True | callable,
   executor=None) -> RoastReport` (counts per tag, errors, outputs,
   progress, `status`). `RoastContext(layout, selection, aliases, json,
@@ -324,7 +392,7 @@ Implemented (step 2b-ii, revised by the review fixes of 2b-ii-fix):
   `trim_originals(layout)` (every table under `<state>/orig/`; sessions
   and scans tables only where their folder exists) and `finish_roast`
   (keys, json policy, counts and `status`: "complete", "partial" if
-  anything failed, "failed" if the runner stopped). No repair yet.
+  anything failed, "failed" if the engine stopped). No repair yet.
 * Task state (§7): a shard with an `id`, and every shard run in a
   worker, writes `<state>/tasks/<id>.json` as it runs; the main process
   reads the progress of running shards from these files. A shard with
@@ -352,7 +420,7 @@ Implemented (step 2b-ii, revised by the review fixes of 2b-ii-fix):
   opened. Same `keeps`/`keeps_subject`/`select` interface as
   `Selection`, plus `wants(key)`, `key_of`, `base`, `keys` (wanted
   leaves).
-* Helpers for ports (`actions/helpers.py`): `copy_templates(ctx,
+* Helpers for ports (`roast/helpers.py`): `copy_templates(ctx,
   names | {name: dst})` (a missing resource is a `Fail`) and
   `subject_shards(ctx, labels, fn, *args, inputs=)` (pruning, progress
   total, one `Shard` per subject with id `roast/subjects/sub-<label>`,
@@ -409,7 +477,7 @@ dataset overrides or adds any command. Optional dependencies keep using
   `concurrent.futures` (local pool), `submitit` (SLURM/SGE/PBS, job arrays,
   `afterok` dependencies) and optionally Dask/Ray. Profiles in a user config
   file. Containers: Docker locally, Apptainer on HPC. The local backend
-  exists (`actions.runner.LocalExecutor.submit(task, resources=None) ->
+  exists (`actions.engine.LocalExecutor.submit(task, resources=None) ->
   Future`, used by roast; `task` is a picklable callable).
 * State: **one state file per task** under `.brainspresso/` (concurrent jobs
   never write the same file); the manifest is an index rebuilt from them.
@@ -435,8 +503,16 @@ dataset overrides or adds any command. Optional dependencies keep using
   (`done` without errors, else `failed`). Shards without an id that run
   in a worker use a temporary `roast/.auto/...` id, removed once
   collected.
-* Roast shares reporting, the state format and the submit protocol with
-  grind (local backend only), not the `Action` class.
+* Grind builds on the stage-agnostic engine (`actions.engine`, step
+  2b-iv) as roast does: its own `Context` (`stage = "grind"`, a
+  `pipeline` attribute, which task records pick up) and its own
+  `Policy` (units to run; config hash in `fingerprint`, part of the
+  input signature of shards), with the same producers and shards,
+  reporting, task state, `submit` seam and `File` locks (outputs of
+  concurrent units on shared storage are protected by the dataset's
+  `.brainspresso/locks/`). Whether BIDS-App units are actions (a claim
+  on their output folder, or a done-marker action) or plain shards is
+  decided in step 4g.
 * `bx <ds> grind <pipeline>` applies dataset defaults/overrides (which T1w,
   species/template, excluded subjects). `bx grind <pipeline> --datasets ...
   --where ...` resolves each dataset and submits **one** task graph.
@@ -454,6 +530,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
 | 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | done (461 passed, 28 xfailed: OASIS-III sessions name and exclude-keys fixed) |
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
+| 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`; old paths re-exported), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (549 passed, 2 skipped, 28 xfailed) |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
@@ -462,6 +539,24 @@ Each step lands as commits on the refactor branch with its tests green.
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, one BIDS-App pipeline, submitit; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
+
+### Conventions
+
+* Docstrings: every public module, class, function and method has one,
+  numpy style: a one-line summary (imperative, or a noun phrase for
+  properties), a blank line, then the description; `Parameters`,
+  `Returns`, `Yields`, `Raises` sections for the important API and for
+  functions with several arguments (arguments are at least briefly
+  explained everywhere). Constructor arguments go in the class
+  docstring (or in `__init__`'s, after a summary line).
+* Enforced by `ruff check .` (pydocstyle `D` rules, `convention =
+  "numpy"`) in `brainspresso/actions/`, `brainspresso/roast/` and
+  `brainspresso/bids/`; other packages are exempt through a negated
+  `per-file-ignores` pattern in `pyproject.toml`. Extend the pattern
+  (`!brainspresso/{actions,roast,bids,...}/**`) as datasets and
+  modules are ported (step 5), one package at a time.
+* Layering: `actions/` (stage-agnostic) imports neither `bids/` nor
+  `roast/`; `roast/` builds on both; BIDS knowledge lives in `bids/`.
 
 ### Known bugs to fix while porting (step 5)
 
@@ -529,3 +624,11 @@ up as an XPASS failure once fixed (then drop the marker).
   to `different`; every shard runs in the pool and every `finalize`
   runs; roast shards write the per-task state of §7 and go through the
   local `submit` protocol; `ctx.source` prepares step 3.
+* r6: step 2b-iv (owner review). The runner becomes a stage-agnostic
+  engine (`actions/engine.py`) driven by an acceptance `Policy`; the
+  roast layer moves to `brainspresso/roast/`, the BIDS kind classifier
+  to `bids/kinds.py` (`Action.kind` is opaque, `Action.compare`
+  opt-in); readers take shared locks again, with lock files in
+  `<DS>/.brainspresso/locks/` (never next to sources, never deleted)
+  and blocking acquisition with a timeout; docstrings enforced with
+  pydocstyle on `actions/`, `roast/` and `bids/` (Conventions, §8).

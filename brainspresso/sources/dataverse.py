@@ -67,10 +67,13 @@ class Dataverse(StaticURLs):
         environment)
 
     Per-run option: `token`.
+
+    TLS certificates are verified (the API token is never sent over an
+    unverified connection); pass `insecure=True` to disable it.
     """
 
     name = "dataverse"
-    insecure = True
+    insecure = False
     jobs = 1
     token: str | None = None
     token_required: bool = True

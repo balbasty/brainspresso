@@ -684,3 +684,10 @@ def test_xnat_reauth_is_not_an_attempt():
         assert asyncio.run(run()) == {"ok": 1}
     finally:
         stop()
+
+
+def test_dataverse_verifies_tls(monkeypatch):
+    from brainspresso.sources.dataverse import Dataverse
+    monkeypatch.setenv("DATAVERSE_TOKEN", "t")
+    source = Dataverse({"raw": {"a.txt": "doi:10.0/X"}})
+    assert "insecure" not in source.download_options(DownloadOptions())

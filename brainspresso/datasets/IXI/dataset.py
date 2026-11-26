@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.IXI.harvest import DEFAULTS, sources
 
 HELP = """
 IXI dataset (controls)
@@ -26,7 +27,9 @@ KEYS = ("meta", "T1w", "T2w", "PDw", "angio", "dwi")
 
 def roast_keys():
     """Keys of the roast (imported on use: the roaster needs xlrd)."""
-    from brainspresso.datasets.IXI.roaster import KEYS
+    from brainspresso.datasets.IXI.roaster import (  # noqa: PLC0415
+        KEYS,  # lazy: optional dependency (xlrd)
+    )
     return KEYS
 
 
@@ -47,7 +50,6 @@ class IXI(Dataset):
     @property
     def defaults(self):
         """Per-key sources: NITRC-IR then Imperial, bundled `IXI.xls`."""
-        from brainspresso.datasets.IXI.harvest import DEFAULTS
         return DEFAULTS
 
     def keys_for(self, command):
@@ -58,5 +60,4 @@ class IXI(Dataset):
 
     def sources(self, args=None):
         """NITRC-IR, Imperial (offline), bundled metadata."""
-        from brainspresso.datasets.IXI.harvest import sources
         return sources()

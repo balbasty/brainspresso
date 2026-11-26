@@ -1,5 +1,7 @@
 """`bx bullitt`: Designed Database of MR Brain Images (Bullitt, UNC)."""
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+from brainspresso.datasets.Bullitt.harvest import Girder
 from brainspresso.datasets.Bullitt.keys import allkeys
 
 HELP = """
@@ -33,7 +35,6 @@ class Bullitt(Dataset):
 
     def sources(self, args=None):
         """data.kitware.com (Girder)."""
-        from brainspresso.datasets.Bullitt.harvest import Girder
         return {"girder": Girder()}
 
     def describe(self, command):
@@ -48,7 +49,6 @@ class Bullitt(Dataset):
 
     def roast(self, layout, args):
         """Legacy bidsifier (ported in step 5)."""
-        from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
         Bidsifier(
             layout.root, keys=self.legacy_keys("roast", args),
             subs=self.labels(args.select.subs),

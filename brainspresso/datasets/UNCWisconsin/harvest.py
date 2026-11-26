@@ -18,9 +18,9 @@ the metadata into `UNC-Wisconsin/sourcedata/folders.json`.
 import json
 from pathlib import PurePosixPath
 
-
+from brainspresso.datasets.UNCWisconsin.roaster import roast_uncwisc
 from brainspresso.sources.base import RemoteEntry
-from brainspresso.sources.girder import GirderSource, KITWARE
+from brainspresso.sources.girder import KITWARE, GirderSource
 
 DATASET = "UNC-Wisconsin"
 COLLECTION = "54b582c38d777f4362aa9cb3"
@@ -37,12 +37,6 @@ FOLDER_KEYS = {
 }
 # file name suffix (in sMRI/ORIG) -> key
 ANAT_KEYS = {"_T1_ORIG.nrrd": "T1w", "_T2_ORIG.nrrd": "T2w"}
-
-def roast_uncwisc(ctx):
-    """Roaster of what `Girder` writes (imported on use: needs nrrd)"""
-    from brainspresso.datasets.UNCWisconsin.roaster import roast_uncwisc
-    return roast_uncwisc(ctx)
-
 
 class Girder(GirderSource):
     """

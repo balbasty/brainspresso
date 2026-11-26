@@ -33,6 +33,7 @@ from logging import getLogger
 from typing import Any, Callable, Iterable
 
 from brainspresso.actions.engine import Producer, Report, run
+from brainspresso.bids.harvest import finish_roast, trim_originals
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.layout import Layout
 from brainspresso.roast.context import RoastContext, as_list, make_context
@@ -84,8 +85,6 @@ def run_roast(
     RoastReport
         Counts per tag, errors, outputs, progress and `status`
     """
-    from brainspresso.bids.harvest import finish_roast, trim_originals
-
     report = RoastReport(status="failed")
     try:
         # the state folder holds the lock files of the dataset

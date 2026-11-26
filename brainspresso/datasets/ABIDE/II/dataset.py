@@ -1,4 +1,7 @@
 """`bx abide2`: ABIDE-II (autism spectrum disorders)."""
+from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
+from brainspresso.datasets.ABIDE.II.harvest import DEFAULTS, sources
+from brainspresso.datasets.ABIDE.II.keys import allkeys, allleaves
 from brainspresso.datasets.base import Dataset, KeySpec
 
 HELP = """
@@ -37,25 +40,20 @@ class ABIDE2(Dataset):
     def keys_for(self, command):
         """Roast keys: the key hierarchy of the legacy bidsifier."""
         if command == "roast":
-            from brainspresso.datasets.ABIDE.II.keys import allkeys
             return KeySpec(allkeys)
         return self.keys
 
     @property
     def defaults(self):
         """NITRC."""
-        from brainspresso.datasets.ABIDE.II.harvest import DEFAULTS
         return DEFAULTS
 
     def sources(self, args=None):
         """NITRC tarballs; s3://fcp-indi (raw data, BIDS-like copy)."""
-        from brainspresso.datasets.ABIDE.II.harvest import sources
         return sources()
 
     def roast(self, layout, args):
         """Legacy bidsifier (ported in step 5)."""
-        from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
-        from brainspresso.datasets.ABIDE.II.keys import allleaves
         Bidsifier(
             layout.root, keys=set(args.keys.keys or allleaves),
             exclude_keys=set(args.keys.exclude_keys),

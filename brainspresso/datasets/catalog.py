@@ -120,7 +120,9 @@ def load(name: str):
     KeyError
         If the name is not in the catalog
     """
-    from brainspresso.datasets.base import Dataset
+    from brainspresso.datasets.base import (  # noqa: PLC0415
+        Dataset,  # lazy: startup time (`bx --help`)
+    )
     path, _ = CATALOG[name]
     module, _, attr = path.partition(":")
     obj = getattr(import_module(module), attr)

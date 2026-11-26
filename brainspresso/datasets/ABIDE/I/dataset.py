@@ -1,7 +1,14 @@
 """`bx abide1`: ABIDE-I (autism spectrum disorders)."""
-from brainspresso.datasets.ABIDE.I.keys import allkeys
-from brainspresso.datasets.ABIDE.I.sources import SITES
+from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
+    Bidsifier as BidsifierNITRC,
+)
+from brainspresso.datasets.ABIDE.I.bidsifier_xnat import (
+    Bidsifier as BidsifierXNAT,
+)
+from brainspresso.datasets.ABIDE.I.keys import allkeys, allleaves
+from brainspresso.datasets.ABIDE.I.sources import DEFAULTS, SITES, sources
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.errors import UsageError
 from brainspresso.utils.keys import flatten_keys
 
 HELP = """
@@ -35,19 +42,16 @@ class ABIDE1(Dataset):
     def keys_for(self, command):
         """Roast keys: the key hierarchy of the legacy bidsifier."""
         if command == "roast":
-            from brainspresso.datasets.ABIDE.I.keys import allkeys
             return KeySpec(allkeys)
         return self.keys
 
     @property
     def defaults(self):
         """s3, then nitrc (derivatives: `--source xnat`)."""
-        from brainspresso.datasets.ABIDE.I.sources import DEFAULTS
         return DEFAULTS
 
     def sources(self, args=None):
         """s3://fcp-indi, NITRC tarballs, NITRC-IR."""
-        from brainspresso.datasets.ABIDE.I.sources import sources
         return sources()
 
     def groups(self, command):
@@ -60,14 +64,6 @@ class ABIDE1(Dataset):
 
     def roast(self, layout, args):
         """Legacy bidsifiers (ported in step 5): one per source."""
-        from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
-            Bidsifier as BidsifierNITRC,
-        )
-        from brainspresso.datasets.ABIDE.I.bidsifier_xnat import (
-            Bidsifier as BidsifierXNAT,
-        )
-        from brainspresso.datasets.ABIDE.I.keys import allleaves
-        from brainspresso.errors import UsageError
         source = (args.source.source or ("s3",))[0]
         bidsifiers = {"xnat": BidsifierXNAT, "nitrc": BidsifierNITRC,
                       "s3": BidsifierNITRC}

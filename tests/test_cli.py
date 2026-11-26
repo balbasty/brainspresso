@@ -11,13 +11,37 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Annotated
 
 import pytest
+from cli_utils import bx
+from cyclopts import Parameter
 
+from brainspresso import cli
+from brainspresso.bids.layout import LayoutError, parse_layout
+from brainspresso.cli import app, main
+from brainspresso.datasets import catalog
+from brainspresso.datasets.base import Args, Dataset, KeySpec
+from brainspresso.datasets.Bullitt.dataset import Bullitt
+from brainspresso.datasets.catalog import CATALOG, load
+from brainspresso.datasets.COBRE.dataset import COBRE
+from brainspresso.datasets.IXI.dataset import IXI, KEYS
+from brainspresso.datasets.OpenNeuro.dataset import OpenNeuroDataset
+from brainspresso.datasets.options import (
+    HarvestOptions,
+    OptionGroup,
+    SelectionOptions,
+    option_group,
+)
+from brainspresso.datasets.register import register
+from brainspresso.datasets.UNCWisconsin.dataset import UNCWisconsin
 from brainspresso.errors import UsageError
+from brainspresso.sources.base import LocalSource, StaticURLs
+from brainspresso.utils.deps import UNAVAILABLE
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
-from cli_snapshot import snapshot  # noqa: E402
+from cli_snapshot import flags, snapshot  # noqa: E402
+from make_catalog import main as make_catalog  # noqa: E402
 
 SNAPSHOT = Path(__file__).parent / "data" / "cli_flags_step3.json"
 INDI = ("acpi", "fcon1000", "hbn", "mpi-lemon", "natview", "nki-rs",
@@ -57,7 +81,6 @@ def _norm(value):
 
 @pytest.fixture(scope="module")
 def current():
-    from brainspresso.cli import app
     return snapshot(app)
 
 
@@ -65,8 +88,8 @@ def test_flags_superset(current):
     before = json.loads(SNAPSHOT.read_text())
     problems = []
     for ds, commands in before.items():
-        for cmd, flags in commands.items():
-            for flag, old in flags.items():
+        for cmd, old_flags in commands.items():
+            for flag, old in old_flags.items():
                 if _exception(ds, cmd, flag):
                     continue
                 new = current.get(ds, {}).get(cmd, {}).get(flag)
@@ -100,7 +123,6 @@ def run_python(*args, **kwargs):
 
 @pytest.mark.parametrize("module", ["brainspresso.cli", "brainspresso"])
 def test_python_m_lists_datasets(module):
-    from brainspresso.datasets.catalog import CATALOG
     out = run_python("-m", module, "--help")
     assert out.returncode == 0, out.stderr
     for name in CATALOG:
@@ -123,7 +145,6 @@ def test_root_help_imports_no_dataset():
 
 
 def test_dataset_help_is_the_long_help(capsys):
-    from brainspresso.cli import main
     try:
         main(["ixi", "--help"])
     except SystemExit:          # (cyclopts >= 4 exits after the help)
@@ -134,19 +155,15 @@ def test_dataset_help_is_the_long_help(capsys):
 
 
 def test_catalog_up_to_date():
-    from make_catalog import main as make_catalog
     assert make_catalog(check=True) == 0
 
 
 def test_catalog_summaries():
-    from brainspresso.datasets.catalog import CATALOG, load
     for name, (_, summary) in CATALOG.items():
         assert load(name).summary == summary
 
 
 def test_broken_dataset(monkeypatch, capsys):
-    from brainspresso import cli
-    from brainspresso.datasets import catalog
     monkeypatch.setitem(catalog.CATALOG, "broken",
                         ("brainspresso.datasets.nowhere:X", "Broken"))
     with pytest.raises(SystemExit) as e:
@@ -160,11 +177,6 @@ def test_broken_dataset(monkeypatch, capsys):
 # ----------------------------------------------------------------------
 
 def _toy():
-    from typing import Annotated
-    from cyclopts import Parameter
-    from brainspresso.datasets.base import Dataset, KeySpec
-    from brainspresso.datasets.options import OptionGroup, option_group
-    from brainspresso.sources.base import LocalSource, StaticURLs
 
     @option_group("Toy", 50)
     class ToyOptions(OptionGroup):
@@ -204,8 +216,6 @@ def _toy():
 
 
 def test_toy_commands():
-    from brainspresso.datasets.register import register
-    from brainspresso.utils.deps import UNAVAILABLE
     app = register(_toy())
     assert {"harvest", "roast", "compost", "info", "hello"} <= set(
         app._commands)
@@ -220,12 +230,10 @@ def test_toy_commands():
 
 
 def snapshot_of(app, command):
-    from cli_snapshot import flags
     return flags(app[command])
 
 
 def test_toy_args_and_labels():
-    from brainspresso.datasets.base import Args
     toy = _toy()()
     args = Args.of(toy, "harvest")
     assert args.harvest.jobs == 3 and args.extras["toy"].colour == "red"
@@ -233,21 +241,18 @@ def test_toy_args_and_labels():
     assert toy.labels(["2", "sub-012", "0:3"]) == {"000", "001", "002",
                                                    "012"}
     # no width: verbatim (zero-padded labels kept)
-    from brainspresso.datasets.OpenNeuro.dataset import OpenNeuroDataset
     assert OpenNeuroDataset().labels(["0005", "sub-07", "1:3"]) == {
         "0005", "07", "1:3"}
 
 
 def test_toy_dry_run_creates_nothing(tmp_path):
     toy = _toy()()
-    from brainspresso.datasets.options import HarvestOptions
     toy.execute("harvest", path=tmp_path,
                 harvest=HarvestOptions(dry_run=True))
     assert not any(tmp_path.iterdir())
 
 
 def test_toy_stub(capsys):
-    from brainspresso.datasets.register import register
     app = register(_toy())
     with pytest.raises(SystemExit) as e:
         app(["roast", "--keys", "raw"])
@@ -256,7 +261,6 @@ def test_toy_stub(capsys):
 
 
 def test_user_errors(tmp_path, capsys):
-    from brainspresso.datasets.register import register
     app = register(_toy())
     log = tmp_path / "log.txt"
     with pytest.raises(SystemExit):
@@ -267,7 +271,6 @@ def test_user_errors(tmp_path, capsys):
 
 
 def test_layout_values():
-    from brainspresso.bids.layout import LayoutError, parse_layout
     assert parse_layout(None) == (None, None)
     assert parse_layout("study") == ("study", None)
     assert parse_layout("sites") == ("sites", None)
@@ -278,7 +281,6 @@ def test_layout_values():
 
 
 def test_sites_layout_only_for_multisite(tmp_path, capsys):
-    from brainspresso.cli import main
     with pytest.raises(SystemExit) as e:
         main(["ixi", "compost", str(tmp_path), "--layout", "sites"])
     assert e.value.code
@@ -289,8 +291,6 @@ def test_sites_layout_only_for_multisite(tmp_path, capsys):
 # ----------------------------------------------------------------------
 
 def test_source_options_are_accepted():
-    from brainspresso.datasets.base import Args
-    from brainspresso.datasets.catalog import CATALOG, load
     problems = []
     for name in CATALOG:
         ds = load(name)
@@ -312,7 +312,6 @@ def test_source_options_are_accepted():
 
 
 def test_compost_zero_padded_labels(tmp_path):
-    from cli_utils import bx
     root = tmp_path / "ds"
     for sub in ("sub-0005", "sub-5"):
         (root / sub / "anat").mkdir(parents=True)
@@ -326,7 +325,6 @@ def test_compost_zero_padded_labels(tmp_path):
 
 
 def test_bad_option_creates_nothing(tmp_path, capsys):
-    from brainspresso.cli import main
     with pytest.raises(SystemExit) as e:
         main(["oasis3", "roast", str(tmp_path), "--keys", "nosuchkey"])
     assert e.value.code == 1
@@ -357,7 +355,6 @@ def test_commands_return_nothing(tmp_path, capsys):
         f"{str(root)!r}, '--exclude-subs', '0005', '--dry-run']))\n"))
     assert out.returncode == 0, out.stderr
     assert "CompostPlan(" not in out.stdout + out.stderr
-    from brainspresso.cli import main
     try:
         assert main(["openneuro", "compost", "ds1", "--out", str(root),
                      "--exclude-subs", "0005", "--dry-run"]) is None
@@ -367,12 +364,10 @@ def test_commands_return_nothing(tmp_path, capsys):
 
 
 def test_ignore_runs_is_not_force(tmp_path, capsys):
-    import json as _json
-    from brainspresso.cli import main
     root = _bids(tmp_path / "ds")
     runs = root / ".brainspresso" / "runs"
     runs.mkdir(parents=True)
-    (runs / "elsewhere-12.json").write_text(_json.dumps(
+    (runs / "elsewhere-12.json").write_text(json.dumps(
         {"command": "harvest", "host": "elsewhere", "pid": 12}))
     args = ["openneuro", "compost", "ds1", "--out", str(root),
             "--exclude-subs", "0005", "--yes"]
@@ -380,15 +375,11 @@ def test_ignore_runs_is_not_force(tmp_path, capsys):
         main([*args, "--force"])
     assert "--ignore-runs" in capsys.readouterr().err
     assert (root / "sub-0005").exists()
-    from cli_utils import bx
     bx(*args, "--ignore-runs")
     assert not (root / "sub-0005").exists()
 
 
 def test_legacy_subjects_files_and_ranges(tmp_path):
-    from brainspresso.datasets.COBRE.dataset import COBRE
-    from brainspresso.datasets.base import Args
-    from brainspresso.datasets.options import SelectionOptions
     subs = tmp_path / "subs.txt"
     subs.write_text("40000\nsub-40001\n")
     cobre = COBRE()
@@ -401,7 +392,6 @@ def test_legacy_subjects_files_and_ranges(tmp_path):
 
 
 def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
-    from brainspresso.cli import main
     # an invalid subject
     (tmp_path / "COBRE").mkdir()
     with pytest.raises(SystemExit):
@@ -416,8 +406,6 @@ def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
 
 
 def test_key_trees(capsys):
-    from brainspresso.cli import main
-    from brainspresso.datasets.Bullitt.dataset import Bullitt
     spec = Bullitt().keys_for("harvest")
     assert "phantoms" in spec.all_choices() and "all" in spec.all_choices()
     with pytest.raises(UsageError, match="Unknown keys"):
@@ -434,8 +422,6 @@ def test_key_trees(capsys):
 
 
 def test_key_spec_effective():
-    from brainspresso.datasets.IXI.dataset import KEYS, IXI
-    from brainspresso.datasets.UNCWisconsin.dataset import UNCWisconsin
     roast = IXI().keys_for("roast")
     assert roast.effective(KEYS) == ((), ("trace",))
     assert roast.effective((), ["T2w"]) == ((), ("T2w", "trace"))

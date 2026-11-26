@@ -32,10 +32,15 @@ from urllib.parse import quote
 
 import aiohttp
 
-from brainspresso.errors import UsageError
+from brainspresso.bids.harvest import harvest
+from brainspresso.bids.select import Selection
 from brainspresso.download.session import new_session
+from brainspresso.errors import UsageError
 from brainspresso.sources.base import (
-    DownloadOptions, RemoteEntry, Source, SourceUnavailable,
+    DownloadOptions,
+    RemoteEntry,
+    Source,
+    SourceUnavailable,
 )
 from brainspresso.sources.s3 import S3Bucket
 
@@ -436,8 +441,6 @@ class OpenNeuro(Source):
         provenance : dict, optional
             Provenance to record (default: `provenance()`).
         """
-        from brainspresso.bids.harvest import harvest
-        from brainspresso.bids.select import Selection
         options = DownloadOptions.from_any(options)
         return harvest(
             list(entries), layout, selection or Selection(),

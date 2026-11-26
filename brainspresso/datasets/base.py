@@ -38,8 +38,28 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, ClassVar, Iterable, Literal, Mapping
 
+from brainspresso.actions.runlock import run_lock
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import (
+    STATE_DIR,
+    Layout,
+    SitesLayout,
+    parse_layout,
+    resolve_layout,
+)
+from brainspresso.bids.select import Selection
 from brainspresso.datasets import options as opt
+from brainspresso.datasets.compost import run_compost
 from brainspresso.errors import DatasetNotFound, UsageError
+from brainspresso.roast import make_context, run_roast
+from brainspresso.sources.base import (
+    Wants,
+    harvest_sources,
+    select_roaster,
+    subject_labels,
+)
+from brainspresso.utils.keys import flatten_keys
+from brainspresso.utils.path import get_tree_path
 
 lg = logging.getLogger(__name__)
 
@@ -121,7 +141,6 @@ class KeySpec:
         if self.choices is not None:
             return tuple(self.choices)
         if isinstance(self.tree, Mapping):
-            from brainspresso.utils.keys import flatten_keys
             return tuple(sorted(flatten_keys(self.tree)))
         return None
 
@@ -722,7 +741,6 @@ class Dataset:
         -------
         Path
         """
-        from brainspresso.utils.path import get_tree_path
         if out:
             return Path(out)
         return Path(get_tree_path(path)) / self.folder_name
@@ -742,7 +760,6 @@ class Dataset:
         -------
         Layout
         """
-        from brainspresso.bids.layout import parse_layout, resolve_layout
         if layout is not None and layout not in self.layouts:
             raise UsageError(f"Layout {layout!r} is not available for "
                              f"{self.name}: {', '.join(self.layouts)}")
@@ -762,7 +779,6 @@ class Dataset:
         -------
         set[str]
         """
-        from brainspresso.sources.base import subject_labels
         return subject_labels(values, self.subject_width)
 
     def selection(self, subs=(), exclude_subs=(), sessions=(), **filters):
@@ -783,7 +799,6 @@ class Dataset:
         Selection | None
             None if nothing is filtered
         """
-        from brainspresso.bids.select import Selection
         subs, exclude_subs = self.labels(subs), self.labels(exclude_subs)
         sessions = {s[4:] if str(s).startswith("ses-") else str(s)
                     for s in sessions or ()}
@@ -806,7 +821,6 @@ class Dataset:
         -------
         Wants
         """
-        from brainspresso.sources.base import Wants
         spec = self.keys_for(command) or KeySpec()
         keys, exclude = spec.effective(keys, exclude_keys)
         return Wants(keys or None, spec.resolve(), exclude=exclude)
@@ -849,7 +863,6 @@ class Dataset:
         UsageError
             If a value is not a number
         """
-        from brainspresso.sources.base import subject_labels
         out = []
         for value in sorted(subject_labels(values, self.subject_width or 0)):
             if not value.isdigit():
@@ -872,7 +885,6 @@ class Dataset:
         source : Source | None
         roaster : callable
         """
-        from brainspresso.sources.base import select_roaster
         sources = self.sources()
         if override:
             name = str(override[0])
@@ -953,7 +965,6 @@ class Dataset:
     @staticmethod
     def _parent_states(layout) -> list:
         """State of the parent of a site dataset (`--out <DS>/<site>`)."""
-        from brainspresso.bids.layout import STATE_DIR, Layout, SitesLayout
         if isinstance(layout, SitesLayout):
             return []
         root = Path(layout.root)
@@ -986,7 +997,6 @@ class Dataset:
         Any
             What the command body returns
         """
-        from brainspresso.actions.runlock import run_lock
         args = args if args is not None else Args.of(self, command)
         self.check(command, args)
         body = getattr(self, command.replace("-", "_"))
@@ -1024,8 +1034,6 @@ class Dataset:
         dict[str, str]
             Source used for each key
         """
-        from brainspresso.bids.harvest import record_run
-        from brainspresso.sources.base import harvest_sources
         options = args.harvest.runtime(**self.download)
         sources = self.configured_sources(args)
         selection = self.selection(args.select.subs, args.select.exclude_subs,
@@ -1063,8 +1071,6 @@ class Dataset:
         -------
         RoastReport
         """
-        from brainspresso.bids.layout import SitesLayout
-        from brainspresso.roast import make_context, run_roast
         if isinstance(layout, SitesLayout):
             raise UsageError(f"{self.name}: roast of a dataset with one "
                              f"dataset per site is not supported")
@@ -1101,7 +1107,6 @@ class Dataset:
         -------
         CompostPlan | list[CompostPlan]
         """
-        from brainspresso.datasets.compost import run_compost
         c = args.compost
         return run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,

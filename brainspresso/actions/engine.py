@@ -85,8 +85,13 @@ import time
 import traceback
 import uuid
 from collections import Counter, defaultdict
-from concurrent.futures import FIRST_COMPLETED, CancelledError, Future
-from concurrent.futures import ProcessPoolExecutor, wait
+from concurrent.futures import (
+    FIRST_COMPLETED,
+    CancelledError,
+    Future,
+    ProcessPoolExecutor,
+    wait,
+)
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass, field
 from logging import getLogger
@@ -94,8 +99,14 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Union
 
 from brainspresso.actions.action import Action, IfExists
-from brainspresso.actions.state import now, read_task, task_path
-from brainspresso.actions.state import write_task_state
+from brainspresso.actions.runlock import held_states, hold_shared
+from brainspresso.actions.state import (
+    now,
+    read_task,
+    task_path,
+    write_task_state,
+)
+from brainspresso.utils.tabular import bidsify_tab
 
 lg = getLogger(__name__)
 
@@ -615,7 +626,6 @@ class LocalExecutor:
     """
 
     def __init__(self, jobs: int):
-        from brainspresso.actions.runlock import held_states, hold_shared
         self.pool = ProcessPoolExecutor(
             jobs, mp_context=multiprocessing.get_context("spawn"),
             initializer=hold_shared, initargs=(held_states(),),
@@ -1168,8 +1178,6 @@ def run(
     Report
         What the run did
     """
-    from brainspresso.utils.tabular import bidsify_tab
-
     report = report if report is not None else Report()
     policy = policy if policy is not None else Policy()
 

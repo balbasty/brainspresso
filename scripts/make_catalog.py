@@ -11,13 +11,21 @@ dataset.py` is an entry (summary: the first line of its help), and so
 is every curated INDI project (`INDI.dataset.project_dataset`).
 """
 import importlib
-import json
 import inspect
+import json
 import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))   # (this checkout, not an installed copy)
+
+from brainspresso.datasets.base import Dataset  # noqa: E402
+from brainspresso.datasets.INDI.dataset import (  # noqa: E402
+    project_dataset,
+    projects,
+)
+
 CATALOG = ROOT / "brainspresso" / "datasets" / "catalog.py"
 # Datasets kept out of the command line
 SKIP = {"adni1"}            # not usable yet (as before step 4)
@@ -25,8 +33,6 @@ SKIP = {"adni1"}            # not usable yet (as before step 4)
 
 def entries() -> dict[str, tuple[str, str]]:
     """`name: (import path, summary)` of every dataset."""
-    sys.path.insert(0, str(ROOT))
-    from brainspresso.datasets.base import Dataset
     out = {}
     datasets = ROOT / "brainspresso" / "datasets"
     for path in sorted(datasets.glob("**/dataset.py")):
@@ -38,7 +44,6 @@ def entries() -> dict[str, tuple[str, str]]:
                     isinstance(obj.__dict__.get("name"), str) and obj.name:
                 if obj.name not in SKIP:
                     out[obj.name] = (f"{module}:{attr}", obj().summary)
-    from brainspresso.datasets.INDI.dataset import project_dataset, projects
     for name in projects():
         out[name] = ("brainspresso.datasets.INDI.dataset:project_dataset",
                      project_dataset(name).summary)

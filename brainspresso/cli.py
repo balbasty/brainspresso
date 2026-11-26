@@ -8,9 +8,12 @@ summary, so `bx --help` imports no dataset and `bx ixi --help` shows the
 full help of IXI. `app` (a module attribute, built on first access) is
 the root app with every dataset registered, for tests and scripts.
 """
+import logging
 import sys
 
 import cyclopts
+
+from brainspresso.datasets.catalog import CATALOG, load
 
 HELP = """
 Brainspresso : Harvest, Roast and Grind public neuroimaging datasets
@@ -51,9 +54,10 @@ def dataset_app(name: str) -> cyclopts.App:
     -------
     cyclopts.App
     """
-    import logging
-    from brainspresso.datasets.catalog import CATALOG, load
-    from brainspresso.datasets.register import broken, register
+    from brainspresso.datasets.register import (  # noqa: PLC0415
+        broken,  # lazy: startup time (`bx --help`)
+        register,
+    )
     try:
         return register(load(name))
     except Exception as e:
@@ -78,7 +82,6 @@ def build_app(first: str | None = None, *, all: bool = False
     -------
     cyclopts.App
     """
-    from brainspresso.datasets.catalog import CATALOG
     app = root_app()
     for name, (_, summary) in CATALOG.items():
         if all or name == first:

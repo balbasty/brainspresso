@@ -44,6 +44,8 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator, Literal
 
+from brainspresso.actions.locks import forget_datasets
+
 lg = getLogger(__name__)
 
 LayoutChoice = Literal["study", "flat"]
@@ -82,6 +84,31 @@ class LayoutError(ValueError):
 
 def _path(path: str | os.PathLike) -> Path:
     return Path(os.fspath(path))
+
+
+def read_manifest(state: str | os.PathLike) -> dict | None:
+    """
+    Read `<state>/manifest.json`.
+
+    Parameters
+    ----------
+    state : path
+        State folder of a dataset
+
+    Returns
+    -------
+    dict | None
+        Its content (None if missing or invalid)
+    """
+    path = Path(state) / MANIFEST
+    if not path.exists():
+        return None
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        lg.warning(f"Could not parse {path}")
+        return None
+    return manifest if isinstance(manifest, dict) else None
 
 
 def parse_layout(value: str | None) -> tuple[str | None, str | None]:
@@ -253,7 +280,6 @@ class Layout:
         if not state.is_dir():
             state.mkdir(parents=True, exist_ok=True)
             # a nearer dataset for the folders already cached
-            from brainspresso.actions.locks import forget_datasets
             forget_datasets()
         return state
 
@@ -732,7 +758,6 @@ def resolve_layout(
 # ----------------------------------------------------------------------
 
 def _from_manifest(root: Path) -> Layout | None:
-    from brainspresso.bids.harvest import read_manifest
     manifest = read_manifest(root / STATE_DIR)
     kind = manifest.get("layout") if manifest else None
     if kind is None:

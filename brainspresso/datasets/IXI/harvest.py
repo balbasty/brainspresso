@@ -3,11 +3,17 @@ from pathlib import Path
 
 import aiohttp
 
-from brainspresso.download import CHUNK_SIZE
-from brainspresso.download import IfExists
+from brainspresso.download import CHUNK_SIZE, IfExists
 from brainspresso.sources.base import (
-    DownloadOptions, LabelMap, LocalSource, RemoteEntry, Source,
-    SourceUnavailable, StaticURLs, Wants, subject_selection,
+    DownloadOptions,
+    LabelMap,
+    LocalSource,
+    RemoteEntry,
+    Source,
+    SourceUnavailable,
+    StaticURLs,
+    Wants,
+    subject_selection,
 )
 from brainspresso.sources.credentials import XnatAuth
 from brainspresso.sources.xnat_listing import list_project_files
@@ -56,7 +62,9 @@ def _label(experiment: str) -> str | None:
 
 def roast_ixi(ctx):
     """Roaster of the IXI sources (imported on use: needs xlrd)"""
-    from brainspresso.datasets.IXI.roaster import roast_ixi
+    from brainspresso.datasets.IXI.roaster import (  # noqa: PLC0415
+        roast_ixi,  # lazy: optional dependency (xlrd)
+    )
     return roast_ixi(ctx)
 
 

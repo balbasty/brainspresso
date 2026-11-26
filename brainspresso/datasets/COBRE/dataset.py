@@ -1,5 +1,7 @@
 """`bx cobre`: COBRE (schizophrenia)."""
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.COBRE.bidsifier import Bidsifier
+from brainspresso.datasets.COBRE.harvest import sources
 
 HELP = """
 COBRE dataset (schizophrenia)
@@ -37,12 +39,10 @@ class COBRE(Dataset):
 
     def sources(self, args=None):
         """NITRC files."""
-        from brainspresso.datasets.COBRE.harvest import sources
         return sources()
 
     def roast(self, layout, args):
         """Legacy bidsifier (ported in step 5)."""
-        from brainspresso.datasets.COBRE.bidsifier import Bidsifier
         Bidsifier(
             layout.root, keys=self.legacy_keys("roast", args),
             subs=self.numbers(args.select.subs),

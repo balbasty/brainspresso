@@ -13,7 +13,10 @@ line-length = 79
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D"]
+# PLC0415: imports at the top level; a local import is kept only for an
+# optional dependency, a cycle or the startup time of `bx --help`, with
+# `# noqa: PLC0415` and the reason.
+select = ["E", "F", "W", "D", "PLC0415"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -23,6 +26,8 @@ convention = "numpy"
 # package, in the packages ported to the new architecture only; extend
 # this one (negated) pattern as packages comply (two negated patterns
 # would exempt every file): docs/design/architecture.md, "Conventions".
+# (tests written before PLC0415 was enforced)
+"tests/test_{compost,download,fcp,girder,ixi,locks,roast_cobre,roast_oasis3,runner,sources}.py" = ["PLC0415"]
 "!brainspresso/{actions/**,bids/**,download/**,roast/**,sources/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,cli.py,errors.py,__main__.py}" = ["D"]
 
 [tool.codespell]

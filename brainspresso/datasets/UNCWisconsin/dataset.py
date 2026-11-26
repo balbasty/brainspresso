@@ -2,7 +2,9 @@
 from pathlib import Path
 
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.UNCWisconsin.harvest import Girder
 from brainspresso.datasets.UNCWisconsin.keys import allkeys
+from brainspresso.datasets.UNCWisconsin.roaster import KEYS
 
 HELP = """
 UNC-Wisconsin Rhesus Macaque Neurodevelopment Database
@@ -20,7 +22,6 @@ ROAST_KEYS = ("meta", "T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc",
 
 def roast_keys():
     """Keys of the roast (imported on use: the roaster needs nrrd)."""
-    from brainspresso.datasets.UNCWisconsin.roaster import KEYS
     return KEYS
 
 
@@ -46,5 +47,4 @@ class UNCWisconsin(Dataset):
 
     def sources(self, args=None):
         """data.kitware.com (Girder)."""
-        from brainspresso.datasets.UNCWisconsin.harvest import Girder
         return {"girder": Girder()}

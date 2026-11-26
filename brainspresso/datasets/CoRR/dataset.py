@@ -1,5 +1,6 @@
 """`bx corr`: Consortium for Reliability and Reproducibility."""
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.CoRR.harvest import DEFAULTS, sources
 
 HELP = """
 CoRR dataset (controls)
@@ -32,10 +33,8 @@ class CoRR(Dataset):
     @property
     def defaults(self):
         """s3, then nitrc."""
-        from brainspresso.datasets.CoRR.harvest import DEFAULTS
         return DEFAULTS
 
     def sources(self, args=None):
         """s3://fcp-indi, NITRC tarballs."""
-        from brainspresso.datasets.CoRR.harvest import sources
         return sources()

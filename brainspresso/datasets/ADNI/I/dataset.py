@@ -4,6 +4,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from brainspresso.datasets.ADNI.I.harvest import sources
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.options import OptionGroup, option_group
 
@@ -55,7 +56,6 @@ class ADNI1(Dataset):
 
     def sources(self, args=None):
         """`urls` (from `--urls`), `local`."""
-        from brainspresso.datasets.ADNI.I.harvest import sources
         urls = args.extra("urls").all_urls() if args is not None and \
             args.extra("urls") is not None else ()
         return sources(urls)

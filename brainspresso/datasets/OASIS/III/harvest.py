@@ -5,12 +5,14 @@ FreeSurfer and PUP assessors (`<experiment>/<assessor>.tar.gz`), and
 the data files (`OASIS3_data_files/<scan>.tar.gz`).
 """
 
+from logging import getLogger
+
+from brainspresso.datasets.OASIS.III.roaster import roast_oasis3
 from brainspresso.sources.base import (
     numeric_labels,
 )
 from brainspresso.sources.xnat import XNAT, filter_list
 
-from logging import getLogger
 lg = getLogger(__name__)
 
 PROJECT = "OASIS3"
@@ -28,12 +30,6 @@ EXPERIMENT_KEYS = {
 }
 # assessor label pattern -> key
 ASSESSOR_KEYS = {"*Freesurfer*": "fs", "*PUPTIMECOURSE*": "pup"}
-
-
-def roast_oasis3(ctx):
-    """Roaster of what `NitrcIR` writes"""
-    from brainspresso.datasets.OASIS.III.roaster import roast_oasis3
-    return roast_oasis3(ctx)
 
 
 class NitrcIR(XNAT):

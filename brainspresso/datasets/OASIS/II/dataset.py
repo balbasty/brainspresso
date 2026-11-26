@@ -4,6 +4,7 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.OASIS.II.harvest import WUSTL
 from brainspresso.datasets.options import OptionGroup, option_group
 
 HELP = """
@@ -56,12 +57,13 @@ class OASIS2(Dataset):
 
     def sources(self, args=None):
         """WUSTL parts and demographics."""
-        from brainspresso.datasets.OASIS.II.harvest import WUSTL
         return {"wustl": WUSTL()}
 
     def roast(self, layout, args):
         """Legacy bidsifier (ported in step 5)."""
-        from brainspresso.datasets.OASIS.II.bidsifier import Bidsifier
+        from brainspresso.datasets.OASIS.II.bidsifier import (  # noqa: PLC0415
+            Bidsifier,  # lazy: optional dependency (openpyxl)
+        )
         Bidsifier(
             layout.root, keys=self.legacy_keys("roast", args),
             parts=list(args.extra("parts", "parts", ())),

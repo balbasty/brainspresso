@@ -14,6 +14,7 @@ This module does not use `from __future__ import annotations`: cyclopts
 reads the annotations of the fields.
 """
 import dataclasses
+import warnings
 from typing import Annotated, Any, ClassVar, Literal, Mapping
 
 from cyclopts import Group, Parameter
@@ -22,6 +23,8 @@ from humanize import naturalsize
 from brainspresso.actions.action import IfExists
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.errors import UsageError
+from brainspresso.sources.base import DownloadOptions
+from brainspresso.utils.ui import human2bytes
 
 Many = Parameter(consume_multiple=True)
 Strings = tuple[str, ...]
@@ -441,8 +444,6 @@ class HarvestOptions(OptionGroup):
         -------
         sources.base.DownloadOptions
         """
-        from brainspresso.sources.base import DownloadOptions
-        from brainspresso.utils.ui import human2bytes
         return DownloadOptions(
             ifexists=self.if_exists, jobs=self.jobs,
             chunk_size=human2bytes(self.packet), insecure=self.insecure,
@@ -548,7 +549,6 @@ class LayoutOptions(OptionGroup):
         -------
         str | None
         """
-        import warnings
         value = self.layout
         if self.site_layout is not None:
             if value != "sites":

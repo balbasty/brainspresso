@@ -8,11 +8,16 @@ from pathlib import Path
 
 import pytest
 
-from brainspresso.actions import runlock
+from brainspresso.actions import locks, runlock
 from brainspresso.actions.locks import LockError
 from brainspresso.actions.runlock import (
-    RunLocked, held_states, hold_shared, read_records, run_lock,
+    RunLocked,
+    held_states,
+    hold_shared,
+    read_records,
+    run_lock,
 )
+from brainspresso.cli import main
 
 HOLD = """
 import sys, time
@@ -124,7 +129,6 @@ def test_locks_disabled(state, monkeypatch):
 
 
 def test_unopenable_shared_lock(state, monkeypatch):
-    from brainspresso.actions import locks
 
     def acquire(self):
         return self             # (a reader that could not open its file)
@@ -145,7 +149,6 @@ def test_hold_shared(state):
 
 def test_compost_command_fails_while_harvest_runs(tmp_path, holder, state,
                                                   capsys):
-    from brainspresso.cli import main
     holder("harvest")
     with pytest.raises(SystemExit) as e:
         main(["openneuro", "compost", "ds1", "--out", str(state.parent),
@@ -158,7 +161,6 @@ def test_nested_failure_keeps_outer_count(state, monkeypatch):
     with run_lock(state, "harvest"):
         assert held_states() == [str(state)]
         # an inner lock that fails after it is listed (unopenable)
-        from brainspresso.actions import locks
         monkeypatch.setattr(locks.FileLock, "acquire", lambda self: self)
         with pytest.raises(LockError, match="cannot be opened"):
             with run_lock(state, "roast"):

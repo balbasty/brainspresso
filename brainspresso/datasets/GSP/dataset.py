@@ -1,5 +1,6 @@
 """`bx gsp`: Brain Genomics Superstruct Project."""
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.GSP.harvest import sources
 
 HELP = """
 GSP dataset (controls, genomics)
@@ -27,5 +28,4 @@ class GSP(Dataset):
 
     def sources(self, args=None):
         """Harvard Dataverse."""
-        from brainspresso.datasets.GSP.harvest import sources
         return sources()

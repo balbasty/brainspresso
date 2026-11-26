@@ -43,15 +43,23 @@ from dataclasses import dataclass, field, fields
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import (
-    Any, Callable, Iterable, Iterator, Mapping, Protocol, Sequence,
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Protocol,
+    Sequence,
     runtime_checkable,
 )
 from urllib.parse import urlparse
 
 from humanize import naturalsize
 
-from brainspresso.errors import UsageError
+from brainspresso.bids.select import Selection
 from brainspresso.download import CHUNK_SIZE, Downloader, DownloadManager
+from brainspresso.errors import UsageError
+from brainspresso.utils.keys import compat_keys, lower_keys
 
 lg = getLogger(__name__)
 
@@ -220,7 +228,6 @@ def _related_in_tree(tree) -> Callable[[str, str], bool]:
             except KeyError:
                 return False
         return related
-    from brainspresso.utils.keys import compat_keys
     cache: dict[str, set[str]] = {}
 
     def related(a, b):
@@ -290,7 +297,6 @@ class Wants:
                 return key in self.tree.expand(upper)
             except (KeyError, ValueError):     # unknown key
                 return False
-        from brainspresso.utils.keys import lower_keys
         return key in lower_keys(upper, self.tree)
 
     def restrict(self, group: Iterable[str]) -> "Wants":
@@ -1336,6 +1342,5 @@ def subject_selection(subs=(), exclude_subs=(), width: int | None = 0):
     -------
     Selection
     """
-    from brainspresso.bids.select import Selection
     return Selection(subs=subject_labels(subs, width),
                      exclude_subs=subject_labels(exclude_subs, width))

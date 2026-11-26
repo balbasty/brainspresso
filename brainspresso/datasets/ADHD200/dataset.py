@@ -3,6 +3,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from brainspresso.datasets.ADHD200.harvest import S3
 from brainspresso.datasets.ADHD200.keys import allkeys
 from brainspresso.datasets.base import Dataset, KeySpec
 from brainspresso.datasets.options import OptionGroup, option_group
@@ -51,5 +52,4 @@ class ADHD200(Dataset):
 
     def sources(self, args=None):
         """s3://fcp-indi."""
-        from brainspresso.datasets.ADHD200.harvest import S3
         return {"s3": S3()}

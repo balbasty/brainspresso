@@ -2,7 +2,12 @@
 from pathlib import Path
 
 from brainspresso.datasets.base import Dataset, KeySpec
+from brainspresso.datasets.OASIS.III.harvest import sources
 from brainspresso.datasets.OASIS.III.keys import allkeys
+from brainspresso.datasets.OASIS.III.roaster import KEYS
+from brainspresso.sources.base import Wants
+from brainspresso.utils.keys import allkeys as generic_keys
+from brainspresso.utils.keys import flatten_keys
 
 HELP = """
 OASIS-3 dataset (longitudinal, pet, dementia)
@@ -24,7 +29,6 @@ OASIS-3 dataset (longitudinal, pet, dementia)
 
 def roast_keys():
     """Keys of the roast."""
-    from brainspresso.datasets.OASIS.III.roaster import KEYS
     return KEYS
 
 
@@ -50,13 +54,9 @@ class OASIS3(Dataset):
 
     def wants(self, command, keys=(), exclude_keys=()):
         """Harvest keys over the generic key tree (all OASIS-3 keys)."""
-        from brainspresso.sources.base import Wants
-        from brainspresso.utils.keys import allkeys as generic_keys
-        from brainspresso.utils.keys import flatten_keys
         keys = list(keys or flatten_keys(allkeys))
         return Wants(keys, generic_keys, exclude=tuple(exclude_keys))
 
     def sources(self, args=None):
         """NITRC-IR (XNAT project OASIS3)."""
-        from brainspresso.datasets.OASIS.III.harvest import sources
         return sources()

@@ -1,11 +1,21 @@
 """`bx openneuro <accession>`: any OpenNeuro dataset (BIDS)."""
+import asyncio
 from pathlib import Path
 from typing import Annotated, Literal
 
 from cyclopts import Parameter
+from humanize import naturalsize
 
+from brainspresso.bids.harvest import format_summary, summarize
+from brainspresso.bids.select import Selection
 from brainspresso.datasets.base import Argument, Dataset
 from brainspresso.datasets.options import OptionGroup, option_group
+from brainspresso.sources.openneuro import (
+    APIUnavailable,
+    OpenNeuro,
+    OpenNeuroAPI,
+    list_snapshot,
+)
 
 HELP = """
 Any OpenNeuro dataset (BIDS)
@@ -85,8 +95,6 @@ class OpenNeuroDataset(Dataset):
 
     def harvest(self, layout, args):
         """List the snapshot and download the selection."""
-        from brainspresso.bids.select import Selection
-        from brainspresso.sources.openneuro import OpenNeuro
         on, f = args.extra("openneuro"), args.filters
         remote = OpenNeuro(self.bound["dataset"], on.tag, on.route,
                            token=args.token.token)
@@ -110,12 +118,6 @@ class OpenNeuroDataset(Dataset):
 
     def info(self, layout=None, args=None):
         """Snapshots and content of the latest snapshot."""
-        import asyncio
-        from humanize import naturalsize
-        from brainspresso.bids.harvest import format_summary, summarize
-        from brainspresso.sources.openneuro import (
-            APIUnavailable, OpenNeuroAPI, list_snapshot,
-        )
         dataset = self.bound["dataset"]
         route = args.extra("openneuro", "route", "auto") if args else "auto"
         api = OpenNeuroAPI(token=args.token.token if args else None)

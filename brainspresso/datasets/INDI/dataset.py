@@ -10,9 +10,20 @@ from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
+from humanize import naturalsize
 
-from brainspresso.bids.layout import ALL_LAYOUTS
+from brainspresso.bids.harvest import (
+    check_selected_subjects,
+    format_summary,
+    harvest,
+    summarize,
+)
+from brainspresso.bids.layout import ALL_LAYOUTS, SitesLayout
+from brainspresso.bids.select import Selection
 from brainspresso.datasets.base import Dataset
+from brainspresso.datasets.INDI.fcon1000 import FCON1000
+from brainspresso.datasets.INDI.harvest import collect, harvest_sites
+from brainspresso.datasets.INDI.projects import PROJECTS
 from brainspresso.datasets.options import OptionGroup, option_group
 from brainspresso.errors import UsageError
 
@@ -128,12 +139,6 @@ class INDIDataset(Dataset):
 
     def harvest(self, layout, args):
         """Harvest from s3://fcp-indi (merged, or one dataset per site)."""
-        from brainspresso.bids.harvest import (
-            check_selected_subjects, harvest,
-        )
-        from brainspresso.bids.layout import SitesLayout
-        from brainspresso.bids.select import Selection
-        from brainspresso.datasets.INDI.harvest import collect, harvest_sites
         f, h = args.filters, args.harvest
         sessions = {s[4:] if s.startswith("ses-") else s
                     for s in args.sessions.sessions}
@@ -169,10 +174,6 @@ class INDIDataset(Dataset):
 
     def info(self, layout=None, args=None):
         """List the bucket folder of the project."""
-        from humanize import naturalsize
-        from brainspresso.bids.harvest import format_summary, summarize
-        from brainspresso.bids.select import Selection
-        from brainspresso.datasets.INDI.harvest import collect
         derivatives = bool(args and args.extra("info", "derivatives"))
         sites = self.chosen_sites(args) if args is not None else ()
         selection = Selection(folders=["derivatives"] if derivatives else [])
@@ -188,8 +189,6 @@ class INDIDataset(Dataset):
 
 def projects() -> dict:
     """Every curated project, by command name."""
-    from brainspresso.datasets.INDI.fcon1000 import FCON1000
-    from brainspresso.datasets.INDI.projects import PROJECTS
     return {p.name: p for p in (FCON1000(), *PROJECTS)}
 
 

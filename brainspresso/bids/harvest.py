@@ -22,18 +22,26 @@ from typing import Iterable
 
 from humanize import naturalsize
 
-from brainspresso.errors import UsageError
 from brainspresso.actions.state import now
-from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
-    MANIFEST, ORIG_DIR, STATE_DIR, Layout, resolve_layout,
+    MANIFEST,
+    ORIG_DIR,
+    STATE_DIR,
+    Layout,
+    read_manifest,
+    resolve_layout,
 )
+from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
-from brainspresso.bids.tables import is_trimmable, query_participants
-from brainspresso.bids.tables import trim_tables
+from brainspresso.bids.tables import (
+    is_trimmable,
+    query_participants,
+    trim_tables,
+)
 from brainspresso.download import Downloader, DownloadManager, IfExists
 from brainspresso.download.session import new_session
+from brainspresso.errors import UsageError
 
 lg = getLogger(__name__)
 
@@ -390,19 +398,6 @@ def harvest(
 #     }
 
 MANIFEST_SCHEMA = 1
-
-
-def read_manifest(state: Path) -> dict | None:
-    """Content of `<state>/manifest.json` (None if missing or invalid)."""
-    path = Path(state) / MANIFEST
-    if not path.exists():
-        return None
-    try:
-        manifest = json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
-        lg.warning(f"Could not parse {path}")
-        return None
-    return manifest if isinstance(manifest, dict) else None
 
 
 def record_run(

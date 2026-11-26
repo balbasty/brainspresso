@@ -7,6 +7,8 @@ import asyncio
 import hashlib
 import json
 import socket
+import subprocess
+import sys
 import threading
 from collections import Counter
 from pathlib import Path
@@ -15,12 +17,17 @@ from xml.sax.saxutils import escape
 import pytest
 from aiohttp import web
 
+from brainspresso.actions.runlock import held_states
 from brainspresso.bids.layout import Layout, SitesLayout
-from brainspresso.bids.repair import repair, to_number
+from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
+from brainspresso.datasets.INDI import harvest as indi
 from brainspresso.datasets.INDI.engine import (
-    Site, complete_participants, relabel, reorder_entities,
+    Site,
+    complete_participants,
+    relabel,
+    reorder_entities,
 )
 from brainspresso.sources import fcp
 from brainspresso.sources.s3 import S3Bucket
@@ -655,7 +662,6 @@ def test_repair_json(tmp_path):
 
 
 def test_intended_for(tmp_path):
-    from brainspresso.bids.repair import fix_intended_for
     sub = tmp_path / "sub-1"
     for name in ("func/sub-1_task-rest_bold.nii.gz",
                  "dwi/sub-1_dwi.nii.gz", "dwi/sub-1_acq-TRACEW_dwi.nii.gz",
@@ -734,8 +740,6 @@ def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
 
 
 def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
-    from brainspresso.actions.runlock import held_states
-    from brainspresso.datasets.INDI import harvest as indi
     seen = []
     original = indi.harvest
 
@@ -764,8 +768,6 @@ with run_lock(sys.argv[1], "harvest"):
 def test_fcon1000_site_compost_waits_for_parent(tmp_path, capsys):
     # compost of one site (`--out <DS>/<site>`) also takes the run lock
     # of the parent, which a harvest of the parent holds
-    import subprocess
-    import sys
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
        "--sites", "ICBM")
     root = tmp_path / "FCON1000"

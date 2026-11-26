@@ -23,8 +23,12 @@ import re
 import zlib
 from collections import Counter, defaultdict
 
+import nibabel as nib
+
 from brainspresso.datasets.INDI.engine import (
-    TEMPLATES, format_tsv, read_table,
+    TEMPLATES,
+    format_tsv,
+    read_table,
 )
 from brainspresso.datasets.INDI.fcon1000 import CODES
 from brainspresso.download.session import new_session
@@ -45,7 +49,6 @@ HEADERS = {
 
 
 async def read_tr(session, bucket, key: str) -> float | None:
-    import nibabel as nib
     async with session.get(
         bucket.url(key), headers={"Range": "bytes=0-65535"}
     ) as r:

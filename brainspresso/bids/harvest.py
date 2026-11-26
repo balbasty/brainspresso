@@ -23,16 +23,25 @@ from typing import Iterable
 from humanize import naturalsize
 
 from brainspresso.actions.state import now
-from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
-    MANIFEST, ORIG_DIR, STATE_DIR, Layout, resolve_layout,
+    MANIFEST,
+    ORIG_DIR,
+    STATE_DIR,
+    Layout,
+    read_manifest,
+    resolve_layout,
 )
+from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
-from brainspresso.bids.tables import is_trimmable, query_participants
-from brainspresso.bids.tables import trim_tables
+from brainspresso.bids.tables import (
+    is_trimmable,
+    query_participants,
+    trim_tables,
+)
 from brainspresso.download import Downloader, DownloadManager, IfExists
 from brainspresso.download.session import new_session
+from brainspresso.errors import UsageError
 
 lg = getLogger(__name__)
 
@@ -92,7 +101,7 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
         return selection
     table = next((e for e in entries if e.path == "participants.tsv"), None)
     if table is None:
-        raise ValueError("--where requires a participants.tsv file")
+        raise UsageError("--where requires a participants.tsv file")
 
     async def fetch():
         if getattr(table, "content", None) is not None:
@@ -136,6 +145,58 @@ def format_summary(summary: dict) -> str:
     )
 
 
+def subjects_of(paths: Iterable[str]) -> set[str]:
+    """
+    Subject labels of the paths of a listing (`sub-<label>/...`).
+
+    Parameters
+    ----------
+    paths : iterable[str]
+
+    Returns
+    -------
+    set[str]
+    """
+    out = set()
+    for path in paths:
+        head = str(path).split("/", 1)[0]
+        if head.startswith("sub-"):
+            out.add(head[4:])
+    return out
+
+
+def check_selected_subjects(selection, entries, found=None) -> None:
+    """
+    Warn about `--subs` labels that match nothing (error if none does).
+
+    Parameters
+    ----------
+    selection : Selection
+        The selection (its `subs`)
+    entries : list[RemoteEntry]
+        The remote listing
+    found : set[str], optional
+        Subjects found (default: those of `entries`)
+
+    Raises
+    ------
+    UsageError
+        If no selected subject is in the listing
+    """
+    wanted = {str(s) for s in getattr(selection, "subs", None) or ()}
+    if not wanted:
+        return
+    if found is None:
+        found = subjects_of(e.path for e in entries)
+    missing = sorted(wanted - set(found))
+    if missing and len(missing) == len(wanted):
+        raise UsageError(f"No selected subject is in the dataset: "
+                         f"{', '.join(missing)}")
+    if missing:
+        lg.warning(f"Selected subjects not in the dataset: "
+                   f"{', '.join(missing)}")
+
+
 def harvest(
     entries: list,
     root: Path | Layout,
@@ -151,6 +212,8 @@ def harvest(
     repair: bool = False,
     layout: str | None = None,
     insecure: bool = False,
+    chunk_size: int | None = None,
+    check_subjects: bool = True,
 ) -> list:
     """
     Select and download a subset of a remote BIDS dataset.
@@ -191,11 +254,18 @@ def harvest(
         layout of an existing dataset.
     insecure : bool
         Do not verify TLS certificates
+    chunk_size : int, optional
+        Download chunk size, in bytes
+    check_subjects : bool
+        Warn about selected subjects (`selection.subs`) that match
+        nothing, and raise `UsageError` if none matches
 
     Returns
     -------
     selected : list[RemoteEntry]
     """
+    if check_subjects:
+        check_selected_subjects(selection, entries)
     selection = resolve_participants(entries, selection, where)
     keep = set(selection.select(e.path for e in entries))
     selected = [e for e in entries if e.path in keep]
@@ -234,6 +304,7 @@ def harvest(
             digests=e.digests or None,
             ifexists=if_exists,
             insecure=insecure,
+            **({"chunk_size": chunk_size} if chunk_size else {}),
         ))
 
     if nb_inline:
@@ -327,19 +398,6 @@ def harvest(
 #     }
 
 MANIFEST_SCHEMA = 1
-
-
-def read_manifest(state: Path) -> dict | None:
-    """Content of `<state>/manifest.json` (None if missing or invalid)."""
-    path = Path(state) / MANIFEST
-    if not path.exists():
-        return None
-    try:
-        manifest = json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
-        lg.warning(f"Could not parse {path}")
-        return None
-    return manifest if isinstance(manifest, dict) else None
 
 
 def record_run(

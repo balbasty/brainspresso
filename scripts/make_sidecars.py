@@ -52,7 +52,9 @@ key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
 import argparse
 import fnmatch
 import hashlib
+import importlib.metadata as md
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -164,7 +166,6 @@ def uncovered(dataset, entries, root=ROOT):
 
 def protocol2bids_version():
     """Version and commit of the installed protocol2bids."""
-    import importlib.metadata as md
     try:
         dist = md.distribution('protocol2bids')
     except md.PackageNotFoundError:
@@ -181,7 +182,7 @@ def protocol2bids_version():
 def _protocol2bids():
     """Import protocol2bids, with a clear error if it is not installed."""
     try:
-        import protocol2bids
+        import protocol2bids  # noqa: PLC0415  lazy: optional (maintainers)
     except ImportError as exc:
         raise ImportError(
             'make_sidecars.py needs protocol2bids (maintainers only): '
@@ -259,7 +260,6 @@ def verify_ref(ref, root=ROOT):
     (the working copy is then the baseline); raises `TableError` for any
     other ref that does not resolve.
     """
-    import subprocess
     try:
         res = subprocess.run(
             ['git', 'rev-parse', '--verify', '--quiet', f'{ref}^{{commit}}'],
@@ -286,7 +286,6 @@ def report_sections(text):
 
 def committed_text(path, root=ROOT, ref='HEAD'):
     """Content of `path` at git `ref` (None if unavailable)."""
-    import subprocess
     try:
         rel = Path(path).resolve().relative_to(Path(root).resolve())
         res = subprocess.run(

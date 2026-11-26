@@ -58,7 +58,7 @@ FAMILY_EXTRA = {24: "sister of Tumor069 (not in this database)"}
 
 
 def parse_pdf(path: Path) -> dict[int, dict]:
-    import pymupdf
+    import pymupdf  # noqa: PLC0415  lazy: optional dependency
     text = "\n".join(page.get_text() for page in pymupdf.open(str(path)))
     text = text.split("ABNORMALS")[0]
     rows = {}

@@ -32,9 +32,15 @@ from urllib.parse import quote
 
 import aiohttp
 
+from brainspresso.bids.harvest import harvest
+from brainspresso.bids.select import Selection
 from brainspresso.download.session import new_session
+from brainspresso.errors import UsageError
 from brainspresso.sources.base import (
-    DownloadOptions, RemoteEntry, Source, SourceUnavailable,
+    DownloadOptions,
+    RemoteEntry,
+    Source,
+    SourceUnavailable,
 )
 from brainspresso.sources.s3 import S3Bucket
 
@@ -52,7 +58,7 @@ _ANNEX_ALGO = {"SHA256": "sha256", "SHA512": "sha512",
 _VERSION = re.compile(r"^\s*(\d+\.\d+\.\d+)\b")
 
 
-class OpenNeuroError(RuntimeError):
+class OpenNeuroError(UsageError):
     """An error of the OpenNeuro API."""
 
 
@@ -435,8 +441,6 @@ class OpenNeuro(Source):
         provenance : dict, optional
             Provenance to record (default: `provenance()`).
         """
-        from brainspresso.bids.harvest import harvest
-        from brainspresso.bids.select import Selection
         options = DownloadOptions.from_any(options)
         return harvest(
             list(entries), layout, selection or Selection(),
@@ -444,6 +448,7 @@ class OpenNeuro(Source):
             jobs=options.jobs or self.jobs, dry_run=options.dry_run,
             listing=listing, repair=repair, insecure=bool(options.insecure),
             provenance=provenance or self.provenance(),
+            chunk_size=options.chunk_size,
         )
 
     def harvest(self, layout, selection=None, keys=None, options=None,

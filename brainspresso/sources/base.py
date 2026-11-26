@@ -43,14 +43,23 @@ from dataclasses import dataclass, field, fields
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import (
-    Any, Callable, Iterable, Iterator, Mapping, Protocol, Sequence,
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Protocol,
+    Sequence,
     runtime_checkable,
 )
 from urllib.parse import urlparse
 
 from humanize import naturalsize
 
+from brainspresso.bids.select import Selection
 from brainspresso.download import CHUNK_SIZE, Downloader, DownloadManager
+from brainspresso.errors import UsageError
+from brainspresso.utils.keys import compat_keys, lower_keys
 
 lg = getLogger(__name__)
 
@@ -219,7 +228,6 @@ def _related_in_tree(tree) -> Callable[[str, str], bool]:
             except KeyError:
                 return False
         return related
-    from brainspresso.utils.keys import compat_keys
     cache: dict[str, set[str]] = {}
 
     def related(a, b):
@@ -289,7 +297,6 @@ class Wants:
                 return key in self.tree.expand(upper)
             except (KeyError, ValueError):     # unknown key
                 return False
-        from brainspresso.utils.keys import lower_keys
         return key in lower_keys(upper, self.tree)
 
     def restrict(self, group: Iterable[str]) -> "Wants":
@@ -1120,7 +1127,7 @@ def plan_sources(
     override = [str(getattr(s, "value", s)) for s in override or ()]
     unknown = [s for s in override if s not in sources]
     if unknown:
-        raise ValueError(f"Unknown sources {unknown}. "
+        raise UsageError(f"Unknown sources {unknown}. "
                          f"Available: {', '.join(sources)}")
     all_keys = list(defaults)
     for src in sources.values():
@@ -1273,13 +1280,16 @@ def select_roaster(sources: Iterable[Source], ctx) -> Source | None:
 #   Command-line helpers
 # ----------------------------------------------------------------------
 
-def subject_labels(values, width: int = 0, prefix: str = "sub-") -> set[str]:
+def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
+                   ) -> set[str]:
     """
     Convert command-line subject values to BIDS labels.
 
     Values are numbers (formatted with `width` digits), labels (with or
-    without `sub-`), ranges
-    `start:stop[:step]` and files that list one subject per line.
+    without `sub-`), ranges `start:stop[:step]` and files that list one
+    subject per line. With `width=None`, labels are kept verbatim
+    (`0005` stays `0005`, no ranges): only `sub-` is stripped, and files
+    are still read.
     """
     if values is None:
         return set()
@@ -1293,20 +1303,27 @@ def subject_labels(values, width: int = 0, prefix: str = "sub-") -> set[str]:
             return
         if value.startswith(prefix):
             value = value[len(prefix):]
-        if value.isdigit():
+        if width is not None and value.isdigit():
             value = f"{int(value):0{width}d}"
         out.add(value)
 
     for value in values:
         value = getattr(value, "value", value)
-        if isinstance(value, str) and ":" in value:
+        if width is not None and isinstance(value, str) and ":" in value \
+                and not Path(value).is_file():     # (`C:\\subs.txt`)
             start, stop, *step = value.split(":")
-            step = int(step[0]) if step and step[0] else 1
+            try:
+                step = int(step[0]) if step and step[0] else 1
+                start = int(start or 0)
+                stop = int(stop) if stop else None
+            except ValueError:
+                raise UsageError(f"Subject range: not numbers: {value!r} "
+                                 f"(start:stop[:step])") from None
             if step < 1:
-                raise ValueError("Subject range: step must be positive")
-            if not stop:
-                raise ValueError("Subject range: stop must be provided")
-            for i in range(int(start or 0), int(stop), step):
+                raise UsageError("Subject range: step must be positive")
+            if stop is None:
+                raise UsageError("Subject range: stop must be provided")
+            for i in range(start, stop, step):
                 add(i)
         elif isinstance(value, str) and not value.isdigit() and \
                 Path(value).is_file():
@@ -1317,7 +1334,7 @@ def subject_labels(values, width: int = 0, prefix: str = "sub-") -> set[str]:
     return out
 
 
-def subject_selection(subs=(), exclude_subs=(), width: int = 0):
+def subject_selection(subs=(), exclude_subs=(), width: int | None = 0):
     """
     Build a `Selection` of subjects from command-line values.
 
@@ -1325,13 +1342,12 @@ def subject_selection(subs=(), exclude_subs=(), width: int = 0):
     ----------
     subs, exclude_subs : list
         Subjects to include and exclude (see `subject_labels`).
-    width : int
-        Number of digits of numeric labels.
+    width : int | None
+        Number of digits of numeric labels (None: labels verbatim).
 
     Returns
     -------
     Selection
     """
-    from brainspresso.bids.select import Selection
     return Selection(subs=subject_labels(subs, width),
                      exclude_subs=subject_labels(exclude_subs, width))

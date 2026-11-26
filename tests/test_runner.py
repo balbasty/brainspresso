@@ -899,3 +899,28 @@ def test_missing_resource_is_a_clear_error(layout):
     report = run(roaster, ctx_of(layout))
     assert report.errors[0][2].startswith(
         "No source to copy to dataset_description.json")
+
+
+def test_exclude_keys_alone_keeps_unmatched():
+    # `--exclude-keys` alone: files that match no key are kept
+    keys = KeyAliases({"T1w", "T2w"}, bids={
+        "T1w": {"suffixes": ["T1w"]}, "T2w": {"suffixes": ["T2w"]},
+    })
+    anat = "sub-01/anat/sub-01"
+    sel = keys.selection(exclude_keys=["T2w"])
+    assert sel.exclude_only
+    assert not sel.keeps(f"{anat}_T2w.nii.gz")
+    assert not sel.keeps(f"{anat}_T2w.json")
+    assert sel.keeps(f"{anat}_T1w.nii.gz")
+    assert sel.keeps(f"{anat}_FLAIR.nii.gz")
+    assert sel.keeps(f"{anat}_FLAIR.json")
+    assert sel.select([f"{anat}_FLAIR.nii.gz", f"{anat}_FLAIR.json",
+                       f"{anat}_T2w.nii.gz"]) == [
+        f"{anat}_FLAIR.json", f"{anat}_FLAIR.nii.gz"]
+    # files of no key may be in a claim
+    assert sel.keeps("sub-01/anat", partial=True) is not False
+    # with --keys, only what the keys describe
+    sel = keys.selection(["T1w"])
+    assert not sel.exclude_only
+    assert not sel.keeps(f"{anat}_FLAIR.nii.gz")
+    assert not sel.keeps(f"{anat}_T2w.nii.gz")

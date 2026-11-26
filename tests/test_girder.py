@@ -22,6 +22,7 @@ from brainspresso.download import DownloadManager
 from brainspresso.sources import girder as girder_mod
 from brainspresso.sources.base import mirror
 from brainspresso.sources.girder import Girder, parse_girder_url
+from cli_utils import Harvest
 
 nrrd = pytest.importorskip("nrrd")
 
@@ -294,7 +295,7 @@ def uncwisc(server, monkeypatch):
     from brainspresso.datasets.UNCWisconsin import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", server.api)
     monkeypatch.setattr(dl, "SCAN_DATA", server.root)
-    return dl
+    return Harvest("unc-wisconsin", dl)
 
 
 def test_uncwisc_harvest(uncwisc, tmp_path):
@@ -498,7 +499,7 @@ def bullitt(bullitt_server, monkeypatch):
     from brainspresso.datasets.Bullitt import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", bullitt_server.api)
     monkeypatch.setattr(dl, "ROOT", bullitt_server.root)
-    return dl
+    return Harvest("bullitt", dl)
 
 
 def test_bullitt_subject_labels():

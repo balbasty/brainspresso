@@ -1,7 +1,1 @@
-from brainspresso.utils.deps import requires
-
-from .command import oasis1 as _oasis1          # noqa: F401
-from .harvest import download as _download     # noqa: F401
-
-if requires("oasis1 roast", "openpyxl", extra="oasis1"):
-    from .roast import bidsify as _bidsify    # noqa: F401
+"""OASIS-1 (`bx oasis1`, see `dataset.py`)."""

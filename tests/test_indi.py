@@ -7,6 +7,8 @@ import asyncio
 import hashlib
 import json
 import socket
+import subprocess
+import sys
 import threading
 from collections import Counter
 from pathlib import Path
@@ -15,12 +17,18 @@ from xml.sax.saxutils import escape
 import pytest
 from aiohttp import web
 
+from brainspresso.actions.runlock import held_states
 from brainspresso.bids.layout import Layout, SitesLayout
-from brainspresso.bids.repair import repair, to_number
+from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
+from brainspresso.datasets.base import Dataset
+from brainspresso.datasets.INDI import harvest as indi
 from brainspresso.datasets.INDI.engine import (
-    Site, complete_participants, relabel, reorder_entities,
+    Site,
+    complete_participants,
+    relabel,
+    reorder_entities,
 )
 from brainspresso.sources import fcp
 from brainspresso.sources.s3 import S3Bucket
@@ -292,11 +300,19 @@ def test_fcon1000_harvest(tmp_path, layout):
     assert Layout.detect(root).original(bids / "participants.tsv").exists()
 
 
-@pytest.mark.parametrize("site_layout", ["study", "flat"])
-def test_fcon1000_layout_sites(tmp_path, site_layout):
-    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--folders", "derivatives",
-       "--site-layout", site_layout)
+@pytest.mark.parametrize("site_layout,spelling", [
+    ("study", "sites:study"), ("flat", "sites:flat"), ("flat", "alias"),
+])
+def test_fcon1000_layout_sites(tmp_path, caplog, site_layout, spelling):
+    if spelling == "alias":         # deprecated (until the end of step 5)
+        layout = ["--layout", "sites", "--site-layout", site_layout]
+        bx("fcon1000", "harvest", tmp_path, *layout,
+           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+        assert "--site-layout is deprecated: use --layout sites:flat" \
+            in caplog.text
+    else:
+        bx("fcon1000", "harvest", tmp_path, "--layout", spelling,
+           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
     root = tmp_path / "FCON1000"
     layout = Layout.detect(root)
     assert layout.to_manifest() == {
@@ -394,6 +410,41 @@ def test_fcon1000_compost(tmp_path):
     assert [r[0] for r in table(bids / "participants.tsv")[1:]] == [
         "sub-ICBM00448"
     ]
+
+
+def test_fcon1000_site_layout_alone(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--site-layout", "flat"])
+    assert "--layout sites:flat" in capsys.readouterr().err
+
+
+def test_fcon1000_zero_padded_labels(tmp_path):
+    # labels are verbatim (no width): `00448` is not `448`
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites:study",
+       "--sites", "ICBM", "--subs", "00448")
+    icbm = raw(tmp_path / "FCON1000", "ICBM")
+    assert {p.name for p in icbm.glob("sub-*")} == {"sub-00448"}
+    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
+    assert not (icbm / "sub-00448").exists()
+
+
+def test_fcon1000_compost_sites_flag(tmp_path, capsys):
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
+    # --sites only applies to a dataset with one dataset per site
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "compost", str(tmp_path), "--sites", "ICBM",
+             "--exclude-subs", "ICBM11111", "--yes"])
+    assert "--sites/--exclude-sites only apply" in capsys.readouterr().err
+
+
+def test_fcon1000_unmatched_subjects(tmp_path, capsys, caplog):
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
+       "--subs", "ICBM00448", "ICBM99999", "--dry-run")
+    assert "ICBM99999" in caplog.text
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--sites", "ICBM",
+             "--subs", "ICBM99999", "--dry-run"])
+    assert "No selected subject" in capsys.readouterr().err
 
 
 def test_fcon1000_compost_layout_sites(tmp_path):
@@ -613,7 +664,6 @@ def test_repair_json(tmp_path):
 
 
 def test_intended_for(tmp_path):
-    from brainspresso.bids.repair import fix_intended_for
     sub = tmp_path / "sub-1"
     for name in ("func/sub-1_task-rest_bold.nii.gz",
                  "dwi/sub-1_dwi.nii.gz", "dwi/sub-1_acq-TRACEW_dwi.nii.gz",
@@ -665,3 +715,90 @@ def test_repair_tsv(tmp_path):
     assert sessions.read_text() == (
         "session_id\tid\tage\nses-BAS1\tA\t59\nses-BAS2\tA\t64\n"
     )
+
+
+@pytest.mark.parametrize("option", ["--sites", "--exclude-sites"])
+def test_fcon1000_compost_some_sites(tmp_path, option):
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta")
+    root = tmp_path / "FCON1000"
+    site = "ICBM" if option == "--sites" else "Atlanta"
+    bx("fcon1000", "compost", tmp_path, option, site,
+       "--exclude-subs", "00448", "--yes")
+    # only ICBM is composted
+    assert not (raw(root, "ICBM") / "sub-00448").exists()
+    assert (raw(root, "Atlanta") / "sub-00448").is_dir()
+
+
+def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
+    # a selection that matches nothing is refused before any download
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--layout", "sites",
+             "--sites", "ICBM", "--subs", "99999"])
+    assert "No selected subject" in capsys.readouterr().err
+    root = tmp_path / "FCON1000"
+    assert files(root) == set()     # (only the state folder, if any)
+    assert not (root / "README").exists()
+
+
+def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
+    seen = []
+    original = indi.harvest
+
+    def spy(entries, layout, *args, **kwargs):
+        seen.append((Path(layout.state), list(held_states())))
+        return original(entries, layout, *args, **kwargs)
+
+    monkeypatch.setattr(indi, "harvest", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM")
+    site, held = seen[0]
+    assert site == tmp_path / "FCON1000" / "ICBM" / ".brainspresso"
+    assert str(site) in held
+    assert str(tmp_path / "FCON1000" / ".brainspresso") in held
+
+
+HOLD = """
+import sys, time
+from brainspresso.actions.runlock import run_lock
+with run_lock(sys.argv[1:], "harvest"):
+    print("ready", flush=True)
+    time.sleep(60)
+"""
+
+
+def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
+    # a harvest of the parent holds the parent and its sites (shared), so
+    # a compost of one site (`--out <DS>/<site>`) fails
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM")
+    root = tmp_path / "FCON1000"
+    parents, targets = Dataset.lock_states(Layout.detect(root))
+    proc = subprocess.Popen(
+        [sys.executable, "-c", HOLD, *map(str, parents + targets)],
+        stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
+    try:
+        assert proc.stdout.readline().strip() == "ready"
+        with pytest.raises(SystemExit):
+            app(["fcon1000", "compost", "--out", str(root / "ICBM"),
+                 "--exclude-subs", "11111", "--yes"])
+        assert "harvest running" in capsys.readouterr().err
+    finally:
+        proc.kill()
+        proc.wait()
+    assert (raw(root, "ICBM") / "sub-11111").is_dir()
+
+
+def test_fcon1000_site_lock_waits(tmp_path, monkeypatch):
+    # the run lock of a new site takes the `--wait` of the command
+    waits = []
+    original = indi.run_lock
+
+    def spy(states, command, **kwargs):
+        waits.append(kwargs.get("wait"))
+        return original(states, command, **kwargs)
+
+    monkeypatch.setattr(indi, "run_lock", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "--wait", 3)
+    assert waits == [3]

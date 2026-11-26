@@ -2,7 +2,7 @@
 """
 Migrate datasets roasted with the old `rawdata/` layout to `study`/`flat`.
 
-Old layout (written by every bidsifier before the layout refactor)::
+Old layout (written by every legacy roaster before the layout refactor)::
 
     <DS>/
       dataset_description.json  README  participants.{tsv,json}
@@ -42,7 +42,7 @@ are logged to `<DS>/.brainspresso/migrate.log`.
 
 Duplicate `dataset_description.json` (in `rawdata/` and at the root):
 if byte-identical, the `rawdata/` copy is deleted; otherwise the root
-one is kept (it is the one that old bidsifiers wrote from the template
+one is kept (it is the one that the legacy roasters wrote from the template
 for the whole dataset) and the `rawdata/` copy is saved as
 `.brainspresso/orig/rawdata_dataset_description.json`, with a warning.
 

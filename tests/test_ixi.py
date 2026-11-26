@@ -21,6 +21,7 @@ from brainspresso.bids.layout import Layout
 from brainspresso.download import DownloadManager
 from brainspresso.datasets.IXI import roaster
 from roast_utils import LAYOUTS
+from cli_utils import bx
 
 # Templates of the installed package (CI tests the installed package)
 TEMPLATES = roaster.TEMPLATES
@@ -197,7 +198,7 @@ def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
     server, _ = xnat
     monkeypatch.setattr(dl.NitrcIR, "server", server)
     monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})
-    dl.download(tmp_path, keys=["T2w", "meta"], subs=[12])
+    bx("ixi", "harvest", tmp_path, "--keys", "T2w", "meta", "--subs", 12)
     assert files(tmp_path / "IXI" / "sourcedata") == {
         "nitrc_experiments.json", "IXI-T2/IXI012-HH-1211-T2.nii.gz",
     }

@@ -25,7 +25,13 @@ jobs:
       matrix:
         # Oldest supported (python_requires) and newest released Python
         python-version: ["3.10", "3.14"]
+        cyclopts-version: [""]
+        include:
+          # The floor of setup.cfg (`cyclopts >= 3.17`)
+          - python-version: "3.10"
+            cyclopts-version: "3.17.0"
     uses: ./.github/workflows/test.yaml
     with:
       tag: ${{ inputs.tag }}
       python-version: ${{ matrix.python-version }}
+      cyclopts-version: ${{ matrix.cyclopts-version }}

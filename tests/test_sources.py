@@ -29,6 +29,7 @@ from brainspresso.sources.base import (
 from brainspresso.sources.credentials import (
     CredentialsError, NitrcAuth, get_credentials, get_secret,
 )
+from cli_utils import bx
 
 
 def serve(app, ssl_context=None):
@@ -459,7 +460,7 @@ def test_abide2_harvest_nitrc_login(host, nitrc_env, tmp_path, monkeypatch):
                                    site="BNI")],
     })
     before = len(host["logins"])
-    abide2.download(tmp_path, keys=["meta"], sites=["BNI"])
+    bx("abide2", "harvest", tmp_path, "--keys", "meta", "--sites", "BNI")
     src = tmp_path / "ABIDE-2" / "sourcedata"
     assert files(src) == {"ABIDEII-BNI_1.csv"}
     assert (src / "ABIDEII-BNI_1.csv").read_bytes() == \
@@ -468,7 +469,6 @@ def test_abide2_harvest_nitrc_login(host, nitrc_env, tmp_path, monkeypatch):
 
 
 def test_abide1_harvest_xnat(host, nitrc_env, tmp_path, monkeypatch):
-    from brainspresso.datasets.ABIDE.I import harvest as abide1
     from brainspresso.datasets.ABIDE.I import sources as abide1_sources
     url = host["url"]
     monkeypatch.setattr(abide1_sources.XNATImages, "server", f"{url}/ir")
@@ -478,8 +478,8 @@ def test_abide1_harvest_xnat(host, nitrc_env, tmp_path, monkeypatch):
         abide1_sources.NITRC.entry(f"{url}/downloads/Phenotypic_V1_0b.csv"),
         abide1_sources.NITRC.entry(f"{url}/data/a.txt", "Caltech/anat.pdf"),
     ]})
-    abide1.download_xnat(tmp_path, keys=["meta", "anat", "qa-man"],
-                         subs=["51456"])
+    bx("abide1", "harvest", tmp_path, "--source", "xnat", "--keys", "meta",
+       "anat", "qa-man", "--subs", "51456")
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "Phenotypic_V1_0b.csv", "Caltech/anat.pdf",

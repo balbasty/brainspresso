@@ -15,25 +15,12 @@ Sources:
   yet. Sites that the bucket lacks (SU, U_MIA) come from NITRC.
 """
 import re
-from enum import Enum
-from humanize import naturalsize
-from pathlib import Path
-from typing import Iterable
 
-from brainspresso.bids.harvest import record_run
-from brainspresso.bids.layout import LayoutChoice, resolve_layout
-from brainspresso.utils.ui import human2bytes
-from brainspresso.utils.path import get_tree_path
-from brainspresso.utils.log import setup_filelog
-from brainspresso.download import IfExists
-from brainspresso.download import CHUNK_SIZE
 from brainspresso.sources.base import (
-    CompositeSource, DownloadOptions, Wants, configure_sources,
-    harvest_sources, numeric_labels,
+    CompositeSource, numeric_labels,
 )
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC
-from brainspresso.datasets.ABIDE.II.command import abide2
 
 SITES = (
     'BNI', 'EMC', 'ETH', 'GU', 'IU', 'IP', 'KUL', 'KKI', 'NYU', 'ONRC',
@@ -41,10 +28,6 @@ SITES = (
 )
 KEYS = ("raw", "meta")
 
-SiteChoice = Enum("SiteChoice", [(site, site) for site in SITES], type=str)
-KeyChoice = Enum("KeyChoice", [("raw", "raw"), ("meta", "meta")], type=str)
-SourceChoice = Enum("SourceChoice", [("nitrc", "nitrc"), ("s3", "s3")],
-                    type=str)
 
 URLBASE = 'https://fcon_1000.projects.nitrc.org/indi/abide2/release'
 IMGBASE = f'{URLBASE}/imaging_data'
@@ -163,76 +146,3 @@ def sources() -> dict:
 DEFAULTS = {"raw": ["nitrc"], "meta": ["nitrc"]}
 
 
-@abide2.command(name="harvest")
-def download(
-    path: str | None = None,
-    *,
-    keys: Iterable[KeyChoice] = KEYS,
-    sites: Iterable[SiteChoice] = SITES,
-    if_exists: IfExists.Choice = "skip",
-    source: SourceChoice | None = None,
-    user: str | None = None,
-    password: str | None = None,
-    packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = 1,
-    layout: LayoutChoice | None = None,
-    log: str | None = None,
-):
-    """
-    Download source data for the ABIDE-II dataset.
-
-    **Possible keys:**
-    * **raw**          All the raw imaging data
-    * **meta**         Metadata
-
-    Parameters
-    ----------
-    path
-        Path to root of all datasets. An `ABIDE-2` folder will be created.
-    keys
-        Data categories to download
-    sites
-        Sites to download
-    if_exists
-        Behaviour if a file already exists
-    source
-        * nitrc (default): NITRC tarballs and phenotypes (login
-          required), read by `roast`.
-        * s3: raw images from the public INDI bucket (a BIDS-like copy,
-          not read by `roast` yet), and NITRC tarballs for the sites
-          that the bucket lacks.
-    user
-        NITRC username
-    password
-        NITRC password
-    packet
-        Packet size to download, in bytes
-    jobs
-        Number of parallel downloaders
-    layout
-        Layout of the dataset (where source data does not move, but
-        later commands reuse it): "study" (raw dataset in
-        `rawbids/`) or "flat" (raw dataset at the root). Default:
-        the layout of an existing dataset, else "study".
-    log
-        Path to log file
-
-    """
-    setup_filelog(log)
-    path = Path(get_tree_path(path))
-    if isinstance(keys, str):
-        keys = [keys]
-    if isinstance(sites, str):
-        sites = [sites]
-    keys = {str(getattr(k, "value", k)) for k in keys or KEYS}
-    sites = {str(getattr(s, "value", s)) for s in sites or SITES}
-    dataset = resolve_layout(path / 'ABIDE-2', layout)
-    record_run(dataset, "harvest", {"dataset": "ABIDE-2"})
-    harvest_sources(
-        configure_sources(sources(), sites=frozenset(sites), user=user,
-                          password=password),
-        DEFAULTS, dataset, keys=Wants(keys),
-        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
-                                chunk_size=human2bytes(packet)),
-        override=str(getattr(source, "value", source)) if source else None,
-    )

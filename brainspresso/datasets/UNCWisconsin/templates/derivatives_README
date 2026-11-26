@@ -1,0 +1,40 @@
+# UNC-Wisconsin Rhesus Macaque Neurodevelopment Database - processed data
+
+Processed data distributed with the UNC-Wisconsin database (see the
+README of the raw dataset), converted from NRRD to NIfTI by brainspresso.
+
+## Structural (`anat/`), from `sMRI/Reg2Atlas`
+
+Images rigidly registered to the UNC-Emory-Wisconsin 12 month atlas
+(https://www.nitrc.org/projects/primate_atlas/), resampled to 0.273mm
+isotropic: `space-UNCEmoryWisconsin12mo`.
+
+* `*_space-UNCEmoryWisconsin12mo_{T1w,T2w}.nii.gz`: registered images
+* `*_desc-auto_mask`: automatic brain mask (`AUTO_MASK`)
+* `*_desc-brain_mask`: manually corrected brain mask (`Manual_Brain_Mask`)
+* `*_desc-brain_{T1w,T2w}`: skull-stripped images (`Manual_Stripped`)
+
+## Diffusion (`dwi/`), native diffusion space
+
+Map names follow the BIDS diffusion derivatives proposal (BEP016):
+`param-<parameter>`, `model-tensor` for tensor-derived maps.
+
+* `desc-autoqc` (`DTI/AUTOQC`): after DTIPrep quality control
+  * `*_desc-autoqc_dwi.{nii.gz,bval,bvec}`: QC'd diffusion-weighted images
+    (volumes rejected by QC are removed)
+  * `*_param-b0_desc-autoqc_dwimap`: baseline (b0) image
+  * `*_param-idwi_desc-autoqc_dwimap`: isotropic (mean) DWI
+  * `*_model-tensor_param-{fa,md}_desc-autoqc_dwimap`: FA, MD
+* `desc-brain` (`DTI/PROCESSED`, `DTI/MASKMANUAL`): skull-stripped with the
+  manually edited structural brain mask, propagated to DWI space
+  * `*_param-{b0,idwi}_desc-brain_dwimap`, `*_model-tensor_param-{fa,md}_desc-brain_dwimap`
+  * `*_desc-brain_mask`: brain mask in DWI space
+
+Values are stored as distributed by the source pipeline (e.g. FA and MD
+may be stored as scaled integers).
+
+## Not converted
+
+The diffusion tensor images (`*_AutoQCed_DTI.nrrd`, `*_DTI_antsManualBM.nrrd`)
+are not converted: harvest them with `--keys dti-qc dti-proc` to get the
+original NRRD files in `sourcedata/`.

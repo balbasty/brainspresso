@@ -1,0 +1,17 @@
+{
+  "SoftwareVersions": "syngo MR 2002B 4VA21A",
+  "SequenceName": "*fl3d1r",
+  "ScanningSequence": "GR",
+  "SequenceVariant": "SP",
+  "MRAcquisitionType": "3D",
+  "ProtocolName": "Ax_FLASH_3D_FC",
+  "MagneticFieldStrength": 3,
+  "RepetitionTime": 0.014,
+  "EchoTime": 0.0077,
+  "FlipAngle": 25,
+  "PixelBandwidth": 125,
+  "EchoTrainLength": 1,
+  "ImagingFrequency": 123.30026,
+  "SliceThickness": 1,
+  "SidecarSource": "Sample DICOM header (dicom_header_T1_flash.txt) distributed with the dataset; may differ for individual subjects."
+}

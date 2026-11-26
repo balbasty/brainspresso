@@ -1,0 +1,13 @@
+{
+  "acq_time": {
+    "Description": "Date of the scan session (YYYY-MM-DD)"
+  },
+  "age": {
+    "Description": "Age of the animal at the scan session, as labelled in the source database",
+    "Units": "months"
+  },
+  "weight": {
+    "Description": "Weight of the animal at the scan session",
+    "Units": "kg"
+  }
+}

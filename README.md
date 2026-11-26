@@ -145,6 +145,49 @@ reached, the listing falls back to the public `s3://openneuro.org` bucket,
 which only holds the latest snapshot (checksums: MD5 from S3 ETags).
 Use `--source graphql|s3` to choose explicitly.
 
+## UNC-Wisconsin Rhesus Macaque Neurodevelopment Database
+
+Longitudinal T1w, T2w and diffusion MRI of rhesus macaques (a few weeks
+to 3 years old), hosted on https://data.kitware.com (Girder; no login).
+The source files are NRRD: `roast` converts them to NIfTI (with
+`bval`/`bvec` for DWI), and writes `participants.tsv` (species, sex, date
+of birth) and per-subject `sessions.tsv` (scan date, age, weight).
+
+```shell
+pip install "brainspresso[unc-wisconsin] @ git+https://github.com/balbasty/brainspresso"
+bx unc-wisconsin harvest /data --subs 001 002 --sessions 12months
+bx unc-wisconsin roast /data
+```
+
+The full database is ~260 GB; `--keys` selects `raw` (`anat`, `dwi`),
+`meta`, or `derivatives` (`reg`, `dti-qc`, `dti-proc`). Derivatives are
+written to `derivatives/unc-wisconsin`: atlas-registered T1w/T2w
+(`space-UNCEmoryWisconsin12mo`), brain masks, skull-stripped images,
+the QC'd DWI series and its DTI maps (FA, MD, b0, iDWI; BEP016
+`*_dwimap` names, listed in `.bidsignore`).
+Please cite https://doi.org/10.3389/fnins.2017.00029.
+
+## Bullitt: MR brain images of healthy volunteers (CASILab, UNC)
+
+T1w (FLASH and MPRAGE), T2w and MR angiography of 109 healthy adults
+(18 to 72 years), hosted on https://data.kitware.com (Girder; no login).
+The source files are MetaImage (`.mha`): `roast` converts them to NIfTI,
+with sidecars built from the sample DICOM headers distributed with the
+data, and writes `participants.tsv` (age, sex, race, handedness, notes)
+transcribed from the dataset's demographics PDF.
+
+```shell
+bx bullitt harvest /data --subs 1 2 3
+bx bullitt roast /data
+```
+
+`--keys` selects `raw` (`flash`, `mprage`, `T2w`, `angio`, `dwi`),
+`meta`, `derivatives` (`skullstripped`, `vessels`) or `phantoms`.
+Derivatives go to `derivatives/bullitt`: skull-stripped FLASH T1w and
+the segmented vascular networks (TubeTK `.tre`, listed in
+`.bidsignore`). The DTI series are downloaded but not converted: they
+have no gradient table, and their volumes are stacked along z.
+
 ## Compost: clean up a local dataset
 
 Every dataset has a `compost` command. By default, it deletes the source

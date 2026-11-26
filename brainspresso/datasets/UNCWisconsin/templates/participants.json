@@ -1,0 +1,12 @@
+{
+  "species": {
+    "Description": "Binomial species name"
+  },
+  "sex": {
+    "Description": "Sex of the animal",
+    "Levels": {"F": "female", "M": "male"}
+  },
+  "birth_date": {
+    "Description": "Date of birth (YYYY-MM-DD)"
+  }
+}

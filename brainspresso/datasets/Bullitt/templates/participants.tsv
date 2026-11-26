@@ -1,0 +1,110 @@
+participant_id	age	sex	race	handedness	vessels_quality	exclude_suggested	notes
+sub-001	54	F	W	R	+++	no	No rage; no; poor
+sub-002	25	M	W	R	+++	no	No rage
+sub-003	20	F	W	R	+++	no	No rage
+sub-004	27	F	W	R	+++	no	No rage; suture assym; child of sub-024 (mother)
+sub-005	24	F	A	R	++++	no	No rage
+sub-006	22	M	W	R	+++	no	No rage
+sub-007	36	M	W	R	+++	no	No rage
+sub-008	33	F	W	R	+++	no	No rage; moved
+sub-009	23	F	W	R	+++	no	No rage; cut
+sub-010	41	M	W	R	+++	no	No rage; moved
+sub-011	27	F	W	R	+++	no	No rage
+sub-012	28	M	W	R	+++	no	No rage; cut
+sub-013	26	M	A	L	+++	no	No rage; moved; split circ
+sub-014	19	M	W	L	++	no	No rage
+sub-015	29	M	W	L	+++	no	No rage
+sub-016	55	M	W	R	++++	no	No rage; no; no
+sub-017	40	F	W	R	+++	no	No rage; cut; split circ
+sub-018	43	F	W	R	+++	no	No rage
+sub-019	28	M	A	R	+++	no	No rage; cut
+sub-020	26	F	A	R	++++	no	No rage; cut; split circ
+sub-021	26	M	W	R	+++	no	No rage; cut
+sub-022	39	F	W	R	+++	no	No rage; cut
+sub-023	40	F	W	R	+++	no	No rage
+sub-024	57	F	W	R	++	no	No rage; split circ; mother of sub-004; sister of Tumor069 (not in this database)
+sub-025	49	M	W	R	+++	no	No rage; cut; split circ
+sub-026	26	M	W	R	+++	no	No rage; cut
+sub-027	48	F	W	R	++++	no	No rage; moved
+sub-028	66	F	W	R	+++	no	moved
+sub-029	72	M	W	L	++	no	ambidextrous; No rage; moved
+sub-030	57	M	W	R	+++	no	split circ
+sub-031	50	F	W	R	+++	no	cut
+sub-032	66	F	W	R	++	no	No rage; moved
+sub-033	23	F	W	R	+++	no	cut; split circ
+sub-034	23	M	W	R	+++	no	moved
+sub-035	25	M	W	L	+++	no	ambidextrous; (cut)
+sub-036	65	F	W	R	++	no	n/a
+sub-037	31	M	W	R	+++	no	(moved)(cut)
+sub-038	32	F	B	R	+++	no	(cut)
+sub-039	41	M	W	L	++	no	(moved)
+sub-040	25	F	W	R	+++	no	n/a
+sub-041	64	M->F	A	R	++	no	moved; sister of sub-066
+sub-042	37	F	W	R	++++	no	child of sub-073 (mother)
+sub-043	24	F	W	R	++++	no	n/a
+sub-044	48	M	W	R	++	no	moved
+sub-045	35	M	W	R	+++	no	(moved)
+sub-046	61	M->F	W	R	+++	no	n/a
+sub-047	31	F	W	R	+++	no	(cut); child of sub-067 (mother); child of sub-068 (father)
+sub-048	47	F	B	R	++	yes	(moved); suture asymm; don’t use; asymmetrical head from suture closure, large ventricles, intermittent headaches; retained as normal
+sub-049	65	F	A	R	++++	no	moved (cut); split circ; mother of sub-059
+sub-050	28	F	A	R	++++	no	n/a
+sub-051	55	F	W	R	++++	no	n/a
+sub-052	44	F	A	R	+++	no	ethmoid polyp; ethmoid polyp; retained as normal
+sub-053	37	M	W	R	+++	no	moved cut
+sub-054	34	F	W	R	+++	no	moved cut
+sub-055	30	M	B	R	+++	no	n/a
+sub-056	44	M	W	R	++	no	cut
+sub-057	33	M	W	R	++++	no	split circ
+sub-058	47	M	W	R	+++	no	split circ
+sub-059	33	M	A	R	+++	no	child of sub-049 (mother)
+sub-060	48	F	W	R	++	no	n/a
+sub-061	57	F	W	R	+++	no	n/a
+sub-062	33	F	B	R	+++	no	n/a
+sub-063	43	M	W	R	+++	no	acoustic, split circ; tiny intracanalicular acoustic tumor; retained as normal (brain not affected)
+sub-064	35	F	W	R	++	no	moved
+sub-065	43	F	W	L	+++	no	n/a
+sub-066	66	F	W	R	+++	no	child of sub-041 (sister)
+sub-067	57	F	W	R	+++	no	split circ; mother of sub-047
+sub-068	56	M	W	R	+++	no	(moved); father of sub-047
+sub-069	65	F	W	R	+++	no	moved    no; mother of sub-074
+sub-070	48	F	W	R	+++	no	No rage; (moved); scalp cyst; epidermoid cyst (scalp)
+sub-071	32	F	W	R	+++	no	n/a
+sub-072	52	F	W	R	+++	no	No rage; (moved)
+sub-073	64	F	W	R	++	no	No rage; mother of sub-042
+sub-074	41	F	W	R	++++	no	(moved); assym sag sinus; child of sub-069 (mother)
+sub-075	61	F	W	R	+++	no	No flash
+sub-076	58	M	W	R	++	no	No flash; (moved)
+sub-077	35	F	W	R	++++	no	n/a
+sub-078	49	F	W	L	++	no	No flash; no
+sub-079	31	M	W	R	+++	no	n/a
+sub-080	34	M	W	R	+++	no	n/a
+sub-081	51	M	W	R	+++++	no	(no artifacts!!)
+sub-082	22	F	W	R	+++++	no	(no artifacts!)
+sub-083	51	F	W	R	+++	no	artifact flash
+sub-084	67	M	W	A	++	yes	no flash; Waldenstrom's macroglobulinemia; probably should not use
+sub-085	52	F	W	R	++	no	split circ
+sub-086	46	M	W	R	++	no	n/a
+sub-087	57	F	W	R	++++	no	noDTI
+sub-088	34	M	W	R	+++++	no	suture assym
+sub-089	44	M	W	R	n/a	no	+ (clipped)
+sub-090	57	F	W	R	++++	no	n/a
+sub-091	56	M	B	R	++	no	no rage; no DTI (clip, move); split circ
+sub-092	60	M	W	R	++	no	no rage; (clip); split circ
+sub-093	43	M	W	R	+++	no	no rage; (clip)
+sub-094	50	M	W	R	+++	no	(clip)
+sub-095	59	M	W	L	+++	no	tiny cyst; NEW MRA SEQUENCE BEGINS HERE
+sub-096	68	F	W	R	+++	no	no flash
+sub-097	68	M	W	R	+++	no	no flash
+sub-098	64	F	W	R	++	yes	no flash; unexpected minor stroke (asymptomatic, tiny); probably should not use
+sub-099	63	M	W	A	++	no	no flash
+sub-100	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-101	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-102	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-103	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-104	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-105	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-106	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-107	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-108	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-109	n/a	n/a	n/a	n/a	n/a	n/a	n/a

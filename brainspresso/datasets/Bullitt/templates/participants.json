@@ -1,0 +1,22 @@
+{
+  "age": {"Description": "Age at scan", "Units": "years"},
+  "sex": {
+    "Description": "Sex, as recorded in the source",
+    "Levels": {"M": "male", "F": "female", "M->F": "male to female, as recorded in the source"}
+  },
+  "race": {"Description": "Race, as coded in the source (W, A, B)"},
+  "handedness": {
+    "Description": "Handedness",
+    "Levels": {"R": "right", "L": "left", "A": "ambidextrous"}
+  },
+  "vessels_quality": {
+    "Description": "Quality rating of the vessel trees (+ signs), as given in the source"
+  },
+  "exclude_suggested": {
+    "Description": "Whether the source suggests not using this subject (incidental findings: 'probably should not use' or 'don't use')",
+    "Levels": {"yes": "suggested exclusion", "no": "no suggestion"}
+  },
+  "notes": {
+    "Description": "Remarks from the source (NormalDatabase2.pdf): image availability and quality (e.g. 'No rage': no MPRAGE, 'no flash': no FLASH T1, 'moved', 'cut'), incidental findings and family relationships between subjects"
+  }
+}

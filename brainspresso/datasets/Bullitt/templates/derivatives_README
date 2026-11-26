@@ -1,0 +1,9 @@
+# Designed Database of MR Brain Images of Healthy Volunteers - auxiliary data
+
+Auxiliary data distributed with the database ("AuxillaryData" folders):
+
+* `sub-<id>/anat/sub-<id>_acq-flash_desc-brain_T1w.nii.gz`: skull-stripped
+  T1 (FLASH) image.
+* `sub-<id>/anat/sub-<id>_desc-vessels_tubes.tre`: vascular network
+  extracted from the MRA, in TubeTK's `.tre` (SpatialObject) format,
+  copied as is.

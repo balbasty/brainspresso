@@ -8,7 +8,6 @@ from brainspresso.utils.keys import lower_keys
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.actions import Action
 from brainspresso.actions import WriteBytes
-from brainspresso.actions import CopyJSON
 from brainspresso.actions import Fail
 from brainspresso.datasets.ABIDE.I.keys import allleaves, allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
@@ -124,7 +123,9 @@ class Bidsifier(BidsifierBase):
                 yield Fail(f"{tar.name}: {e}",
                            name=f'sub-{id:05d}_{mod}.json')
                 return
-            yield CopyJSON(json, dst / f'sub-{id:05d}_{mod}.json')
+            yield self.sidecar(json, dst / f'sub-{id:05d}_{mod}.json', mod,
+                               lambda: tar.extractfile(member),
+                               member.name)
 
     # ------------------------------------------------------------------
     #   Write freesurfer

@@ -1,7 +1,11 @@
 import csv
+import gzip
+import json as jsonlib
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable, Iterator, Literal
+from typing import IO, Callable, Iterable, Iterator, Literal
+
+import nibabel as nib
 
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
@@ -15,6 +19,8 @@ from brainspresso.actions import IfExists
 from brainspresso.actions import Action
 from brainspresso.actions import CopyJSON
 from brainspresso.actions import CopyBytes
+from brainspresso.actions import Fail
+from brainspresso.actions import WriteJSON
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 
 lg = getLogger(__name__)
@@ -127,11 +133,63 @@ class BidsifierBase:
                     lg.warning(
                         f'ABIDE-I: site {site!r} names no sample of '
                         f'{site_name}: using the site template '
-                        f'{candidate} (only what the samples share)')
+                        f'{candidate}')
                 return path
         raise TemplateError(
             f'ABIDE-I: no template {name!r} for site {site!r} '
             f'(tried {", ".join(candidates)})')
+
+    # plausible RepetitionTime (s) read from a NIfTI header
+    TR_RANGE: tuple[float, float] = (0.1, 30.)
+
+    @classmethod
+    def header_tr(cls, fileobj: IO[bytes], name: str = '') -> float | None:
+        """RepetitionTime (s) from a NIfTI-1 header (`pixdim[4]`, time
+        unit of `xyzt_units`), or None if unset, of unknown unit or not
+        plausible (`TR_RANGE`)."""
+        if name.endswith('.gz'):
+            fileobj = gzip.GzipFile(fileobj=fileobj)
+        hdr = nib.Nifti1Header.from_fileobj(fileobj)
+        if hdr['dim'][0] < 4:
+            return None
+        scale = {'sec': 1., 'msec': 1e-3, 'usec': 1e-6}.get(
+            hdr.get_xyzt_units()[1])
+        if scale is None:
+            return None
+        tr = float(hdr['pixdim'][4]) * scale
+        lo, hi = cls.TR_RANGE
+        return round(tr, 6) if lo <= tr <= hi else None
+
+    @classmethod
+    def sidecar(
+        cls, tpl: Path, dst: Path, mod: str,
+        open_image: Callable[[], IO[bytes]], image_name: str,
+    ) -> Action:
+        """Action writing the sidecar `dst` of a scan from template `tpl`.
+
+        A bold template without `RepetitionTime` (REQUIRED by BIDS; e.g.
+        the common `CMU/bold.json`, whose samples differ in TR) gets it
+        from the NIfTI header (`open_image()`); if the header gives none,
+        a `Fail` naming the missing key. (`SliceTiming`, RECOMMENDED,
+        may be absent.)
+        """
+        if not mod.endswith('bold'):
+            return CopyJSON(tpl, dst)
+        meta = jsonlib.loads(tpl.read_text())
+        if 'RepetitionTime' in meta:
+            return CopyJSON(tpl, dst)
+        try:
+            with open_image() as f:
+                tr = cls.header_tr(f, image_name)
+        except Exception as e:
+            lg.debug(f'{image_name}: {e}')
+            tr = None
+        if tr is None:
+            return Fail(
+                f'{dst.name}: template {tpl.relative_to(cls.TPLDIR)} has no '
+                f'RepetitionTime (REQUIRED) and the NIfTI header of '
+                f'{image_name} gives none', name=dst.name)
+        return WriteJSON({**meta, 'RepetitionTime': tr}, dst, src=tpl)
 
     # ------------------------------------------------------------------
     #   Initialise

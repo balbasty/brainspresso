@@ -1,8 +1,12 @@
 """ABIDE-I: every site spelling of every source resolves to a template."""
+import gzip
+import io
 import json
 import logging
 from pathlib import PurePosixPath
 
+import nibabel as nib
+import numpy as np
 import pytest
 
 from brainspresso.datasets.ABIDE.I import sources
@@ -157,6 +161,29 @@ def test_samples_match_templates():
             assert BidsifierBase.template(site, name).is_file()
 
 
+def bold_bytes(tr=None, unit="sec"):
+    """Gzipped 4D NIfTI-1 with TR `tr` (pixdim[4]) in `unit`."""
+    img = nib.Nifti1Image(np.zeros((2, 2, 2, 3), dtype=np.int16), np.eye(4))
+    if tr is not None:
+        img.header.set_zooms((1., 1., 1., tr))
+        img.header.set_xyzt_units("mm", unit)
+    return gzip.compress(img.to_bytes())
+
+
+@pytest.mark.parametrize("tr, unit, expected", [
+    (1.5, "sec", 1.5), (2000., "msec", 2.0), (None, "sec", None),
+    (1.5, "unknown", None), (0., "sec", None), (300., "sec", None),
+])
+def test_header_tr(tr, unit, expected):
+    f = io.BytesIO(bold_bytes(tr, unit))
+    assert BidsifierBase.header_tr(f, "rest.nii.gz") == expected
+
+
+def test_header_tr_3d():
+    f = io.BytesIO(nii_bytes())
+    assert BidsifierBase.header_tr(f, "mprage.nii.gz") is None
+
+
 def test_roast_unsampled_sites(tmp_path, caplog):
     """Bare `CMU` bold and `MaxMun` without sample; unknown site logged."""
     root = tmp_path / "ABIDE-1"
@@ -164,7 +191,10 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     src = root / "sourcedata"
     src.mkdir(parents=True)
     make_tar(src / "CMU.tgz", {
-        "CMU/0050642/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        # TR from the header (not in the common CMU/bold.json)
+        "CMU/0050642/session_1/rest_1/rest.nii.gz": bold_bytes(1.5),
+        # no TR in the header: sidecar error
+        "CMU/0050643/session_1/rest_1/rest.nii.gz": bold_bytes(),
     })
     make_tar(src / "MaxMun.tgz", {
         "MaxMun/0051330/session_1/anat_1/mprage.nii.gz": nii_bytes(),
@@ -182,13 +212,18 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     def tpl(path):
         return json.loads((TPL / path).read_text())
 
+    assert "RepetitionTime" not in tpl("CMU/bold.json")    # 2 s / 1.5 s
     bold = sidecar("sub-50642/func/sub-50642_task-rest_bold.json")
-    assert bold == tpl("CMU/bold.json")
-    assert "RepetitionTime" not in bold     # CMU_a: 2 s, CMU_b: 1.5 s
+    assert bold == {**tpl("CMU/bold.json"), "RepetitionTime": 1.5}
+    assert raw_file(root, "sub-50643/func/sub-50643_task-rest_bold.nii.gz"
+                    ).exists()
+    assert not raw_file(root, "sub-50643/func/sub-50643_task-rest_bold.json"
+                        ).exists()
+    assert "has no RepetitionTime (REQUIRED)" in caplog.text
     assert sidecar("sub-51330/anat/sub-51330_T1w.json") \
         == tpl("MaxMun_a/T1w.json")
     # unknown site: image converted, sidecar error logged and counted
     assert raw_file(root, "sub-99999/anat/sub-99999_T1w.nii.gz").exists()
     assert not raw_file(root, "sub-99999/anat/sub-99999_T1w.json").exists()
     assert "unknown site 'Nowhere'" in caplog.text
-    assert roast.nb_errors == {"T1w": 1}
+    assert roast.nb_errors == {"T1w": 1, "task-rest_bold": 1}

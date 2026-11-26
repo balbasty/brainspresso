@@ -27,21 +27,26 @@ Kind = Literal['data', 'sidecar', 'table']
 # files (kind "table", so that `--json no` does not drop them)
 _TABLE_JSON_SUFFIXES = ('participants', 'sessions', 'scans', 'samples')
 _DATASET_JSON = ('dataset_description.json', 'genetic_info.json')
+_DATASET_FILES = (
+    'README', 'README.md', 'README.txt', 'README.rst', 'CHANGES',
+    'LICENSE', 'LICENSE.md', 'LICENSE.txt', 'CITATION.cff', '.bidsignore',
+)
 
 
 def default_kind(path: FilenameLike) -> Kind:
     """
     Kind of an output, from its name:
 
-    * `*.tsv` (and the JSON files that describe tables or the dataset:
-      `participants.json`, `sub-*_sessions.json`, `phenotype/*.json`,
+    * `*.tsv`, dataset files (`README`, `.bidsignore`...) and the JSON
+      files that describe tables or the dataset (`participants.json`,
+      `sub-*_sessions.json`, `phenotype/*.json`,
       `dataset_description.json`): "table";
     * other `*.json`: "sidecar";
     * anything else (images, `bval`/`bvec`, surfaces...): "data".
     """
     path = Path(path)
     name = path.name
-    if name.endswith('.tsv'):
+    if name.endswith('.tsv') or name in _DATASET_FILES:
         return 'table'
     if name.endswith('.json'):
         stem = name[:-len('.json')]
@@ -554,6 +559,23 @@ class Action:
 
 def _keep_all(path) -> bool:
     return True
+
+
+class Fail(Action):
+    """
+    An action that only reports an error (e.g. a missing input), so that
+    the roast runner counts and displays it.
+    """
+
+    def __init__(self, message: str, *, name: str = '', tag: str = None):
+        super().__init__([], [], _keep_all, tag=tag)
+        self.message = message
+        self.name = name
+
+    def __iter__(self) -> Iterator[dict]:
+        lg.error(self.message)
+        self.outputs = []
+        yield {'status': 'error', 'message': self.message}
 
 
 class WrapAction(Action):

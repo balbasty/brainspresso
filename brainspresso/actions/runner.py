@@ -518,7 +518,8 @@ def _run_action(action: Action, ctx, reporter, tag) -> list[Path]:
             return []
         if outputs and all(ctx.keeps(o) is False for o in outputs):
             return []
-        name = outputs[0].name if outputs else _name(action)
+        name = getattr(action, "name", "") or (
+            outputs[0].name if outputs else _name(action))
     if not action.ifexists_given:
         action.ifexists = IfExists.from_any(ctx.ifexists)
     action.keeps = lambda path: (

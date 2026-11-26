@@ -322,10 +322,10 @@ def test_uncwisc_harvest_keys(uncwisc, tmp_path):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_uncwisc_roast(uncwisc, tmp_path, layout):
     import nibabel as nib
-    from brainspresso.datasets.UNCWisconsin.bidsifier import Bidsifier
+    from brainspresso.datasets.UNCWisconsin.roaster import roast
     uncwisc.download(tmp_path, layout=layout)   # raw + meta, all subjects
     root = tmp_path / "UNC-Wisconsin"
-    Bidsifier(root).run()                       # layout from the manifest
+    roast(root)                                 # layout from the manifest
     found = Layout.detect(root)
     assert found.kind == layout
     raw = found.raw
@@ -397,13 +397,13 @@ def _folder_path(server, fid):
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_uncwisc_roast_derivatives(uncwisc, tmp_path, layout):
-    from brainspresso.datasets.UNCWisconsin.bidsifier import (
-        Bidsifier, SPACE, _age_months,
+    from brainspresso.datasets.UNCWisconsin.roaster import (
+        roast, SPACE, _age_months,
     )
     uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"],
                      layout=layout)
     root = tmp_path / "UNC-Wisconsin"
-    Bidsifier(root).run()
+    roast(root)
     found = Layout.detect(root)
     drv = found.derivative("unc-wisconsin").root
     out = files(drv)

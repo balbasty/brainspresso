@@ -7,6 +7,7 @@ It is never needed at runtime.
 Usage
 -----
     python scripts/make_sidecars.py DATASET [--check] [--only PATTERN]
+                                    [--baseline REF]
 
 DATASET is one of ABIDE1, ABIDE2, CoRR
 (see `printouts/<DATASET>/sidecars.toml`).
@@ -184,13 +185,13 @@ def diff(old, new):
     return added, removed, changed
 
 
-def committed_text(path, root=ROOT):
-    """Content of `path` at git HEAD (None if unavailable)."""
+def committed_text(path, root=ROOT, ref='HEAD'):
+    """Content of `path` at git `ref` (None if unavailable)."""
     import subprocess
     try:
         rel = Path(path).resolve().relative_to(Path(root).resolve())
         res = subprocess.run(
-            ['git', 'show', f'HEAD:{rel.as_posix()}'], cwd=root,
+            ['git', 'show', f'{ref}:{rel.as_posix()}'], cwd=root,
             capture_output=True, text=True, check=False)
     except (OSError, ValueError):
         return None
@@ -209,7 +210,7 @@ RENAMES = {'ManufacturerModelName': 'ManufacturersModelName'}
 DIRECTIONS = {'i', 'j', 'k', 'i-', 'j-', 'k-'}
 # plausible ranges (seconds, degrees, tesla)
 RANGES = {
-    'RepetitionTime': (0.1, 20),
+    'RepetitionTime': (1e-3, 20),
     'RepetitionTimeExcitation': (1e-3, 20),
     'RepetitionTimePreparation': (1e-3, 20),
     'EchoTime': (1e-4, 0.5),
@@ -228,6 +229,33 @@ ENUMS = {
     'PhaseEncodingDirection': DIRECTIONS,
     'SliceEncodingDirection': DIRECTIONS,
 }
+# MRI sidecar keys of the BIDS specification (1.10); dropping another key
+# (dcm2niix/vendor extras of the old templates) is reported separately
+BIDS_KEYS = set('''
+Manufacturer ManufacturersModelName DeviceSerialNumber StationName
+SoftwareVersions HardcopyDeviceSoftwareVersion MagneticFieldStrength
+ReceiveCoilName ReceiveCoilActiveElements GradientSetType
+MRTransmitCoilSequence MatrixCoilMode CoilCombinationMethod
+PulseSequenceType ScanningSequence SequenceVariant ScanOptions
+SequenceName PulseSequenceDetails NonlinearGradientCorrection
+MRAcquisitionType MTState MTOffsetFrequency MTPulseBandwidth
+MTNumberOfPulses MTPulseShape MTPulseDuration SpoilingState SpoilingType
+SpoilingRFPhaseIncrement SpoilingGradientMoment SpoilingGradientDuration
+NumberShots ParallelReductionFactorInPlane ParallelAcquisitionTechnique
+ParallelReductionFactorOutOfPlane PartialFourier PartialFourierDirection
+PhaseEncodingDirection EffectiveEchoSpacing TotalReadoutTime MixingTime
+EchoTime InversionTime SliceTiming SliceEncodingDirection DwellTime
+FlipAngle NegativeContrast AnatomicalLandmarkCoordinates
+InstitutionName InstitutionAddress InstitutionalDepartmentName
+ContrastBolusIngredient RepetitionTime RepetitionTimeExcitation
+RepetitionTimePreparation VolumeTiming TaskName
+NumberOfVolumesDiscardedByScanner
+NumberOfVolumesDiscardedByUser DelayTime AcquisitionDuration
+DelayAfterTrigger Instructions TaskDescription CogAtlasID CogPOID
+MultibandAccelerationFactor B0FieldIdentifier B0FieldSource IntendedFor
+Units EchoTime1 EchoTime2 MultipartID SpacingBetweenSlices SliceThickness
+PhaseEncodingSteps ImagingFrequency
+'''.split())
 ANAT_SUFFIXES = ('T1w', 'T2w', 'FLAIR', 'PDw', 'T2starw')
 NOT_IN_ANAT = ('SliceTiming',)
 NOT_IN_FUNC = ('RepetitionTimeExcitation',)
@@ -273,7 +301,8 @@ def classify(output, old, new):
 
     Returns a list of (category, title, detail), with category one of
     'rename', 'fixed' (old-template error corrected), 'suspect'
-    (suspected protocol2bids issue).
+    (suspected protocol2bids issue), 'nonbids' (non-BIDS key of the old
+    template).
     """
     out = []
     added, removed, changed = diff(old, new)
@@ -284,13 +313,21 @@ def classify(output, old, new):
             added.pop(b, None)
     for k, v in removed.items():
         why = invalid(output, k, v)
-        if why:
+        if k in RENAMES:
+            out.append(('suspect', f'`{RENAMES[k]}` not produced',
+                        f'old (misspelt) `{k}` was {_fmt(v)}'))
+        elif k not in BIDS_KEYS:
+            out.append(('nonbids', f'`{k}` dropped', f'was {_fmt(v)}'))
+        elif why:
             out.append(('fixed', f'invalid `{k}` dropped', why))
         else:
             out.append(('suspect', f'`{k}` dropped', f'was {_fmt(v)}'))
     for k, (a, b) in changed.items():
         why_old, why_new = invalid(output, k, a), invalid(output, k, b)
-        if why_new:
+        if k not in BIDS_KEYS:
+            out.append(('nonbids', f'`{k}` differs',
+                        f'{_fmt(a)} -> {_fmt(b)}'))
+        elif why_new:
             out.append(('suspect', f'invalid `{k}` produced', why_new))
         elif why_old:
             out.append(('fixed', f'invalid `{k}` corrected',
@@ -321,6 +358,9 @@ def render_issues(dataset, issues):
          'The new value is invalid, or a valid old value was dropped or '
          'changed. Values were NOT hand-fixed: fix protocol2bids (or add '
          '`defaults`/`assigns` in `sidecars.toml`) and re-run.'),
+        ('nonbids', 'Non-BIDS keys of the old templates (dropped or changed)',
+         'Vendor/dcm2niix keys that are not BIDS sidecar fields; listed '
+         'for reference only.'),
     ]
     lines = [f'# {dataset}: differences with the previous templates', '',
              'Generated by `scripts/make_sidecars.py` (do not edit): '
@@ -352,7 +392,8 @@ def render_issues(dataset, issues):
 # main
 # ---------------------------------------------------------------------------
 
-def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
+def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
+        baseline='HEAD'):
     root = Path(root)
     pdir = root / 'printouts' / dataset
     tpl = template_dir(dataset, root)
@@ -403,11 +444,11 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
         dst = tpl / output
         text = dumps(sidecar)
         old_text = dst.read_text() if dst.exists() else None
-        committed = committed_text(dst, root)
-        if committed is None:
-            committed = old_text
+        committed = committed_text(dst, root, baseline)
         if committed is None and 'previous' in e:
-            committed = committed_text(tpl / e['previous'], root)
+            committed = committed_text(tpl / e['previous'], root, baseline)
+        if committed is None and baseline == 'HEAD':
+            committed = old_text
         old = json.loads(committed) if committed else {}
         # roundtrip so that the comparison is done on json values
         new = json.loads(text)
@@ -425,7 +466,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
         dirty.append(lock_path.name)
 
     known = render_issues(dataset, issues)
-    md = render_report(dataset, lock['protocol2bids'], report, known)
+    md = render_report(dataset, lock['protocol2bids'], report, known,
+                       baseline)
     print(md, file=out)
     if check:
         if dirty:
@@ -438,14 +480,14 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout):
     return 1 if failures else 0
 
 
-def render_report(dataset, version, report, known):
+def render_report(dataset, version, report, known, baseline='HEAD'):
     lines = [f'# {dataset} sidecar regeneration report', '']
     lines += [known.rstrip(), '']
     lines += [
         f'protocol2bids {version["version"]} (commit {version["commit"]})',
         '',
         'Generated by `scripts/make_sidecars.py`; diffs are against the '
-        'sidecar at git HEAD when the script was run.', '',
+        f'sidecar at git `{baseline}` when the script was run.', '',
     ]
     for output, status, info in report:
         lines.append(f'## {output}')
@@ -476,8 +518,11 @@ def main(argv=None):
     p.add_argument('--check', action='store_true',
                    help='exit non-zero if regenerating would change files')
     p.add_argument('--only', help='glob on output paths (e.g. "BNI/*")')
+    p.add_argument('--baseline', default='HEAD',
+                   help='git ref of the previous templates to diff against '
+                        '(default: HEAD)')
     a = p.parse_args(argv)
-    return run(a.dataset, check=a.check, only=a.only)
+    return run(a.dataset, check=a.check, only=a.only, baseline=a.baseline)
 
 
 if __name__ == '__main__':

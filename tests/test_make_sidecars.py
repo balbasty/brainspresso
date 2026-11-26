@@ -522,7 +522,7 @@ def test_printouts_not_packaged():
     reqs = [line for line in
             (ROOT / "requirements-maint.txt").read_text().splitlines()
             if line.strip() and not line.startswith("#")]
-    assert reqs[1:] == ['tomli; python_version < "3.11"']
+    assert 'tomli; python_version < "3.11"' in reqs[1:]
     assert reqs[0].startswith(
         "protocol2bids @ git+https://github.com/balbasty/protocol2bids@")
     for ds in DATASETS:

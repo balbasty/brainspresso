@@ -627,8 +627,9 @@ sources have different roasters (and for ABIDE-I's legacy roasters).
 `--dry-run` creates nothing and takes no lock. `KeySpec(tree, choices,
 default, off).effective(keys, exclude)`: `--keys` that covers every
 choice, or the default `--keys` of a spec whose default is "all but
-`off`", counts as no `--keys` (so `--exclude-keys` alone means "all
-but" and, in a roast, keeps the files of no key), and the default
+`off`" (groups expanded to their leaves, `KeySpec.leaves`: `all`),
+counts as no `--keys` (so `--exclude-keys` alone means "all but" and,
+in a roast, keeps the files of no key), and the default
 excludes `off` (IXI roast: `trace` only when named in `--keys`); a
 default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
@@ -665,7 +666,7 @@ break under `from __future__ import annotations`.
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
 | `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--wait` | harvest |
 | `RoastOptions` | `--json`, `--if-exists`, `--jobs`, `--wait` | roast |
-| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--yes/-y`, `--dry-run`, `--list`, `--wait` | compost |
+| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--wait` | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
 
@@ -738,9 +739,12 @@ roasters get numbers (`Dataset.numbers`).
   takes it before planning and holds it through its confirmation.
   `--dry-run` and `info` take none. Sites: the parent and every
   existing site; a site created by a harvest takes its own shared lock
-  when it is created (`INDI.harvest.harvest_sites`), and a command on one
-  site (`--out <DS>/<site>`) also takes the lock of its parent, so a
-  compost of a site waits for a harvest of the parent. All three
+  when it is created (`INDI.harvest.harvest_sites`, with the `--wait` of
+  the command), and a command on one site (`--out <DS>/<site>`, listed
+  by the parent or not) also takes the lock of its parent, so a compost
+  of a site waits for a harvest of the parent. Locks are always taken
+  parents first (`Dataset.lock_states`): two commands that took a site
+  and its parent in opposite orders would wait on each other. All three
   commands fail at once by default (`--wait SECONDS`). Locks disabled
   (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
@@ -922,7 +926,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
-| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (725 passed, 2 skipped, 28 xfailed; §6) |
+| 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
@@ -946,6 +950,15 @@ Each step lands as commits on the refactor branch with its tests green.
   (`!brainspresso/{actions,bids,download,roast,sources}/**`; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
+* Imports are at the top level of modules (ruff `PLC0415`, step 4). A
+  local import is kept only for an optional dependency, a genuine
+  import cycle that moving code cannot break, or the start-up time of
+  `bx --help` (the catalog and the CLI import one dataset), with
+  `# noqa: PLC0415` and the reason (`# lazy: optional dependency`).
+  Tests written before step 4 are exempt.
+* Wording: the stage is "roast" (roasters); "bidsify" only survives in
+  the names of the legacy roasters (`Bidsifier` classes, `bidsifier*.py`,
+  rewritten in step 5) and of pre-existing helpers (`freesurfer.bidsify`).
 * Layering: `actions/` (stage-agnostic) imports neither `bids/` nor
   `roast/`; `roast/` builds on both; BIDS knowledge lives in `bids/`.
 
@@ -967,9 +980,10 @@ up as an XPASS failure once fixed (then drop the marker).
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
   relabel saved to `dst` instead of the action's path.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
-* `set(*map(lower_keys, exclude_keys))` raises with more than one
-  exclude key: ABIDE-I/II (fixed in OASIS-III, step 2b-ii, with its
-  sessions table name).
+* ~~`set(*map(lower_keys, exclude_keys))` raises with more than one
+  exclude key: ABIDE-I/II~~ (fixed in OASIS-III, step 2b-ii, with its
+  sessions table name; in ABIDE-I/II in step 4, where `--exclude-keys`
+  lists their keys).
 * IXI DWI (**fixed** on `claude/bugfix/ixi-dwi-volumes`): the bundled
   16-entry table always won over per-subject NITRC tables, and the volume
   count was never checked. `IXI-DTI.tar` has 17 3D members for IXI002
@@ -1078,3 +1092,14 @@ up as an XPASS failure once fixed (then drop the marker).
   `trace`) and `effective`; options are checked and a missing dataset
   refused before anything is created; nested run-lock failures keep the
   outer count.
+* r13: PR #19 round 3. Top-level imports (ruff `PLC0415`; kept local
+  ones say why; `read_manifest` moved to `bids/layout.py` to break the
+  cycle with `bids/harvest.py`); roast wording ("legacy roasters"
+  for the `Bidsifier` classes); ADHD-200 `--bids/--no-bids` (`--bidsify`
+  a hidden alias); docstring-only `roast.py` modules and ABIDE-I's CLI
+  wrappers deleted; locks taken parents first, a new site's lock takes
+  `--wait`, a site command always locks a sites parent; `KeySpec.leaves`
+  expands groups (`all` covers everything); ABIDE-I/II `--exclude-keys`
+  with several keys fixed (`set().union`), and the roast help says what
+  the legacy roasters do not filter; unnamed key groups are not keys;
+  bad `--subs` ranges are `UsageError`s.

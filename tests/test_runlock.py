@@ -17,7 +17,10 @@ from brainspresso.actions.runlock import (
     read_records,
     run_lock,
 )
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import make_layout
 from brainspresso.cli import main
+from brainspresso.datasets.base import Dataset
 
 HOLD = """
 import sys, time
@@ -169,3 +172,39 @@ def test_nested_failure_keeps_outer_count(state, monkeypatch):
         assert held_states() == [str(state)]
         assert runlock._held[str(state)] == 1
     assert held_states() == []
+
+
+ORDERED = """
+import sys, time
+from brainspresso.actions.runlock import run_lock
+parent, child = sys.argv[1], sys.argv[2]
+with run_lock(parent, "compost", exclusive=True):
+    print("parent", flush=True)
+    time.sleep(1.0)
+    with run_lock(child, "compost", exclusive=True, wait=5):
+        print("child", flush=True)
+"""
+
+
+def test_parent_before_child(tmp_path):
+    # A locks the parent then a site; B (a compost of the site) locks in
+    # the same order (`Dataset.lock_states`), so neither waits forever
+    root = tmp_path / "DS"
+    sites = make_layout("sites", root, child_kind="study")
+    record_run(sites.child("A"), "harvest")
+    record_run(sites, "harvest")
+    site = make_layout("study", root / "A")
+    states = Dataset.lock_states(site)
+    assert states == [root / ".brainspresso", root / "A" / ".brainspresso"]
+    proc = subprocess.Popen(
+        [sys.executable, "-c", ORDERED, str(states[0]), str(states[1])],
+        stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
+    try:
+        assert proc.stdout.readline().strip() == "parent"
+        with run_lock(states, "compost", exclusive=True, wait=5):
+            pass
+        assert proc.stdout.readline().strip() == "child"
+        assert proc.wait(timeout=10) == 0
+    finally:
+        proc.kill()
+        proc.wait()

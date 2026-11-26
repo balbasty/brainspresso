@@ -18,18 +18,32 @@ from cli_utils import bx
 from cyclopts import Parameter
 
 from brainspresso import cli
-from brainspresso.bids.layout import LayoutError, parse_layout
+from brainspresso.bids.harvest import record_run
+from brainspresso.bids.layout import (
+    Layout,
+    LayoutError,
+    make_layout,
+    parse_layout,
+)
 from brainspresso.cli import app, main
 from brainspresso.datasets import catalog
+from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
+    Bidsifier as BidsifierI,
+)
+from brainspresso.datasets.ABIDE.I.dataset import ABIDE1
+from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier as BidsifierII
+from brainspresso.datasets.ABIDE.II.dataset import ABIDE2
 from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Args, Dataset, KeySpec
 from brainspresso.datasets.Bullitt.dataset import Bullitt
 from brainspresso.datasets.catalog import CATALOG, load
 from brainspresso.datasets.COBRE.dataset import COBRE
 from brainspresso.datasets.IXI.dataset import IXI, KEYS
+from brainspresso.datasets.OASIS.III.dataset import OASIS3
 from brainspresso.datasets.OpenNeuro.dataset import OpenNeuroDataset
 from brainspresso.datasets.options import (
     HarvestOptions,
+    KeyOptions,
     OptionGroup,
     SelectionOptions,
     option_group,
@@ -456,3 +470,74 @@ def test_adhd200_bids_flag(tmp_path, monkeypatch, flags, value):
     except SystemExit as e:
         assert not e.code
     assert seen["bidsify"] is value
+
+
+# ----------------------------------------------------------------------
+#   Review of the fix commit (round 3)
+# ----------------------------------------------------------------------
+
+def test_group_defaults_cover_all():
+    # ("all",) and groups that cover every key count as "no --keys"
+    abide = ABIDE1().keys_for("harvest")
+    assert abide.effective(("all",), ["fs"]) == ((), ("fs",))
+    adhd = ADHD200().keys_for("harvest")
+    assert adhd.effective(("all",), ["mriqc"]) == ((), ("mriqc",))
+    # Bullitt's default leaves `phantoms` out: it stays a selection
+    bullitt = Bullitt().keys_for("harvest")
+    assert bullitt.effective(bullitt.default) == (bullitt.default, ())
+    assert bullitt.leaves(["raw"]) == {"flash", "mprage", "T2w", "angio",
+                                       "dwi"}
+    # legacy roasts get leaves, exclusions removed
+    args = Args.of(ABIDE2(), "roast", keys=KeyOptions(
+        exclude_keys=("dti", "rest")))
+    assert ABIDE2().legacy_keys("roast", args) == {"T1w", "pheno"}
+
+
+def test_unnamed_key_group():
+    spec = OASIS3().keys_for("harvest")
+    assert "" not in spec.all_choices()
+    assert "fmap" in spec.all_choices() and "dwi" in spec.all_choices()
+    assert "* \n" not in OASIS3().key_help("harvest") + "\n"
+    assert "  * fmap" in OASIS3().key_help("harvest")
+
+
+def test_bad_subject_range(tmp_path, capsys):
+    with pytest.raises(UsageError, match="not numbers"):
+        IXI().labels(["a:b"])
+    with pytest.raises(SystemExit) as e:
+        main(["ixi", "roast", str(tmp_path), "--subs", "a:b"])
+    assert e.value.code == 1
+    assert "not numbers" in capsys.readouterr().err
+
+
+def test_abide_two_exclude_keys(tmp_path):
+    assert BidsifierII(tmp_path / "A2", exclude_keys={"dti", "rest"}
+                       ).exclude_keys == {"dti", "rest"}
+    assert {"T1w", "rest"} <= BidsifierI(
+        tmp_path / "A1", exclude_keys={"T1w", "rest"}).exclude_keys
+
+
+def test_abide_roast_help_notes(capsys):
+    for ds in ("abide1", "abide2"):
+        try:
+            main([ds, "roast", "--help"])
+        except SystemExit:
+            pass
+        assert "step 5" in capsys.readouterr().out
+
+
+def test_lock_states_parent_first(tmp_path):
+    # parent (one dataset per site) before the site, the site listed or
+    # not, and the parent before its sites
+    root = tmp_path / "DS"
+    sites = make_layout("sites", root, child_kind="study")
+    sites.child("A")
+    record_run(sites.child("A"), "harvest")
+    record_run(sites, "harvest")
+    for name in ("A", "NEW"):
+        site = make_layout("study", root / name)
+        assert Dataset.lock_states(site)[:2] == [
+            root / ".brainspresso", root / name / ".brainspresso"]
+    found = Layout.detect(root)
+    assert Dataset.lock_states(found) == [root / ".brainspresso",
+                                          root / "A" / ".brainspresso"]

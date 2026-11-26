@@ -159,7 +159,8 @@ class INDIDataset(Dataset):
         )
         if isinstance(layout, SitesLayout):
             harvest_sites(self.project, layout, selection, sites=sites,
-                          where=f.where, provenance=provenance, **options)
+                          where=f.where, provenance=provenance, wait=h.wait,
+                          **options)
             if not h.dry_run:
                 print(f"Site datasets in: {layout.root}")
             return

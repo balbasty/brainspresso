@@ -117,7 +117,7 @@ def site_selection(selection: Selection, site: Site) -> Selection:
 
 def harvest_sites(
     project: Project, layout: SitesLayout, selection: Selection, *,
-    sites=(), where=(), provenance=None, **options,
+    sites=(), where=(), provenance=None, wait: float = 0, **options,
 ) -> None:
     """Layout "sites": one dataset per site in `<DS>/<site>/`"""
     asked = copy.copy(selection or Selection())
@@ -158,7 +158,8 @@ def harvest_sites(
                 # a new site holds its own run lock too (a compost of the
                 # site alone, `--out <DS>/<site>`, must wait for it)
                 child.ensure_state()
-                stack.enter_context(run_lock(child.state, "harvest"))
+                stack.enter_context(run_lock(child.state, "harvest",
+                                             wait=wait))
             harvest(entries, child, local, repair=True,
                     provenance={**(provenance or {}), "site": site.name},
                     check_subjects=False, **options)

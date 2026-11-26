@@ -58,7 +58,7 @@ from brainspresso.sources.base import (
     select_roaster,
     subject_labels,
 )
-from brainspresso.utils.keys import flatten_keys
+from brainspresso.utils.keys import flatten_keys, get_leaves, lower_keys
 from brainspresso.utils.path import get_tree_path
 
 lg = logging.getLogger(__name__)
@@ -96,6 +96,9 @@ def tree_lines(tree, indent: int = 0) -> list[str]:
         return [" " * indent + f"* {k}" for k in sorted(tree)]
     out = []
     for name, sub in tree.items():
+        if not name:            # an unnamed group: its children
+            out += tree_lines(sub, indent) if sub else []
+            continue
         out.append(" " * indent + f"* {name}")
         if sub:
             out += tree_lines(sub, indent + 2)
@@ -141,8 +144,31 @@ class KeySpec:
         if self.choices is not None:
             return tuple(self.choices)
         if isinstance(self.tree, Mapping):
-            return tuple(sorted(flatten_keys(self.tree)))
+            # (an unnamed group, e.g. OASIS-III's "", is not a key)
+            return tuple(sorted(k for k in flatten_keys(self.tree) if k))
         return None
+
+    def leaves(self, names: Iterable[str]) -> set:
+        """
+        Return the leaves selected by keys (groups expanded).
+
+        Parameters
+        ----------
+        names : list[str]
+
+        Returns
+        -------
+        set[str]
+            The names themselves without a nested-dict hierarchy
+        """
+        names = _names(names)
+        if not isinstance(self.tree, Mapping):
+            return set(names)
+        every = get_leaves(self.tree)
+        out = set()
+        for name in names:
+            out |= (lower_keys(name, self.tree) | {name}) & every
+        return out
 
     def static_tree(self) -> Any:
         """Return the hierarchy if it is known without importing anything."""
@@ -177,12 +203,13 @@ class KeySpec:
         choices = self.all_choices()
         if not keys or set(keys) == set(self.default):
             covers = choices is None or not self.default or (
-                set(self.default) | set(self.off) >= set(choices))
+                self.leaves((*self.default, *self.off))
+                >= self.leaves(choices))
             if covers:
                 return (), exclude + tuple(
                     k for k in self.off if k not in exclude)
             return keys or tuple(self.default), exclude
-        if choices is not None and set(keys) >= set(choices):
+        if choices is not None and self.leaves(keys) >= self.leaves(choices):
             return (), exclude
         return keys, exclude
 
@@ -840,8 +867,8 @@ class Dataset:
         """
         spec = self.keys_for(command) or KeySpec()
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
-        keys = set(keys or spec.all_choices() or ())
-        return keys - set(exclude)
+        keys = spec.leaves(keys or spec.all_choices() or ())
+        return keys - spec.leaves(exclude)
 
     def numbers(self, values: Iterable[str]) -> list:
         """
@@ -963,18 +990,34 @@ class Dataset:
         subjects(args.select.exclude_subs)
 
     @staticmethod
-    def _parent_states(layout) -> list:
-        """State of the parent of a site dataset (`--out <DS>/<site>`)."""
-        if isinstance(layout, SitesLayout):
-            return []
-        root = Path(layout.root)
-        parent = root.parent
-        if not (parent / STATE_DIR).is_dir():
-            return []
-        found = Layout.detect(parent)
-        if isinstance(found, SitesLayout) and root.name in found.children:
-            return [found.state]
-        return []
+    def lock_states(layout) -> list:
+        """
+        Return the state folders whose run lock a command takes.
+
+        Always in the same order, parents before children (two commands
+        that lock a site and its parent in opposite orders would wait on
+        each other): the parent of a site dataset (`--out <DS>/<site>`,
+        whenever `<DS>` has one dataset per site, the site listed or
+        not), the dataset, then its existing sites.
+
+        Parameters
+        ----------
+        layout : Layout
+
+        Returns
+        -------
+        list[Path]
+        """
+        states = []
+        if not isinstance(layout, SitesLayout):
+            parent = Path(layout.root).parent
+            if (parent / STATE_DIR).is_dir() and isinstance(
+                    Layout.detect(parent), SitesLayout):
+                states.append(parent / STATE_DIR)
+        states.append(Path(layout.state))
+        states += [Path(d.state) for d in layout.datasets()
+                   if d is not layout and Path(d.state).is_dir()]
+        return states
 
     def run(self, command: str, layout=None, args: Args | None = None):
         """
@@ -1009,10 +1052,7 @@ class Dataset:
                                   + (" (harvest it first)"
                                      if command == "roast" else ""))
         layout.ensure_state()
-        states = [layout.state] + [
-            d.state for d in layout.datasets()
-            if d is not layout and Path(d.state).is_dir()
-        ] + self._parent_states(layout)
+        states = self.lock_states(layout)
         with run_lock(states, command, exclusive=mode == "exclusive",
                       wait=args.wait, force=args.compost.ignore_runs):
             return body(layout, args)

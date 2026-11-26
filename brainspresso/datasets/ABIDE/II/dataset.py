@@ -1,7 +1,7 @@
 """`bx abide2`: ABIDE-II (autism spectrum disorders)."""
 from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
 from brainspresso.datasets.ABIDE.II.harvest import DEFAULTS, sources
-from brainspresso.datasets.ABIDE.II.keys import allkeys, allleaves
+from brainspresso.datasets.ABIDE.II.keys import allkeys
 from brainspresso.datasets.base import Dataset, KeySpec
 
 HELP = """
@@ -52,10 +52,21 @@ class ABIDE2(Dataset):
         """NITRC tarballs; s3://fcp-indi (raw data, BIDS-like copy)."""
         return sources()
 
+    def describe(self, command):
+        """Roast: what the legacy roaster filters."""
+        if command == "roast":
+            return (
+                "Convert the source data of ABIDE-II to BIDS (legacy "
+                "roaster, `Bidsifier` class, rewritten in step 5).\n\n"
+                "`--keys` and `--exclude-keys` do not filter raw data yet "
+                "(every raw scan is converted): that comes with step 5."
+            )
+        return super().describe(command)
+
     def roast(self, layout, args):
         """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
         Bidsifier(
-            layout.root, keys=set(args.keys.keys or allleaves),
+            layout.root, keys=self.legacy_keys("roast", args),
             exclude_keys=set(args.keys.exclude_keys),
             subs=self.numbers(args.select.subs),
             exclude_subs=self.numbers(args.select.exclude_subs),

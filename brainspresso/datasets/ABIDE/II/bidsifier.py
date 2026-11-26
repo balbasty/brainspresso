@@ -98,7 +98,7 @@ class Bidsifier:
         self.layout: Layout = resolve_layout(root, layout)
         self.root: Path = self.layout.root
         self.keys: set[str] = set(keys)
-        self.exclude_keys: set[str] = set(
+        self.exclude_keys: set[str] = set().union(
             *map(lambda x: lower_keys(x, allkeys), exclude_keys)
         )
         self.subs: set[int] = set(subs)

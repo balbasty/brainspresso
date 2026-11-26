@@ -1311,12 +1311,18 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
         value = getattr(value, "value", value)
         if width is not None and isinstance(value, str) and ":" in value:
             start, stop, *step = value.split(":")
-            step = int(step[0]) if step and step[0] else 1
+            try:
+                step = int(step[0]) if step and step[0] else 1
+                start = int(start or 0)
+                stop = int(stop) if stop else None
+            except ValueError:
+                raise UsageError(f"Subject range: not numbers: {value!r} "
+                                 f"(start:stop[:step])") from None
             if step < 1:
                 raise UsageError("Subject range: step must be positive")
-            if not stop:
+            if stop is None:
                 raise UsageError("Subject range: stop must be provided")
-            for i in range(int(start or 0), int(stop), step):
+            for i in range(start, stop, step):
                 add(i)
         elif isinstance(value, str) and not value.isdigit() and \
                 Path(value).is_file():

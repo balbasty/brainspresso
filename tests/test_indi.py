@@ -784,3 +784,18 @@ def test_fcon1000_site_compost_waits_for_parent(tmp_path, capsys):
         proc.kill()
         proc.wait()
     assert (raw(root, "ICBM") / "sub-11111").is_dir()
+
+
+def test_fcon1000_site_lock_waits(tmp_path, monkeypatch):
+    # the run lock of a new site takes the `--wait` of the command
+    waits = []
+    original = indi.run_lock
+
+    def spy(states, command, **kwargs):
+        waits.append(kwargs.get("wait"))
+        return original(states, command, **kwargs)
+
+    monkeypatch.setattr(indi, "run_lock", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "--wait", 3)
+    assert waits == [3]

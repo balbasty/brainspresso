@@ -5,7 +5,7 @@ from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
 from brainspresso.datasets.ABIDE.I.bidsifier_xnat import (
     Bidsifier as BidsifierXNAT,
 )
-from brainspresso.datasets.ABIDE.I.keys import allkeys, allleaves
+from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.datasets.ABIDE.I.sources import DEFAULTS, SITES, sources
 from brainspresso.datasets.base import Dataset, KeySpec
 from brainspresso.errors import UsageError
@@ -62,6 +62,17 @@ class ABIDE1(Dataset):
             groups = (*groups[:i], "source", *groups[i:])
         return groups
 
+    def describe(self, command):
+        """Roast: what the legacy roasters filter."""
+        if command == "roast":
+            return (
+                "Convert the source data of ABIDE-I to BIDS (legacy "
+                "roasters, `Bidsifier` classes, rewritten in step 5).\n\n"
+                "With `--source xnat`, `--keys` does not filter raw data "
+                "yet (only `--exclude-keys` does): that comes with step 5."
+            )
+        return super().describe(command)
+
     def roast(self, layout, args):
         """Legacy roasters (`Bidsifier` classes, step 5): one per source."""
         source = (args.source.source or ("s3",))[0]
@@ -70,7 +81,7 @@ class ABIDE1(Dataset):
         if source not in roasters:
             raise UsageError(f"Unknown source {source!r}")
         roasters[source](
-            layout.root, keys=set(args.keys.keys or allleaves),
+            layout.root, keys=self.legacy_keys("roast", args),
             exclude_keys=set(args.keys.exclude_keys),
             subs=self.numbers(args.select.subs),
             exclude_subs=self.numbers(args.select.exclude_subs),

@@ -1,3 +1,4 @@
+"""Partial files of downloads that can be resumed."""
 __all__ = ['IncompleteFile']
 # stdlib
 import asyncio
@@ -28,8 +29,9 @@ async def run_async(func, *args, **kwargs):
 
 class IncompleteFile:
     """
-    An object that represents a file being downloaded, in its
-    incomplete state. It is used as a context manager and checks whether
+    A file being downloaded, in its incomplete state.
+
+    It is used as a context manager and checks whether
     an unfinished download can be continued, or should be completely
     restarted.
 
@@ -52,6 +54,8 @@ class IncompleteFile:
         ifnochecksum: Literal['restart', 'continue'] = 'restart',
     ):
         """
+        Prepare a partial file.
+
         Parameters
         ----------
         filename : str | Path
@@ -97,6 +101,7 @@ class IncompleteFile:
 
     @property
     def digest(self) -> str:
+        """Hex digest of the bytes written so far (or of the whole file)."""
         if self._digest is not None:
             return self._digest
         elif self.digester:
@@ -105,6 +110,7 @@ class IncompleteFile:
             return None
 
     async def __aenter__(self) -> "IncompleteFile":
+        """Lock the file and open it for writing (resuming if possible)."""
         self.filename.parent.mkdir(parents=True, exist_ok=True)
 
         # Acquire lock
@@ -186,6 +192,7 @@ class IncompleteFile:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Close the file, release the lock and finalise (or keep) it."""
         # Close file
         lg.debug(f"closing file...  {self.tempname}")
         assert self.file is not None
@@ -237,6 +244,18 @@ class IncompleteFile:
             self._discard = False
 
     async def append(self, blob: bytes) -> "IncompleteFile":
+        """Append bytes to the file and update its digest.
+
+        Parameters
+        ----------
+        blob : bytes
+            Bytes to write.
+
+        Returns
+        -------
+        IncompleteFile
+            This object.
+        """
         if self.file is None:
             raise ValueError(
                 'IncompleteFile.append() called outside of context manager'
@@ -254,7 +273,7 @@ class IncompleteFile:
         return self
 
     async def truncate(self) -> "IncompleteFile":
-        """Discard all bytes written so far (restart from 0)"""
+        """Discard all bytes written so far (restart from 0)."""
         if self.file is None:
             raise ValueError(
                 'IncompleteFile.truncate() called outside of context manager'
@@ -268,7 +287,7 @@ class IncompleteFile:
         return self
 
     async def set_validator(self, validator: str | None) -> None:
-        """Save the remote validator (ETag/Last-Modified) of this file"""
+        """Save the remote validator (ETag/Last-Modified) of this file."""
         self.validator = validator
         if validator:
             async with aiofiles.open(self.validname, 'wt') as f:
@@ -277,13 +296,15 @@ class IncompleteFile:
             await run_async(self.validname.unlink, missing_ok=True)
 
     def discard(self) -> None:
-        """Delete the partial file on exit instead of renaming it"""
+        """Delete the partial file on exit instead of renaming it."""
         self._discard = True
 
     async def write(self, blob: bytes) -> "IncompleteFile":
+        """Alias of `append`."""
         return await self.append(blob)
 
     async def __add__(self, blob: bytes) -> "IncompleteFile":
+        """Alias of `append`."""
         return await self.append(blob)
 
     def _update_speed(self, total, nbytes, time):

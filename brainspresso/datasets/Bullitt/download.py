@@ -25,9 +25,10 @@ from humanize import naturalsize
 
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import LayoutChoice, resolve_layout
-from brainspresso.download import CHUNK_SIZE, DownloadManager, IfExists
-from brainspresso.sources.girder import Girder, KITWARE
-from brainspresso.utils.keys import compat_keys
+from brainspresso.bids.select import Selection
+from brainspresso.download import CHUNK_SIZE, IfExists
+from brainspresso.sources.base import DownloadOptions, Wants
+from brainspresso.sources.girder import GirderSource, KITWARE
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.ui import human2bytes
@@ -66,6 +67,41 @@ def _labels(values, prefix) -> set[str]:
         v = v[len(prefix):] if v.startswith(prefix) else v
         out.add(f"{int(v):03d}" if v.isdigit() else v)
     return out
+
+
+class Girder(GirderSource):
+    """Bullitt database from data.kitware.com, mirrored in `sourcedata/`"""
+
+    name = "girder"
+    provides = frozenset({"raw", "meta", "derivatives", "phantoms"})
+
+    def __init__(self, **kwargs):
+        # module globals, read when the source is made (tests patch them)
+        super().__init__("folder", ROOT, api=KITWARE, **kwargs)
+
+    def keep_folder(self, p: PurePosixPath, selection, wants) -> bool:
+        top = p.parts[0]
+        if top == "Administration":
+            return wants("meta")
+        if top == "Phantoms":
+            return wants("phantoms")
+        sub = subject_label(top)
+        if sub is None or not self.keeps_subject(selection, sub):
+            return False
+        if len(p.parts) >= 2:
+            if p.parts[1] == "AuxillaryData":
+                return wants("derivatives")
+            key = FOLDER_KEYS.get(p.parts[1])
+            return key is not None and wants(key)
+        return True
+
+    def keep(self, f, selection, wants) -> bool:
+        parts = f.relpath.parts
+        if len(parts) >= 3 and parts[1] == "AuxillaryData":
+            prefix = f.name.split("-")[0].split(".")[0]
+            key = AUX_KEYS.get(prefix)
+            return key is not None and wants(key)
+        return True
 
 
 @bullitt.command(name="harvest")
@@ -133,43 +169,10 @@ def download(
     subs = _labels(subs, "sub-")
     exclude_subs = _labels(exclude_subs, "sub-")
     dataset = resolve_layout(Path(get_tree_path(path)) / DATASET, layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": dataset.root.name})
-
-    def want(key: str) -> bool:
-        return bool(keys & compat_keys(key, allkeys))
-
-    def keep_folder(p: PurePosixPath) -> bool:
-        top = p.parts[0]
-        if top == "Administration":
-            return want("meta")
-        if top == "Phantoms":
-            return want("phantoms")
-        sub = subject_label(top)
-        if sub is None:
-            return False
-        if (subs and sub not in subs) or sub in exclude_subs:
-            return False
-        if len(p.parts) >= 2:
-            if p.parts[1] == "AuxillaryData":
-                return want("derivatives")
-            key = FOLDER_KEYS.get(p.parts[1])
-            return key is not None and want(key)
-        return True
-
-    def keep(f) -> bool:
-        parts = f.path.parts
-        if len(parts) >= 3 and parts[1] == "AuxillaryData":
-            prefix = f.path.name.split("-")[0].split(".")[0]
-            key = AUX_KEYS.get(prefix)
-            return key is not None and want(key)
-        return True
-
-    girder = Girder(KITWARE, token=token)
-    DownloadManager(
-        girder.mirror(
-            "folder", ROOT, src, keep, keep_folder=keep_folder,
-            ifexists=if_exists, chunk_size=human2bytes(packet),
-        ),
-        ifexists=if_exists, jobs=jobs, path="short",
-    ).run()
+    Girder().configure(token=token).harvest(
+        dataset, Selection(subs=subs, exclude_subs=exclude_subs),
+        Wants(keys, allkeys),
+        DownloadOptions(ifexists=if_exists, jobs=jobs,
+                        chunk_size=human2bytes(packet)),
+    )

@@ -212,6 +212,88 @@ and glob conditions, as prototyped in `wiip-grind`
   authentifier; `insecure: bool` instead of
   `get_opt={ssl|verify|verify_ssl: False}`.
 
+Implemented (step 3):
+
+* `sources/base.py`. `RemoteEntry(path, url=None, size=None, mtime=None,
+  digests={}, meta={})` (`path` a POSIX str, `relpath`/`name`
+  helpers); an entry with `meta["content"]` is a file generated from
+  the listing (written, not downloaded: `nitrc_experiments.json`,
+  `sub2site.json`, UNC `folders.json`). `DownloadOptions(ifexists,
+  jobs, chunk_size, insecure, dry_run, path, on_error)`. `mirror(entries,
+  dst, keep=, rename=, **download_opts) -> Iterator[Downloader]` and
+  `run_downloads(downloaders, options)` replace `fcp.mirror`,
+  `Girder.mirror` and the per-dataset Downloader loops.
+* `Source` (base class; `SourceProtocol` is the structural type):
+  attributes `name`, `provides`, `roaster` (a function declared on the
+  class is not a method), `labels`, `folder` (sub-folder of
+  `layout.source`), `insecure`, `jobs`, plus per-run options (`user`,
+  `password`, `token`, `sites`...) given to `__init__`, `configure(**o)`
+  (copy; unknown options and None ignored, so a command offers its
+  options to every source) or `with_options(**o)` (strict). Methods:
+  `list(selection=None, keys=None) -> list[RemoteEntry]`, `fetch(entries,
+  layout, options=None)` (default: `downloaders()` + `run_downloads`),
+  `harvest(layout, selection, keys, options)` (list + fetch; hosted-BIDS
+  sources override it), `auth()` (download hook or None, resolved at
+  fetch time, never at declaration), `keeps_subject(selection, host_id)`,
+  `destination(layout)`, `local_path(entry)`, `resolve(layout, entry)`
+  (`layout` may also be the source folder itself). `SourceUnavailable`
+  (host offline, listing refused) triggers the fallback.
+* Keys given to sources: `Wants(keys, tree, exclude=)`, a predicate
+  `wants(key)` over the dataset tree (the `utils.keys` nested dicts of the
+  unported datasets, or a `KeyAliases`): a key is wanted if it is equal,
+  above or below a selected key; `Wants.restrict(group)` limits it to the
+  keys of one source's group. A `KeySelection` (its `wants`) or a plain
+  list of names also work.
+* Label mapping: `LabelMap(to_bids, to_host=None)` with `keeps(selection,
+  host_id)` and `hosts(selection)`; `numeric_labels(width, prefix)`
+  (`0051456` ↔ `51456`, `OAS30001` ↔ `0001`), `prefix_labels(code)`
+  (INDI `Site.labels`, used to prune the bucket listing).
+* Implementations: `StaticURLs(urls={key: [url | RemoteEntry]}, keep=)`,
+  `CompositeSource(*parts)` (e.g. ABIDE-I xnat: XNAT images + NITRC
+  phenotypes), `LocalSource` (lists/fetches nothing, `present(layout)`),
+  `s3.S3Prefix(bucket, prefix, keep=, rename=)` and `fcp.FCP(prefix)`,
+  `girder.GirderSource(rtype, rid, api=)` (hooks `keep_folder`, `keep`,
+  `folder_entries`; `token`), `xnat.XNAT(project, server=)` (async
+  `XNATClient`; hooks `keep_experiment`, `keep_scan`, `keep_assessor`,
+  `extra`; one server-built `<experiment>/<id>.tar.gz` per scan or
+  assessor), `nitrc.NITRC` (static URLs behind the NITRC login,
+  `insecure` and one job by default), `openneuro.OpenNeuro(dataset, tag,
+  route, token)` (GraphQL with S3 fallback; fetches through
+  `bids.harvest.harvest`), `dataverse.Dataverse(files={key: {name: doi}},
+  server)` (token header).
+* Per-key choice: `plan_sources(sources, defaults, keys, override=None)
+  -> [(keys, candidates)]` (defaults per key, in order; keys without
+  defaults are only harvested with `--source`, which keeps the keys the
+  named sources provide) and `harvest_sources(sources, defaults, layout,
+  selection, keys, options, override) -> {key: source used}` (next
+  candidate on `SourceUnavailable`); `configure_sources(sources,
+  **options)`; `select_roaster(sources, ctx)` (first `roaster.detect(ctx)`,
+  else first roaster) for step 4's `register`.
+* Credentials (`sources/credentials.py`): `get_secret(what, value, env,
+  hidden=, option=)` (value, then environment variables, then a prompt
+  if stdin is a terminal, else `CredentialsError` naming the variables
+  and option), `get_credentials(service, user, password, env_user=,
+  env_password=)`, `nitrc_credentials`; picklable async hooks
+  `NitrcAuth` (NITRC form login, POST body) and `XnatAuth` (`JSESSION`
+  with basic credentials). Downloads take `insecure=True`; TLS keys in
+  `get_opt` raise, the `_normalize_request_options` shim is gone.
+* Datasets declare `sources()` and `DEFAULTS` next to their harvest
+  command (ABIDE-I `datasets/ABIDE/I/sources.py`: `{"raw": ["s3",
+  "nitrc"], "meta": ["s3", "nitrc"]}`, derivatives with `--source xnat`;
+  CoRR: s3 then nitrc; IXI: images nitrc then imperial, meta `bundled`
+  (`LocalSource`); ABIDE-II: nitrc, `--source s3` opt-in; OASIS-III:
+  xnat; UNC-Wisconsin, Bullitt: girder; COBRE: nitrc; GSP: dataverse;
+  OASIS-I/II: static URLs; ADNI: user URLs or `local`). Roasters that are
+  runner roasters are declared (IXI, UNC-Wisconsin, OASIS-III; imported
+  on use); the others stay None until step 5.
+* Not done: ABIDE-II from S3 by default. The bucket holds a re-curated
+  BIDS-like copy (one dataset per site, runs, acquisitions, ETHZ for
+  ETH, no SU/U_MIA, sidecars in `RawData/sidecards/`), not the tarballs
+  that the roaster reads: it needs a hosted-BIDS roaster (2b-iii/step 5)
+  before it can be a default. INDI projects keep their command flow
+  (`Project` becomes the `Dataset` in step 4) but list through the shared
+  entries and site label maps.
+
 ### Sources hosted as BIDS: hybrid placement
 
 * Files that are **never repaired or trimmed** (images, recordings) are
@@ -530,9 +612,9 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
 | 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | done (461 passed, 28 xfailed: OASIS-III sessions name and exclude-keys fixed) |
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
-| 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`; old paths re-exported), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (549 passed, 2 skipped, 28 xfailed) |
+| 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`; old paths re-exported), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
-| 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | |
+| 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
@@ -550,10 +632,12 @@ Each step lands as commits on the refactor branch with its tests green.
   explained everywhere). Constructor arguments go in the class
   docstring (or in `__init__`'s, after a summary line).
 * Enforced by `ruff check .` (pydocstyle `D` rules, `convention =
-  "numpy"`) in `brainspresso/actions/`, `brainspresso/roast/` and
-  `brainspresso/bids/`; other packages are exempt through a negated
-  `per-file-ignores` pattern in `pyproject.toml`. Extend the pattern
-  (`!brainspresso/{actions,roast,bids,...}/**`) as datasets and
+  "numpy"`) in `brainspresso/actions/`, `brainspresso/roast/`,
+  `brainspresso/bids/` (step 2b-iv), `brainspresso/sources/` and
+  `brainspresso/download/` (step 3); other packages are exempt through
+  one negated `per-file-ignores` pattern in `pyproject.toml`
+  (`!brainspresso/{actions,bids,download,roast,sources}/**`; two
+  negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Layering: `actions/` (stage-agnostic) imports neither `bids/` nor
   `roast/`; `roast/` builds on both; BIDS knowledge lives in `bids/`.
@@ -579,19 +663,26 @@ up as an XPASS failure once fixed (then drop the marker).
 * `set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II (fixed in OASIS-III, step 2b-ii, with its
   sessions table name).
-* IXI DWI: the bundled global 16-entry `bvals.txt`/`bvecs.txt` always wins
-  over the per-subject NITRC tables (`ctx.resource` falls back to the
-  package), and the volume count is never checked against the table.
-  Series have 17 (IXI002, Guys: 17 3D files) or 18 volumes; observed
-  pattern: two leading b=0 (second b=0 not in the IXI table) and, on
-  Philips sites, probably a trailing scanner-derived isotropic/trace image
-  (to check: ≈ mean of the DW volumes). Fix: per-subject volume layout from
-  member count/site, checked on the data; derived volume to a derivative
-  (`desc-trace`/`desc-powderavg` `_dwimap`), not the raw series; per-subject
-  `bval`/`bvec` matching the volumes; counted error on unknown patterns.
-  Awaiting a per-site census of `IXI-DTI.tar` member counts.
-* Harvest (not covered by tests, needs network): ABIDE-II and ABIDE-I xnat
-  use the sync `nitrc_authentifier` with aiohttp sessions.
+* IXI DWI (**fixed** on `claude/bugfix/ixi-dwi-volumes`): the bundled
+  16-entry table always won over per-subject NITRC tables, and the volume
+  count was never checked. `IXI-DTI.tar` has 17 3D members for IXI002
+  (no duplicate entries); the old roast's `sub-002_dwi.nii.gz` has 18
+  volumes, origin unexplained (being checked by matching volumes to
+  members). Now: members de-duplicated, raw DWI = volumes 0..15; the
+  canonical 16-entry table is written once as dataset-level
+  `dwi.bval`/`dwi.bvec` (BIDS inheritance), and a per-subject
+  `bval`/`bvec` only when the subject's NITRC table numerically differs
+  from it; volume 16, if it correlates >= 0.95
+  with the geometric/arithmetic mean of the DW volumes, goes to
+  `derivatives/ixi-scanner/` as `desc-trace`/`desc-powderavg` `_dwimap`
+  (key `trace`); any other layout is a counted error. Checked on synthetic
+  data only; to validate on real IXI subjects of each site.
+* ~~Harvest: ABIDE-II and ABIDE-I xnat use the sync `nitrc_authentifier`
+  with aiohttp sessions.~~ Fixed in step 3 (async `NitrcAuth`/`XnatAuth`,
+  regression tests with fake login servers in `tests/test_sources.py`).
+  Also fixed there: OASIS-I `--discs 12` was never downloaded, OASIS-III
+  PET experiments (FDG, PIB, AV45, AV1451) were only harvested with
+  `pup`, ABIDE-I xnat sent the XNAT login to the NITRC phenotype URL.
 
 ## 9. Open questions
 
@@ -600,6 +691,11 @@ up as an XPASS failure once fixed (then drop the marker).
 * Validator/tooling support for `DatasetType: "study"` and `rawbids/` (new
   in BIDS 1.11.2): to check; `rawbids/` itself is a plain raw dataset.
 * Grind runtime for SPM (MATLAB, compiled standalone SPM, or Python port).
+* ABIDE-II from S3 (planned default for raw data): roast the bucket's
+  BIDS-like copy as a hosted-BIDS source (INDI-style project with
+  hybrid placement, 2b-iii), or keep the NITRC tarballs as the default.
+  The two copies differ (runs, acquisitions, sessions), so a dataset
+  harvested from both is not one BIDS dataset.
 
 ## 10. Revision log
 
@@ -624,7 +720,11 @@ up as an XPASS failure once fixed (then drop the marker).
   to `different`; every shard runs in the pool and every `finalize`
   runs; roast shards write the per-task state of §7 and go through the
   local `submit` protocol; `ctx.source` prepares step 3.
-* r6: step 2b-iv (owner review). The runner becomes a stage-agnostic
+* r6: step 3. Sources as implemented (§4): keys reach sources as a
+  `Wants` predicate; generated files are entries with `meta["content"]`;
+  per-run options through `configure`; ABIDE-II keeps NITRC as its
+  default (the S3 copy is not what its roaster reads).
+* r7: step 2b-iv (owner review). The runner becomes a stage-agnostic
   engine (`actions/engine.py`) driven by an acceptance `Policy`; the
   roast layer moves to `brainspresso/roast/`, the BIDS kind classifier
   to `bids/kinds.py` (`Action.kind` is opaque, `Action.compare`

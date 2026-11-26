@@ -1,20 +1,16 @@
 from pathlib import Path
-from urllib.parse import urlparse
 from humanize import naturalsize
 from typing import Literal, Iterable
-from warnings import filterwarnings
-from urllib3.exceptions import InsecureRequestWarning
 
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.ui import human2bytes
-from brainspresso.download import Downloader
-from brainspresso.download import DownloadManager
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.download import IfExists
-from brainspresso.sources.nitrc import nitrc_authentifier_async
+from brainspresso.sources.base import DownloadOptions, Wants
+from brainspresso.sources.nitrc import NITRC
 from brainspresso.datasets.COBRE.command import cobre
 
 
@@ -31,6 +27,11 @@ URLS = {
 }
 
 KeyChoice = Literal["raw", "meta"]
+
+
+def sources() -> dict:
+    """Sources of COBRE: NITRC files (login), four at a time"""
+    return {"nitrc": NITRC(URLS, jobs=4)}
 
 
 @cobre.command(name="harvest")
@@ -71,25 +72,14 @@ def download(
         Path to log file
     """
     setup_filelog(log)
-    auth = nitrc_authentifier_async(user, password)
-    keys = keys or URLS.keys()
-    keys = list({key: None for key in keys}.keys())  # remove duplicates
+    if isinstance(keys, str):
+        keys = [keys]
+    keys = list({key: None for key in keys or URLS}.keys())
     path: Path = Path(get_tree_path(path))
     dataset = resolve_layout(path / 'COBRE', layout)
-    src = dataset.source
     record_run(dataset, "harvest", {"dataset": "COBRE"})
-    src.mkdir(parents=True, exist_ok=True)
-
-    filterwarnings('ignore', category=InsecureRequestWarning)
-    DownloadManager((
-        Downloader(
-            url,  src / Path(urlparse(url).path).name,
-            ifexists=if_exists,
-            chunk_size=human2bytes(packet),
-            auth=auth,
-            get_opt=dict(ssl=False),
-        )
-        for key in keys
-        for url in URLS[key]),
-        on_error="raise"
-    ).run()
+    sources()["nitrc"].configure(user=user, password=password).harvest(
+        dataset, keys=Wants(keys),
+        options=DownloadOptions(ifexists=if_exists, on_error="raise",
+                                chunk_size=human2bytes(packet)),
+    )

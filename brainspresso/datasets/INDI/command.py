@@ -33,7 +33,6 @@ from brainspresso.datasets.INDI.engine import (
     list_sites, site_label,
 )
 from brainspresso.sources import fcp
-from brainspresso.sources.openneuro import RemoteEntry
 
 FolderChoice = Literal["derivatives", "sourcedata"]
 Many = Parameter(consume_multiple=True)
@@ -94,8 +93,7 @@ def prepare(
             [InlineEntry("participants.tsv", participants)], selection, where
         )
     items = asyncio.run(list_sites(
-        project, chosen,
-        keep_subject=selection.keep_subject,
+        project, chosen, selection=selection,
         derivatives="derivatives" in selection.folders,
     ))
     return items, tables, selection, chosen
@@ -103,10 +101,7 @@ def prepare(
 
 def extra_entries(project: Project) -> list:
     return [
-        RemoteEntry(
-            path, fcp.get_bucket().url(obj.key), size=obj.size,
-            mtime=obj.mtime, digests={"md5": obj.md5} if obj.md5 else {},
-        )
+        obj.entry(fcp.get_bucket().url(obj.key), path)
         for path, obj in asyncio.run(list_extra(project))
     ]
 

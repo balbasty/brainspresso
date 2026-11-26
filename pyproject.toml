@@ -19,10 +19,11 @@ select = ["E", "F", "W", "D"]
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-# Docstrings (pydocstyle, numpy convention) are enforced in the packages
-# ported to the new architecture only; extend this list as datasets are
-# ported (docs/design/architecture.md, "Conventions").
-"!brainspresso/{actions,roast,bids}/**" = ["D"]
+# Docstrings (pydocstyle, numpy convention) are enforced package by
+# package, in the packages ported to the new architecture only; extend
+# this one (negated) pattern as packages comply (two negated patterns
+# would exempt every file): docs/design/architecture.md, "Conventions".
+"!brainspresso/{actions,bids,download,roast,sources}/**" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

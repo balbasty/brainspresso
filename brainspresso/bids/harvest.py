@@ -2,7 +2,9 @@
 Download a filtered subset of a remote BIDS dataset.
 
 This is independent of where the dataset is hosted: it takes a listing
-of `RemoteEntry` (relative path, URL, size, digests) and a `Selection`.
+of `sources.base.RemoteEntry` (relative path, URL, size, digests) and a
+`Selection`; hosted-BIDS sources (`sources.openneuro.OpenNeuro`, INDI
+projects) fetch through it.
 Entries may also be `InlineEntry` (relative path and content): files
 generated locally (e.g. a merged `participants.tsv`, or metadata that the
 host lacks) that are selected and written like downloaded files.
@@ -150,6 +152,7 @@ def harvest(
     provenance: dict | None = None,
     repair: bool = False,
     layout: str | None = None,
+    insecure: bool = False,
 ) -> list:
     """
     Select and download a subset of a remote BIDS dataset.
@@ -188,6 +191,8 @@ def harvest(
     layout : {"study", "flat"}, optional
         Layout of a new dataset (if `root` is a path). Must match the
         layout of an existing dataset.
+    insecure : bool
+        Do not verify TLS certificates
 
     Returns
     -------
@@ -228,6 +233,7 @@ def harvest(
             mtime=e.mtime,
             digests=e.digests or None,
             ifexists=if_exists,
+            insecure=insecure,
         ))
 
     if nb_inline:

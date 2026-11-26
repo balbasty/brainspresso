@@ -1,3 +1,4 @@
+"""Creation of aiohttp sessions with brainspresso defaults."""
 __all__ = ["new_session"]
 import aiohttp
 

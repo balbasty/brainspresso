@@ -56,7 +56,7 @@ def downloaders():
             for url in urls:
                 yield Downloader(
                     url, Path(__file__).parent / 'PDFs' / url.split('/')[-1],
-                    get_opt=dict(verify=False),
+                    insecure=True,
 
                 )
 

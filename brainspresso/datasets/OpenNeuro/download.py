@@ -8,12 +8,14 @@ from cyclopts import Parameter
 
 from humanize import naturalsize
 
-from brainspresso.bids.harvest import harvest, format_summary, summarize
+from brainspresso.bids.harvest import format_summary, summarize
 from brainspresso.bids.layout import LayoutChoice, resolve_layout
 from brainspresso.bids.select import Selection
 from brainspresso.download import IfExists
+from brainspresso.sources.base import DownloadOptions
+from brainspresso.sources.credentials import CredentialsError
 from brainspresso.sources.openneuro import (
-    OpenNeuroAPI, OpenNeuroError, APIUnavailable, list_snapshot,
+    OpenNeuro, OpenNeuroAPI, OpenNeuroError, APIUnavailable, list_snapshot,
 )
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
@@ -31,7 +33,8 @@ def user_errors(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (OpenNeuroError, KeyError, ValueError, PermissionError) as e:
+        except (OpenNeuroError, KeyError, ValueError, PermissionError,
+                CredentialsError) as e:
             message = e.args[0] if isinstance(e, KeyError) else e
             print(f"Error: {message}", file=sys.stderr)
             sys.exit(1)
@@ -64,6 +67,7 @@ def download(
     dry_run: bool = False,
     list: bool = False,
     token: str | None = None,
+    insecure: bool = False,
     log: str | None = None,
     level: str = "info",
 ):
@@ -138,15 +142,16 @@ def download(
         Print the selected files before downloading
     token
         OpenNeuro API key (only needed for private datasets)
+    insecure
+        Do not verify TLS certificates
     log
         Path to log file
     level
         Logging level
     """
     setup_filelog(log, level=level)
-    snapshot = asyncio.run(list_snapshot(
-        dataset, tag, source, api=OpenNeuroAPI(token=token)
-    ))
+    remote = OpenNeuro(dataset, tag, source, token=token)
+    snapshot = remote.snapshot()
     print(
         f"{dataset} snapshot {snapshot.tag or '(unknown tag)'} "
         f"[listed from {snapshot.source}]"
@@ -166,22 +171,14 @@ def download(
         exclude=exclude,
         folders=folders,
     )
-    harvest(
-        snapshot.files,
+    remote.harvest(
         local,
         selection,
+        options=DownloadOptions(ifexists=if_exists, jobs=jobs,
+                                dry_run=dry_run, insecure=insecure),
         where=where,
         trim=trim,
-        if_exists=if_exists,
-        jobs=jobs,
-        dry_run=dry_run,
         listing=list,
-        provenance={
-            "source": "openneuro",
-            "dataset": dataset,
-            "tag": snapshot.tag,
-            "listing": snapshot.source,
-        },
     )
     if not dry_run:
         print(f"BIDS root: {local.raw}")

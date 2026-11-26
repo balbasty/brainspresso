@@ -1,13 +1,19 @@
 {
     "Manufacturer": "Siemens",
-    "ManufacturerModelName": "Verio",
-    "MagneticFieldStrength": 3,
+    "ManufacturersModelName": "Verio",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "12 Chan",
     "PulseSequenceType": "EPI",
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "RepetitionTime": 3.0,
     "EchoTime": 0.03,
     "FlipAngle": 80.0,
-    "PhaseEncodingDirection": "AP",
-    "SliceEncodingDirection": "A",
-    "SliceTiming": "Interleaved Ascending",
-    "RepetitionTimeExcitation": 3.0,
-    "EffectiveEchoSpacing": 7.000448028673835e-06
+    "PixelBandwidth": 2232.0,
+    "SliceThickness": 4.0,
+    "SpacingBetweenSlices": 4.4,
+    "AcquisitionMatrixPE": 64,
+    "PhaseEncodingDirection": "j-"
 }

@@ -1,0 +1,54 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Skyra",
+    "SoftwareVersions": "syngo MR D13",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP",
+    "CoilCombinationMethod": "rSOS",
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR"
+    ],
+    "SequenceName": "tfl",
+    "MRAcquisitionType": "3D",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "B0ShimmingTechnique": "Standard",
+    "ParallelReductionFactorInPlane": 3,
+    "ParallelReductionFactorOutOfPlane": 1,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "EchoTime": 0.0028799999999999997,
+    "InversionTime": 0.794,
+    "DwellTime": 7.812e-06,
+    "FlipAngle": 13.0,
+    "RepetitionTime": 2.2,
+    "RepetitionTimeExcitation": 0.0070999999999999995,
+    "RepetitionTimePreparation": 2.2,
+    "Modality": "MR",
+    "ProtocolName": "MPRAGE_3min",
+    "SeriesDescription": "MPRAGE_3min",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "ImagingFrequency": 123.246551,
+    "BaseResolution": 320,
+    "AcquisitionMatrixPE": 220,
+    "ReconMatrixPE": 220,
+    "PercentPhaseFOV": 68.8,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 220,
+    "PixelBandwidth": 200.0,
+    "SliceThickness": 0.8,
+    "NumberOfAverages": 1
+}

@@ -1,0 +1,523 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+    },
+    "sidecars": {
+        "BNI/1/FLAIR.json": {
+            "printout": "BNI_1/3DFLAIR.txt",
+            "sha256": "ae786894d066b6530eba2ba90e4388f9e50198bd13caa883ea13572ae7390c4c",
+            "nii": "BNI_1/nii/FLAIR.nii",
+            "nii_sha256": "731613650a26dfab0e216cfd08acbecbae74593aeb7a2548afac35f44f3112fc",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "BNI/1/T1w.json": {
+            "printout": "BNI_1/anat.txt",
+            "sha256": "c331f75d917db571d40e59193a5b451d2caab585be0c3e182a7cf9cb436d6aec",
+            "nii": "BNI_1/nii/T1w.nii",
+            "nii_sha256": "ccd886a46a9d58796589f052c33436c6715189c461fe92be3c6e3768e0193fba",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "BNI/1/bold.json": {
+            "printout": "BNI_1/rest.txt",
+            "sha256": "09d1285463b99401d24bb087d301b9839ef8d7c814cf732a2a7a65392f09362c",
+            "nii": "BNI_1/nii/bold.nii",
+            "nii_sha256": "cd89f2f0c05a64c6dd8df798d428f2283c3a118eff4962c33e02d94170768ba1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "BNI/1/dwi.json": {
+            "printout": "BNI_1/dti.txt",
+            "sha256": "eabdf25917a488d8f21d1b083d7cbabe44fb5eddcf9c49cd5704861ebd4ce224",
+            "nii": "BNI_1/nii/dwi.nii",
+            "nii_sha256": "8b2af1af5b1c0c701d651523fdc98245017dac108a2d5391c6370753e38e2df0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "EMC/1/T1w.json": {
+            "printout": "EMC_1/anat.pdf",
+            "sha256": "452361cfcdebe33ced734256c89088820eacda5c60e7b419bfce38596e2d8c7f",
+            "nii": "EMC_1/nii/T1w.nii",
+            "nii_sha256": "eefc246c2f0ee385917ea5fe60f208e18339beedadc1edc47c8369d59dd3b0f9",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "EMC/1/bold.json": {
+            "printout": "EMC_1/rest.pdf",
+            "sha256": "2ec918b0c133ebecf406d90cca5c81e644de2378d7e422ce5584aee991467b77",
+            "nii": "EMC_1/nii/bold.nii",
+            "nii_sha256": "9216f22b56a43dd5aeee957e54445e7904a5b3c7c85863a727ac95249760370d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "ETH/1/T1w.json": {
+            "printout": "ETH_1/anat.txt",
+            "sha256": "2f4f33fe5813fdfcb74e58cf6c41f66674b3e31688e7958b8d6f22c62ddab6dc",
+            "nii": "ETH_1/nii/T1w.nii",
+            "nii_sha256": "ffce2f9356f72901b8f5f5b8331078f549ca8884f63f00095eda14bb7a17a539",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "ETH/1/bold.json": {
+            "printout": "ETH_1/rest.txt",
+            "sha256": "f565fd9d0d07ecfb7a4db5fd8d59ab3a03ca6cb7cfe862ae3bcbeaf853d2c2f0",
+            "nii": "ETH_1/nii/bold.nii",
+            "nii_sha256": "7a1ec549208052ffb3438f89de932d68b4ecc96e0e531e476aaafe118e787640",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "GU/1/T1w.json": {
+            "printout": "GU_1/T1w.pdf",
+            "sha256": "67e44130ce46754bb9d07674497bbb137e9fa1a11995b1d1ec23316430c8537d",
+            "nii": "GU_1/nii/T1w.nii",
+            "nii_sha256": "4085b1263d3eb3777f0423c56f453ab2fbe020d75dbf6949a04ab3fdb08cfd88",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "GU/1/bold.json": {
+            "printout": "GU_1/bold.pdf",
+            "sha256": "d90bbcf973444692ca1a7529b279269f7b37e1e55499f95b3addb36fabdfe7d4",
+            "nii": "GU_1/nii/bold.nii",
+            "nii_sha256": "25b83ccb8fca86627a5b7e53aca0c9ba00625c9d98ecc4bea41185a3c771a006",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "IP/1/T1w.json": {
+            "printout": "IP_1/T1w.pdf",
+            "sha256": "91c7efa7c797a86e34d6473b519039ebeb90f897c4a19837e5a01cd5164d4aec",
+            "nii": "IP_1/nii/T1w.nii",
+            "nii_sha256": "28220eb1a5d78d3e6a1ceea649a6250b91d0c35327f1cdc23a89de736f521f13",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "IP/1/bold.json": {
+            "printout": "IP_1/bold.pdf",
+            "sha256": "13640d92d239619ece2fe40207a1ecc09225705e2cab60cfd03f7d97199439a8",
+            "nii": "IP_1/nii/bold.nii",
+            "nii_sha256": "378d275c456a93693023f88000ca87ff28799c69536b4ee619e143145a5f3576",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "IP/1/dwi.json": {
+            "printout": "IP_1/dwi.pdf",
+            "sha256": "7bedb0d31ce064dde729e7b71e3f6273c3981af566b1e3c2ee5be400e83b7c6c",
+            "nii": "IP_1/nii/dwi.nii",
+            "nii_sha256": "5001df2aaf494fe0b8d04b12365bdd6494658598e04bc69e8543c4917ed4cf28",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "IU/1/T1w.json": {
+            "printout": "IU_1/T1w.pdf",
+            "sha256": "77a4bafd6a1e46ff95c81e8831a59a431f8b3ec0a1f46a7fd7d79a690494f365",
+            "nii": "IU_1/nii/T1w.nii",
+            "nii_sha256": "ca615d167086166038c9268edacd89549ed4168f351450329fa0d035b68e876d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "IU/1/bold.json": {
+            "printout": "IU_1/bold.pdf",
+            "sha256": "8ba56ceeb5ed1641ce4a9af7c74257dba6d498b5cac0a7ad062f29d42bac0f50",
+            "nii": "IU_1/nii/bold.nii",
+            "nii_sha256": "3feab838f2fb9fb598a3c391a111e7e33579e630a1055a11dd688b81f9e5c2d9",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KUL/3/T1w.json": {
+            "printout": "KUL_3/T1w.txt",
+            "sha256": "775ae685474cd15224a3953fa151b89eef0a66198a016757240aae05ed0fe0b9",
+            "nii": "KUL_3/nii/T1w.nii",
+            "nii_sha256": "cc1c4c68fa51f31a47711c49f1cf9bae57565b128be6cca159fb7e641334e8c3",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KUL/3/bold.json": {
+            "printout": "KUL_3/bold.txt",
+            "sha256": "61622ccd816d5209baf81249b07ccc7b8dab7c095d3d68b4286b32ecdccd8c18",
+            "nii": "KUL_3/nii/bold.nii",
+            "nii_sha256": "2c2396ff52913c850fc06521e41f446af949a7e6daa5650ca77ea14d849ee13f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/1/T1w.json": {
+            "printout": "NYU_1/T1w.pdf",
+            "sha256": "af52b2289c1bf092e1f775593b505928dd0f622e45b8a525adbcd036f323a1ba",
+            "nii": "NYU_1/nii/T1w.nii",
+            "nii_sha256": "02db98cae6c5860f4088714fe0020aee63b1a1672558553a8d40ad93cb3deffd",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/1/bold.json": {
+            "printout": "NYU_1/bold.pdf",
+            "sha256": "ffa59eea66f780c12dfc6989a081e8495c32899986ddc1ce31f5469dee43713e",
+            "nii": "NYU_1/nii/bold.nii",
+            "nii_sha256": "84565b523a3bb079a89ed64e17639147c9437aac652576574f280d2d480a0f4f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/1/dwi.json": {
+            "printout": "NYU_1/dwi.pdf",
+            "sha256": "18b9c009e22ede2f7c2662334169870405513289c2ece23cf82e4d6c17e88499",
+            "nii": "NYU_1/nii/dwi.nii",
+            "nii_sha256": "0d17b7748a7b7f58ef51c5434b666d5d487ba614bb20c8f592a504cd0c5c1485",
+            "fill_from": "NYU_1/scantable.pdf",
+            "fill_sha256": "58319b281d3ec7d4caa4f5b5044c80972262974a85e9976ed1a73809969e29ae",
+            "fill_select": "2",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/2/T1w.json": {
+            "printout": "NYU_2/T1w.pdf",
+            "sha256": "af52b2289c1bf092e1f775593b505928dd0f622e45b8a525adbcd036f323a1ba",
+            "nii": "NYU_2/nii/T1w.nii",
+            "nii_sha256": "989c343d7ea3edae1ec0050aa0efa7c045fdcc9e7227abec637999631827cd40",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/2/bold.json": {
+            "printout": "NYU_2/bold.pdf",
+            "sha256": "50ae93e846cd0b96f2a5b8763507de6f2fbe2661730a38870049932d700b5ab3",
+            "nii": "NYU_2/nii/bold.nii",
+            "nii_sha256": "db60a35b6f72d8cab5845c622b463353d9de578e77efb2168720100ec9fb3f04",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/2/dwi.json": {
+            "printout": "NYU_2/dwi.pdf",
+            "sha256": "18b9c009e22ede2f7c2662334169870405513289c2ece23cf82e4d6c17e88499",
+            "nii": "NYU_2/nii/dwi.nii",
+            "nii_sha256": "ea9d61ba253c2d256ead8ef4a19809f527ab4547d5d6c2a7ceec9b65b213c510",
+            "fill_from": "NYU_2/scantable.pdf",
+            "fill_sha256": "71ab6378586a5b38c238307660c3b06f67385ae474398c3ffef433593f591030",
+            "fill_select": "2",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "OHSU/1/T1w.json": {
+            "printout": "OHSU_1/T1w.pdf",
+            "sha256": "3c4834ed0f6fd30ee200b7fa0ace2812f0f9449ddfd2b0c77ee62aac6d78918d",
+            "nii": "OHSU_1/nii/T1w.nii",
+            "nii_sha256": "e597ad15ae22ed75d272fb98a9932726e24ecda71d3914a00457b62aab893f6d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "OHSU/1/bold.json": {
+            "printout": "OHSU_1/bold.pdf",
+            "sha256": "ec877cfe3cb15c92ac3f193ae75b48a15d53c829bf756361d53781c858fd514c",
+            "select": "0",
+            "nii": "OHSU_1/nii/bold.nii",
+            "nii_sha256": "afe31133fb136097db3e65bf680bec877d7ab399fd99d0c0367c55cedc01c192",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "SDSU/1/T1w.json": {
+            "printout": "SDSU_1/T1w.pdf",
+            "sha256": "df28e198b8bc9425193b0ff5c71bd504fa836c1d8e561521329330aefbb106b5",
+            "nii": "SDSU_1/nii/T1w.nii",
+            "nii_sha256": "d9fbb593307e8725a0af038fee00fa106516738511889bce762f87274d4963b3",
+            "fill_from": "SDSU_1/scantable.pdf",
+            "fill_sha256": "364887dc0681eb7ea5921618814092d4ec2a5be964230b289519a62e3eb21668",
+            "fill_select": "0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "SDSU/1/bold.json": {
+            "printout": "SDSU_1/bold.pdf",
+            "sha256": "1fccb888f19a6cd311e4d9697c7d7481bf64234ce52c71a89828b429bc9a49b2",
+            "nii": "SDSU_1/nii/bold.nii",
+            "nii_sha256": "dc8c657ef70e7e39528852816ba2365cdc70281ad8fc3c87e4fe7342a2db00e8",
+            "fill_from": "SDSU_1/scantable.pdf",
+            "fill_sha256": "364887dc0681eb7ea5921618814092d4ec2a5be964230b289519a62e3eb21668",
+            "fill_select": "1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "SDSU/1/dwi.json": {
+            "printout": "SDSU_1/dwi.pdf",
+            "sha256": "41710119a54026b12054cf003e71da3721b4b56bdede3e270302cf1b669d04dc",
+            "nii": "SDSU_1/nii/dwi.nii",
+            "nii_sha256": "c480001f3d284db95ad411fb271a87861c648bda1ac577f14a306a68950245d9",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "TCD/1/T1w.json": {
+            "printout": "TCD_1/T1w.txt",
+            "sha256": "93218f15017b95ff75531f1772aa9bdc52ff0d3b1de3b461a205f5a967f10d3f",
+            "nii": "TCD_1/nii/T1w.nii",
+            "nii_sha256": "e10a43c7f0856f675bfdefaab9ec0eaf1e6416c2f1957f6395cd3fd366fe68b7",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "TCD/1/bold.json": {
+            "printout": "TCD_1/bold.txt",
+            "sha256": "0e9a502efeea53923440d6230d8cb8ce966b860230c102167c7ee7ae59a9e7ad",
+            "nii": "TCD_1/nii/bold.nii",
+            "nii_sha256": "01f190e2b2c016c6af3b6878f55207753febcbf53ec6a69c19794535bab901b6",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "TCD/1/dwi.json": {
+            "printout": "TCD_1/dwi.txt",
+            "sha256": "06fdfdb7fdf8f3d54511d9956de8e16ed43656120d0da656dac5d265aab7e256",
+            "nii": "TCD_1/nii/dwi.nii",
+            "nii_sha256": "b6ea5c198ea6f2b2209c73f0c265c95d060dcbb990d63a18dcd5914df53c25c7",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCD/1/T1w.json": {
+            "printout": "UCD_1/T1w.pdf",
+            "sha256": "e1b2aa038df52434664479a682783a959232cd045c911cc0640afe3719ac849a",
+            "nii": "UCD_1/nii/T1w.nii",
+            "nii_sha256": "5955b7cee1490f46380d0d39ab56003402c7e665ff626e9e12ac11e64ae65504",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCD/1/bold.json": {
+            "printout": "UCD_1/bold.pdf",
+            "sha256": "f73aa2d3db4e4f5e1c9e916be2fde5af1ebf9e9cfb7a521063fd75fdffd0ab3f",
+            "nii": "UCD_1/nii/bold.nii",
+            "nii_sha256": "692273ee67b7ed5e10baba2bfec0bf22f079b3ae120bbd1aba4459cbbebedbaf",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCLA/1/T1w.json": {
+            "printout": "UCLA_1/T1w.pdf",
+            "sha256": "f1138f0d59f7bfba859950346dd32d1a900d38d0c73dc5223dfb0b9360af366b",
+            "nii": "UCLA_1/nii/T1w.nii",
+            "nii_sha256": "c75f2d694307160d8225ce332aedfe6510caca8eb79fa656fff51dfa8cb9c2b7",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCLA/1/bold.json": {
+            "printout": "UCLA_1/bold.pdf",
+            "sha256": "b9219cfdd24c88137e13800fcb2f33130e9ffdb8e2ce5977e4859019bf0531b6",
+            "nii": "UCLA_1/nii/bold.nii",
+            "nii_sha256": "7581e6957b27fb4a4ca151832047918d7c6a344e62cbaa7cac0123f3b9aa4dc1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCLA/2/T1w.json": {
+            "manual": true
+        },
+        "UCLA/2/bold.json": {
+            "manual": true
+        },
+        "UCLA/Long/T1w.json": {
+            "printout": "UCLA_Long/T1w.pdf",
+            "sha256": "f1138f0d59f7bfba859950346dd32d1a900d38d0c73dc5223dfb0b9360af366b",
+            "nii": "UCLA_Long/nii/T1w.nii",
+            "nii_sha256": "3e88e45b6747c5aef4d53eee7b980557082c1c9b440b5c3af439b82a29d211a4",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UCLA/Long/bold.json": {
+            "printout": "UCLA_Long/bold.pdf",
+            "sha256": "b9219cfdd24c88137e13800fcb2f33130e9ffdb8e2ce5977e4859019bf0531b6",
+            "nii": "UCLA_Long/nii/bold.nii",
+            "nii_sha256": "fc2d217ae9e62bf64cb0e046d3152764ec6317531760e384e975df0ca4511e9c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UPSM/1/T1w.json": {
+            "manual": true
+        },
+        "UPSM/1/bold.json": {
+            "manual": true
+        },
+        "UPSM/Long/T1w.json": {
+            "printout": "UPSM_Long/T1w.pdf",
+            "sha256": "c038380398d785afbb80f3fe34110f31637222a0af4062e4640ba6afdb30000e",
+            "nii": "UPSM_Long/nii/T1w.nii",
+            "nii_sha256": "f4a9dded32818af86c89e2ffc80376182b870238e2789e52c37511cea6530eb4",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "UPSM/Long/bold.json": {
+            "printout": "UPSM_Long/bold.pdf",
+            "sha256": "b703bdd5178d0a23a0bc6dcb043dc117532d57e055a4579781a342bdb94e5108",
+            "nii": "UPSM_Long/nii/bold.nii",
+            "nii_sha256": "129c3f44b7fb95a82a4fc1dae137ca729b06a4e24a0c987c56b1278f3f512e22",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "USM/1/T1w.json": {
+            "printout": "USM_1/T1w.pdf",
+            "sha256": "6ac283898508455f7ec28608737fa385252aac10ed9c66a1da0837ad128697bd",
+            "nii": "USM_1/nii/T1w.nii",
+            "nii_sha256": "ec682f396e24057dfb7296b883799135e80995a8aa2ceda82d5351b3458e43d6",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "USM/1/bold.json": {
+            "printout": "USM_1/bold.pdf",
+            "sha256": "b194e280b13be2e1a21203f60608f6187f157dfda8155eb8f33ad97929b81b7c",
+            "nii": "USM_1/nii/bold.nii",
+            "nii_sha256": "f6c15e2983d64170e50d6a132a716f431bf0fa6e6de3e1e7bc6b9877ba71f7dd",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KKI/1/acq-rc8chan_T1w.json": {
+            "printout": "KKI_1/acq-rc8chan_T1w.pdf",
+            "sha256": "650aabec8bd142d4f6d4a71f0bcaa1b63ccdd2fbc6fa80b6e5c88c0aa702059f",
+            "nii": "KKI_1/nii/acq-rc8chan_T1w.nii",
+            "nii_sha256": "423fa7df8134344befa2cf5ee6e533dde60d785a812db50324f66202491d0f8b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KKI/1/acq-rc8chan_bold.json": {
+            "printout": "KKI_1/bold.pdf",
+            "sha256": "b53806c708d17241bec452b731b8f97c23d757a47494ee469b5e537890953882",
+            "nii": "KKI_1/nii/acq-rc8chan_bold.nii",
+            "nii_sha256": "b254552ad034e0fa55a4a8aaae5e177166deff74716ab201481bc4b1f8279390",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KKI/1/acq-rc32chan_T1w.json": {
+            "printout": "KKI_1/acq-rc32chan_T1w.pdf",
+            "sha256": "cd6983b76f2641ed454f3bf0772d0ae9edc69364d70e0a2660d3572a17c8c76e",
+            "nii": "KKI_1/nii/acq-rc32chan_T1w.nii",
+            "nii_sha256": "221d482d521b3f8810e1f50ce2df56a691f2c305467c65890a2ba01a996127d5",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KKI/1/acq-rc32chan_bold.json": {
+            "printout": "KKI_1/bold.pdf",
+            "sha256": "b53806c708d17241bec452b731b8f97c23d757a47494ee469b5e537890953882",
+            "nii": "KKI_1/nii/acq-rc32chan_bold.nii",
+            "nii_sha256": "edbb14302b33051aba6ad0be08f238cf06be1db5cf0be38c430a73efe24d1ec8",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/1/fieldmap.json": {
+            "printout": "NYU_1/fieldmap.pdf",
+            "sha256": "b3b82d9d8f52f7ae5cbc66fa1a0bf361b802e1b21c52d29ab4514513fe6a851a",
+            "nii": "NYU_1/nii/fieldmap.nii",
+            "nii_sha256": "4121ad3e94aca69168f5fbd0133fe249b7c90e30f4aebb6d78420e8d4e836a9c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "NYU/2/fieldmap.json": {
+            "printout": "NYU_2/fieldmap.pdf",
+            "sha256": "b3b82d9d8f52f7ae5cbc66fa1a0bf361b802e1b21c52d29ab4514513fe6a851a",
+            "nii": "NYU_2/nii/fieldmap.nii",
+            "nii_sha256": "f5d1043dfa52a21ebd2244140bce1df1bc1349409dc9f77ee97cceccfa237a32",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "ONRC/2/T1w.json": {
+            "printout": "ONRC_2/T1w.pdf",
+            "sha256": "787508c356a5ad64b04259bb2102c9cb89cb54f952001d6c88d120bfa0a6056f",
+            "nii": "ONRC_2/nii/T1w.nii",
+            "nii_sha256": "a83539e81d80ee00085a8ccc601b66dad23430c4b056d06526e4dd8cb3eff203",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "ONRC/2/bold.json": {
+            "printout": "ONRC_2/bold.pdf",
+            "sha256": "7e462589a30406e6868f6dfbcffa9623d2c5f1baffe248fedab1e837e74b0a5e",
+            "nii": "ONRC_2/nii/bold.nii",
+            "nii_sha256": "eea7f851c1e206b28fafb071e6251528ab92bd5942536c0ee9744e8eb2742136",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        }
+    }
+}

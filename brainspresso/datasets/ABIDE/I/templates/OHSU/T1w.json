@@ -1,15 +1,54 @@
 {
-    "Manufacturer":  "Siemens",
-    "ManufacturerModelName": "TrioTim",
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "TrioTim",
     "SoftwareVersions": "syngo MR B17",
-    "MagneticFieldStrength": 3,
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP",
+    "MatrixCoilMode": "Auto (CP)",
+    "CoilCombinationMethod": "rSOS",
     "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR"
+    ],
     "SequenceName": "tfl",
-    "EchoTime": 3.58E-3,
-    "RepetitionTimePreparation": 2.3,
-    "RepetitionTimeExcitation": 8.2E-3,
-    "InversionTime": 0.9,
-    "FlipAngle": 10,
+    "PulseSequenceDetails": "%SiemensSeq%\\tfl",
     "MRAcquisitionType": "3D",
-    "CoilCombinationMethod": "Sum of Squares"
-  }
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "SpoilingRFPhaseIncrement": 50.0,
+    "B0ShimmingTechnique": "Standard",
+    "EchoTime": 0.0035800000000000003,
+    "InversionTime": 0.9,
+    "SliceEncodingDirection": "i",
+    "DwellTime": 1.0851e-05,
+    "FlipAngle": 10.0,
+    "RepetitionTime": 2.3000000000000003,
+    "RepetitionTimeExcitation": 0.008199999999999999,
+    "RepetitionTimePreparation": 2.3000000000000003,
+    "Modality": "MR",
+    "ProtocolName": "T1Anatomical-1",
+    "SeriesDescription": "T1Anatomical-1",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "BaseResolution": 256,
+    "AcquisitionMatrixPE": 240,
+    "ReconMatrixPE": 239,
+    "PercentPhaseFOV": 93.8,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 240,
+    "PixelBandwidth": 180.0,
+    "SliceThickness": 1.1,
+    "NumberOfAverages": 1
+}

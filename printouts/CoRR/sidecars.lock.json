@@ -1,578 +1,926 @@
 {
     "protocol2bids": {
-        "version": "0.0.0",
-        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb",
+        "version": "0.0.0"
     },
     "sidecars": {
         "BMB/1/T1w.json": {
             "printout": "BMB_1/anat.pdf",
             "sha256": "6d65749fd3576d01d7529a98b7fb25421af0928474e97896d7d686012eb19e94",
             "nii": "BMB_1/nii/anat.nii",
-            "nii_sha256": "e6c24d07487d3960d72f95fe6cb087a30b3f7fe0859e1af08310a376f653652f"
+            "nii_sha256": "e6c24d07487d3960d72f95fe6cb087a30b3f7fe0859e1af08310a376f653652f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BMB/1/bold.json": {
             "printout": "BMB_1/rest.pdf",
             "sha256": "9fa63278d73e9c29fb75470ca02f5c718b587fda1928e82587c5a46dbf65dda3",
             "nii": "BMB_1/nii/rest.nii",
-            "nii_sha256": "8c47a4d6e418f080626ae5a3ceb59692b3caf0878bfdf880f2da73c92580bc93"
+            "nii_sha256": "8c47a4d6e418f080626ae5a3ceb59692b3caf0878bfdf880f2da73c92580bc93",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/1/T1w.json": {
             "printout": "BNU_1/anat.pdf",
             "sha256": "92771b76d855991d70fa9a0fe70f443ef40015c3928e51f3d6f0e4d01b4b60d7",
             "nii": "BNU_1/nii/anat.nii",
-            "nii_sha256": "24b5f346fd71ecf000543a5019b71b2005a1c5c414441da14e7e147b830df9f5"
+            "nii_sha256": "24b5f346fd71ecf000543a5019b71b2005a1c5c414441da14e7e147b830df9f5",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/1/bold.json": {
             "printout": "BNU_1/rest.pdf",
             "sha256": "564086ea7ce3b36c3d1606d5f801aed5f64176fb0ec977809ebf6b21a0f10b0b",
             "nii": "BNU_1/nii/rest.nii",
-            "nii_sha256": "83b1f2adb0442533cb41c95501ed66a4dedf2b1b07b08b719f4e3a4fdf29ca56"
+            "nii_sha256": "83b1f2adb0442533cb41c95501ed66a4dedf2b1b07b08b719f4e3a4fdf29ca56",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/1/dwi.json": {
             "printout": "BNU_1/dti.pdf",
             "sha256": "121036b2b754bb543f9404618911766992c0774bc937a7f19c86964777cb9100",
             "nii": "BNU_1/nii/dti.nii",
-            "nii_sha256": "c0441f421d8ae9172afc3f0121de8ff673fc714464258653ae42a9e238ef5b75"
+            "nii_sha256": "c0441f421d8ae9172afc3f0121de8ff673fc714464258653ae42a9e238ef5b75",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/3/T1w.json": {
             "printout": "BNU_3/anat.pdf",
             "sha256": "e94eeb06aaabb46972b1c544168141bc7427d6aef63f859f54210e2068282868",
             "nii": "BNU_3/nii/anat.nii",
-            "nii_sha256": "552cdfa06bbda04c4d126b401dc22e6fe940dd47cfa95b5b5131e660e26ad9a1"
+            "nii_sha256": "552cdfa06bbda04c4d126b401dc22e6fe940dd47cfa95b5b5131e660e26ad9a1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/3/bold.json": {
             "printout": "BNU_3/rest.pdf",
             "sha256": "c6f43d69b55edbcd024b6e442ed9242f1651cc141c100ea2727c109ea7bb552a",
             "nii": "BNU_3/nii/rest.nii",
-            "nii_sha256": "056df176ac0b907ae3d3e6cc3b04eea172ef560d130b1f7aa297e737da984a0b"
+            "nii_sha256": "056df176ac0b907ae3d3e6cc3b04eea172ef560d130b1f7aa297e737da984a0b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/3/dwi.json": {
             "printout": "BNU_3/dti.pdf",
             "sha256": "a3c9b0ab8923f670c3fe1e8526e2d0e583edd0e59c1c434fea9adeee1315d2bd",
             "nii": "BNU_3/nii/dti.nii",
-            "nii_sha256": "b16292b72ebeb721561a81dcdfab1237c187a072d033c40b6d7bb77278dd14e0"
+            "nii_sha256": "b16292b72ebeb721561a81dcdfab1237c187a072d033c40b6d7bb77278dd14e0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "DC/1/T1w.json": {
             "printout": "DC_1/scantable.pdf",
             "sha256": "771374e6879d75317c77411890662f3e91600df4cf25f1fbe29f158c619e84b1",
-            "select": "*Anatomical"
+            "select": "*Anatomical",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "DC/1/bold.json": {
             "printout": "DC_1/scantable.pdf",
             "sha256": "771374e6879d75317c77411890662f3e91600df4cf25f1fbe29f158c619e84b1",
-            "select": "*Rest"
+            "select": "*Rest",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "HNU/1/T1w.json": {
             "printout": "HNU_1/scantable.pdf",
             "sha256": "ae079dff0af8126863028a92cda6cab5d89c1471693a77a26f516725866515d3",
             "select": "*Anatomical",
             "nii": "HNU_1/nii/anat.nii",
-            "nii_sha256": "204af515256bd02468affdc560bd3f31b23b90fe736c0a4b9f5264c1d2bb4d0b"
+            "nii_sha256": "204af515256bd02468affdc560bd3f31b23b90fe736c0a4b9f5264c1d2bb4d0b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "HNU/1/bold.json": {
             "printout": "HNU_1/scantable.pdf",
             "sha256": "ae079dff0af8126863028a92cda6cab5d89c1471693a77a26f516725866515d3",
             "select": "*Rest",
             "nii": "HNU_1/nii/rest.nii",
-            "nii_sha256": "b99d5249b2f9bcd4662b8c1242b4cc66b91ff7fe363b9efb7c95c7d501e981f9"
+            "nii_sha256": "b99d5249b2f9bcd4662b8c1242b4cc66b91ff7fe363b9efb7c95c7d501e981f9",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "HNU/1/dwi.json": {
             "printout": "HNU_1/scantable.pdf",
             "sha256": "ae079dff0af8126863028a92cda6cab5d89c1471693a77a26f516725866515d3",
             "select": "*DTI",
             "nii": "HNU_1/nii/dti.nii",
-            "nii_sha256": "f841899e9ccc6654cc56dc19f9fdb4b9918eb1299b6c28978f52ad7a01d7b65d"
+            "nii_sha256": "f841899e9ccc6654cc56dc19f9fdb4b9918eb1299b6c28978f52ad7a01d7b65d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IACAS/1/T1w.json": {
             "printout": "IACAS_1/anat.pdf",
             "sha256": "c73308cc441be5a0785f1942a4d9fbde6481b377a0d918203b1df526d95b2d89",
             "nii": "IACAS_1/nii/anat.nii",
-            "nii_sha256": "bcc8f791190d3c4a78f7e030325233765cd138e7c2a50def806fed02b1b833d7"
+            "nii_sha256": "bcc8f791190d3c4a78f7e030325233765cd138e7c2a50def806fed02b1b833d7",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IACAS/1/bold.json": {
             "printout": "IACAS_1/rest.pdf",
             "sha256": "157baa3464af7ca703408334c7a5edd3449ca60e088982462f8313ea15087894",
             "nii": "IACAS_1/nii/rest.nii",
-            "nii_sha256": "8ca2da210a2ed7573e229f3730aa62eed8b82ee68872f847e3e733698e4406c4"
+            "nii_sha256": "8ca2da210a2ed7573e229f3730aa62eed8b82ee68872f847e3e733698e4406c4",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IBA/TRT/T1w.json": {
             "printout": "IBA_TRT/scantable.pdf",
             "sha256": "535abd60a839aa31dee73e3a1ea662a7a12f81c9da4c78f65cf9338bc36adbee",
             "select": "*Anatomical",
             "nii": "IBA_TRT/nii/anat.nii",
-            "nii_sha256": "b5790c6718f62a2c9be52a035cd52f8a51ed937f22975776ced2860a479d9170"
+            "nii_sha256": "b5790c6718f62a2c9be52a035cd52f8a51ed937f22975776ced2860a479d9170",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IBA/TRT/bold.json": {
             "printout": "IBA_TRT/scantable.pdf",
             "sha256": "535abd60a839aa31dee73e3a1ea662a7a12f81c9da4c78f65cf9338bc36adbee",
             "select": "*Rest",
             "nii": "IBA_TRT/nii/rest.nii",
-            "nii_sha256": "6528f274b1dc6e5a57e5f8c4346ed2b1552ac4fb55027a177f035db723d04964"
+            "nii_sha256": "6528f274b1dc6e5a57e5f8c4346ed2b1552ac4fb55027a177f035db723d04964",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/1/T1w.json": {
             "printout": "IPCAS_1/scantable.pdf",
             "sha256": "2622b16b4048ef7958384d68449bb3f9aaa74bb0e1e95ebb365b3a776368221a",
             "select": "*Anatomical",
             "nii": "IPCAS_1/nii/anat.nii",
-            "nii_sha256": "39e67f68c2846f100a38f8f58af8878d6fb27a51e1883840cc966c08719d9ccd"
+            "nii_sha256": "39e67f68c2846f100a38f8f58af8878d6fb27a51e1883840cc966c08719d9ccd",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/1/bold.json": {
             "printout": "IPCAS_1/scantable.pdf",
             "sha256": "2622b16b4048ef7958384d68449bb3f9aaa74bb0e1e95ebb365b3a776368221a",
             "select": "*Rest",
             "nii": "IPCAS_1/nii/rest.nii",
-            "nii_sha256": "7c3178c084bbd456593412fccb42be517dcf2d85837bdd808677aa7f81258e3e"
+            "nii_sha256": "7c3178c084bbd456593412fccb42be517dcf2d85837bdd808677aa7f81258e3e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/1/dwi.json": {
             "printout": "IPCAS_1/scantable.pdf",
             "sha256": "2622b16b4048ef7958384d68449bb3f9aaa74bb0e1e95ebb365b3a776368221a",
             "select": "*DTI",
             "nii": "IPCAS_1/nii/dti.nii",
-            "nii_sha256": "49c90792e2cea3c5318ff445df1c55195f57d9a5a21b8abd5609d93d1e3e4e83"
+            "nii_sha256": "49c90792e2cea3c5318ff445df1c55195f57d9a5a21b8abd5609d93d1e3e4e83",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/2/T1w.json": {
             "printout": "IPCAS_2/scantable.pdf",
             "sha256": "72689cfd8c8d2555088aa5afce8ce3ea32d2cb79bce867cf51a655927074cf56",
             "select": "*Anatomical",
             "nii": "IPCAS_2/nii/anat.nii",
-            "nii_sha256": "59d83408776f71144e082e9881b5a2425690bcdbdb3428a40d4f3fe92f05b0c0"
+            "nii_sha256": "59d83408776f71144e082e9881b5a2425690bcdbdb3428a40d4f3fe92f05b0c0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/2/bold.json": {
             "printout": "IPCAS_2/scantable.pdf",
             "sha256": "72689cfd8c8d2555088aa5afce8ce3ea32d2cb79bce867cf51a655927074cf56",
             "select": "*Rest",
             "nii": "IPCAS_2/nii/rest.nii",
-            "nii_sha256": "605683069db5f48e6383207e6e72bc098b7c29715d4ec0e7bbc8986f737d9c07"
+            "nii_sha256": "605683069db5f48e6383207e6e72bc098b7c29715d4ec0e7bbc8986f737d9c07",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/2/dwi.json": {
             "printout": "IPCAS_2/scantable.pdf",
             "sha256": "72689cfd8c8d2555088aa5afce8ce3ea32d2cb79bce867cf51a655927074cf56",
             "select": "*DTI",
             "nii": "IPCAS_2/nii/dti.nii",
-            "nii_sha256": "4caccdc6dba42f3f73fb92a0d456807fb69bf332ee2ac79fb504f235cbf81869"
+            "nii_sha256": "4caccdc6dba42f3f73fb92a0d456807fb69bf332ee2ac79fb504f235cbf81869",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/3/T1w.json": {
             "printout": "IPCAS_3/scantable.pdf",
             "sha256": "62e3c108bd20717988676c4535bcb019857ceed809e5336ddfdb0f2895f56f41",
             "select": "*Anatomical",
             "nii": "IPCAS_3/nii/anat.nii",
-            "nii_sha256": "0684000ad86cf872875a89462f1834d6413bead7bb3e5a9dd72be6af7466b14b"
+            "nii_sha256": "0684000ad86cf872875a89462f1834d6413bead7bb3e5a9dd72be6af7466b14b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/3/bold.json": {
             "printout": "IPCAS_3/scantable.pdf",
             "sha256": "62e3c108bd20717988676c4535bcb019857ceed809e5336ddfdb0f2895f56f41",
             "select": "*Rest",
             "nii": "IPCAS_3/nii/rest.nii",
-            "nii_sha256": "394e55cfdaf9162dadc0fd42d169eb3bcf4d3dd8f8ef15ce3ae0ac359a036f1e"
+            "nii_sha256": "394e55cfdaf9162dadc0fd42d169eb3bcf4d3dd8f8ef15ce3ae0ac359a036f1e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/4/T1w.json": {
             "printout": "IPCAS_4/scantable.pdf",
             "sha256": "c98757f11e969a2b96cf6fb9186a1ad9d10db8753a5ad6ebb293daeebe58dac1",
             "select": "*Anatomical",
             "nii": "IPCAS_4/nii/anat.nii",
-            "nii_sha256": "7d7be279a536062ce714ef60b48af7ea083f67827e9eb564f117019fd77b38fc"
+            "nii_sha256": "7d7be279a536062ce714ef60b48af7ea083f67827e9eb564f117019fd77b38fc",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/4/bold.json": {
             "printout": "IPCAS_4/scantable.pdf",
             "sha256": "c98757f11e969a2b96cf6fb9186a1ad9d10db8753a5ad6ebb293daeebe58dac1",
             "select": "*Rest",
             "nii": "IPCAS_4/nii/rest.nii",
-            "nii_sha256": "e9559e85a479b64ef41b773f6692d164ec3062c557e692da63f43ac124aed954"
+            "nii_sha256": "e9559e85a479b64ef41b773f6692d164ec3062c557e692da63f43ac124aed954",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/5/T1w.json": {
             "printout": "IPCAS_5/all.pdf",
             "sha256": "281ca6b84e906e370664654b2f81704ce473293230928cb8f4d6e8bd566643ae",
             "select": "3",
             "nii": "IPCAS_5/nii/anat.nii",
-            "nii_sha256": "35232bb300fe038f6b34ac82f452756550b810fdfda46458d5aa9a20c8836079"
+            "nii_sha256": "35232bb300fe038f6b34ac82f452756550b810fdfda46458d5aa9a20c8836079",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/5/bold.json": {
             "printout": "IPCAS_5/all.pdf",
             "sha256": "281ca6b84e906e370664654b2f81704ce473293230928cb8f4d6e8bd566643ae",
             "select": "1",
             "nii": "IPCAS_5/nii/rest.nii",
-            "nii_sha256": "8ca055c763e0727d03133e7afe858af503ff0c005115d5368f853eaf07a2993f"
+            "nii_sha256": "8ca055c763e0727d03133e7afe858af503ff0c005115d5368f853eaf07a2993f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/6/T1w.json": {
             "printout": "IPCAS_6/scantable.pdf",
             "sha256": "45865e4ab40254c29363231467779a1c8c9a550dd028ce74d9f564cfd647b026",
             "select": "*Anatomical",
             "nii": "IPCAS_6/nii/anat.nii",
-            "nii_sha256": "ece8fba4f8332dcfc7b14c38f4208622759a419a8f0ce179a0b537b15fe9bab1"
+            "nii_sha256": "ece8fba4f8332dcfc7b14c38f4208622759a419a8f0ce179a0b537b15fe9bab1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/6/bold.json": {
             "printout": "IPCAS_6/scantable.pdf",
             "sha256": "45865e4ab40254c29363231467779a1c8c9a550dd028ce74d9f564cfd647b026",
             "select": "*Rest",
             "nii": "IPCAS_6/nii/rest.nii",
-            "nii_sha256": "bf836aec8deeef20613229474eaa660b2a578b902617ebf5f7c5f0ad51192ab5"
+            "nii_sha256": "bf836aec8deeef20613229474eaa660b2a578b902617ebf5f7c5f0ad51192ab5",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/7/T1w.json": {
             "printout": "IPCAS_7/scantable.pdf",
             "sha256": "f8c53e1905c728960834aa58b6b006e2dbbeaab3865a38f62eb83abee27e991a",
             "select": "*Anatomical",
             "nii": "IPCAS_7/nii/anat.nii",
-            "nii_sha256": "a12c27a0ac6b43aaf93202007d2aa0635a1e7b6ad899b84f1b51137f8d658031"
+            "nii_sha256": "a12c27a0ac6b43aaf93202007d2aa0635a1e7b6ad899b84f1b51137f8d658031",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/7/bold.json": {
             "printout": "IPCAS_7/scantable.pdf",
             "sha256": "f8c53e1905c728960834aa58b6b006e2dbbeaab3865a38f62eb83abee27e991a",
             "select": "*Rest",
             "nii": "IPCAS_7/nii/rest.nii",
-            "nii_sha256": "cb3cc28ccd5f8dc62e69a7e199408f5677fa9f50f43666034b0f6dc7d3b46f7e"
+            "nii_sha256": "cb3cc28ccd5f8dc62e69a7e199408f5677fa9f50f43666034b0f6dc7d3b46f7e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/8/T1w.json": {
             "printout": "IPCAS_8/scantable.pdf",
             "sha256": "ffbe0b2f76908bc06786f43b82eb7af4424d318eda6fbc00bb58e4e6bdfef7cc",
             "select": "*Anatomical",
             "nii": "IPCAS_8/nii/anat.nii",
-            "nii_sha256": "f384d6036ad363d911413e1acdc0d524a9b65d849dd0c05fb8e2de03c523e5e0"
+            "nii_sha256": "f384d6036ad363d911413e1acdc0d524a9b65d849dd0c05fb8e2de03c523e5e0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/8/bold.json": {
             "printout": "IPCAS_8/scantable.pdf",
             "sha256": "ffbe0b2f76908bc06786f43b82eb7af4424d318eda6fbc00bb58e4e6bdfef7cc",
             "select": "*Rest",
             "nii": "IPCAS_8/nii/rest.nii",
-            "nii_sha256": "604264fe60d0cc07984c5281b7f16cd67b354ef5afb588e51e5fdd85ca3f73e8"
+            "nii_sha256": "604264fe60d0cc07984c5281b7f16cd67b354ef5afb588e51e5fdd85ca3f73e8",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "IPCAS/8/dwi.json": {
             "printout": "IPCAS_8/scantable.pdf",
             "sha256": "ffbe0b2f76908bc06786f43b82eb7af4424d318eda6fbc00bb58e4e6bdfef7cc",
             "select": "*DTI",
             "nii": "IPCAS_8/nii/dti.nii",
-            "nii_sha256": "8cf1962debdff03f4039d56e6c74dee02a702bed682dc6e7cc14cd3b3200b410"
+            "nii_sha256": "8cf1962debdff03f4039d56e6c74dee02a702bed682dc6e7cc14cd3b3200b410",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "JHNU/1/T1w.json": {
             "printout": "JHNU_1/scantable.pdf",
             "sha256": "136a7f1cf67f8541be948d6e48eb4bbe859accf447972157656fe4226146e3dd",
             "select": "*Anatomical",
             "nii": "JHNU_1/nii/anat.nii",
-            "nii_sha256": "fb17726d85356dee661364d6382602ee6ed05af020f29cdada2ee604dc76b311"
+            "nii_sha256": "fb17726d85356dee661364d6382602ee6ed05af020f29cdada2ee604dc76b311",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "JHNU/1/bold.json": {
             "printout": "JHNU_1/scantable.pdf",
             "sha256": "136a7f1cf67f8541be948d6e48eb4bbe859accf447972157656fe4226146e3dd",
             "select": "*Rest",
             "nii": "JHNU_1/nii/rest.nii",
-            "nii_sha256": "7f19d1e979eebbf5c4fc62ea903ad5f6df5794e4524e4f2bf0feb765b5929b32"
+            "nii_sha256": "7f19d1e979eebbf5c4fc62ea903ad5f6df5794e4524e4f2bf0feb765b5929b32",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/1/T1w.json": {
             "printout": "LMU_1/scantable.pdf",
             "sha256": "c978fd563f76535d0459883484076abbf457bc19042d0958894344f2bf7498f8",
             "select": "*Anatomical",
             "nii": "LMU_1/nii/anat.nii",
-            "nii_sha256": "6bf8d65fff458bf89cc6472980e6703a4e3b0a28f316bf609c3572859f543732"
+            "nii_sha256": "6bf8d65fff458bf89cc6472980e6703a4e3b0a28f316bf609c3572859f543732",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/1/bold.json": {
             "printout": "LMU_1/scantable.pdf",
             "sha256": "c978fd563f76535d0459883484076abbf457bc19042d0958894344f2bf7498f8",
             "select": "*Rest",
             "nii": "LMU_1/nii/rest.nii",
-            "nii_sha256": "790b7615968e5317f463e834e79f192a991acc831d9d92617fb9a19f395c1513"
+            "nii_sha256": "790b7615968e5317f463e834e79f192a991acc831d9d92617fb9a19f395c1513",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/2/T1w.json": {
             "printout": "LMU_2/scantable.pdf",
             "sha256": "0abd8a97f8bb600f62f330dae4205a71336f305639f6699c438b49322e6e72ef",
             "select": "*Anatomical",
             "nii": "LMU_2/nii/anat.nii",
-            "nii_sha256": "1f667ee1441f9b1a0850dda8ebeba257d453c549353a90b8346de9b052f57e40"
+            "nii_sha256": "1f667ee1441f9b1a0850dda8ebeba257d453c549353a90b8346de9b052f57e40",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/2/bold.json": {
             "printout": "LMU_2/scantable.pdf",
             "sha256": "0abd8a97f8bb600f62f330dae4205a71336f305639f6699c438b49322e6e72ef",
             "select": "*Rest",
             "nii": "LMU_2/nii/rest.nii",
-            "nii_sha256": "4a8179afdfc197abdd52eb0cbcbca3d747f10ee86da2ff76f82a950349e57f8e"
+            "nii_sha256": "4a8179afdfc197abdd52eb0cbcbca3d747f10ee86da2ff76f82a950349e57f8e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/3/T1w.json": {
             "printout": "LMU_3/scantable.pdf",
             "sha256": "46d8faa0b72e7d778f13def8d57fcd932c1d42db8b2194c8aa2b8afd3eb14f15",
             "select": "*Anatomical",
             "nii": "LMU_3/nii/anat.nii",
-            "nii_sha256": "bff3118d5da7e677d383ae781f4d97e3a51556d3e4a93a9c4333299f40a09dce"
+            "nii_sha256": "bff3118d5da7e677d383ae781f4d97e3a51556d3e4a93a9c4333299f40a09dce",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "LMU/3/bold.json": {
             "printout": "LMU_3/scantable.pdf",
             "sha256": "46d8faa0b72e7d778f13def8d57fcd932c1d42db8b2194c8aa2b8afd3eb14f15",
             "select": "*Rest",
             "nii": "LMU_3/nii/rest.nii",
-            "nii_sha256": "e822fc50a3484f3c700d0cc67e25867b670b4f3fd5a0764d60fbb1fc808f788a"
+            "nii_sha256": "e822fc50a3484f3c700d0cc67e25867b670b4f3fd5a0764d60fbb1fc808f788a",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "MPG/1/T1w.json": {
             "printout": "MPG_1/scantable.pdf",
             "sha256": "89ada032d9ff5a7bb55869807affff53d2573924aec6048496d677aa0e45314f",
             "select": "*Anatomical",
             "nii": "MPG_1/nii/anat.nii",
-            "nii_sha256": "6e9f0ab600495ef71ab15f1d83600342cfb1379da692c4ed7497e84833f7fd90"
+            "nii_sha256": "6e9f0ab600495ef71ab15f1d83600342cfb1379da692c4ed7497e84833f7fd90",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "MPG/1/bold.json": {
             "printout": "MPG_1/scantable.pdf",
             "sha256": "89ada032d9ff5a7bb55869807affff53d2573924aec6048496d677aa0e45314f",
             "select": "*Rest",
             "nii": "MPG_1/nii/rest.nii",
-            "nii_sha256": "4c05531a8405036d1cbbdbb0c21e979602a23031a9235367f054381cb1424342"
+            "nii_sha256": "4c05531a8405036d1cbbdbb0c21e979602a23031a9235367f054381cb1424342",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "MRN/1/T1w.json": {
             "printout": "MRN_1/scantable.pdf",
             "sha256": "a87b415d7a409a06e2d6f5312bdf0347306001475693235468185c15642ee53e",
             "select": "*Anatomical",
             "nii": "MRN_1/nii/anat.nii",
-            "nii_sha256": "d1c0c4bc8101e888e386247b85d52c9ba135061211788aea2bd48a4422fc452c"
+            "nii_sha256": "d1c0c4bc8101e888e386247b85d52c9ba135061211788aea2bd48a4422fc452c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "MRN/1/bold.json": {
             "printout": "MRN_1/scantable.pdf",
             "sha256": "a87b415d7a409a06e2d6f5312bdf0347306001475693235468185c15642ee53e",
             "select": "*Rest",
             "nii": "MRN_1/nii/rest.nii",
-            "nii_sha256": "a849bf6a43541d6896477edf83f0be233cd79642f38b3efa0140b1ae8c9c5502"
+            "nii_sha256": "a849bf6a43541d6896477edf83f0be233cd79642f38b3efa0140b1ae8c9c5502",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "MRN/1/dwi.json": {
             "printout": "MRN_1/scantable.pdf",
             "sha256": "a87b415d7a409a06e2d6f5312bdf0347306001475693235468185c15642ee53e",
             "select": "*DTI",
             "nii": "MRN_1/nii/dti.nii",
-            "nii_sha256": "506623ae4af22fc00f74ad78fb1950a7e092c97bad2ac98e550d6c8d9967196a"
+            "nii_sha256": "506623ae4af22fc00f74ad78fb1950a7e092c97bad2ac98e550d6c8d9967196a",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/2/T1w.json": {
             "printout": "NKI_2/scantable.pdf",
             "sha256": "f62921bbc36b9afaa5fd05fff9e2d466c2874a999a5cc3c2b093ab8fbe0295c3",
-            "select": "*Anatomical"
+            "select": "*Anatomical",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/2/bold_TE=1400.json": {
             "printout": "NKI_2/scantable.pdf",
             "sha256": "f62921bbc36b9afaa5fd05fff9e2d466c2874a999a5cc3c2b093ab8fbe0295c3",
-            "select": "*Rest 1400"
+            "select": "*Rest 1400",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/2/bold_TE=2500.json": {
             "printout": "NKI_2/scantable.pdf",
             "sha256": "f62921bbc36b9afaa5fd05fff9e2d466c2874a999a5cc3c2b093ab8fbe0295c3",
-            "select": "*Rest 2500"
+            "select": "*Rest 2500",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/2/bold_TE=645.json": {
             "printout": "NKI_2/scantable.pdf",
             "sha256": "f62921bbc36b9afaa5fd05fff9e2d466c2874a999a5cc3c2b093ab8fbe0295c3",
-            "select": "*Rest 645"
+            "select": "*Rest 645",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/2/dwi.json": {
             "printout": "NKI_2/scantable.pdf",
             "sha256": "f62921bbc36b9afaa5fd05fff9e2d466c2874a999a5cc3c2b093ab8fbe0295c3",
-            "select": "*DTI"
+            "select": "*DTI",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NYU/1/T1w.json": {
             "printout": "NYU_1/scantable.pdf",
             "sha256": "0d834567100da175ea019e9420435f26a0f5b6924ae7ef1b993927d337afb6a0",
             "select": "*Anatomical",
             "nii": "NYU_1/nii/anat.nii",
-            "nii_sha256": "9bfb6ebb8bcacb7262d950d1e495eba19ea13ac77d2d9c28ef2edc1eff5f6767"
+            "nii_sha256": "9bfb6ebb8bcacb7262d950d1e495eba19ea13ac77d2d9c28ef2edc1eff5f6767",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NYU/1/bold.json": {
             "printout": "NYU_1/scantable.pdf",
             "sha256": "0d834567100da175ea019e9420435f26a0f5b6924ae7ef1b993927d337afb6a0",
             "select": "*Rest",
             "nii": "NYU_1/nii/rest.nii",
-            "nii_sha256": "a94246984bf4d57318c3e018c60b4bef45a9726a891ae2ee0ac968ff55afd32b"
+            "nii_sha256": "a94246984bf4d57318c3e018c60b4bef45a9726a891ae2ee0ac968ff55afd32b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NYU/2/T1w.json": {
             "printout": "NYU_2/anat.pdf",
             "sha256": "70c6ec4a1462e8aea21db6e48d70bc4919c75730879f321339932c26b0d48518",
             "nii": "NYU_2/nii/anat.nii",
-            "nii_sha256": "d1e8d40ff7571e6b057889ae011b0ac9d73e61fa342c7b6454135175e26c92f4"
+            "nii_sha256": "d1e8d40ff7571e6b057889ae011b0ac9d73e61fa342c7b6454135175e26c92f4",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NYU/2/bold.json": {
             "printout": "NYU_2/rest.pdf",
             "sha256": "81b3f0a46d3ebeab77cd6d51a5f6dfa94dcce154121538469299c875e809a9e9",
             "nii": "NYU_2/nii/rest.nii",
-            "nii_sha256": "f50c93ce9e239b1e5352b1179df0b39107d228715b902edbec0a585c1c2b0041"
+            "nii_sha256": "f50c93ce9e239b1e5352b1179df0b39107d228715b902edbec0a585c1c2b0041",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/1/T1w.json": {
             "printout": "SWU_1/scantable.pdf",
             "sha256": "d4205efb322275057ec4d2cb776bab0edf012b0a2f4aa8abf97200139d59fd00",
             "select": "*Anatomical",
             "nii": "SWU_1/nii/anat.nii",
-            "nii_sha256": "c6e541f143b0419224abd6282c36c5617ab3bfccb6036ec30d0e25d9ab2122ee"
+            "nii_sha256": "c6e541f143b0419224abd6282c36c5617ab3bfccb6036ec30d0e25d9ab2122ee",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/1/bold.json": {
             "printout": "SWU_1/scantable.pdf",
             "sha256": "d4205efb322275057ec4d2cb776bab0edf012b0a2f4aa8abf97200139d59fd00",
             "select": "*Rest",
             "nii": "SWU_1/nii/rest.nii",
-            "nii_sha256": "7d8379ca9ee7c079e354e3d5511af1d4ea4b53f82a0b9209093937585fc12647"
+            "nii_sha256": "7d8379ca9ee7c079e354e3d5511af1d4ea4b53f82a0b9209093937585fc12647",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/2/T1w.json": {
             "printout": "SWU_2/scantable.pdf",
             "sha256": "d1c8fbe6feb5c7245acec886c1863ca449ac0d9646cdf1f24d38c36eac01dfda",
             "select": "*Anatomical",
             "nii": "SWU_2/nii/anat.nii",
-            "nii_sha256": "9dc30a6d3da43a2745fef13d9cba318a9e4a6416a80748177495ba487fa22aa1"
+            "nii_sha256": "9dc30a6d3da43a2745fef13d9cba318a9e4a6416a80748177495ba487fa22aa1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/2/bold.json": {
             "printout": "SWU_2/scantable.pdf",
             "sha256": "d1c8fbe6feb5c7245acec886c1863ca449ac0d9646cdf1f24d38c36eac01dfda",
             "select": "*Rest",
             "nii": "SWU_2/nii/rest.nii",
-            "nii_sha256": "dd98ebbb85a3c47912d78d42a69bd444297d302501af2c53b8afefe433cfbad0"
+            "nii_sha256": "dd98ebbb85a3c47912d78d42a69bd444297d302501af2c53b8afefe433cfbad0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/3/T1w.json": {
             "printout": "SWU_3/scantable.pdf",
             "sha256": "5afafe986d1619e32c40b1bb4de95c0cc23f82e30f30588f41b482327c032335",
             "select": "*Anatomical",
             "nii": "SWU_3/nii/anat.nii",
-            "nii_sha256": "045248edfa3829f727243c86ecfe4f18a820ce7893464cfff0682f8e4785b10c"
+            "nii_sha256": "045248edfa3829f727243c86ecfe4f18a820ce7893464cfff0682f8e4785b10c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/3/bold.json": {
             "printout": "SWU_3/scantable.pdf",
             "sha256": "5afafe986d1619e32c40b1bb4de95c0cc23f82e30f30588f41b482327c032335",
             "select": "*Rest",
             "nii": "SWU_3/nii/rest.nii",
-            "nii_sha256": "5a0481d20b3a83bd1cb4b6a35811621d106074f11f36d79cf9d4ad914592945d"
+            "nii_sha256": "5a0481d20b3a83bd1cb4b6a35811621d106074f11f36d79cf9d4ad914592945d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/4/T1w.json": {
             "printout": "SWU_4/scantable.pdf",
             "sha256": "1c043afebf46e59b3ee20776559bdf95fc671cc90f884537caad82aa25ce0ab1",
             "select": "*Anatomical",
             "nii": "SWU_4/nii/anat.nii",
-            "nii_sha256": "a087c2cb6c901eb7194ee4b1b6ac33ac714ca1c2d98ced9abf9b1597ad4e9533"
+            "nii_sha256": "a087c2cb6c901eb7194ee4b1b6ac33ac714ca1c2d98ced9abf9b1597ad4e9533",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/4/bold.json": {
             "printout": "SWU_4/scantable.pdf",
             "sha256": "1c043afebf46e59b3ee20776559bdf95fc671cc90f884537caad82aa25ce0ab1",
             "select": "*Rest",
             "nii": "SWU_4/nii/rest.nii",
-            "nii_sha256": "bba218455431c16afc493b905de4ee388df7090df764869fa04778e85e99f2d6"
+            "nii_sha256": "bba218455431c16afc493b905de4ee388df7090df764869fa04778e85e99f2d6",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "SWU/4/dwi.json": {
             "printout": "SWU_4/scantable.pdf",
             "sha256": "1c043afebf46e59b3ee20776559bdf95fc671cc90f884537caad82aa25ce0ab1",
             "select": "*DTI",
             "nii": "SWU_4/nii/dti.nii",
-            "nii_sha256": "facf654127aaa9eb33fbba0a444b1be7b1449f925b374929a36402b1a490e20b"
+            "nii_sha256": "facf654127aaa9eb33fbba0a444b1be7b1449f925b374929a36402b1a490e20b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "UM/1/T1w.json": {
             "printout": "UM_1/all.pdf",
             "sha256": "b7dbf874a38368ff11e5b0b022e7d6b44af3c83d83d6fbb7e3d01716ccc6521b",
             "select": "1",
             "nii": "UM_1/nii/anat.nii",
-            "nii_sha256": "df02b82cf1cd016e82b0aadcf78ff1767cf4ab7089f3b2b701823fc3ea5ca519"
+            "nii_sha256": "df02b82cf1cd016e82b0aadcf78ff1767cf4ab7089f3b2b701823fc3ea5ca519",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "UM/1/bold.json": {
             "printout": "UM_1/all.pdf",
             "sha256": "b7dbf874a38368ff11e5b0b022e7d6b44af3c83d83d6fbb7e3d01716ccc6521b",
             "select": "0",
             "nii": "UM_1/nii/rest.nii",
-            "nii_sha256": "ed241172cb162fc67021d6fa0b5d43e40b212ba4a957819c1f71dea7554c44ac"
+            "nii_sha256": "ed241172cb162fc67021d6fa0b5d43e40b212ba4a957819c1f71dea7554c44ac",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "UPSM/1/T1w.json": {
             "printout": "UPSM_1/scantable.pdf",
             "sha256": "24d54dd33adab8d8d7a0e53fdb3e2cf50264b734874bb7b3e6183ea88dedf6a5",
             "select": "*Anatomical",
             "nii": "UPSM_1/nii/anat.nii",
-            "nii_sha256": "d91910bc608a230adc42b7e1bfc2a498dd2906e12dbd2c18085505faf94c4917"
+            "nii_sha256": "d91910bc608a230adc42b7e1bfc2a498dd2906e12dbd2c18085505faf94c4917",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "UPSM/1/bold.json": {
             "printout": "UPSM_1/scantable.pdf",
             "sha256": "24d54dd33adab8d8d7a0e53fdb3e2cf50264b734874bb7b3e6183ea88dedf6a5",
             "select": "*Rest",
             "nii": "UPSM_1/nii/rest.nii",
-            "nii_sha256": "7a32562c2b2ac3af2b58d7ee75daa09d76493eb5a914a0f7f1a2c50fdfab108e"
+            "nii_sha256": "7a32562c2b2ac3af2b58d7ee75daa09d76493eb5a914a0f7f1a2c50fdfab108e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "Utah/1/T1w.json": {
             "printout": "Utah_1/anat.pdf",
             "sha256": "6ac283898508455f7ec28608737fa385252aac10ed9c66a1da0837ad128697bd",
             "nii": "Utah_1/nii/anat.nii",
-            "nii_sha256": "96aad16f55d34625706fde8d2c42bfc56e15f731da04fbd7f7b0f7f92849f6b0"
+            "nii_sha256": "96aad16f55d34625706fde8d2c42bfc56e15f731da04fbd7f7b0f7f92849f6b0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "Utah/1/bold.json": {
             "printout": "Utah_1/rest.pdf",
             "sha256": "b194e280b13be2e1a21203f60608f6187f157dfda8155eb8f33ad97929b81b7c",
             "nii": "Utah_1/nii/rest.nii",
-            "nii_sha256": "d8421d084492efb75a0935524bcb793cf09df1bb8c356a4bf17f805ea4e2f551"
+            "nii_sha256": "d8421d084492efb75a0935524bcb793cf09df1bb8c356a4bf17f805ea4e2f551",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "Utah/2/T1w.json": {
             "printout": "Utah_2/anat.pdf",
             "sha256": "6ac283898508455f7ec28608737fa385252aac10ed9c66a1da0837ad128697bd",
             "nii": "Utah_2/nii/anat.nii",
-            "nii_sha256": "dab088cea0df82ba6c064c6fc8c76aa0cac0cceb0c256f6b76a094ab171e6e37"
+            "nii_sha256": "dab088cea0df82ba6c064c6fc8c76aa0cac0cceb0c256f6b76a094ab171e6e37",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "Utah/2/bold.json": {
             "printout": "Utah_2/rest.pdf",
             "sha256": "b194e280b13be2e1a21203f60608f6187f157dfda8155eb8f33ad97929b81b7c",
             "nii": "Utah_2/nii/rest.nii",
-            "nii_sha256": "52abbea1334dc1639976faee4a1f391c33018b25a219794ab83e16b4401cbe69"
+            "nii_sha256": "52abbea1334dc1639976faee4a1f391c33018b25a219794ab83e16b4401cbe69",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/2/ses-1_T1w.json": {
             "printout": "BNU_2/anat1.pdf",
             "sha256": "1dc34095bc99247eabca34cebde47a9060b9e25ce7163a1ec7198111ffca18a7",
             "nii": "BNU_2/nii/anat1.nii",
-            "nii_sha256": "0b5bb576f83173015f5e19e79a9d51a4389f7fee56f31658e2a53e08fab488c0"
+            "nii_sha256": "0b5bb576f83173015f5e19e79a9d51a4389f7fee56f31658e2a53e08fab488c0",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/2/ses-1_bold.json": {
             "printout": "BNU_2/rest1.pdf",
             "sha256": "37d87dd6fa284842007a607c25e848e587aa221a5463f4d3cf58be7d03d93513",
             "nii": "BNU_2/nii/rest1.nii",
-            "nii_sha256": "94260c04643266abd50b35256fdf223c5aafcb3bea8044b5a5df9145b3c4f01f"
+            "nii_sha256": "94260c04643266abd50b35256fdf223c5aafcb3bea8044b5a5df9145b3c4f01f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/2/ses-2_T1w.json": {
             "printout": "BNU_2/anat2.pdf",
             "sha256": "facc75991aec225b4b9dcf6471e742e18de560284d3bd498c94ab58e2ea7d13d",
             "nii": "BNU_2/nii/anat2.nii",
-            "nii_sha256": "bd91c4ee78a80dc71ebd6786b46a5e025cefd50b4b84cad81c890df1378b58e8"
+            "nii_sha256": "bd91c4ee78a80dc71ebd6786b46a5e025cefd50b4b84cad81c890df1378b58e8",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "BNU/2/ses-2_bold.json": {
             "printout": "BNU_2/rest2.pdf",
             "sha256": "07e2822a7ef8bbaf03937fceb9bf4caa131c7587964fd34e1082018282c17e2d",
             "nii": "BNU_2/nii/rest2.nii",
-            "nii_sha256": "1cebf0ecac9c0ae84165d16ac811826e5bab113dbb44058f9a368c0172cbe977"
+            "nii_sha256": "1cebf0ecac9c0ae84165d16ac811826e5bab113dbb44058f9a368c0172cbe977",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/TRT/dwi.json": {
             "printout": "NKI_TRT/dti.pdf",
             "sha256": "2ee613604bc111db2a67881fee3593c5d387ceb0f5accab45c11bac09209efd6",
             "nii": "NKI_TRT/nii/dti.nii",
-            "nii_sha256": "0919cef2d317ff156d0be5577747171a01dcdb27a0a09c8d8a49713140416a0a"
+            "nii_sha256": "0919cef2d317ff156d0be5577747171a01dcdb27a0a09c8d8a49713140416a0a",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/TRT/acq-645_bold.json": {
             "printout": "NKI_TRT/rest_645.pdf",
             "sha256": "84c96233751520225bae02a64bcef9fe79b6a5e7e8e657358d756e69e17e0c39",
             "nii": "NKI_TRT/nii/rest_645.nii",
-            "nii_sha256": "6127c5b274591b2f74c1423314be58594fa21a42514b0e3590ad37b1ff0b824e"
+            "nii_sha256": "6127c5b274591b2f74c1423314be58594fa21a42514b0e3590ad37b1ff0b824e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/TRT/acq-1400_bold.json": {
             "printout": "NKI_TRT/rest_1400.pdf",
             "sha256": "356c93bb821b8109648dc3b76268e9619ed6482e01c044b13a499e329882e70d",
             "nii": "NKI_TRT/nii/rest_1400.nii",
-            "nii_sha256": "8e9dde934a6b283d6feba1625dda948fd2cd173bacf3c4ba09b9437b587132b2"
+            "nii_sha256": "8e9dde934a6b283d6feba1625dda948fd2cd173bacf3c4ba09b9437b587132b2",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "NKI/TRT/acq-2500_bold.json": {
             "printout": "NKI_TRT/rest_2500.pdf",
             "sha256": "7c84e97555f8647c0748ad0d78f386dd50d5dd5f9b70ca5210c7307826890c86",
             "nii": "NKI_TRT/nii/rest_2500.nii",
-            "nii_sha256": "415ba80e21d2b6d95849b5e9d4a379efe88ce7a94c959bb86421ee83ae0dba8d"
+            "nii_sha256": "415ba80e21d2b6d95849b5e9d4a379efe88ce7a94c959bb86421ee83ae0dba8d",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "Utah/2/fieldmap.json": {
             "printout": "Utah_2/fieldmap.pdf",
             "sha256": "0d1d727f44fe6520c3f9bc0b49c42655a366ceed84fa6613a624f961838c80b8",
             "nii": "Utah_2/nii/fieldmap.nii",
-            "nii_sha256": "a77c2da2999b7f89bb2b2baae929e0255e24e1eb929e999a02cc198eb1c5c6ea"
+            "nii_sha256": "a77c2da2999b7f89bb2b2baae929e0255e24e1eb929e999a02cc198eb1c5c6ea",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "XHCUMS/1/T1w.json": {
             "printout": "XHCUMS/all.pdf",
             "sha256": "517d1cd2a576a5735502554244bd65bc0e4cd53460c433b156d9accadfcd9d5e",
             "select": "1",
             "nii": "XHCUMS/nii/anat.nii",
-            "nii_sha256": "66e8f59837d7f63105a3a217ff93385e050f6762cc284cb0e7051d74d68ec074"
+            "nii_sha256": "66e8f59837d7f63105a3a217ff93385e050f6762cc284cb0e7051d74d68ec074",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "XHCUMS/1/dwi.json": {
             "printout": "XHCUMS/all.pdf",
             "sha256": "517d1cd2a576a5735502554244bd65bc0e4cd53460c433b156d9accadfcd9d5e",
             "select": "3",
             "nii": "XHCUMS/nii/dti.nii",
-            "nii_sha256": "422c2594deaa39de4271fe094fd64bf0bc061b91dbeadc23765ed6664d928495"
+            "nii_sha256": "422c2594deaa39de4271fe094fd64bf0bc061b91dbeadc23765ed6664d928495",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         },
         "XHCUMS/1/bold.json": {
             "printout": "XHCUMS/all.pdf",
             "sha256": "517d1cd2a576a5735502554244bd65bc0e4cd53460c433b156d9accadfcd9d5e",
             "select": "4",
             "nii": "XHCUMS/nii/rest.nii",
-            "nii_sha256": "4d523dbe026698d828bc658e9e9830e9976dc2a72d1543d700bf45882f834bec"
+            "nii_sha256": "4d523dbe026698d828bc658e9e9830e9976dc2a72d1543d700bf45882f834bec",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
         }
     }
 }

@@ -5,3 +5,4 @@
 #
 #   pip install -r requirements-maint.txt
 protocol2bids @ git+https://github.com/balbasty/protocol2bids@198706288dedb5c415a60516044ce1f09c352deb
+tomli; python_version < "3.11"

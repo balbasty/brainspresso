@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Regenerate dataset sidecar templates from protocol printouts.
 
-Maintainer tool: requires `protocol2bids`
+Maintainer tool: requires `protocol2bids` (and `tomli` on Python 3.10)
 (``pip install -r requirements-maint.txt``).
 It is never needed at runtime.
 
@@ -15,8 +15,9 @@ DATASET is one of ABIDE1, ABIDE2, CoRR
 
 For each entry of the conversion table, the printout is converted with
 protocol2bids, `defaults` and `assigns` are applied, and the sidecar is
-written to `brainspresso/datasets/<DS>/templates/<output>`. Provenance is
-written to `printouts/<DATASET>/sidecars.lock.json` and a diff report to
+written to `brainspresso/datasets/<DS>/templates/<output>`. Provenance
+(including, per sidecar, the protocol2bids version and commit) is written
+to `printouts/<DATASET>/sidecars.lock.json` and a diff report to
 `printouts/<DATASET>/report.md`.
 
 With `--check`, nothing is written and the exit code is non-zero if
@@ -24,7 +25,8 @@ regenerating would change any sidecar or the lock file.
 
 `report.md` lists, per sidecar, the keys added, removed and changed
 compared to the sidecar at git `--baseline` (default `HEAD`; an unknown
-ref is an error).
+ref is an error); each section names its protocol2bids version and
+baseline. An unreadable baseline sidecar only makes its diff unavailable.
 
 With `--only PATTERN`, only the matching entries are regenerated; the lock
 entries and report sections of the other sidecars are kept as they are.
@@ -35,7 +37,12 @@ site scan table), as `p2b --fill-from` does.
 
 An entry may set `previous` (path relative to the templates) to diff a new
 sidecar against an older template at another path (e.g. a per-site template
-replaced by per-sample ones); it must exist at the baseline.
+replaced by per-sample ones); it must exist at a git baseline, which is
+checked for every entry before anything is written.
+
+An entry may set `common` (a list of other outputs) instead of a printout:
+its sidecar holds the keys whose values agree across those sidecars (e.g.
+a site template used when the data does not name the sample).
 
 A `manual = true` entry (no printout) is kept as is and takes no conversion
 key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
@@ -46,9 +53,12 @@ import fnmatch
 import hashlib
 import json
 import sys
-import tomllib
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:     # Python < 3.11
+    import tomli as tomllib
 ROOT = Path(__file__).resolve().parent.parent
 PRINTOUTS = ROOT / 'printouts'
 TEMPLATES = {
@@ -59,9 +69,12 @@ TEMPLATES = {
 # template JSON files that are not acquisition sidecars
 NON_SIDECARS = ('dataset_description.json', 'participants.json')
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
-              'fill_from', 'fill_select', 'manual', 'note', 'previous'}
-# keys that drive a conversion (meaningless, hence rejected, if manual)
-CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'note', 'previous'}
+              'fill_from', 'fill_select', 'manual', 'common', 'note',
+              'previous'}
+# keys that drive a conversion (meaningless, hence rejected, if manual
+# or common)
+CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'common', 'note',
+                                'previous'}
 
 
 class TableError(ValueError):
@@ -101,11 +114,13 @@ def load_table(dataset, root=ROOT):
         if e['output'] in seen:
             raise TableError(f'{path}: duplicate output {e["output"]}')
         seen.add(e['output'])
-        if e.get('manual'):
-            ignored = sorted(CONVERSION_KEYS & set(e))
+        if e.get('manual') or 'common' in e:
+            kind = 'manual' if e.get('manual') else 'common'
+            ignored = sorted((CONVERSION_KEYS | {'manual'}) & set(e)
+                             - {kind})
             if ignored:
-                raise TableError(f'{path}: {e["output"]}: manual entry with '
-                                 f'conversion keys {ignored}')
+                raise TableError(f'{path}: {e["output"]}: {kind} entry with '
+                                 f'keys {ignored}')
             continue
         if 'printout' not in e:
             raise TableError(f'{path}: {e["output"]}: no printout '
@@ -121,6 +136,15 @@ def load_table(dataset, root=ROOT):
             if not isinstance(e.get(key, {}), dict):
                 raise TableError(f'{path}: {e["output"]}: {key} must be a '
                                  'table')
+    converted = {e['output'] for e in entries
+                 if not e.get('manual') and 'common' not in e}
+    for e in entries:
+        if 'common' in e:
+            srcs = e['common']
+            if (not isinstance(srcs, list) or len(srcs) < 2
+                    or not set(srcs) <= converted):
+                raise TableError(f'{path}: {e["output"]}: common must list '
+                                 'two or more converted outputs')
     return entries
 
 
@@ -277,6 +301,13 @@ def _fmt(v):
 # main
 # ---------------------------------------------------------------------------
 
+def common_keys(sidecars):
+    """Keys (and values) shared by all sidecars, in the first one's order."""
+    first, *rest = sidecars
+    return {k: v for k, v in first.items()
+            if all(k in o and o[k] == v for o in rest)}
+
+
 def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         baseline='HEAD'):
     root = Path(root)
@@ -289,6 +320,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                          f'{missing}')
 
     in_git = verify_ref(baseline, root)
+    version = protocol2bids_version()
 
     lock_path = pdir / 'sidecars.lock.json'
     report_path = pdir / 'report.md'
@@ -299,78 +331,128 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
     # report section (merge, don't replace)
     old_sections = (report_sections(report_path.read_text())
                     if only and report_path.exists() else {})
-    lock = {'protocol2bids': protocol2bids_version(), 'sidecars': {}}
-    report = []
+
+    def selected(e):
+        if only is None:
+            return True
+        outputs = [e['output'], *e.get('common', [])]
+        return any(fnmatch.fnmatch(o, only) for o in outputs)
+
+    todo = [e for e in entries if not e.get('manual') and selected(e)]
+    # baselines first: nothing is written if one is missing
+    baselines, errors = {}, []
+    for e in todo:
+        try:
+            baselines[e['output']] = baseline_text(e, tpl, root, baseline,
+                                                   in_git)
+        except TableError as exc:
+            errors.append(str(exc))
+    if errors:
+        raise TableError('; '.join(errors))
+
+    locked = {}
+    report = {}
     failures = []
     dirty = []
+    texts = {}      # regenerated sidecars (text)
 
-    for e in entries:
+    def keep(output):
+        if output in old_locked:
+            rec = dict(old_locked[output])
+            if 'protocol2bids' not in rec and 'protocol2bids' in old_lock:
+                rec['protocol2bids'] = old_lock['protocol2bids']
+            locked[output] = rec
+
+    def write(e, sidecar, entry):
         output = e['output']
-        if e.get('manual'):
-            lock['sidecars'][output] = {'manual': True}
-            report.append((output, 'manual', None))
-            continue
-        if only and not fnmatch.fnmatch(output, only):
-            if output in old_locked:
-                lock['sidecars'][output] = old_locked[output]
-            report.append((output, 'kept', old_sections.get(output)))
-            continue
-        printout = pdir / e['printout']
-        nii = pdir / e['nii'] if 'nii' in e else None
-        fill_from = pdir / e['fill_from'] if 'fill_from' in e else None
-        try:
-            sidecar = convert(printout, e.get('select'), nii)
-            filled = (fill(fill_from, e.get('fill_select'))
-                      if fill_from else {})
-        except Exception as exc:
-            failures.append(output)
-            report.append((output, 'error', f'{type(exc).__name__}: {exc}'))
-            if output in old_locked:
-                lock['sidecars'][output] = old_locked[output]
-            continue
-        sidecar = {**filled, **e.get('defaults', {}), **sidecar,
-                   **e.get('assigns', {})}
-        entry = {'printout': e['printout'], 'sha256': sha256(printout)}
-        if 'select' in e:
-            entry['select'] = str(e['select'])
-        if nii is not None:
-            entry['nii'] = e['nii']
-            entry['nii_sha256'] = sha256(nii)
-        if fill_from is not None:
-            entry['fill_from'] = e['fill_from']
-            entry['fill_sha256'] = sha256(fill_from)
-            if 'fill_select' in e:
-                entry['fill_select'] = str(e['fill_select'])
-
         dst = tpl / output
         text = dumps(sidecar)
-        old_text = dst.read_text() if dst.exists() else None
+        texts[output] = text
+        entry['protocol2bids'] = version
+        locked[output] = entry
         try:
-            old = json.loads(baseline_text(e, tpl, root, baseline, in_git)
-                             or '{}')
+            old = json.loads(baselines[output] or '{}')
         except json.JSONDecodeError as exc:
-            failures.append(output)
-            report.append((output, 'error', f'baseline {baseline}: '
-                           f'{type(exc).__name__}: {exc}'))
-            if output in old_locked:
-                lock['sidecars'][output] = old_locked[output]
-            continue
-        lock['sidecars'][output] = entry
-        # roundtrip so that the comparison is done on json values
-        new = json.loads(text)
-        report.append((output, 'ok', diff(old, new)))
+            report[output] = ('nodiff', f'{type(exc).__name__}: {exc}')
+        else:
+            # roundtrip so that the comparison is done on json values
+            report[output] = ('ok', diff(old, json.loads(text)))
+        old_text = dst.read_text() if dst.exists() else None
         if old_text != text:
             dirty.append(output)
             if not check:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.write_text(text)
 
+    def fail(output, exc):
+        failures.append(output)
+        report[output] = ('error', f'{type(exc).__name__}: {exc}')
+        keep(output)
+
+    for e in entries:
+        output = e['output']
+        if e.get('manual'):
+            locked[output] = {'manual': True}
+            report[output] = ('manual', None)
+        elif not selected(e):
+            keep(output)
+            report[output] = ('kept', old_sections.get(output))
+        elif 'common' in e:
+            continue    # once the sidecars it is made of are known
+        else:
+            printout = pdir / e['printout']
+            nii = pdir / e['nii'] if 'nii' in e else None
+            fill_from = pdir / e['fill_from'] if 'fill_from' in e else None
+            try:
+                sidecar = convert(printout, e.get('select'), nii)
+                filled = (fill(fill_from, e.get('fill_select'))
+                          if fill_from else {})
+            except Exception as exc:
+                fail(output, exc)
+                continue
+            sidecar = {**filled, **e.get('defaults', {}), **sidecar,
+                       **e.get('assigns', {})}
+            entry = {'printout': e['printout'], 'sha256': sha256(printout)}
+            if 'select' in e:
+                entry['select'] = str(e['select'])
+            if nii is not None:
+                entry['nii'] = e['nii']
+                entry['nii_sha256'] = sha256(nii)
+            if fill_from is not None:
+                entry['fill_from'] = e['fill_from']
+                entry['fill_sha256'] = sha256(fill_from)
+                if 'fill_select' in e:
+                    entry['fill_select'] = str(e['fill_select'])
+            write(e, sidecar, entry)
+
+    for e in entries:
+        if 'common' not in e or not selected(e):
+            continue
+        try:
+            sources = []
+            for src in e['common']:
+                if src in failures:
+                    raise TableError(f'{src} failed')
+                text = texts.get(src)
+                if text is None:
+                    text = (tpl / src).read_text()
+                sources.append(json.loads(text))
+        except (OSError, ValueError) as exc:
+            fail(e['output'], exc)
+            continue
+        write(e, common_keys(sources), {'common': list(e['common'])})
+
+    lock = {'protocol2bids': lock_version(locked), 'sidecars': {
+        e['output']: locked[e['output']] for e in entries
+        if e['output'] in locked}}
     lock_text = dumps(lock)
     old_lock_text = lock_path.read_text() if lock_path.exists() else None
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
 
-    md = render_report(dataset, lock['protocol2bids'], report, baseline)
+    md = render_report(dataset, [
+        (e['output'], *report[e['output']]) for e in entries],
+        version, baseline)
     print(md, file=out)
     if check:
         if dirty:
@@ -381,12 +463,23 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
     return 1 if failures else 0
 
 
+def lock_version(locked):
+    """protocol2bids of all lock entries, or "mixed"."""
+    versions = {json.dumps(rec['protocol2bids'], sort_keys=True)
+                for rec in locked.values() if 'protocol2bids' in rec}
+    if len(versions) == 1:
+        return json.loads(versions.pop())
+    return 'mixed' if versions else None
+
+
 def baseline_text(e, tpl, root, baseline, in_git):
     """Text of the sidecar an entry is diffed against (None: new).
 
-    The sidecar at git `baseline`, else its `previous` template there.
-    Without git (`HEAD` outside a checkout), the working copy. A
-    `previous` that does not exist at the baseline is an error.
+    The sidecar at git `baseline`, else its `previous` template there
+    (a `previous` missing at a git baseline is an error). Without git
+    (`HEAD` outside a checkout), or for a sidecar not committed yet, the
+    working copy (where a missing `previous` is not an error: it has
+    usually been deleted).
     """
     def read(path):
         if in_git:
@@ -396,7 +489,7 @@ def baseline_text(e, tpl, root, baseline, in_git):
     text = read(tpl / e['output'])
     if text is None and 'previous' in e:
         text = read(tpl / e['previous'])
-        if text is None:
+        if text is None and in_git:
             raise TableError(f'{e["output"]}: previous {e["previous"]} '
                              f'not found at baseline {baseline}')
     if text is None and baseline == 'HEAD':
@@ -406,14 +499,21 @@ def baseline_text(e, tpl, root, baseline, in_git):
     return text
 
 
-def render_report(dataset, version, report, baseline='HEAD'):
+def _short(version):
+    commit = version.get('commit')
+    return (f'{version["version"]} (commit {commit[:7]})' if commit
+            else str(version['version']))
+
+
+def render_report(dataset, report, version=None, baseline='HEAD'):
     lines = [f'# {dataset} sidecar regeneration report', '']
     lines += [
-        f'protocol2bids {version["version"]} (commit {version["commit"]})',
-        '',
-        'Generated by `scripts/make_sidecars.py`; diffs are against the '
-        f'sidecar at git `{baseline}` when the script was run.', '',
+        'Generated by `scripts/make_sidecars.py`. Each section gives the '
+        'protocol2bids version it was converted with and the git ref of '
+        'the sidecar it is diffed against (`--baseline`).', '',
     ]
+    prov = (f'protocol2bids {_short(version)}; baseline `{baseline}`'
+            if version else f'baseline `{baseline}`')
     for output, status, info in report:
         lines.append(f'## {output}')
         lines.append('')
@@ -423,8 +523,12 @@ def render_report(dataset, version, report, baseline='HEAD'):
         if status == 'kept':
             lines += [info or 'not regenerated (outside `--only`)', '']
             continue
+        lines += [prov, '']
         if status == 'error':
             lines += [f'**ERROR**: {info}', '']
+            continue
+        if status == 'nodiff':
+            lines += [f'diff unavailable: unreadable baseline ({info})', '']
             continue
         added, removed, changed = info
         if not (added or removed or changed):

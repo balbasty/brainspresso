@@ -16,6 +16,8 @@
 #             sidecar, as `p2b --fill-from`; never overrides
 #   fill_select (optional) protocol selector in `fill_from` (default: 0)
 #   manual    true if no printout is available: the sidecar is kept as is
+#   common    list of other outputs: the sidecar holds only the keys whose
+#             values agree across them (no printout)
 #   note      (optional) free-text comment
 #   previous  (optional) older template (relative to templates/) that a
 #             new sidecar is diffed against in report.md/known_issues.md
@@ -24,7 +26,9 @@
 # choice of printout and protocol index). Sites with samples get one
 # template folder per sample (`<Site>_<sample>/`, e.g. `MaxMun_a/`), read
 # by the roast when the data's site folder/tarball carries that sample;
-# otherwise it falls back to the site folder (`<Site>/`).
+# when the data names no sample, the site folder (`<Site>/`) holds what
+# the samples share (`common`), else (samples sharing one protocol) the
+# first sample is used.
 # `acq-hires_T1w.json` is the high-resolution anatomical of UCLA
 # (`anat_hires` in convert_ABIDE1.sh, protocol index 1 of anat.pdf); it is
 # not read by the roast yet.
@@ -320,3 +324,13 @@ output = "CMU/T1w.json"
 printout = "CMU_b/anat.pdf"
 nii = "CMU_b/nii/anat.nii"
 note = "site fallback (used by CMU_a, which has no anatomical printout); uses the CMU_b printout"
+
+[[sidecar]]
+output = "CMU/bold.json"
+common = ["CMU_a/bold.json", "CMU_b/bold.json"]
+note = "used when the data names no sample (e.g. XNAT CMU_<id>): CMU_a and CMU_b differ (TR 2 s vs 1.5 s)"
+
+[[sidecar]]
+output = "MaxMun/bold.json"
+common = ["MaxMun_a/bold.json", "MaxMun_b/bold.json", "MaxMun_c/bold.json", "MaxMun_d/bold.json"]
+note = "used when the data names no sample (e.g. XNAT MaxMun_<id>): the samples differ in slice timing and thickness"

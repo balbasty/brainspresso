@@ -194,13 +194,16 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   `BidsifierBase.SAMPLES`. The roast parses the site name of the data in
   any source spelling (S3 `RawData/MaxMun_a/`, NITRC `Leuven_1.tgz`, XNAT
   `UCLA1`/`Leuven-1`, phenotypic `MAX_MUN`) and uses
-  `templates/<Site>_<sample>/<suffix>.json`; when the data names no
-  sample (`CMU`, `MaxMun`), it uses the site's default sample (the first
-  one: the sample the former site-level template described, e.g. `CMU_a`
-  for CMU bold), else `templates/<Site>/<suffix>.json` (`CMU/T1w.json` is
-  kept for `CMU_a`, which has no anatomical printout; NITRC parts such as
-  `NYU_a` use `NYU/`). An unknown site or sample, or a missing template,
-  is logged as an error naming both. `UCLA_{1,2}/acq-hires_T1w.json` is
+  `templates/<Site>_<sample>/<suffix>.json`, else
+  `templates/<Site>/<suffix>.json` (`CMU/T1w.json` is kept for `CMU_a`,
+  which has no anatomical printout). When the data names no sample (XNAT
+  `CMU_<id>`, `MaxMun`), it uses `templates/<Site>/<suffix>.json` if it
+  exists, a `common` entry holding only the keys the samples share
+  (`CMU/bold.json`, `MaxMun/bold.json`; a warning is logged), else the
+  first sample (only where all samples share one protocol, which the
+  tests check). Sites without samples accept only a tarball part as
+  suffix (`NYU_a`). An unknown site, sample or suffix, or a missing
+  template, is an error naming both, counted by the roast. `UCLA_{1,2}/acq-hires_T1w.json` is
   the high-resolution anatomical (`anat_hires`, protocol 1 of `anat.pdf`),
   not read by the roast yet.
 - ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
@@ -248,10 +251,14 @@ protocol2bids' `datasets/convert_*.sh` use it), applies `defaults` and
 `assigns`, and writes the sidecar (4-space indent, protocol2bids key order,
 trailing newline). It never adds
 non-BIDS keys to sidecars; provenance (printout SHA-256, selector, NIfTI
-header SHA-256, protocol2bids version and commit) goes to
-`sidecars.lock.json`. `report.md` lists, per sidecar, the keys added,
-removed and changed compared to git `HEAD` (or `--baseline REF`). The
-committed reports use `--baseline aa3e2f1` (the hand-parsed templates).
+header SHA-256, and per sidecar the protocol2bids version and commit;
+the top-level `protocol2bids` is "mixed" if they differ) goes to
+`sidecars.lock.json`. `report.md` lists, per sidecar, its protocol2bids
+version and baseline and the keys added, removed and changed compared to
+git `HEAD` (or `--baseline REF`). The committed reports use
+`--baseline aa3e2f1` (the hand-parsed templates). An entry with
+`common = [...]` (no printout) holds the keys whose values agree across
+the listed sidecars.
 
 Do not hand-fix values in the generated sidecars: fix protocol2bids (or, for
 genuinely missing information, add `defaults`/`assigns`) and re-run.

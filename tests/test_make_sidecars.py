@@ -5,12 +5,17 @@ import io
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 DATASETS = ("ABIDE1", "ABIDE2", "CoRR")
+
+
+# make_sidecars reads TOML with tomllib (3.11+), else tomli
+pytest.importorskip("tomllib" if sys.version_info >= (3, 11) else "tomli")
 
 
 def _load_script():
@@ -52,6 +57,9 @@ def test_lock_matches_table(dataset):
         if e.get("manual"):
             continue
         rec = lock["sidecars"][e["output"]]
+        if "common" in e:
+            assert rec["common"] == e["common"]
+            continue
         assert rec["printout"] == e["printout"]
         assert rec["sha256"] == ms.sha256(pdir / e["printout"])
 
@@ -207,6 +215,11 @@ def test_only_merges_report_and_lock(tmp_path, monkeypatch):
     assert "changed `EchoTime`: 0.03 -> 0.04" in sections["S/dwi.json"]
 
 
+def _git(root, *args):
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
+                    *args], cwd=root, check=True, capture_output=True)
+
+
 def test_baseline_errors(tmp_path, monkeypatch):
     root = _synthetic_tree(tmp_path)
     _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002}})
@@ -215,22 +228,134 @@ def test_baseline_errors(tmp_path, monkeypatch):
         ms.run("ABIDE1", root=root, out=io.StringIO(), baseline="nosuchref")
     pdir = root / "printouts" / "ABIDE1"
     tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
-    # missing `previous` at the baseline
-    (tpl / "T1w.json").unlink()
     toml = pdir / "sidecars.toml"
+    # outside git, a `previous` deleted from the working copy is not fatal
+    (tpl / "T1w.json").unlink()
     toml.write_text(toml.read_text().replace(
         'select = "1"\n', 'select = "1"\nprevious = "S/old.json"\n'))
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    assert "added `EchoTime`" in (pdir / "report.md").read_text()
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
+def test_previous_missing_at_git_baseline(tmp_path, monkeypatch):
+    """Checked for every entry before anything is written."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
+    (pdir / "S" / "rest.pdf").write_bytes(b"rest printout")
+    toml = pdir / "sidecars.toml"
+    # S/T1w.json (written first) is fine; S/dwi.json has a bad previous
+    toml.write_text(toml.read_text() + (
+        '\n[[sidecar]]\noutput = "S/dwi.json"\nprintout = "S/rest.pdf"\n'
+        'previous = "S/old.json"\n'))
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "init")
+    (tpl / "dwi.json").write_text("{}")     # not committed
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002},
+                            "rest.pdf": {"EchoTime": 0.03}})
+    before = {p: p.read_bytes() for p in tpl.iterdir()}
     with pytest.raises(ms.TableError, match="previous S/old.json"):
         ms.run("ABIDE1", root=root, out=io.StringIO())
-    # unreadable baseline: error for that entry only
-    toml.write_text(toml.read_text().replace(
-        'previous = "S/old.json"\n', ''))
+    assert {p: p.read_bytes() for p in tpl.iterdir()} == before
+    assert not (pdir / "sidecars.lock.json").exists()
+    assert not (pdir / "report.md").exists()
+
+
+def test_unreadable_baseline_still_regenerates(tmp_path, monkeypatch):
+    root = _synthetic_tree(tmp_path)
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002}})
+    pdir = root / "printouts" / "ABIDE1"
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
     (tpl / "T1w.json").write_text("{not json")
     out = io.StringIO()
-    assert ms.run("ABIDE1", root=root, out=out) == 1
-    assert "## S/T1w.json\n\n**ERROR**: baseline HEAD: JSONDecodeError" \
+    assert ms.run("ABIDE1", root=root, out=out) == 0
+    assert "diff unavailable: unreadable baseline (JSONDecodeError" \
         in out.getvalue()
     assert "## S/bold.json\n\nmanual" in out.getvalue()
+    assert json.loads((tpl / "T1w.json").read_text())["EchoTime"] == 0.002
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["S/T1w.json"]["sha256"] == \
+        ms.sha256(pdir / "S/anat.pdf")
+
+
+def test_provenance_per_entry(tmp_path, monkeypatch):
+    """`--only` keeps the protocol2bids version and baseline of the kept
+    entries; the top-level version becomes "mixed"."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    (pdir / "S" / "rest.pdf").write_bytes(b"rest printout")
+    toml = pdir / "sidecars.toml"
+    toml.write_text(toml.read_text() + (
+        '\n[[sidecar]]\noutput = "S/dwi.json"\nprintout = "S/rest.pdf"\n'))
+    (root / ms.TEMPLATES["ABIDE1"] / "S/dwi.json").write_text("{}")
+    v1 = {"version": "1.0", "commit": "a" * 40}
+    v2 = {"version": "2.0", "commit": "b" * 40}
+    monkeypatch.setattr(ms, "convert",
+                        lambda p, s=None, n=None: {"EchoTime": 0.002})
+    monkeypatch.setattr(ms, "protocol2bids_version", lambda: v1)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["protocol2bids"] == v1
+    assert lock["sidecars"]["S/T1w.json"]["protocol2bids"] == v1
+    assert "protocol2bids" not in lock["sidecars"]["S/bold.json"]
+
+    monkeypatch.setattr(ms, "protocol2bids_version", lambda: v2)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(),
+                  only="S/dwi*") == 0
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["protocol2bids"] == "mixed"
+    assert lock["sidecars"]["S/T1w.json"]["protocol2bids"] == v1
+    assert lock["sidecars"]["S/dwi.json"]["protocol2bids"] == v2
+    sections = ms.report_sections((pdir / "report.md").read_text())
+    assert sections["S/T1w.json"].startswith(
+        "protocol2bids 1.0 (commit aaaaaaa); baseline `HEAD`")
+    assert sections["S/dwi.json"].startswith(
+        "protocol2bids 2.0 (commit bbbbbbb); baseline `HEAD`")
+
+
+def test_common_entry(tmp_path, monkeypatch):
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    tpl = root / ms.TEMPLATES["ABIDE1"]
+    for x in ("A", "B"):
+        (pdir / "S" / f"{x}.pdf").write_bytes(x.encode())
+        (tpl / x).mkdir()
+        (tpl / x / "bold.json").write_text("{}")
+    (tpl / "S" / "bold.json").write_text("{}")
+    (pdir / "sidecars.toml").write_text(
+        '[[sidecar]]\noutput = "S/T1w.json"\nprintout = "S/anat.pdf"\n\n'
+        '[[sidecar]]\noutput = "S/bold.json"\n'
+        'common = ["A/bold.json", "B/bold.json"]\n\n'
+        '[[sidecar]]\noutput = "A/bold.json"\nprintout = "S/A.pdf"\n\n'
+        '[[sidecar]]\noutput = "B/bold.json"\nprintout = "S/B.pdf"\n')
+    _fake_p2b(monkeypatch, {
+        "anat.pdf": {"EchoTime": 0.002},
+        "A.pdf": {"EchoTime": 0.03, "RepetitionTime": 2.0, "X": [1]},
+        "B.pdf": {"EchoTime": 0.03, "RepetitionTime": 1.5, "X": [1]}})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    assert json.loads((tpl / "S/bold.json").read_text()) == {
+        "EchoTime": 0.03, "X": [1]}
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["S/bold.json"]["common"] == [
+        "A/bold.json", "B/bold.json"]
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(), check=True) == 0
+    # regenerated when one of its sidecars is (--only)
+    (tpl / "S/bold.json").write_text("{}")
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(),
+                  only="A/*", check=True) == 1
+    # validation
+    toml = pdir / "sidecars.toml"
+    for bad in ('common = ["A/bold.json"]', 'common = ["A/bold.json", '
+                '"Z/bold.json"]', 'common = ["A/bold.json", "B/bold.json"]'
+                '\nnii = "x"'):
+        toml.write_text(
+            '[[sidecar]]\noutput = "S/bold.json"\n' + bad + '\n\n'
+            '[[sidecar]]\noutput = "A/bold.json"\nprintout = "S/A.pdf"\n\n'
+            '[[sidecar]]\noutput = "B/bold.json"\nprintout = "S/B.pdf"\n')
+        with pytest.raises(ms.TableError):
+            ms.load_table("ABIDE1", root=root)
 
 
 def test_uncovered_sidecar_is_an_error(tmp_path, monkeypatch):
@@ -296,7 +421,9 @@ def test_check_real(dataset):
     """Committed sidecars are up to date (needs protocol2bids)."""
     pytest.importorskip("protocol2bids")
     lock = _lock(dataset)
-    if ms.protocol2bids_version() != lock["protocol2bids"]:
+    installed = ms.protocol2bids_version()
+    if any(rec.get("protocol2bids", installed) != installed
+           for rec in lock["sidecars"].values()):
         pytest.skip("installed protocol2bids differs from the lock")
     assert ms.run(dataset, check=True, out=io.StringIO()) == 0
 
@@ -319,11 +446,15 @@ def test_printouts_not_packaged():
     reqs = [line for line in
             (ROOT / "requirements-maint.txt").read_text().splitlines()
             if line.strip() and not line.startswith("#")]
-    assert len(reqs) == 1 and reqs[0].startswith(
+    assert reqs[1:] == ['tomli; python_version < "3.11"']
+    assert reqs[0].startswith(
         "protocol2bids @ git+https://github.com/balbasty/protocol2bids@")
     for ds in DATASETS:
-        commit = _lock(ds)["protocol2bids"]["commit"]
-        assert reqs[0].endswith("@" + commit)
+        lock = _lock(ds)
+        assert lock["protocol2bids"]["commit"]
+        for rec in lock["sidecars"].values():
+            if not rec.get("manual"):
+                assert reqs[0].endswith("@" + rec["protocol2bids"]["commit"])
     assert not (ROOT / "printouts" / "__init__.py").exists()
     assert not (ROOT / "MANIFEST.in").exists() or "printouts" not in (
         ROOT / "MANIFEST.in").read_text()

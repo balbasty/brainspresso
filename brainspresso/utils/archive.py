@@ -34,6 +34,9 @@ class FolderArchive:
     def getmembers(self) -> list["FolderArchive.Member"]:
         return [self.Member(name) for name in self.getnames()]
 
+    def __iter__(self):
+        return iter(self.getmembers())
+
     def getmember(self, name: str) -> "FolderArchive.Member":
         if not (self.path / name).is_file():
             raise KeyError(name)
@@ -66,6 +69,11 @@ class TarArchive:
 
     def getmembers(self) -> list[tarfile.TarInfo]:
         return self.tar.getmembers()
+
+    def __iter__(self):
+        """Members in archive order, read lazily: extracting each member
+        while iterating reads a compressed tarball only once"""
+        return iter(self.tar)
 
     def getmember(self, name: str) -> tarfile.TarInfo:
         return self.tar.getmember(name)

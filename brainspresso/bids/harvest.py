@@ -25,7 +25,7 @@ from humanize import naturalsize
 
 from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.layout import (
-    MANIFEST, STATE_DIR, TASKS_DIR, Layout, resolve_layout,
+    MANIFEST, ORIG_DIR, STATE_DIR, TASKS_DIR, Layout, resolve_layout,
 )
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
@@ -38,7 +38,7 @@ lg = getLogger(__name__)
 
 __all__ = [
     "InlineEntry", "STATE_DIR", "finish_roast", "harvest", "read_manifest",
-    "record_run",
+    "record_run", "trim_originals",
     "write_manifest", "read_task_states", "write_task_state",
 ]
 
@@ -430,6 +430,35 @@ def write_manifest(
         "where": list(where or []),
         "nb_files": len(selected),
     }, files=files)
+
+
+def trim_originals(layout: Layout) -> list[str]:
+    """
+    Derive the visible participants/sessions/scans tables of a roasted
+    dataset from their pristine copies (`<state>/orig/<path>`, written
+    complete by roasters), keeping the rows that refer to something on
+    disk. A sessions or scans table whose folder does not exist (subject
+    or session not roasted) is not written.
+
+    Returns the tables written, relative to `layout.root`.
+    """
+    orig = Path(layout.state) / ORIG_DIR
+    if not orig.is_dir():
+        return []
+    originals = {}
+    for path in orig.rglob("*.tsv"):
+        relpath = path.relative_to(orig).as_posix()
+        if not is_trimmable(relpath) and \
+                not relpath.endswith("/participants.tsv"):
+            continue
+        if Path(relpath).name != "participants.tsv" and \
+                not (Path(layout.root) / relpath).parent.is_dir():
+            continue
+        originals[relpath] = path
+    written = trim_tables(layout.root, originals)
+    if written:
+        lg.info(f"Trimmed tables: {written}")
+    return written
 
 
 def finish_roast(layout: Layout, **info) -> None:

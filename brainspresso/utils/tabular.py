@@ -374,7 +374,7 @@ def bidsify_tab(hide_if_missing=True):
 
     main_columns = [
         "modality",
-        "progress"
+        "progress",
         "path",
         "checksum",
         "status",

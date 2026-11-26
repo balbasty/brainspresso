@@ -3,6 +3,7 @@ import os
 import time
 import traceback
 from contextlib import ExitStack
+from dataclasses import dataclass
 from logging import getLogger
 from os.path import lexists
 from enum import Enum as _Enum
@@ -20,6 +21,55 @@ FilenameLike = str | os.PathLike
 FileLike = FilenameLike | IO
 FilenamesLike = Iterable[FilenameLike] | FilenameLike
 FilesLike = Iterable[FileLike] | FileLike
+Kind = Literal['data', 'sidecar', 'table']
+
+# Dataset-level JSON files that describe tables or the dataset, not data
+# files (kind "table", so that `--json no` does not drop them)
+_TABLE_JSON_SUFFIXES = ('participants', 'sessions', 'scans', 'samples')
+_DATASET_JSON = ('dataset_description.json', 'genetic_info.json')
+
+
+def default_kind(path: FilenameLike) -> Kind:
+    """
+    Kind of an output, from its name:
+
+    * `*.tsv` (and the JSON files that describe tables or the dataset:
+      `participants.json`, `sub-*_sessions.json`, `phenotype/*.json`,
+      `dataset_description.json`): "table";
+    * other `*.json`: "sidecar";
+    * anything else (images, `bval`/`bvec`, surfaces...): "data".
+    """
+    path = Path(path)
+    name = path.name
+    if name.endswith('.tsv'):
+        return 'table'
+    if name.endswith('.json'):
+        stem = name[:-len('.json')]
+        if (
+            name in _DATASET_JSON or
+            stem.split('_')[-1] in _TABLE_JSON_SUFFIXES or
+            path.parent.name == 'phenotype'
+        ):
+            return 'table'
+        return 'sidecar'
+    return 'data'
+
+
+@dataclass(frozen=True)
+class Claim:
+    """
+    Outputs that are only known once an action has run: an output
+    directory, optionally followed by the known start of the file names
+    (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
+    `Selection.keeps(..., partial=True)`.
+    """
+    folder: Path
+    fragment: str = ''
+
+    @property
+    def path(self) -> Path:
+        return Path(self.folder) / self.fragment if self.fragment \
+            else Path(self.folder)
 
 
 class IfExists:
@@ -71,7 +121,9 @@ class IfExists:
         self._prev = None
 
     def __enter__(self) -> None:
-        self._prev = self.default
+        # restore the previous override on exit (not the default, which
+        # would leave an override in place for the whole process)
+        self._prev = type(self).current
         type(self).current = self.value
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -107,20 +159,39 @@ class Action:
     action()  # or action.run()
     ```
 
+    Outputs (used by the roast runner, `actions.runner`)
+    ----------------------------------------------------
+    An action declares its outputs either as `dst` (one path, or a list
+    of paths written together, e.g. DWI nii + bval + bvec) or as a
+    `claim` (`Claim(folder, fragment)`) when they are only known once
+    it has run (members of an archive, dcm2niix, FreeSurfer trees). A
+    claim action is run with `dst=None`: `action()` takes no argument,
+    and may yield (besides status dictionaries) the concrete actions
+    that write each output, which the runner then selects and runs like
+    any other, or write files itself, after checking `self.keeps(path)`,
+    and list them in `self.outputs`. Once run, `outputs` lists what was
+    written (or found already there).
+
+    * `kind` ("data", "sidecar" or "table"; default: `default_kind` of
+      the first output) drives the `--json yes|no|only` policy;
+    * `tag` groups actions in the progress display.
     """
 
     def __init__(
         self,
         src: FilenamesLike | None,
-        dst: FilenamesLike,
+        dst: FilenamesLike | None,
         action: Callable[[FilesLike], GeneratorType | None],
         *,
         mode: str = 'wb',
         input: Literal['file', 'path', 'str'] = 'file',
-        ifexists: IfExists.Choice = 'different',
+        ifexists: IfExists.Choice | None = None,
         size: int | None = None,
         mtime: datetime.datetime | None = None,
         digests: dict[str, str] | None = None,
+        claim: Claim | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
     ) -> None:
         """
         Parameters
@@ -143,7 +214,9 @@ class Action:
             Whether the `action` should be given a file object, a
             Path or a string.
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
-            Behaviour if destination file already exists
+            Behaviour if destination file(s) already exist (default:
+            the runner's policy, else 'different'). With several
+            outputs, it applies to the set (e.g. 'skip' if all exist).
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -152,9 +225,22 @@ class Action:
             Expected digest(s) of the file.
             Keys are algorithm names (e.g. "sha256") and values are the
             digests.
+        claim : Claim | None
+            Outputs only known once run (instead of `dst`)
+        kind : {'data', 'sidecar', 'table'} | None
+            Kind of output (default: from the name of the first output)
+        tag : str | None
+            Progress group (default: that of the roaster)
         """
+        if (dst is None) == (claim is None):
+            raise ValueError('An action has either `dst` or a `claim`')
         self.src = src or []
         self.dst = dst
+        self.claim = claim
+        self.tag = tag
+        self._kind = kind
+        self.outputs: list[Path] | None = None
+        self.keeps: Callable[[Path], bool] = _keep_all
         self.action = action
         self.input = input
         if mode == "b" or mode == "t" or mode == "":
@@ -167,7 +253,29 @@ class Action:
         if digests:
             digests = sort_digests(digests)
         self.digests = digests
+        self.ifexists_given = ifexists is not None
         self.ifexists = IfExists.from_any(ifexists)
+
+    @property
+    def declared(self) -> list[Path]:
+        """Declared outputs (`dst` as a list; empty for a claim)"""
+        dst = self.dst
+        if dst is None:
+            return []
+        if isinstance(dst, (str, os.PathLike)):
+            dst = [dst]
+        return list(map(Path, dst))
+
+    @property
+    def kind(self) -> Kind:
+        if self._kind:
+            return self._kind
+        outputs = self.declared
+        return default_kind(outputs[0]) if outputs else 'data'
+
+    @kind.setter
+    def kind(self, value: Kind | None) -> None:
+        self._kind = value
 
     def run(self) -> None:
         """Run the action"""
@@ -304,10 +412,28 @@ class Action:
             if isinstance(src, (str, Path)):
                 src = [src]
             with Files(*[File(src1, "r") for src1 in src]):
-                yield from self._iter()
+                if self.claim is not None:
+                    yield from self._iter_claim()
+                    return
+                outcome = None
+                for status in self._iter():
+                    outcome = status.get('status', outcome)
+                    yield status
+                self.outputs = (
+                    self.declared if outcome in ('done', 'skipped') else []
+                )
         except Exception as e:
             lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
+
+    def _iter_claim(self) -> Iterator["dict | Action"]:
+        """Run a claim action: statuses, sub-actions, or direct writes"""
+        if self.outputs is None:
+            self.outputs = []
+        out = self.action()
+        if isinstance(out, GeneratorType):
+            yield from out
+        yield {'status': 'done'}
 
     def _iter(self) -> Iterator[dict]:
         dst = self.dst
@@ -424,6 +550,10 @@ class Action:
         except Exception as e:
             lg.error(str(e) + traceback.format_exc())
             yield {'status': 'error', 'message': str(e)}
+
+
+def _keep_all(path) -> bool:
+    return True
 
 
 class WrapAction(Action):

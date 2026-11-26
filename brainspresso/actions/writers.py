@@ -29,6 +29,7 @@ from brainspresso.utils.io import nibabel_convert
 from brainspresso.freesurfer.io import nibabel_fs2gii
 from brainspresso.actions.action import Action
 from brainspresso.actions.action import IfExistsChoice
+from brainspresso.actions.action import Kind
 
 
 class WriteJSON(Action):
@@ -40,7 +41,9 @@ class WriteJSON(Action):
         dst: str | Path,
         *,
         src: str | Path | Iterable[str | Path] = tuple(),
-        ifexists: IfExistsChoice = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int | None = None,
         mtime: datetime | None = None,
         digests: Mapping[str, str] | None = None,
@@ -60,6 +63,10 @@ class WriteJSON(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -81,6 +88,8 @@ class WriteJSON(Action):
             mode="wt",
             input="file",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -98,7 +107,9 @@ class CopyJSON(Action):
         src: str,
         dst: str,
         *,
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -116,6 +127,10 @@ class CopyJSON(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -136,6 +151,8 @@ class CopyJSON(Action):
             mode="wt",
             input="file",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -153,7 +170,9 @@ class WriteTSV(Action):
         dst: str,
         *,
         src: str = tuple(),
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -173,6 +192,10 @@ class WriteTSV(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -194,6 +217,8 @@ class WriteTSV(Action):
             mode="wt",
             input="path",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -212,7 +237,9 @@ class WriteBytes(Action):
         dst: str,
         *,
         src: str = tuple(),
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -231,6 +258,10 @@ class WriteBytes(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -249,6 +280,8 @@ class WriteBytes(Action):
             mode="wb",
             input="file",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -266,7 +299,9 @@ class CopyBytes(Action):
         src: str,
         dst: str,
         *,
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -283,6 +318,10 @@ class CopyBytes(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -299,6 +338,8 @@ class CopyBytes(Action):
             mode="wb",
             input="file",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -317,7 +358,9 @@ class WriteText(Action):
         dst: str,
         *,
         src: str = tuple(),
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -336,6 +379,10 @@ class WriteText(Action):
             Dependencies (only used to compute mtime)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -354,6 +401,8 @@ class WriteText(Action):
             mode="wt",
             input="file",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -374,7 +423,9 @@ class BabelConvert(Action):
         inp_format=None,
         out_format=None,
         affine=None,
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -397,6 +448,10 @@ class BabelConvert(Action):
             Orientation matrix (default: from input)
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -413,6 +468,8 @@ class BabelConvert(Action):
             mode="wb",
             input="path",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,
@@ -438,7 +495,9 @@ class Freesurfer2Gifti(Action):
         src: str,
         dst: str,
         *,
-        ifexists: str = 'different',
+        ifexists: IfExistsChoice | None = None,
+        kind: Kind | None = None,
+        tag: str | None = None,
         size: int = None,
         mtime: datetime = None,
         digests: dict = None,
@@ -455,6 +514,10 @@ class Freesurfer2Gifti(Action):
         ----------------
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file already exists
+        kind : {'data', 'sidecar', 'table'}
+            Kind of output (default: from its name)
+        tag : str
+            Progress group (roast runner)
         size : int
             Expected output size, in bytes
         mtime : datetime
@@ -471,6 +534,8 @@ class Freesurfer2Gifti(Action):
             mode="wb",
             input="path",
             ifexists=ifexists,
+            kind=kind,
+            tag=tag,
             size=size,
             mtime=mtime,
             digests=digests,

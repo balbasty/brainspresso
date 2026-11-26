@@ -362,10 +362,7 @@ layer in 2b-iv):
   (`RoastContext`, `make_context`, `as_list`), `policy.py`
   (`RoastPolicy`), `run.py` (`run_roast`, `roast_dataset`,
   `RoastReport`), `helpers.py` (`copy_templates`, `subject_shards`).
-  `bids/kinds.py`: `default_kind`, `kinds_of`. `actions/runner.py`,
-  `actions/helpers.py` and `actions.action.default_kind` are thin
-  re-exports of the moved names, to be removed once open branches
-  are rebased.
+  `bids/kinds.py`: `default_kind`, `kinds_of`.
 * Acceptance policy (2b-iv): the engine calls
   `policy.accept(action, ctx, staging=) -> bool` (False drops the action
   silently; raising `Rejected(message)` counts it as an error without
@@ -612,7 +609,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-i | Manifest/state schema; `Layout` (study / flat / sites, sub-layouts, `relative`, detection); `--layout`; every writer of `rawdata/` (roasters, compost, harvest, INDI) goes through `Layout`; `rawdata/` removed | High-Effort Opus | done (421 passed, 32 xfailed: the 16 known bugs, under both layouts) |
 | 2b-ii | Runner + action outputs/claims/kind/tag + shards; tables via `.brainspresso/orig` + trim + `finalize`; pilot ports UNC-Wisconsin, IXI, OASIS-III | High-Effort Opus, Fable review | done (461 passed, 28 xfailed: OASIS-III sessions name and exclude-keys fixed) |
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
-| 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`; old paths re-exported), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
+| 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups | High-Effort Opus | |
@@ -620,6 +617,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, one BIDS-App pipeline, submitit; then SPM Segment from `wiip-grind` | High-Effort Opus | |
+| 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
 
 ### Conventions

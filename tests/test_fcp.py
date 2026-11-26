@@ -119,7 +119,7 @@ def same(path: Path, key: str) -> bool:
 # ----------------------------------------------------------------------
 
 def test_abide1_harvest_s3(tmp_path):
-    from brainspresso.datasets.ABIDE.I.download import download_s3
+    from brainspresso.datasets.ABIDE.I.harvest import download_s3
     download_s3(tmp_path, sites=["Caltech"], subs=[51456])
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
@@ -134,7 +134,7 @@ def test_abide1_harvest_s3(tmp_path):
 
 
 def test_abide1_harvest_s3_keys_and_samples(tmp_path):
-    from brainspresso.datasets.ABIDE.I.download import download_s3
+    from brainspresso.datasets.ABIDE.I.harvest import download_s3
     # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes;
     # a single (non-list) key is accepted.
     download_s3(tmp_path, sites=["MaxMun"], keys="T1w")
@@ -149,7 +149,7 @@ def test_abide1_harvest_s3_keys_and_samples(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_abide1_roast_from_s3_folder(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from brainspresso.datasets.ABIDE.I.download import download_s3
+    from brainspresso.datasets.ABIDE.I.harvest import download_s3
     from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
     download_s3(tmp_path, sites=["Caltech"], keys=["raw"], layout=layout)
     root = tmp_path / "ABIDE-1"
@@ -181,7 +181,7 @@ def test_abide1_roast_from_s3_folder(tmp_path, layout):
 # ----------------------------------------------------------------------
 
 def test_corr_harvest_s3(tmp_path):
-    from brainspresso.datasets.CoRR.download import download_s3
+    from brainspresso.datasets.CoRR.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
         src, keys={"raw", "meta"}, sites={"BMB", "IBA"}, subs=set(),
@@ -196,7 +196,7 @@ def test_corr_harvest_s3(tmp_path):
 
 
 def test_corr_harvest_s3_raw_only(tmp_path):
-    from brainspresso.datasets.CoRR.download import download_s3
+    from brainspresso.datasets.CoRR.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
         src, keys={"raw"}, sites={"BMB"}, subs={3002}, exclude_subs=set(),
@@ -214,7 +214,7 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_adhd200_harvest_s3(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from brainspresso.datasets.ADHD200.download import download
+    from brainspresso.datasets.ADHD200.harvest import download
     download(tmp_path, keys=["raw", "meta"], sites=["Brown"], jobs=2,
              layout=layout)
     root = tmp_path / "ADHD-200"

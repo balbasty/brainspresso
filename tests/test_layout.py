@@ -5,9 +5,11 @@ from pathlib import Path
 import pytest
 
 from brainspresso.bids import layout as layout_mod
+from brainspresso.actions.state import (
+    read_task_states, task_path, write_task_state,
+)
 from brainspresso.bids.harvest import (
-    InlineEntry, harvest, read_manifest, read_task_states, record_run,
-    task_path, write_task_state,
+    InlineEntry, harvest, read_manifest, record_run,
 )
 from brainspresso.bids.layout import (
     DEFAULT_LAYOUT, DerivativeLayout, FlatLayout, Layout, LayoutError,

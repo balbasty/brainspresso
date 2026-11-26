@@ -24,7 +24,7 @@ from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.actions import Action, CopyBytes, CopyJSON, WriteJSON
 from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.datasets.Bullitt.download import (
+from brainspresso.datasets.Bullitt.harvest import (
     FOLDER_KEYS, subject_label,
 )
 

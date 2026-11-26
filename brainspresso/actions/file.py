@@ -293,11 +293,11 @@ class Files:
         self._opened = []
 
     def __len__(self) -> int:
-        """Number of files."""
+        """Return the number of files."""
         return len(self.files)
 
     def __getitem__(self, index: int) -> File:
-        """File at an index."""
+        """Return the file at an index."""
         if self._opened:
             return self._opened[index]
         else:

@@ -26,7 +26,7 @@ UNC-Wisconsin/
 
 With `--layout flat`, the content of `rawbids/` is in `UNC-Wisconsin/`
 itself. Participants and sessions tables are written complete to
-`.brainspresso/orig/` and trimmed to what is on disk by the runner.
+`.brainspresso/orig/` and trimmed to what is on disk by `run_roast`.
 """  # noqa: E501
 import json
 import re

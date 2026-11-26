@@ -157,7 +157,7 @@ class RoastContext(Context):
         return True
 
     def _unorig(self, path) -> Path:
-        """A pristine table (`<state>/orig/...`) as the table it copies."""
+        """Map a pristine table (`<state>/orig/...`) to its table."""
         path = Path(path)
         try:
             return self.layout.root / path.relative_to(

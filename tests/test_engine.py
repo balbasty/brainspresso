@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import brainspresso.actions as actions_pkg
-from brainspresso.actions import Action, Fail, WriteText
+from brainspresso.actions import Action, Fail, IfExists, WriteText
 from brainspresso.actions.engine import (
     Context, Policy, Rejected, Shard, run,
 )
@@ -134,7 +134,7 @@ class OnlyTxt(Policy):
         return not names or all(n.endswith(".txt") for n in names)
 
     def prepare(self, action, ctx):
-        action.ifexists = "overwrite"
+        action.ifexists = IfExists.from_any("overwrite")
         seen.append(action.declared[0].name if action.declared else None)
 
     def fingerprint(self, ctx):

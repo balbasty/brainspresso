@@ -575,8 +575,7 @@ class _TaskState:
 
 
 def _signature(ctx: Context, policy: Policy, shard: Shard) -> str | None:
-    """Input signature of a shard: its inputs (path, size, mtime) and
-    the fingerprint of the policy"""
+    """Input signature of a shard: inputs and policy fingerprint."""
     if not shard.inputs:
         return None
     inputs = []

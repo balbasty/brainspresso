@@ -300,7 +300,7 @@ class _Entry:
         return self.writer is None or self.writer == me
 
     def local_holder(self) -> str:
-        """What holds the lock in this process."""
+        """Describe what holds the lock in this process."""
         if self.writer is not None:
             return f"a writer in this process (thread {self.writer})"
         if +self.readers:
@@ -424,7 +424,7 @@ class FileLock:
         return self
 
     def _unlocked(self, why: str) -> "FileLock":
-        """A reader that goes on without a lock (a writer raises)."""
+        """Go on without a lock (a reader), or raise (a writer)."""
         if self.exclusive:
             raise LockError(f"Cannot lock {self.path} for writing: {why}")
         lg.debug(f"{self.path} is read without a lock: {why}")
@@ -532,7 +532,7 @@ class FileLock:
             pass
 
     def _os_holder(self, entry: _Entry) -> str:
-        """What holds an OS lock that this process does not hold."""
+        """Describe what holds an OS lock that this process lacks."""
         if self.exclusive:
             try:
                 fcntl.lockf(entry.fd, fcntl.LOCK_SH | fcntl.LOCK_NB)

@@ -1,3 +1,19 @@
+"""
+Actions: units of work that write files in the tree.
+
+```python
+WriteJSON({"Name": "x"}, "x.json")()                     # run it
+for status in CopyBytes(src, dst):                       # with statuses
+    print(status)
+```
+
+An `Action` declares its outputs (`dst`, or a `Claim` when they are only
+known once it has run), reads its sources under shared locks and writes
+its outputs under exclusive locks, to temporary files renamed into place
+(`actions.file`). `IfExists` decides what to do with outputs that
+already exist. The engine (`actions.engine`) runs actions that its
+producers yield, through the acceptance policy of a stage layer.
+"""
 import datetime
 import filecmp
 import os
@@ -33,7 +49,7 @@ __all__ = [
 
 
 def __getattr__(name: str):
-    """Deprecated re-exports (moved to `bids.kinds`)."""
+    """Re-export deprecated names (moved to `bids.kinds`)."""
     if name == "default_kind":
         from brainspresso.bids.kinds import default_kind
         return default_kind
@@ -43,17 +59,27 @@ def __getattr__(name: str):
 @dataclass(frozen=True)
 class Claim:
     """
-    Outputs that are only known once an action has run: an output
-    directory (or a list of them, e.g. the `func/` and `perf/` folders
-    of a session), optionally followed by the known start of the file
-    names (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
-    `Selection.keeps(..., partial=True)`: the claim can be selected if
-    any of its paths can.
+    Outputs that are only known once an action has run.
+
+    An output directory (or a list of them, e.g. the `func/` and `perf/`
+    folders of a session), optionally followed by the known start of the
+    file names (`<dir>/sub-01_ses-2_acq-mprage`). Matched with
+    `Selection.keeps(..., partial=True)` by roast: the claim can be
+    selected if any of its paths can.
+
+    Parameters
+    ----------
+    folder : path | list[path]
+        Output folder(s)
+    fragment : str
+        Known start of the file names (in each folder)
     """
+
     folder: Path | tuple[Path, ...]
     fragment: str = ''
 
     def __post_init__(self):
+        """Normalize `folder` (a path, or a tuple of several)."""
         folder = self.folder
         if not isinstance(folder, (str, os.PathLike)):
             folder = tuple(map(Path, folder))
@@ -67,27 +93,35 @@ class Claim:
 
     @property
     def folders(self) -> tuple[Path, ...]:
+        """Claimed folders, as a tuple."""
         folder = self.folder
         return folder if isinstance(folder, tuple) else (folder,)
 
     @property
     def paths(self) -> tuple[Path, ...]:
-        """Claimed paths (one per folder)"""
+        """Claimed paths (one per folder)."""
         return tuple(f / self.fragment if self.fragment else f
                      for f in self.folders)
 
     @property
     def path(self) -> Path:
-        """First claimed path"""
+        """First claimed path."""
         return self.paths[0]
 
 
 class IfExists:
     """
-    This class both:
+    What to do with outputs that already exist.
+
+    This class:
+
     - holds the set of singleton values (as an Enum)
-    - defines constant (such as the default value)
+    - defines constants (such as the default value)
     - serves as a context manager to override whichever value was set
+
+    Values: "skip" (if all outputs exist), "overwrite", "different"
+    (if the size, digest or, with `Action.compare`, the content differs),
+    "refresh" (if the mtime differs from that of the sources), "error".
 
     ```python
     action = Action(..., ifexists='overwrite')
@@ -99,6 +133,8 @@ class IfExists:
     Choice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
 
     class Enum(_Enum):
+        """Singleton values."""
+
         SKIP = S = 1
         OVERWRITE = O = 2       # noqa: E741
         DIFFERENT = D = 3
@@ -118,7 +154,20 @@ class IfExists:
 
     @classmethod
     def from_any(cls, x: int | Choice | Enum | None) -> Enum:
-        """Return the singleton representation of a value"""
+        """
+        Return the singleton representation of a value.
+
+        Parameters
+        ----------
+        x : int | str | Enum | None
+            A value (a string is matched on its first letter; None: the
+            default)
+
+        Returns
+        -------
+        Enum
+            The singleton
+        """
         if x is None:
             return cls.default
         elif isinstance(x, str):
@@ -131,19 +180,21 @@ class IfExists:
         self._prev = None
 
     def __enter__(self) -> None:
+        """Override the value of every action, until exit."""
         # restore the previous override on exit (not the default, which
         # would leave an override in place for the whole process)
         self._prev = type(self).current
         type(self).current = self.value
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restore the previous override."""
         type(self).current = self._prev
         self._prev = None
 
 
 class Action:
     """
-    This object represents an action that generates a file in the tree.
+    An action that generates a file (or several) in the tree.
 
     The file written by the action is given the latest "mtime" of all
     its sources, from which it is derived.
@@ -217,6 +268,8 @@ class Action:
         compare: bool | None = None,
     ) -> None:
         """
+        Build an action.
+
         Parameters
         ----------
         src : [sequence of] str | Path | None
@@ -238,7 +291,8 @@ class Action:
             Path or a string.
         ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
             Behaviour if destination file(s) already exist (default:
-            the runner's policy, else 'different'). With several
+            that of the policy of the engine, else 'different'). With
+            several
             outputs, it applies to the set (e.g. 'skip' if all exist).
         size : int
             Expected output size, in bytes
@@ -292,7 +346,7 @@ class Action:
 
     @property
     def declared(self) -> list[Path]:
-        """Declared outputs (`dst` as a list; empty for a claim)"""
+        """Declared outputs (`dst` as a list; empty for a claim)."""
         dst = self.dst
         if dst is None:
             return []
@@ -301,12 +355,12 @@ class Action:
         return list(map(Path, dst))
 
     def run(self) -> None:
-        """Run the action"""
+        """Run the action."""
         for _ in self:
             pass
 
     def __call__(self) -> None:
-        """Run the action (`run` alias)"""
+        """Run the action (`run` alias)."""
         return self.run()
 
     def _should_overwrite(self) -> Generator[dict, None, bool]:
@@ -433,6 +487,7 @@ class Action:
         return True
 
     def __iter__(self) -> Iterator[dict]:
+        """Run the action, yielding statuses (and a claim's actions)."""
         try:
             # Protect source files for reading and perform action
             src = self.src
@@ -454,7 +509,7 @@ class Action:
             yield {'status': 'error', 'message': str(e)}
 
     def _iter_claim(self) -> Iterator["dict | Action"]:
-        """Run a claim action: statuses and sub-actions"""
+        """Run a claim action: statuses and sub-actions."""
         if self.outputs is None:
             self.outputs = []
         out = self.action()
@@ -613,9 +668,19 @@ _COMPARE = 'compare'
 
 class Fail(Action):
     """
-    An action that only reports an error (e.g. a missing input), so that
-    the roast runner counts and displays it. It has no outputs: neither
-    the selection nor the JSON policy can hide it.
+    An action that only reports an error (e.g. a missing input).
+
+    The engine counts and displays it. It has no outputs: no policy
+    hides it (neither the selection nor the JSON policy of roast).
+
+    Parameters
+    ----------
+    message : str
+        The error
+    name : str
+        Name shown in the display
+    tag : str
+        Progress group
     """
 
     def __init__(self, message: str, *, name: str = '', tag: str = None):
@@ -624,6 +689,7 @@ class Fail(Action):
         self.name = name
 
     def __iter__(self) -> Iterator[dict]:
+        """Report the error."""
         lg.error(self.message)
         self.outputs = []
         yield {'status': 'error', 'message': self.message}
@@ -631,8 +697,10 @@ class Fail(Action):
 
 class WrapAction(Action):
     """
-    An action whose actor takes the source files as input on top of the
-    destination path.
+    An action whose actor also takes the source files.
+
+    `action(src, dst)` instead of `action(dst)`; same arguments as
+    `Action`.
     """
 
     def __init__(self, *args, **kwargs) -> None:

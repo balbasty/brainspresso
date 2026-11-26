@@ -233,7 +233,7 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
     # unpacked files are inputs of the bidsification (`staging`: the
     # JSON policy does not apply to them)
     yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
-    # (the shard runs after the tree is unpacked: the runner runs each
+    # (the shard runs after the tree is unpacked: the engine runs each
     # action before asking for the next item)
     yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
 

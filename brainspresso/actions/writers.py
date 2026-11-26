@@ -1,5 +1,5 @@
 """
-Collection of simple writers wrapped in an Action:
+Simple writers wrapped in an `Action`.
 
 ```python
 Tabular = Iterable[Iterable[str]]
@@ -33,7 +33,7 @@ from brainspresso.actions.action import Kind
 
 
 def _check_source(action: Action) -> None:
-    """A copy needs a source (e.g. `ctx.resource(name)` found nothing)"""
+    """Raise if a copy has no source (e.g. no `ctx.resource(name)`)."""
     if not action.src:
         raise FileNotFoundError(
             f"No source to copy to {Path(action.dst).name} "
@@ -42,7 +42,7 @@ def _check_source(action: Action) -> None:
 
 
 class WriteJSON(Action):
-    """Write a JSON dictionary"""
+    """Write a JSON dictionary."""
 
     def __init__(
         self,
@@ -60,6 +60,8 @@ class WriteJSON(Action):
         **json_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         json : dict
@@ -109,11 +111,12 @@ class WriteJSON(Action):
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         return write_json(self.json, file, **self.json_opt)
 
 
 class CopyJSON(Action):
-    """Copy a JSON file"""
+    """Copy a JSON file."""
 
     def __init__(
         self,
@@ -130,6 +133,8 @@ class CopyJSON(Action):
         **json_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -176,11 +181,13 @@ class CopyJSON(Action):
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         _check_source(self)
         return copy_json(self.src, file, **self.json_opt)
 
 
 class WriteTSV(Action):
+    """Write a TSV table."""
 
     def __init__(
         self,
@@ -198,6 +205,8 @@ class WriteTSV(Action):
         **tsv_opt,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         tsv : Iterable[Iterable[str]]
@@ -247,11 +256,12 @@ class WriteTSV(Action):
         )
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return write_tsv(self.tsv, path, **self.tsv_opt)
 
 
 class WriteBytes(Action):
-    """Write from a buffer"""
+    """Write from a buffer."""
 
     def __init__(
         self,
@@ -268,6 +278,8 @@ class WriteBytes(Action):
         digests: dict = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         bytes : dict
@@ -314,11 +326,12 @@ class WriteBytes(Action):
         )
 
     def action(self, file: BinaryIO):
+        """Write the output (the actor of the action)."""
         return write_from_buffer(self.bytes, file)
 
 
 class CopyBytes(Action):
-    """Copy from a buffer"""
+    """Copy from a buffer."""
 
     def __init__(
         self,
@@ -334,6 +347,8 @@ class CopyBytes(Action):
         digests: dict = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -376,12 +391,13 @@ class CopyBytes(Action):
         )
 
     def action(self, file: BinaryIO):
+        """Write the output (the actor of the action)."""
         _check_source(self)
         return copy_from_buffer(self.src, file)
 
 
 class WriteText(Action):
-    """Write a string of text"""
+    """Write a string of text."""
 
     def __init__(
         self,
@@ -398,6 +414,8 @@ class WriteText(Action):
         digests: dict = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         text : str
@@ -444,11 +462,12 @@ class WriteText(Action):
         )
 
     def action(self, file: TextIO):
+        """Write the output (the actor of the action)."""
         return write_text(self.text, file)
 
 
 class BabelConvert(Action):
-    """Conversion with nibabel"""
+    """Convert a neuroimaging file with nibabel."""
 
     def __init__(
         self,
@@ -467,6 +486,8 @@ class BabelConvert(Action):
         digests: dict = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -518,6 +539,7 @@ class BabelConvert(Action):
         self.affine = affine
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return nibabel_convert(
             self.src, path,
             inp_format=self.inp_format,
@@ -527,7 +549,7 @@ class BabelConvert(Action):
 
 
 class Freesurfer2Gifti(Action):
-    """Conversion of freesurfer surface files"""
+    """Convert a FreeSurfer surface file to GIfTI."""
 
     def __init__(
         self,
@@ -543,6 +565,8 @@ class Freesurfer2Gifti(Action):
         digests: dict = None,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         src : str | Path
@@ -585,10 +609,12 @@ class Freesurfer2Gifti(Action):
         )
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         return nibabel_fs2gii(self.src, path)
 
 
 class Unlink(Action):
+    """Remove a file."""
 
     def __init__(
         self,
@@ -597,6 +623,8 @@ class Unlink(Action):
         missing_ok=True,
     ):
         """
+        Build the action.
+
         Parameters
         ----------
         dst : str | Path
@@ -615,4 +643,5 @@ class Unlink(Action):
         self.missing_ok = missing_ok
 
     def action(self, path: Path):
+        """Write the output (the actor of the action)."""
         path.unlink(missing_ok=self.missing_ok)

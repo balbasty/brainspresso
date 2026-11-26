@@ -45,7 +45,8 @@ __all__ = [
 
 @dataclass
 class InlineEntry:
-    """A file of the dataset generated locally (not downloaded)"""
+    """A file of the dataset generated locally (not downloaded)."""
+
     path: str                   # relative to dataset root
     content: bytes
 
@@ -54,11 +55,13 @@ class InlineEntry:
     digests = None
 
     def __post_init__(self):
+        """Encode text content."""
         if isinstance(self.content, str):
             self.content = self.content.encode()
 
     @property
     def size(self) -> int:
+        """Size of the content, in bytes."""
         return len(self.content)
 
 
@@ -79,8 +82,10 @@ def write_inline(entry: InlineEntry, dst: Path, ifexists: str) -> bool:
 
 def resolve_participants(entries, selection: Selection, where: Iterable[str]):
     """
-    Apply participant queries (`age>=60`, `sex==F`...) by reading the
-    remote `participants.tsv`, and restrict `selection.subs` accordingly.
+    Apply participant queries (`age>=60`, `sex==F`...).
+
+    The remote `participants.tsv` is read, and `selection.subs`
+    restricted accordingly.
     """
     where = list(where or [])
     if not where:
@@ -106,7 +111,7 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
 
 
 def summarize(entries) -> dict:
-    """Summary of a list of entries (for display)"""
+    """Summary of a list of entries (for display)."""
     subs, datatypes = set(), Counter()
     for e in entries:
         name = BidsName.parse(e.path)
@@ -319,7 +324,7 @@ MANIFEST_SCHEMA = 1
 
 
 def read_manifest(state: Path) -> dict | None:
-    """Content of `<state>/manifest.json` (None if missing or invalid)"""
+    """Content of `<state>/manifest.json` (None if missing or invalid)."""
     path = Path(state) / MANIFEST
     if not path.exists():
         return None
@@ -341,8 +346,9 @@ def record_run(
     create: bool = True,
 ) -> Path | None:
     """
-    Record a stage run in `<state>/manifest.json` (merged with previous
-    runs), with the layout of the dataset.
+    Record a stage run in `<state>/manifest.json`.
+
+    It is merged with previous runs, with the layout of the dataset.
 
     Parameters
     ----------
@@ -402,8 +408,9 @@ def write_manifest(
     destinations: dict[str, Path] | None = None,
 ):
     """
-    Save what was requested and downloaded by `harvest` in the manifest
-    (see `record_run`). `destinations` maps entry paths to their local
+    Save what `harvest` requested and downloaded in the manifest.
+
+    See `record_run`. `destinations` maps entry paths to their local
     path (default: `layout.resolve(entry.path)`).
     """
     destinations = destinations or {}
@@ -430,9 +437,11 @@ def write_manifest(
 
 def trim_originals(layout: Layout) -> list[str]:
     """
-    Derive the visible participants/sessions/scans tables of a roasted
-    dataset from their pristine copies (`<state>/orig/<path>`, written
-    complete by roasters), keeping the rows that refer to something on
+    Derive the visible tables of a roasted dataset from pristine copies.
+
+    The participants/sessions/scans tables are derived from their
+    pristine copies (`<state>/orig/<path>`, written complete by
+    roasters), keeping the rows that refer to something on
     disk. A sessions or scans table whose folder does not exist (subject
     or session not roasted) is not written.
 
@@ -459,8 +468,9 @@ def trim_originals(layout: Layout) -> list[str]:
 
 def finish_roast(layout: Layout, **info) -> None:
     """
-    Steps shared by all roasts, once their actions have run: write the
-    descriptions that depend on the layout (study description,
+    Run the steps shared by all roasts, once their actions have run.
+
+    Write the descriptions that depend on the layout (study description,
     `SourceDatasets` of derivatives) and record the run in the manifest.
     """
     layout.write_descriptions()

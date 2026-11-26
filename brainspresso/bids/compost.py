@@ -46,7 +46,8 @@ lg = getLogger(__name__)
 
 @dataclass
 class CompostPlan:
-    """Files that will be deleted, relative to the dataset root"""
+    """Files that will be deleted, relative to the dataset root."""
+
     root: Path
     bids: Path
     layout: Layout | None = None
@@ -57,9 +58,11 @@ class CompostPlan:
 
     @property
     def files(self) -> list[str]:
+        """Every file to delete."""
         return [*self.sourcedata, *self.data, *self.derivatives]
 
     def size(self, files: Iterable[str] | None = None) -> int:
+        """Return the size of files (default: all), in bytes."""
         files = self.files if files is None else files
         total = 0
         for f in files:
@@ -70,6 +73,7 @@ class CompostPlan:
         return total
 
     def summary(self) -> str:
+        """Describe what would be deleted."""
         lines = []
         for label, files in (
             ("sourcedata", self.sourcedata),
@@ -96,7 +100,7 @@ class CompostPlan:
 
 
 def has_subjects(path: Path) -> bool:
-    """Whether a folder contains at least one `sub-*` folder"""
+    """Whether a folder contains at least one `sub-*` folder."""
     return Path(path).is_dir() and any(
         p.is_dir() for p in Path(path).glob("sub-*")
     )
@@ -104,8 +108,10 @@ def has_subjects(path: Path) -> bool:
 
 def list_files(folder: Path, relative_to: Path) -> list[str]:
     """
-    List all files (and symlinks) under a folder, without following
-    symlinks, as POSIX paths relative to `relative_to`.
+    List all files (and symlinks) under a folder.
+
+    Symlinks are not followed; paths are POSIX, relative to
+    `relative_to`.
     """
     folder, relative_to = Path(folder), Path(relative_to)
     if not folder.is_dir():
@@ -129,7 +135,7 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def find_participants(layout: Layout) -> Path | None:
-    """Find the participants table (original copy first, if trimmed)"""
+    """Find the participants table (original copy first, if trimmed)."""
     table = layout.raw / "participants.tsv"
     for candidate in (layout.original(table), table):
         if candidate.exists():
@@ -140,7 +146,7 @@ def find_participants(layout: Layout) -> Path | None:
 def restrict_participants(
     layout: Layout, selection: Selection, where: Iterable[str]
 ) -> Selection:
-    """Apply participant queries (`age>=60`...) on the local table"""
+    """Apply participant queries (`age>=60`...) on the local table."""
     where = list(where or [])
     if not where:
         return selection
@@ -156,7 +162,7 @@ def restrict_participants(
 
 
 def is_filtering(selection: Selection | None, where=()) -> bool:
-    """Whether a selection (or queries) actually filters something"""
+    """Whether a selection (or queries) actually filters something."""
     if where:
         return True
     if selection is None:
@@ -170,9 +176,11 @@ def is_filtering(selection: Selection | None, where=()) -> bool:
 
 def _bids_candidates(paths: Iterable[str]) -> list[str]:
     """
-    Files that BIDS filtering may delete: everything under `sub-*/`, and
-    top-level sidecars (`T1w.json`, `task-rest_bold.json`), which are
-    deleted once they do not apply to any data file anymore.
+    Files that BIDS filtering may delete.
+
+    Everything under `sub-*/`, and top-level sidecars (`T1w.json`,
+    `task-rest_bold.json`), which are deleted once they do not apply to
+    any data file anymore.
     """
     out = []
     for path in paths:
@@ -191,7 +199,7 @@ def _bids_candidates(paths: Iterable[str]) -> list[str]:
 
 
 def _filter_tree(tree: Path, selection: Selection) -> list[str]:
-    """Files of a BIDS tree that fall outside a selection"""
+    """Files of a BIDS tree that fall outside a selection."""
     paths = list_files(tree, tree)
     keep = set(selection.select(paths))
     return [p for p in _bids_candidates(paths) if p not in keep]
@@ -310,7 +318,7 @@ def plan_compost(
 
 
 def _prune_empty(folder: Path, stop: Path) -> None:
-    """Remove empty folders from `folder` up to (excluding) `stop`"""
+    """Remove empty folders from `folder` up to (excluding) `stop`."""
     folder, stop = Path(folder), Path(stop)
     while folder != stop and stop in folder.parents:
         try:
@@ -321,7 +329,7 @@ def _prune_empty(folder: Path, stop: Path) -> None:
 
 
 def delete_files(root: Path, files: Iterable[str]) -> int:
-    """Delete files (relative to root) and the folders they leave empty"""
+    """Delete files (relative to root) and the folders they leave empty."""
     root = Path(root)
     count = 0
     folders = set()
@@ -341,8 +349,9 @@ def delete_files(root: Path, files: Iterable[str]) -> int:
 
 def retrim_tables(layout: Layout) -> list[str]:
     """
-    Rewrite participants/sessions/scans tables so that they only list
-    what is present on disk. Untouched copies saved by `harvest` in
+    Rewrite participants/sessions/scans tables to what is on disk.
+
+    Untouched copies saved by `harvest` in
     `.brainspresso/orig/` are used as reference when they exist.
     Returns the tables written, relative to `layout.root`.
     """
@@ -364,7 +373,7 @@ def retrim_tables(layout: Layout) -> list[str]:
 
 
 def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
-    """Record the compost run in `.brainspresso/manifest.json`, if any"""
+    """Record the compost run in `.brainspresso/manifest.json`, if any."""
     record_run(
         layout, "compost", {**record, "nb_files": len(plan.files)},
         deleted=plan.files, create=False,
@@ -372,7 +381,7 @@ def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
 
 
 def confirm(message: str, ask: Callable[[str], str] = input) -> bool:
-    """Ask the user for confirmation (refuse if not interactive)"""
+    """Ask the user for confirmation (refuse if not interactive)."""
     if ask is input and not sys.stdin.isatty():
         raise ValueError(
             "Refusing to delete files without confirmation in a "

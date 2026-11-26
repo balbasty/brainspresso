@@ -73,7 +73,7 @@ _NOT_SITES = (SOURCE_DIR, DERIVATIVES_DIR, STATE_DIR, "phenotype", "code")
 
 
 class LayoutError(ValueError):
-    """Requested layout conflicts with the layout of an existing dataset"""
+    """Requested layout conflicts with the layout of an existing dataset."""
 
 
 def _path(path: str | os.PathLike) -> Path:
@@ -81,7 +81,7 @@ def _path(path: str | os.PathLike) -> Path:
 
 
 def relative_url(target: Path, start: Path) -> str:
-    """Relative URL (POSIX, trailing slash) from `start` to `target`"""
+    """Relative URL (POSIX, trailing slash) from `start` to `target`."""
     rel = PurePosixPath(Path(os.path.relpath(target, start)).as_posix())
     return str(rel) + "/" if str(rel) != "." else "./"
 
@@ -143,73 +143,81 @@ class Layout:
     # ------------------------------------------------------------------
     @property
     def raw(self) -> Path:
+        """Raw BIDS dataset."""
         raise NotImplementedError
 
     @property
     def bids(self) -> Path:
+        """Root of the BIDS dataset that this layout describes."""
         return self.raw
 
     @property
     def source(self) -> Path:
+        """Source data (`sourcedata/`)."""
         return self.root / SOURCE_DIR
 
     @property
     def state(self) -> Path:
+        """State folder (`.brainspresso/`)."""
         return self.root / STATE_DIR
 
     @property
     def derivatives(self) -> Path:
+        """Folder that holds derivative datasets."""
         return self.root / DERIVATIVES_DIR
 
     @property
     def phenotype(self) -> Path:
+        """`phenotype/` folder of the BIDS dataset."""
         return self.bids / "phenotype"
 
     @property
     def bidsignore(self) -> Path:
+        """`.bidsignore` of the BIDS dataset."""
         return self.bids / ".bidsignore"
 
     @property
     def description(self) -> Path:
-        """`dataset_description.json` of the BIDS dataset"""
+        """`dataset_description.json` of the BIDS dataset."""
         return self.bids / DESCRIPTION
 
     @property
     def manifest(self) -> Path:
+        """Manifest of the dataset."""
         return self.state / MANIFEST
 
     @property
     def tasks(self) -> Path:
+        """Folder of the per-task states."""
         return self.state / TASKS_DIR
 
     def original(self, path: str | os.PathLike) -> Path:
-        """Pristine copy of a (trimmed) table, in `<state>/orig/`"""
+        """Pristine copy of a (trimmed) table, in `<state>/orig/`."""
         return self.state / ORIG_DIR / self._relpath(path)
 
     # ------------------------------------------------------------------
     #   Sub-layouts
     # ------------------------------------------------------------------
     def derivative(self, name: str) -> "DerivativeLayout":
-        """Layout of the derivative dataset `derivatives/<name>/`"""
+        """Layout of the derivative dataset `derivatives/<name>/`."""
         return DerivativeLayout(self, name)
 
     def list_derivatives(self) -> list["DerivativeLayout"]:
-        """Derivative datasets that exist on disk"""
+        """List the derivative datasets that exist on disk."""
         if not self.derivatives.is_dir():
             return []
         return [self.derivative(p.name)
                 for p in sorted(self.derivatives.iterdir()) if p.is_dir()]
 
     def datasets(self) -> list["Layout"]:
-        """Datasets to process one by one (itself, or each site)"""
+        """Datasets to process one by one (itself, or each site)."""
         return [self]
 
     # ------------------------------------------------------------------
     #   Mapping
     # ------------------------------------------------------------------
     def _relpath(self, path: str | os.PathLike) -> PurePosixPath:
-        """POSIX path relative to `root` (of a path under `root`, or of
-        a path already relative to it)"""
+        """POSIX path relative to `root` (of a path under it, or not)."""
         path = _path(path)
         try:
             return PurePosixPath(path.relative_to(self.root).as_posix())
@@ -221,9 +229,20 @@ class Layout:
 
     def relative(self, path: str | os.PathLike) -> tuple[Path, str]:
         """
-        Map a path (absolute, or relative to `root`) to the BIDS dataset
-        that contains it (raw, a derivative, a site, or the study
-        dataset) and its POSIX path inside it ("." for the root).
+        Map a path to its BIDS dataset and its path inside it.
+
+        Parameters
+        ----------
+        path : str | PathLike
+            Absolute, or relative to `root`
+
+        Returns
+        -------
+        dataset : Path
+            The BIDS dataset that contains it (raw, a derivative, a
+            site, or the study dataset)
+        relpath : str
+            Its POSIX path inside it ("." for the root)
         """
         rel = self._relpath(path)
         parts = rel.parts
@@ -236,9 +255,11 @@ class Layout:
 
     def resolve(self, relpath: str) -> Path:
         """
-        Local path of a file given its path in a flat BIDS view of the
-        dataset (paths as listed by BIDS hosts: `sub-*/...`,
-        `participants.tsv`, `sourcedata/...`, `derivatives/<name>/...`).
+        Local path of a file, given its path in a flat BIDS view.
+
+        Paths of the flat view of the dataset are those listed by BIDS
+        hosts (`sub-*/...`, `participants.tsv`, `sourcedata/...`,
+        `derivatives/<name>/...`).
         """
         parts = PurePosixPath(relpath).parts
         if parts and parts[0] == SOURCE_DIR:
@@ -256,9 +277,18 @@ class Layout:
     # ------------------------------------------------------------------
     def dataset_description(self, kind: str | None = None) -> dict:
         """
-        Minimal description generated for a dataset of this layout
-        (`kind`: "study", "raw" or "derivative"; default: this layout's
-        BIDS dataset).
+        Build the minimal description of a dataset of this layout.
+
+        Parameters
+        ----------
+        kind : {"study", "raw", "derivative"} | None
+            Kind of dataset (default: this layout's BIDS dataset)
+
+        Returns
+        -------
+        dict
+            `Name`, `BIDSVersion`, `DatasetType` (and the credits of
+            the raw description for a study)
         """
         kind = kind or ("derivative" if self.kind == "derivative" else
                         "study" if self.kind == "study" else "raw")
@@ -271,7 +301,7 @@ class Layout:
 
     def write_descriptions(self) -> list[Path]:
         """
-        Write the descriptions that depend on the layout:
+        Write the descriptions that depend on the layout.
 
         * study: `<DS>/dataset_description.json` (DatasetType "study",
           name and credits taken from the raw description);
@@ -293,7 +323,7 @@ class Layout:
     #   Manifest
     # ------------------------------------------------------------------
     def to_manifest(self) -> dict:
-        """Layout fields of the manifest"""
+        """Layout fields of the manifest."""
         return {"layout": self.kind}
 
     # ------------------------------------------------------------------
@@ -302,11 +332,12 @@ class Layout:
     @staticmethod
     def detect(root: str | os.PathLike) -> "Layout | None":
         """
-        Layout of an existing dataset: from `.brainspresso/manifest.json`
-        when present, else from the tree (`rawbids/` or a "study"
-        description: study; `sub-*` folders or a raw description at the
-        root: flat; site datasets under a folder that is not a dataset:
-        sites). None if nothing is found.
+        Detect the layout of an existing dataset.
+
+        From `.brainspresso/manifest.json` when present, else from the
+        tree (`rawbids/` or a "study" description: study; `sub-*` folders
+        or a raw description at the root: flat; site datasets under a
+        folder that is not a dataset: sites). None if nothing is found.
         """
         root = _path(root)
         from_manifest = _from_manifest(root)
@@ -315,25 +346,29 @@ class Layout:
         return _from_tree(root)
 
     def __repr__(self):
+        """Kind and root."""
         return f"{type(self).__name__}({str(self.root)!r})"
 
     def __eq__(self, other):
+        """Compare kind, root and manifest fields."""
         return (
             type(self) is type(other) and self.root == other.root
             and self.to_manifest() == other.to_manifest()
         )
 
     def __hash__(self):
+        """Hash of the kind and root."""
         return hash((type(self), self.root))
 
 
 class StudyLayout(Layout):
-    """`<DS>/` is a study dataset, the raw dataset is `<DS>/rawbids/`"""
+    """`<DS>/` is a study dataset, the raw dataset is `<DS>/rawbids/`."""
 
     kind = "study"
 
     @property
     def raw(self) -> Path:
+        """Raw dataset: `<DS>/rawbids/`."""
         return self.root / RAW_DIR
 
     def _relative_local(self, rel):
@@ -343,6 +378,7 @@ class StudyLayout(Layout):
         return self.root, str(rel)
 
     def write_descriptions(self) -> list[Path]:
+        """Write the study description, then those of derivatives."""
         written = []
         if _write_json(self.root / DESCRIPTION,
                        self.dataset_description("study")):
@@ -351,20 +387,22 @@ class StudyLayout(Layout):
 
 
 class FlatLayout(Layout):
-    """`<DS>/` is the raw dataset"""
+    """`<DS>/` is the raw dataset."""
 
     kind = "flat"
 
     @property
     def raw(self) -> Path:
+        """Raw dataset: `<DS>/` itself."""
         return self.root
 
 
 class DerivativeLayout(Layout):
     """
-    A derivative dataset `<parent>/derivatives/<name>/`, with its own
-    `sourcedata/` (e.g. FreeSurfer subjects unpacked from archives) and
-    `.bidsignore`. It shares the state folder of its parent.
+    A derivative dataset `<parent>/derivatives/<name>/`.
+
+    It has its own `sourcedata/` (e.g. FreeSurfer subjects unpacked from
+    archives) and `.bidsignore`. It shares the state folder of its parent.
     """
 
     kind = "derivative"
@@ -378,28 +416,34 @@ class DerivativeLayout(Layout):
 
     @property
     def raw(self) -> Path:
+        """Raw dataset of the parent layout."""
         return self.parent.raw
 
     @property
     def bids(self) -> Path:
+        """The derivative dataset itself."""
         return self.root
 
     @property
     def state(self) -> Path:
+        """State folder of the parent layout."""
         return self.parent.state
 
     def original(self, path):
+        """Pristine copy of a table, in the state folder of the parent."""
         return self.parent.original(path)
 
     @property
     def source_url(self) -> str:
-        """Relative URL of the raw dataset, for `SourceDatasets`"""
+        """Relative URL of the raw dataset, for `SourceDatasets`."""
         return relative_url(self.raw, self.root)
 
     def resolve(self, relpath: str) -> Path:
+        """Local path of a path relative to the derivative dataset."""
         return self.root.joinpath(*PurePosixPath(relpath).parts)
 
     def dataset_description(self, kind=None) -> dict:
+        """Describe the derivative (`SourceDatasets`: the raw dataset)."""
         out = super().dataset_description(kind or "derivative")
         out["Name"] = self.name
         if out["DatasetType"] == "derivative":
@@ -407,7 +451,7 @@ class DerivativeLayout(Layout):
         return out
 
     def write_descriptions(self) -> list[Path]:
-        """Complete the description of the derivative, if it exists"""
+        """Complete the description of the derivative, if it exists."""
         desc = _read_json(self.description)
         written = []
         if desc is not None:
@@ -425,19 +469,21 @@ class DerivativeLayout(Layout):
         return written + super().write_descriptions()
 
     def to_manifest(self):
+        """Layout fields of the manifest."""
         return {"layout": self.kind, "name": self.name}
 
     def __eq__(self, other):
+        """Compare root and parent."""
         return isinstance(other, DerivativeLayout) and \
             self.root == other.root and self.parent == other.parent
 
     def __hash__(self):
+        """Hash of the kind and root."""
         return hash((type(self), self.root))
 
 
 def _is_flat_raw_url(source, url: str) -> bool:
-    """A relative `SourceDatasets` URL to the parent dataset of a flat
-    layout (`../../`), when the raw dataset lives elsewhere"""
+    """Whether a `SourceDatasets` URL is a stale flat one (`../../`)."""
     if not isinstance(source, dict):
         return False
     value = source.get("URL")
@@ -479,10 +525,11 @@ class SitesLayout(Layout):
 
     @property
     def raw(self) -> Path:
+        """The parent folder (README, merged participants table)."""
         return self.root
 
     def child(self, name: str, kind: LayoutChoice | None = None) -> Layout:
-        """Layout of a site (created with `child_kind` if new)"""
+        """Layout of a site (created with `child_kind` if new)."""
         if name not in self.children:
             path = self.root / name
             found = Layout.detect(path)
@@ -495,6 +542,7 @@ class SitesLayout(Layout):
         return self.children[name]
 
     def datasets(self) -> list[Layout]:
+        """List the site datasets."""
         return list(self.children.values())
 
     def _relative_local(self, rel):
@@ -504,18 +552,22 @@ class SitesLayout(Layout):
         return self.root, str(rel)
 
     def relative(self, path):
+        """Dataset (a site, or the parent) and relative path of a path."""
         return self._relative_local(self._relpath(path))
 
     def resolve(self, relpath: str) -> Path:
+        """Local path of a path relative to the parent folder."""
         return self.root.joinpath(*PurePosixPath(relpath).parts)
 
     def write_descriptions(self) -> list[Path]:
+        """Write the descriptions of every site."""
         written = []
         for child in self.children.values():
             written += child.write_descriptions()
         return written
 
     def to_manifest(self):
+        """Layout fields of the manifest (with the layout of each site)."""
         return {
             "layout": self.kind,
             "children": {k: v.kind for k, v in sorted(self.children.items())},
@@ -559,8 +611,10 @@ def resolve_layout(
     **kwargs,
 ) -> Layout:
     """
-    Layout to use for a dataset: the detected layout of an existing
-    dataset, else `layout` (default: DEFAULT_LAYOUT).
+    Choose the layout of a dataset.
+
+    The detected layout of an existing dataset, else `layout` (default:
+    DEFAULT_LAYOUT).
 
     Raises `LayoutError` if `layout` is given and differs from the
     detected one.

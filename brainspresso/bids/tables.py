@@ -1,7 +1,9 @@
 """
-Helpers for BIDS tables: filter participants with simple queries, and trim
-tables so that they only reference what has been downloaded (so that
-participant/session/scan tables describe the local subset).
+Helpers for BIDS tables.
+
+Filter participants with simple queries, and trim tables so that they
+only reference what has been downloaded (so that participant/session/scan
+tables describe the local subset).
 """
 from __future__ import annotations
 
@@ -21,11 +23,13 @@ _QUERY = re.compile(r"^\s*([^\s=!<>]+)\s*(==|!=|>=|<=|>|<|=)\s*(.*?)\s*$")
 
 
 def read_tsv(text: str) -> tuple[list[str], list[dict]]:
+    """Parse a TSV table: header, rows."""
     reader = csv.DictReader(io.StringIO(text), delimiter="\t")
     return list(reader.fieldnames or []), list(reader)
 
 
 def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
+    """Write rows (dictionaries) as a TSV table."""
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(
             f, header, delimiter="\t", lineterminator="\n",
@@ -37,8 +41,9 @@ def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
 
 def parse_query(query: str):
     """
-    Parse a query of the form `column OP value`, with OP in
-    `==, !=, >=, <=, >, <` (`=` is an alias for `==`).
+    Parse a query of the form `column OP value`.
+
+    OP is one of `==, !=, >=, <=, >, <` (`=` is an alias for `==`).
     Values are compared as numbers when both sides are numeric,
     and as (case-insensitive) strings otherwise. Rows where the value
     is missing (`n/a`) never match.
@@ -72,8 +77,10 @@ def parse_query(query: str):
 
 def query_participants(text: str, queries: Iterable[str]) -> set[str]:
     """
-    Return the labels (without `sub-`) of participants that match all
-    queries, given the content of a `participants.tsv` file.
+    Return the labels of the participants that match all queries.
+
+    Labels are without `sub-`; `text` is the content of a
+    `participants.tsv` file.
     """
     _, rows = read_tsv(text)
     predicates = [parse_query(q) for q in queries]
@@ -91,8 +98,9 @@ def trim_tables(
     subjects: Path | None = None,
 ) -> list[str]:
     """
-    Write trimmed copies of BIDS tables in `root`, keeping only rows that
-    refer to something present on disk.
+    Write trimmed copies of BIDS tables in `root`.
+
+    Only the rows that refer to something present on disk are kept.
 
     Parameters
     ----------
@@ -136,6 +144,7 @@ def trim_tables(
 
 
 def is_trimmable(relpath: str) -> bool:
+    """Whether a table is trimmed (participants, sessions, scans)."""
     name = Path(relpath).name
     return (
         relpath == "participants.tsv" or

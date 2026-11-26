@@ -81,6 +81,19 @@ def test_table_validation(tmp_path):
         '[[sidecar]]\noutput = "X/T1w.json"\nmanual = true\nfoo = 1\n')
     with pytest.raises(ms.TableError):
         ms.load_table("ABIDE1", root=tmp_path)
+    # manual entries take no conversion key
+    for key, value in [("nii", '"x.nii"'), ("select", '"0"'),
+                       ("defaults", "{ A = 1 }"), ("assigns", "{ A = 1 }"),
+                       ("fill_from", '"x.pdf"'), ("fill_select", "1")]:
+        (pdir / "sidecars.toml").write_text(
+            '[[sidecar]]\noutput = "X/T1w.json"\nmanual = true\n'
+            f'{key} = {value}\n')
+        with pytest.raises(ms.TableError, match=key):
+            ms.load_table("ABIDE1", root=tmp_path)
+    (pdir / "sidecars.toml").write_text(
+        '[[sidecar]]\noutput = "X/T1w.json"\nmanual = true\n'
+        'note = "n"\nprevious = "Y/T1w.json"\n')
+    assert ms.load_table("ABIDE1", root=tmp_path)
 
 
 def _synthetic_tree(tmp_path):
@@ -147,6 +160,77 @@ def test_synthetic_run(tmp_path, monkeypatch):
     # changed printout: --check fails
     (pdir / "S" / "anat.pdf").write_bytes(b"other printout")
     assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 1
+
+
+def _fake_p2b(monkeypatch, values):
+    monkeypatch.setattr(ms, "convert",
+                        lambda p, s=None, n=None: dict(values[Path(p).name]))
+    monkeypatch.setattr(ms, "protocol2bids_version",
+                        lambda: {"version": "9.9", "commit": "abc"})
+
+
+def test_only_merges_report_and_lock(tmp_path, monkeypatch):
+    """`--only` keeps the report sections and lock entries of the other
+    sidecars."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    (pdir / "S" / "rest.pdf").write_bytes(b"rest printout")
+    toml = pdir / "sidecars.toml"
+    toml.write_text(toml.read_text() + (
+        '\n[[sidecar]]\noutput = "S/dwi.json"\nprintout = "S/rest.pdf"\n'))
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
+    (tpl / "dwi.json").write_text("{}")
+    values = {"anat.pdf": {"EchoTime": 0.002},
+              "rest.pdf": {"EchoTime": 0.03}}
+    _fake_p2b(monkeypatch, values)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    full_report = (pdir / "report.md").read_text()
+    full_lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert "changed `EchoTime`: 0.1 -> 0.002" in full_report
+
+    # regenerate only dwi, after its printout changed
+    (pdir / "S" / "rest.pdf").write_bytes(b"new rest printout")
+    values["rest.pdf"] = {"EchoTime": 0.04}
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(),
+                  only="S/dwi*") == 0
+    report = (pdir / "report.md").read_text()
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    sections = ms.report_sections(report)
+    assert list(sections) == ["S/T1w.json", "S/bold.json", "S/dwi.json"]
+    assert sections["S/T1w.json"] == \
+        ms.report_sections(full_report)["S/T1w.json"]
+    assert lock["sidecars"]["S/T1w.json"] == \
+        full_lock["sidecars"]["S/T1w.json"]
+    assert lock["sidecars"]["S/bold.json"] == {"manual": True}
+    assert lock["sidecars"]["S/dwi.json"]["sha256"] == \
+        ms.sha256(pdir / "S/rest.pdf")
+    assert "changed `EchoTime`: 0.03 -> 0.04" in sections["S/dwi.json"]
+
+
+def test_baseline_errors(tmp_path, monkeypatch):
+    root = _synthetic_tree(tmp_path)
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002}})
+    # unknown --baseline ref
+    with pytest.raises(ms.TableError, match="nosuchref"):
+        ms.run("ABIDE1", root=root, out=io.StringIO(), baseline="nosuchref")
+    pdir = root / "printouts" / "ABIDE1"
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
+    # missing `previous` at the baseline
+    (tpl / "T1w.json").unlink()
+    toml = pdir / "sidecars.toml"
+    toml.write_text(toml.read_text().replace(
+        'select = "1"\n', 'select = "1"\nprevious = "S/old.json"\n'))
+    with pytest.raises(ms.TableError, match="previous S/old.json"):
+        ms.run("ABIDE1", root=root, out=io.StringIO())
+    # unreadable baseline: error for that entry only
+    toml.write_text(toml.read_text().replace(
+        'previous = "S/old.json"\n', ''))
+    (tpl / "T1w.json").write_text("{not json")
+    out = io.StringIO()
+    assert ms.run("ABIDE1", root=root, out=out) == 1
+    assert "## S/T1w.json\n\n**ERROR**: baseline HEAD: JSONDecodeError" \
+        in out.getvalue()
+    assert "## S/bold.json\n\nmanual" in out.getvalue()
 
 
 def test_uncovered_sidecar_is_an_error(tmp_path, monkeypatch):
@@ -225,12 +309,21 @@ def test_printouts_not_packaged():
     data = cfg["options.package_data"]["*"]
     assert "printouts" not in data and "PDFs" not in data
     assert "datasets/*/templates/*/*" in data
-    assert "protocol2bids" in cfg["options.extras_require"]["maint"]
-    for extra in ("test", "all"):
-        if extra in cfg["options.extras_require"]:
-            value = cfg["options.extras_require"][extra]
-            assert "protocol2bids" not in value
-            assert "maint" not in value
+    # protocol2bids (a git URL, which PyPI rejects in package metadata)
+    # is only in requirements-maint.txt, pinned to the locked commit
+    assert "maint" not in cfg["options.extras_require"]
+    for value in [cfg["options"].get("install_requires", ""),
+                  *cfg["options.extras_require"].values()]:
+        assert "protocol2bids" not in value
+        assert "git+" not in value and " @ " not in value
+    reqs = [line for line in
+            (ROOT / "requirements-maint.txt").read_text().splitlines()
+            if line.strip() and not line.startswith("#")]
+    assert len(reqs) == 1 and reqs[0].startswith(
+        "protocol2bids @ git+https://github.com/balbasty/protocol2bids@")
+    for ds in DATASETS:
+        commit = _lock(ds)["protocol2bids"]["commit"]
+        assert reqs[0].endswith("@" + commit)
     assert not (ROOT / "printouts" / "__init__.py").exists()
     assert not (ROOT / "MANIFEST.in").exists() or "printouts" not in (
         ROOT / "MANIFEST.in").read_text()

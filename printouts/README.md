@@ -14,7 +14,9 @@ It lives **outside** the `brainspresso` package and is never shipped in
 the wheel/sdist. The printouts are converted once, by a maintainer, with
 [protocol2bids](https://github.com/balbasty/protocol2bids); the generated
 sidecars are committed into the templates. protocol2bids is **not** a
-runtime dependency.
+runtime dependency: it is listed in `requirements-maint.txt` (repository
+root, pinned to the commit recorded in the locks), not in the package
+metadata, which PyPI would reject with a git URL.
 
 ## Layout
 
@@ -188,12 +190,17 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
 - ABIDE-I follows the owner's per-sample mapping of protocol2bids
   `datasets/convert_ABIDE1.sh`: sites with samples get one template folder
   per sample (`CMU_a/`, `CMU_b/`, `Leuven_1/`, `Leuven_2/`, `MaxMun_a/`..
-  `MaxMun_d/`, `UCLA_1/`, `UCLA_2/`, `UM_1/`, `UM_2/`). The roast uses
-  `templates/<Site>_<sample>/<suffix>.json` when the site name of the data
-  (S3 `RawData/<Site>_<sample>/`, NITRC `<Site>_<sample>.tgz`) carries a
-  sample, else `templates/<Site>/<suffix>.json` (`CMU/T1w.json` is kept as
-  the fallback of `CMU_a`, which has no anatomical printout; NITRC parts
-  such as `NYU_a` fall back to `NYU/`). `UCLA_{1,2}/acq-hires_T1w.json` is
+  `MaxMun_d/`, `UCLA_1/`, `UCLA_2/`, `UM_1/`, `UM_2/`), declared in
+  `BidsifierBase.SAMPLES`. The roast parses the site name of the data in
+  any source spelling (S3 `RawData/MaxMun_a/`, NITRC `Leuven_1.tgz`, XNAT
+  `UCLA1`/`Leuven-1`, phenotypic `MAX_MUN`) and uses
+  `templates/<Site>_<sample>/<suffix>.json`; when the data names no
+  sample (`CMU`, `MaxMun`), it uses the site's default sample (the first
+  one: the sample the former site-level template described, e.g. `CMU_a`
+  for CMU bold), else `templates/<Site>/<suffix>.json` (`CMU/T1w.json` is
+  kept for `CMU_a`, which has no anatomical printout; NITRC parts such as
+  `NYU_a` use `NYU/`). An unknown site or sample, or a missing template,
+  is logged as an error naming both. `UCLA_{1,2}/acq-hires_T1w.json` is
   the high-resolution anatomical (`anat_hires`, protocol 1 of `anat.pdf`),
   not read by the roast yet.
 - ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
@@ -227,7 +234,7 @@ or `NKI_2` folder). Headers come from the protocol2bids corpus
 ## Regenerating
 
 ```sh
-pip install -e .[maint]       # installs protocol2bids (maintainers only)
+pip install -r requirements-maint.txt   # protocol2bids (maintainers only)
 python scripts/make_sidecars.py ABIDE2               # write sidecars
 python scripts/make_sidecars.py ABIDE2 --only 'BNI/*'
 python scripts/make_sidecars.py ABIDE2 --check       # CI: non-zero if stale

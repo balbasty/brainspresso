@@ -24,6 +24,7 @@ KEY is relative to `data/Projects/` (e.g.
 Record the KEY of each fetched header in `printouts/README.md`.
 """
 import argparse
+import html
 import re
 import struct
 import sys
@@ -38,21 +39,22 @@ CHUNK = 65536
 
 
 def list_keys(prefix, grep=None, limit=10000):
-    """List keys under `data/Projects/<prefix>`."""
+    """List keys under `data/Projects/<prefix>` (at most `limit` of them,
+    counting only those that match `grep`)."""
     keys, marker = [], ''
     while len(keys) < limit:
         q = urllib.parse.urlencode({'prefix': PROJECTS + prefix,
                                     'marker': marker})
         with urllib.request.urlopen(f'{BUCKET}?{q}') as f:
             xml = f.read().decode()
-        page = re.findall(r'<Key>([^<]*)</Key>', xml)
-        keys += [k[len(PROJECTS):] for k in page]
+        page = [html.unescape(k)
+                for k in re.findall(r'<Key>([^<]*)</Key>', xml)]
+        keys += [k[len(PROJECTS):] for k in page
+                 if not grep or re.search(grep, k[len(PROJECTS):])]
         if '<IsTruncated>true</IsTruncated>' not in xml or not page:
             break
         marker = page[-1]
-    if grep:
-        keys = [k for k in keys if re.search(grep, k)]
-    return keys
+    return keys[:limit]
 
 
 def fetch_header(key):

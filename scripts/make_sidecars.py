@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Regenerate dataset sidecar templates from protocol printouts.
 
-Maintainer tool: requires `protocol2bids` (``pip install .[maint]``).
+Maintainer tool: requires `protocol2bids`
+(``pip install -r requirements-maint.txt``).
 It is never needed at runtime.
 
 Usage
@@ -22,7 +23,11 @@ With `--check`, nothing is written and the exit code is non-zero if
 regenerating would change any sidecar or the lock file.
 
 `report.md` lists, per sidecar, the keys added, removed and changed
-compared to the sidecar at git `--baseline` (default `HEAD`).
+compared to the sidecar at git `--baseline` (default `HEAD`; an unknown
+ref is an error).
+
+With `--only PATTERN`, only the matching entries are regenerated; the lock
+entries and report sections of the other sidecars are kept as they are.
 
 An entry may set `fill_from` (and `fill_select`) to fill the keys missing
 from the sidecar from another printout of the same acquisition (e.g. the
@@ -30,7 +35,11 @@ site scan table), as `p2b --fill-from` does.
 
 An entry may set `previous` (path relative to the templates) to diff a new
 sidecar against an older template at another path (e.g. a per-site template
-replaced by per-sample ones).
+replaced by per-sample ones); it must exist at the baseline.
+
+A `manual = true` entry (no printout) is kept as is and takes no conversion
+key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
+`fill_select`).
 """
 import argparse
 import fnmatch
@@ -51,6 +60,8 @@ TEMPLATES = {
 NON_SIDECARS = ('dataset_description.json', 'participants.json')
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
               'fill_from', 'fill_select', 'manual', 'note', 'previous'}
+# keys that drive a conversion (meaningless, hence rejected, if manual)
+CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'note', 'previous'}
 
 
 class TableError(ValueError):
@@ -91,8 +102,10 @@ def load_table(dataset, root=ROOT):
             raise TableError(f'{path}: duplicate output {e["output"]}')
         seen.add(e['output'])
         if e.get('manual'):
-            if 'printout' in e:
-                raise TableError(f'{path}: manual entry with printout: {e}')
+            ignored = sorted(CONVERSION_KEYS & set(e))
+            if ignored:
+                raise TableError(f'{path}: {e["output"]}: manual entry with '
+                                 f'conversion keys {ignored}')
             continue
         if 'printout' not in e:
             raise TableError(f'{path}: {e["output"]}: no printout '
@@ -137,9 +150,20 @@ def protocol2bids_version():
     return {'version': dist.version, 'commit': commit}
 
 
+def _protocol2bids():
+    """Import protocol2bids, with a clear error if it is not installed."""
+    try:
+        import protocol2bids
+    except ImportError as exc:
+        raise ImportError(
+            'make_sidecars.py needs protocol2bids (maintainers only): '
+            'pip install -r requirements-maint.txt') from exc
+    return protocol2bids.protocol_to_bids, protocol2bids.read_protocols
+
+
 def convert(printout, select=None, nii=None):
     """Convert one protocol of a printout to a BIDS sidecar (dict)."""
-    from protocol2bids import protocol_to_bids, read_protocols
+    protocol_to_bids, read_protocols = _protocol2bids()
     prots = _select(read_protocols(printout), printout, select)
     return protocol_to_bids(prots[0], nii=nii, extra=False)
 
@@ -151,7 +175,7 @@ def fill(printout, select=None):
     NIfTI header and defaults to its first protocol; its keys never
     override the converted printout, `defaults` or `assigns`.
     """
-    from protocol2bids import protocol_to_bids, read_protocols
+    protocol_to_bids, read_protocols = _protocol2bids()
     prots = _select(read_protocols(printout), printout,
                     0 if select is None else select)
     return protocol_to_bids(prots[0], extra=False)
@@ -200,6 +224,38 @@ def diff(old, new):
     return added, removed, changed
 
 
+def verify_ref(ref, root=ROOT):
+    """Check that git `ref` names a commit of the repository at `root`.
+
+    Returns False if `ref` is `HEAD` and `root` is not a git checkout
+    (the working copy is then the baseline); raises `TableError` for any
+    other ref that does not resolve.
+    """
+    import subprocess
+    try:
+        res = subprocess.run(
+            ['git', 'rev-parse', '--verify', '--quiet', f'{ref}^{{commit}}'],
+            cwd=root, capture_output=True, text=True, check=False)
+        ok = res.returncode == 0
+    except OSError:
+        ok = False
+    if not ok and ref != 'HEAD':
+        raise TableError(f'--baseline {ref!r}: not a git commit')
+    return ok
+
+
+def report_sections(text):
+    """Body of each `## <output>` section of a report."""
+    sections, current = {}, None
+    for line in text.splitlines():
+        if line.startswith('## '):
+            current = line[3:]
+            sections[current] = []
+        elif current is not None:
+            sections[current].append(line)
+    return {k: '\n'.join(v).strip('\n') for k, v in sections.items()}
+
+
 def committed_text(path, root=ROOT, ref='HEAD'):
     """Content of `path` at git `ref` (None if unavailable)."""
     import subprocess
@@ -232,9 +288,17 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         raise TableError(f'{dataset}: template sidecars not in table: '
                          f'{missing}')
 
+    in_git = verify_ref(baseline, root)
+
     lock_path = pdir / 'sidecars.lock.json'
+    report_path = pdir / 'report.md'
     old_lock = (json.loads(lock_path.read_text())
                 if lock_path.exists() else {})
+    old_locked = old_lock.get('sidecars', {})
+    # with --only, entries outside the filter keep their lock entry and
+    # report section (merge, don't replace)
+    old_sections = (report_sections(report_path.read_text())
+                    if only and report_path.exists() else {})
     lock = {'protocol2bids': protocol2bids_version(), 'sidecars': {}}
     report = []
     failures = []
@@ -242,13 +306,14 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
 
     for e in entries:
         output = e['output']
-        if only and not fnmatch.fnmatch(output, only):
-            if output in old_lock.get('sidecars', {}):
-                lock['sidecars'][output] = old_lock['sidecars'][output]
-            continue
         if e.get('manual'):
             lock['sidecars'][output] = {'manual': True}
             report.append((output, 'manual', None))
+            continue
+        if only and not fnmatch.fnmatch(output, only):
+            if output in old_locked:
+                lock['sidecars'][output] = old_locked[output]
+            report.append((output, 'kept', old_sections.get(output)))
             continue
         printout = pdir / e['printout']
         nii = pdir / e['nii'] if 'nii' in e else None
@@ -260,8 +325,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         except Exception as exc:
             failures.append(output)
             report.append((output, 'error', f'{type(exc).__name__}: {exc}'))
-            if output in old_lock.get('sidecars', {}):
-                lock['sidecars'][output] = old_lock['sidecars'][output]
+            if output in old_locked:
+                lock['sidecars'][output] = old_locked[output]
             continue
         sidecar = {**filled, **e.get('defaults', {}), **sidecar,
                    **e.get('assigns', {})}
@@ -276,17 +341,21 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
             entry['fill_sha256'] = sha256(fill_from)
             if 'fill_select' in e:
                 entry['fill_select'] = str(e['fill_select'])
-        lock['sidecars'][output] = entry
 
         dst = tpl / output
         text = dumps(sidecar)
         old_text = dst.read_text() if dst.exists() else None
-        committed = committed_text(dst, root, baseline)
-        if committed is None and 'previous' in e:
-            committed = committed_text(tpl / e['previous'], root, baseline)
-        if committed is None and baseline == 'HEAD':
-            committed = old_text
-        old = json.loads(committed) if committed else {}
+        try:
+            old = json.loads(baseline_text(e, tpl, root, baseline, in_git)
+                             or '{}')
+        except json.JSONDecodeError as exc:
+            failures.append(output)
+            report.append((output, 'error', f'baseline {baseline}: '
+                           f'{type(exc).__name__}: {exc}'))
+            if output in old_locked:
+                lock['sidecars'][output] = old_locked[output]
+            continue
+        lock['sidecars'][output] = entry
         # roundtrip so that the comparison is done on json values
         new = json.loads(text)
         report.append((output, 'ok', diff(old, new)))
@@ -308,8 +377,33 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
             print(f'--check: would change {dirty}', file=out)
         return 1 if (dirty or failures) else 0
     lock_path.write_text(lock_text)
-    (pdir / 'report.md').write_text(md)
+    report_path.write_text(md)
     return 1 if failures else 0
+
+
+def baseline_text(e, tpl, root, baseline, in_git):
+    """Text of the sidecar an entry is diffed against (None: new).
+
+    The sidecar at git `baseline`, else its `previous` template there.
+    Without git (`HEAD` outside a checkout), the working copy. A
+    `previous` that does not exist at the baseline is an error.
+    """
+    def read(path):
+        if in_git:
+            return committed_text(path, root, baseline)
+        return path.read_text() if path.exists() else None
+
+    text = read(tpl / e['output'])
+    if text is None and 'previous' in e:
+        text = read(tpl / e['previous'])
+        if text is None:
+            raise TableError(f'{e["output"]}: previous {e["previous"]} '
+                             f'not found at baseline {baseline}')
+    if text is None and baseline == 'HEAD':
+        # not committed yet: diff against the working copy
+        path = tpl / e['output']
+        text = path.read_text() if path.exists() else None
+    return text
 
 
 def render_report(dataset, version, report, baseline='HEAD'):
@@ -325,6 +419,9 @@ def render_report(dataset, version, report, baseline='HEAD'):
         lines.append('')
         if status == 'manual':
             lines += ['manual (no printout): kept as is', '']
+            continue
+        if status == 'kept':
+            lines += [info or 'not regenerated (outside `--only`)', '']
             continue
         if status == 'error':
             lines += [f'**ERROR**: {info}', '']

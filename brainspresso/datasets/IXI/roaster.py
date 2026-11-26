@@ -13,9 +13,11 @@ Output (study layout)
 ---------------------
 IXI/rawbids/
     README, dataset_description.json, participants.{tsv,json}
-    dwi.bval, dwi.bvec              (original release: common to all)
     sub-{03d}/anat/sub-{03d}_{T1w,T2w,PDw,angio}.{nii.gz,json}
-    sub-{03d}/dwi/sub-{03d}_dwi.{nii.gz,json[,bval,bvec]}
+    sub-{03d}/dwi/sub-{03d}_dwi.{nii.gz,json,bval,bvec}  (16 volumes)
+IXI/derivatives/ixi-scanner/        (key `trace`: 17th DTI volume, a
+    sub-{03d}/dwi/sub-{03d}_desc-{trace,powderavg}_dwimap.{nii.gz,json}
+                                     scanner-derived isotropic image)
 
 With `--layout flat`, the content of `rawbids/` is in `IXI/` itself.
 The participants table is written complete (all subjects of `IXI.xls`)
@@ -32,6 +34,7 @@ import numpy as np
 import xlrd  # extra: brainspresso[ixi]
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
+from brainspresso.actions.writers import WriteJSON, WriteText
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.actions.helpers import copy_templates
 from brainspresso.actions.runner import RoastContext, Shard
@@ -48,8 +51,9 @@ TEMPLATES = Path(__file__).parent / "templates"
 IXI2BIDS = {"T1": "T1w", "T2": "T2w", "PD": "PDw", "MRA": "angio",
             "DTI": "dwi"}
 KEYS = KeyAliases(
-    {"meta", *IXI2BIDS.values()},
+    {"meta", "trace", *IXI2BIDS.values()},
     bids={key: {"suffixes": [key]} for key in IXI2BIDS.values()},
+    folders={"trace": ["derivatives/ixi-scanner"]},
 )
 
 
@@ -144,52 +148,185 @@ def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
 #   DWI: one 3D image per direction, stacked into a 4D image
 # ----------------------------------------------------------------------
 
-def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
-    raw, src = ctx.layout.raw, ctx.source
+NDIR = 16               # entries of the IXI gradient table: b=0 + 15 DW
+DERIV_NAME = "ixi-scanner"
+# scanner-derived isotropic image (17th volume): mean type -> desc
+DERIVED_DESC = {"geometric": "trace", "arithmetic": "powderavg"}
+MIN_CORRELATION = 0.95
 
-    # The original release has a single bvals.txt/bvecs.txt, common to
-    # all subjects, placed at the top of the raw dataset. NITRC-IR has
-    # one pair per subject, written next to each subject's dwi file.
-    common = {}
-    for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
-        path = ctx.resource(source)
-        if path is not None:
-            common[source] = path
-            yield CopyBytes(path, raw / f"dwi.{ext}")
+
+def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
+    drv = ctx.layout.derivative(DERIV_NAME)
+    want_trace = ctx.wants("trace")
 
     archive = open_images(ctx, "DTI")
     if archive is None:
         yield missing_images("DTI")
         return
     with archive:
-        # subject -> (site, volumes ordered by direction)
-        series = {}
-        for name in archive.getnames():
-            sub, site = parse_name(name)
-            series.setdefault(sub, (site, []))[1].append(name)
+        series = group_members(archive)
         ctx.progress(total=len(series))
-        for sub, (site, names) in sorted(series.items()):
-            names.sort(key=direction)
-            dwi = raw / f"sub-{sub}" / "dwi"
-            base = f"sub-{sub}_dwi"
-            yield CopyJSON(ctx.resource(f"{site}/dwi.json"),
-                           dwi / f"{base}.json")
-            yield Action(
-                archive.sources(*names), dwi / f"{base}.nii.gz",
-                partial(stack_volumes, archive, names), input="path",
-            )
-            # Per-subject b-values/vectors (NITRC-IR)
-            prefix = "-".join(PurePosixPath(names[0]).name.split("-")[:3])
-            for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
-                if source in common:
-                    continue
-                path = src / "IXI-DTI" / f"{prefix}-{source}"
-                if path.exists():
-                    yield CopyBytes(path, dwi / f"{base}.{ext}")
-                else:
-                    yield Fail(f"{source} not found for sub-{sub}",
-                               name=f"{base}.{ext}")
+        if want_trace:
+            yield from derivative_description(drv)
+        for sub, (site, volumes) in sorted(series.items()):
+            yield from roast_dwi_subject(ctx, archive, drv, sub, site,
+                                         volumes, want_trace)
             ctx.progress(advance=1)
+
+
+def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_trace):
+    raw, src = ctx.layout.raw, ctx.source
+    dwi = raw / f"sub-{sub}" / "dwi"
+    base = f"sub-{sub}_dwi"
+
+    # 1. de-duplicate (the original tarball has duplicated members)
+    names = {}
+    for index, members in sorted(volumes.items()):
+        first = members[0]
+        if len(members) > 1:
+            blobs = {member_bytes(archive, m) for m in members}
+            if len(blobs) > 1:
+                yield Fail(f"sub-{sub}: differing duplicates of DTI "
+                           f"volume {index:02d}", name=f"{base}.nii.gz")
+                return
+            lg.debug(f"sub-{sub}: identical duplicates of DTI volume "
+                     f"{index:02d} skipped")
+        names[index] = first.name
+    count = len(names)
+    if sorted(names) != list(range(count)) or count not in (NDIR, NDIR + 1):
+        yield Fail(f"sub-{sub}: unexpected number of DTI volumes ({count}, "
+                   f"indices {sorted(names)}; expected {NDIR} or {NDIR + 1})",
+                   name=f"{base}.nii.gz")
+        return
+    names = [names[i] for i in range(count)]
+
+    # 2. 17th volume: scanner-derived isotropic image?
+    desc = None
+    if count == NDIR + 1:
+        vols = [load_volume(archive, archive.getmember(n)) for n in names]
+        desc = classify_derived(vols)
+        if desc is None:
+            yield Fail(f"sub-{sub}: unrecognised DWI volume layout "
+                       f"(volume {NDIR} is not a mean of the DW volumes)",
+                       name=f"{base}.nii.gz")
+            return
+
+    # 3. gradient table (per-subject NITRC table, else global one)
+    prefix = "-".join(PurePosixPath(names[0]).name.split("-")[:3])
+    tables = {}
+    for ext, source in (("bval", "bvals.txt"), ("bvec", "bvecs.txt")):
+        path = src / "IXI-DTI" / f"{prefix}-{source}"
+        if not path.exists():
+            path = ctx.resource(source)
+        if path is None:
+            yield Fail(f"{source} not found for sub-{sub}",
+                       name=f"{base}.{ext}")
+            return
+        rows = [line.split() for line in path.read_text().splitlines()
+                if line.strip()]
+        n = {len(row) for row in rows}
+        n = n.pop() if len(n) == 1 else None
+        if n == NDIR + 1 and desc is not None:
+            tables[ext] = (path, "\n".join(" ".join(r[:NDIR])
+                                           for r in rows) + "\n")
+        elif n == NDIR:
+            tables[ext] = (path, None)
+        else:
+            yield Fail(f"sub-{sub}: {path.name} has {n} entries, expected "
+                       f"{NDIR}", name=f"{base}.{ext}")
+            return
+
+    yield CopyJSON(ctx.resource(f"{site}/dwi.json"), dwi / f"{base}.json")
+    yield Action(
+        archive.sources(*names), dwi / f"{base}.nii.gz",
+        partial(stack_volumes, archive, names[:NDIR]), input="path",
+    )
+    for ext, (path, text) in tables.items():
+        if text is None:
+            yield CopyBytes(path, dwi / f"{base}.{ext}")
+        else:
+            yield WriteText(text, dwi / f"{base}.{ext}", src=path)
+
+    if desc is not None and want_trace:
+        out = drv.root / f"sub-{sub}" / "dwi"
+        stem = f"sub-{sub}_desc-{desc}_dwimap"
+        yield Action(
+            archive.sources(names[-1]), out / f"{stem}.nii.gz",
+            partial(stack_volumes, archive, names[-1:]), input="path",
+            tag="trace",
+        )
+        mean = "geometric" if desc == "trace" else "arithmetic"
+        yield WriteJSON({
+            "Description": f"Scanner-derived isotropic DWI ({mean} mean "
+                           f"of the {NDIR - 1} b=1000 volumes), "
+                           f"volume {NDIR} of the IXI DTI series",
+            "Sources": [f"bids:raw:sub-{sub}/dwi/{base}.nii.gz"],
+            "SkullStripped": False,
+        }, out / f"{stem}.json", tag="trace")
+
+
+def derivative_description(drv) -> Iterator[Action]:
+    desc = drv.dataset_description()
+    desc["Name"] = "IXI - scanner-derived diffusion images"
+    desc["GeneratedBy"] = [{
+        "Name": "scanner",
+        "Description": "Isotropic (trace) image computed by the scanner "
+                       "and exported as the last volume of the DTI series",
+    }]
+    desc["DatasetLinks"] = {"raw": drv.source_url}
+    yield WriteJSON(desc, drv.description, tag="trace")
+    yield WriteText(
+        "# Diffusion maps (BEP016 naming) are not (yet) in the BIDS schema\n"
+        "*_dwimap.nii.gz\n*_dwimap.json\n", drv.bidsignore, tag="trace")
+
+
+def group_members(archive) -> dict:
+    """subject -> (site, {volume index: [members]})"""
+    series = {}
+    for member in archive.getmembers():
+        name = member.name
+        if "-DTI-" not in PurePosixPath(name).name:
+            continue
+        sub, site = parse_name(name)
+        volumes = series.setdefault(sub, (site, {}))[1]
+        volumes.setdefault(direction(name), []).append(member)
+    return series
+
+
+def member_bytes(archive, member) -> bytes:
+    with archive.extractfile(member) as f:
+        return f.read()
+
+
+def load_volume(archive, member) -> np.ndarray:
+    with archive.extractfile(member) as f:
+        nii = nib.Nifti1Image.from_stream(GzipFile(fileobj=f))
+        return np.asarray(nii.dataobj, dtype=np.float64).squeeze()
+
+
+def correlation(x: np.ndarray, y: np.ndarray) -> float:
+    if x.std() == 0 or y.std() == 0:
+        return 0.0
+    return float(np.corrcoef(x, y)[0, 1])
+
+
+def classify_derived(vols: list[np.ndarray]) -> str | None:
+    """`desc` of the 17th volume if it is the geometric ("trace") or
+    arithmetic ("powderavg") mean of the DW volumes 1..15, else None"""
+    if len({v.shape for v in vols}) > 1:
+        return None
+    b0, dw, extra = vols[0], np.stack(vols[1:NDIR]), vols[NDIR]
+    mask = b0 > np.percentile(b0, 60)
+    if mask.sum() < 3:
+        mask = np.ones_like(b0, dtype=bool)
+    means = {
+        "geometric": np.exp(np.log(np.maximum(dw, 1e-3)).mean(0)),
+        "arithmetic": dw.mean(0),
+    }
+    corr = {k: correlation(extra[mask], m[mask]) for k, m in means.items()}
+    best = max(corr, key=corr.get)
+    lg.debug(f"correlation of volume {NDIR} with means: {corr}")
+    return DERIVED_DESC[best] if corr[best] >= MIN_CORRELATION else None
 
 
 def direction(name: str) -> int:
@@ -201,7 +338,7 @@ def stack_volumes(archive, names: list[str], path: Path) -> Iterator[dict]:
     """
     Concatenate 3D volumes along the 4th dimension (which nifti reserves
     for time, but a DWI series is acquired like an fMRI time series, one
-    gradient per volume).
+    gradient per volume). A single name writes a 3D image.
     """
     dat = []
     for i, name in enumerate(names):
@@ -213,7 +350,7 @@ def stack_volumes(archive, names: list[str], path: Path) -> Iterator[dict]:
         # this happened in one of the subjects...
         raise RuntimeError("incompatible shapes")
     yield {"status": "stacking channels"}
-    dat = np.stack(dat, axis=3)
+    dat = np.stack(dat, axis=3) if len(dat) > 1 else dat[0]
     yield {"status": "writing stack"}
     nib.save(nib.Nifti1Image(dat, nii.affine, nii.header), path)
 

@@ -199,6 +199,7 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
     """All sessions of a subject (a shard)"""
     for sesdir in _dirs(ctx.layout.source / "scan_data" / sub):
         yield from roast_session(ctx, sub, sesdir.name, sesdir)
+    ctx.progress(advance=1, tag="subjects")
 
 
 def roast_session(ctx, sub: str, ses: str, sesdir: Path) -> Iterator[Action]:

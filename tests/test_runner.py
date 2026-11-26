@@ -292,6 +292,7 @@ def test_errors_are_counted(layout):
 
 # Shards must be picklable: module-level functions
 def shard_subject(ctx, sub):
+    assert ctx.tag == "subjects"        # tag of the running roaster
     ctx.progress(total=2, tag=f"sub-{sub}")
     anat = ctx.layout.raw / f"sub-{sub}" / "anat"
     for suffix in ("T1w", "T2w"):
@@ -301,6 +302,7 @@ def shard_subject(ctx, sub):
     if sub == "03":
         yield Action([], anat / f"sub-{sub}_PDw.nii.gz", _fail,
                      input="path", tag="anat")
+    ctx.progress(advance=1, tag="subjects")
 
 
 def _fail(path):
@@ -308,6 +310,7 @@ def _fail(path):
 
 
 def sharded(ctx):
+    assert ctx.tag == "roast"
     ctx.progress(total=3, tag="subjects")
     for sub in ("01", "02", "03"):
         yield Shard(shard_subject, sub, tag="subjects")
@@ -324,6 +327,10 @@ def test_shards(layout, jobs):
     assert (raw / "sub-03/anat/sub-03_T2w.nii.gz").read_text() == "03T2w"
     assert report.counts["anat"] == {"done": 4, "error": 1}
     assert report.counts["meta"] == {"done": 1}
+    # progress reported from the shards (also from worker processes)
+    assert report.progress == {
+        "subjects": (3, 3), "sub-01": (2, 2), "sub-02": (2, 2),
+        "sub-03": (2, 2)}
 
 
 def test_unpicklable_shard_runs_in_main_process(layout):

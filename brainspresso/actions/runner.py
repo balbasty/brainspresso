@@ -84,8 +84,8 @@ OUTCOMES = ("done", "skipped", "error")
 @dataclass
 class Shard:
     """
-    A picklable sub-roaster: `fn(ctx, *args, **kwargs)`, with a progress
-    tag (finishing a shard advances the progress of its tag by one).
+    A picklable sub-roaster: `fn(ctx, *args, **kwargs)`, with a default
+    progress tag for its actions.
     """
     fn: Callable
     args: tuple = ()
@@ -126,7 +126,8 @@ class RoastContext:
     templates : Path | None
         Folder of templates shipped with the dataset (`resource`)
     tag : str
-        Default progress group
+        Progress group of the roaster that is running (default of
+        `progress` and of the actions it yields)
     """
     layout: Layout
     selection: KeySelection = field(default_factory=KeySelection)
@@ -171,8 +172,8 @@ class RoastContext:
         tag: str | None = None,
     ) -> None:
         """Declare the number of units of a progress group (`total`),
-        or that some are finished (`advance`). Finishing a shard
-        advances its tag by one."""
+        or that some are finished (`advance`). Units are what the
+        roaster says they are (subjects, archives...)."""
         if self._reporter is not None:
             self._reporter.progress(tag or self.tag, total, advance)
 
@@ -263,6 +264,7 @@ class RoastReport:
     )
     errors: list[tuple[str, str, str]] = field(default_factory=list)
     outputs: list[Path] = field(default_factory=list)
+    progress: dict[str, tuple[int, int | None]] = field(default_factory=dict)
 
     def total(self, outcome: str) -> int:
         return sum(c[outcome] for c in self.counts.values())
@@ -328,6 +330,7 @@ class _MainReporter(_Reporter):
         if total is not None:
             self.totals[tag] = total
         self.finished[tag] += advance
+        self.report.progress[tag] = (self.finished[tag], self.totals.get(tag))
         if self.totals.get(tag):
             pct = min(100, 100 * self.finished[tag] / self.totals[tag])
             self._show({"modality": tag, "progress": pct})
@@ -430,20 +433,28 @@ def _name(obj) -> str:
 def _drive(roaster, ctx, reporter, tag, pool=None, futures=None) -> None:
     """Consume a roaster: run its actions, recurse into its shards"""
     tag = getattr(roaster, "tag", None) or tag
+    outer = ctx.tag
     try:
+        # `ctx.tag` is the tag of the roaster whose code is running
+        ctx.tag = tag
         items = roaster(ctx)
         items = iter(items) if items is not None else iter(())
     except Exception as e:
         _roaster_error(reporter, tag, roaster, e)
         return
+    finally:
+        ctx.tag = outer
     while True:
         try:
+            ctx.tag = tag
             item = next(items)
         except StopIteration:
             break
         except Exception as e:
             _roaster_error(reporter, tag, roaster, e)
             break
+        finally:
+            ctx.tag = outer
         if isinstance(item, Action):
             _run_action(item, ctx, reporter, tag)
         elif callable(item):
@@ -454,7 +465,6 @@ def _drive(roaster, ctx, reporter, tag, pool=None, futures=None) -> None:
                 )
             else:
                 _drive(item, ctx, reporter, shard_tag)
-                reporter.progress(shard_tag, advance=1)
         else:
             reporter.outcome(tag, _name(roaster), "error",
                              f"roaster yielded {type(item).__name__}, "
@@ -492,7 +502,6 @@ def _collect(futures: dict[Future, tuple], reporter, wait_all=False):
             except Exception as e:
                 reporter.outcome(tag, _name(shard), "error",
                                  f"{type(e).__name__}: {e}")
-            reporter.progress(tag, advance=1)
 
 
 def _run_shard(shard, ctx: RoastContext, tag: str) -> list[tuple]:

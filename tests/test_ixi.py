@@ -18,11 +18,11 @@ from aiohttp import web
 
 from brainspresso.bids.layout import Layout
 from brainspresso.download import DownloadManager
-from brainspresso.datasets.IXI.bidsifier import Bidsifier as _Bidsifier
+from brainspresso.datasets.IXI import roaster
 from roast_utils import LAYOUTS
 
 # Templates of the installed package (CI tests the installed package)
-TEMPLATES = _Bidsifier.TPLDIR
+TEMPLATES = roaster.TEMPLATES
 
 
 def nifti(shape, value) -> bytes:
@@ -193,7 +193,6 @@ def check_roast(root: Path, bval_per_subject: bool, layout: str):
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_roast_from_nitrc_folders(xnat, tmp_path, monkeypatch, layout):
-    from brainspresso.datasets.IXI.bidsifier import Bidsifier
     server, _ = xnat
     root = tmp_path / "IXI"
     harvest(server, root / "sourcedata")
@@ -203,18 +202,17 @@ def test_roast_from_nitrc_folders(xnat, tmp_path, monkeypatch, layout):
     empty.mkdir()
     for sub in ("Guys", "HH", "IOP"):
         (empty / sub).symlink_to(TEMPLATES / sub)
-    monkeypatch.setattr(Bidsifier, "TPLDIR", empty)
-    Bidsifier(root, keys={"T1w", "T2w", "dwi"}, layout=layout).run()
+    monkeypatch.setattr(roaster, "TEMPLATES", empty)
+    roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
     check_roast(root, bval_per_subject=True, layout=layout)
 
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_roast_bundled_metadata(xnat, tmp_path, layout):
-    from brainspresso.datasets.IXI.bidsifier import Bidsifier
     server, _ = xnat
     root = tmp_path / "IXI"
     harvest(server, root / "sourcedata")
-    Bidsifier(root, keys={"meta", "T1w", "T2w", "dwi"}, layout=layout).run()
+    roaster.roast(root, keys={"meta", "T1w", "T2w", "dwi"}, layout=layout)
     # Global bvals/bvecs and IXI.xls come from the package templates
     check_roast(root, bval_per_subject=False, layout=layout)
     raw = Layout.detect(root).raw
@@ -229,7 +227,6 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_roast_from_tarballs(xnat, tmp_path, layout):
     """The original tarballs are still supported"""
-    from brainspresso.datasets.IXI.bidsifier import Bidsifier
     root = tmp_path / "IXI"
     src = root / "sourcedata"
     src.mkdir(parents=True)
@@ -244,5 +241,29 @@ def test_roast_from_tarballs(xnat, tmp_path, layout):
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
                 tar.addfile(info, io.BytesIO(data))
-    Bidsifier(root, keys={"T1w", "T2w", "dwi"}, layout=layout).run()
+    roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
     check_roast(root, bval_per_subject=False, layout=layout)
+
+
+def test_roast_shards_in_processes(tmp_path):
+    """One shard per modality, run in a process pool"""
+    root = tmp_path / "IXI"
+    src = root / "sourcedata"
+    src.mkdir(parents=True)
+    for (_, _), scans in SUBJECTS.items():
+        for scan, collections in scans.items():
+            folder = src / f"IXI-{scan}"
+            folder.mkdir(exist_ok=True)
+            for name, data in collections.get("NIfTI", {}).items():
+                (folder / name).write_bytes(data)
+    report = roaster.roast(root, keys={"T1w", "T2w", "dwi"}, json="no",
+                           exclude_subs=[12], jobs=2, display=False)
+    raw = Layout.detect(root).raw
+    out = {p for p in files(raw)
+           if not p.startswith(("sourcedata/", ".brainspresso/"))}
+    assert out == {
+        "dwi.bval", "dwi.bvec", "sub-002/anat/sub-002_T1w.nii.gz",
+        "sub-002/dwi/sub-002_dwi.nii.gz",
+    }
+    assert report.counts["dwi"]["done"] == 3
+    assert not report.errors

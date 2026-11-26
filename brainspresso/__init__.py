@@ -17,6 +17,7 @@ _datasets = [
     'UNCWisconsin',
     'Bullitt',
     "OpenNeuro",
+    "INDI",
 ]
 for _dataset in _datasets:
     try:

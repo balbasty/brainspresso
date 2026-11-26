@@ -1,0 +1,7 @@
+{
+  "Name": "SIMON: resting-state fMRI preprocessed with NIAK",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "derivative",
+  "GeneratedBy": [{"Name": "NIAK"}],
+  "SourceDatasets": [{"URL": "s3://fcp-indi/data/Projects/INDI/SIMON/rawdata/"}]
+}

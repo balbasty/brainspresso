@@ -188,6 +188,63 @@ the segmented vascular networks (TubeTK `.tre`, listed in
 `.bidsignore`). The DTI series are downloaded but not converted: they
 have no gradient table, and their volumes are stacked along z.
 
+## INDI projects on `s3://fcp-indi`, as BIDS
+
+Curated commands for projects of the International Neuroimaging
+Data-sharing Initiative mirrored on the public `fcp-indi` bucket (no
+login needed). Each dataset is harvested straight to a BIDS dataset in
+`<path>/<DATASET>/`, with the same selection options as `bx openneuro
+harvest` (`--subs`, `--sessions`, `--datatypes`, `--suffixes`,
+`--tasks`, `--include`/`--exclude`, `--where`, `--folders derivatives`,
+`--dry-run`...) plus `--sites` for multi-site datasets. Only the
+selected subjects are listed, so small selections of large datasets
+start immediately.
+
+| Command        | Dataset                                              | Notes                                   |
+|----------------|------------------------------------------------------|-----------------------------------------|
+| `fcon1000`     | 1000 Functional Connectomes Project (33 sites)       | T1w, rest fMRI; skull-stripped T1w      |
+| `nki-rs`       | NKI Rockland Sample (enhanced)                       | lifespan, multimodal, several sessions  |
+| `hbn`          | Healthy Brain Network, MRI (4 sites)                 | children/adolescents; no phenotypes     |
+| `sald`         | Southwest University Adult Lifespan Dataset          | T1w, rest fMRI                          |
+| `slim`         | Southwest University Longitudinal Imaging Multimodal | T1w, DWI, rest fMRI; 3 time points      |
+| `mpi-lemon`    | MPI-Leipzig Mind-Brain-Body: LEMON (MRI)             | MP2RAGE, SWI, DWI, rest fMRI            |
+| `acpi`         | Addiction Connectome Preprocessed Initiative (3 sites) | T1w, rest fMRI                        |
+| `natview`      | Naturalistic viewing, simultaneous EEG-fMRI          | EEG, eye tracking, physiology           |
+| `simon`        | SIMON, one individual scanned in ~70 sessions        | `--folders derivatives`: NIAK outputs   |
+
+```shell
+bx fcon1000 info
+bx fcon1000 harvest /data --sites ICBM NYU_TRT --datatypes func --dry-run
+bx fcon1000 harvest /data --where "age>=60" --folders derivatives
+bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
+bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
+```
+
+Multi-site datasets (`fcon1000`, `hbn`, `acpi`) have two layouts:
+
+* `--layout merged` (default): one BIDS dataset. Labels that are not
+  unique across sites get a site prefix (`AnnArbor_a/sub-04111` ->
+  `sub-AnnArborA04111`), and `participants.tsv` has a `site` column.
+* `--layout sites`: one BIDS dataset per site (`FCON1000/<site>/`), with
+  the labels of the bucket and site-level metadata (e.g. one
+  `task-rest_bold.json` per site). This is "option 1" of the BIDS
+  recommendations for multi-site studies. The parent folder is not a
+  BIDS dataset: it holds the README and the merged `participants.tsv`,
+  which is also what `--where` queries. `--subs` accepts both the site
+  labels and the merged labels.
+
+Bucket copies are rarely valid BIDS as they are, so each dataset is
+curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
+are merged with site-prefixed labels (`sub-AnnArborA04111`), runs and
+typos in file names are fixed and repetition times read from the NIfTI
+headers; multi-site participant tables are merged with a `site` column;
+missing descriptions, READMEs and sidecars are generated; entities are
+put in BIDS order; and common metadata defects (numbers stored as text,
+slice timing in milliseconds, invalid JSON, sessions tables without
+`session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
+are repaired after download (`brainspresso/bids/repair.py`).
+Each dataset's `README` lists what was changed.
+
 ## Compost: clean up a local dataset
 
 Every dataset has a `compost` command. By default, it deletes the source

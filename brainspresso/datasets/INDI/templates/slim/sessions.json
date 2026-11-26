@@ -1,0 +1,4 @@
+{
+  "scan_date": {"Description": "Date of the scan (from the SLIM phenotypic tables)"},
+  "age": {"Description": "Age at the scan (only known for the first session)", "Units": "years"}
+}

@@ -1,0 +1,3 @@
+# Trace-weighted images computed by the scanner (no gradient table)
+*TRACEW_dwi.nii.gz
+*TRACEW_dwi.json

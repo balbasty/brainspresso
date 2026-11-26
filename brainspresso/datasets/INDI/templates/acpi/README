@@ -1,0 +1,21 @@
+Addiction Connectome Preprocessed Initiative (ACPI), raw data
+=============================================================
+
+T1-weighted and resting-state fMRI from three INDI collections on
+substance use:
+
+* `du_1`: Duke University, nicotine (scans before and after smoking)
+* `mta_1`: Multimodal Treatment of ADHD study, cannabis use
+* `nyu_1`: NYU, nicotine dependence
+
+Downloaded by brainspresso from s3://fcp-indi/data/Projects/ACPI/:
+the per-site BIDS folders (`RawDataBIDS/<site>`) are merged.
+
+* `participants.tsv` merges the site tables (column `site` added; `age`,
+  `sex` and `handedness` harmonised). `du_1` has no BIDS participants
+  table: its rows come from `PhenotypicData/du_1_phenotypic_data.csv`,
+  decoded with `du_1_phenotypic_key.csv`.
+* Site-level sidecars are copied to each subject folder.
+* Sidecar values stored as text (`"3T"`, `"6:00"`, `"7/8"`) were
+  converted to numbers, and slice timings from milliseconds to seconds.
+* The original phenotypic tables are in `sourcedata/phenotype/`.

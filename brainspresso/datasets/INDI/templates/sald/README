@@ -1,0 +1,15 @@
+Southwest University Adult Lifespan Dataset (SALD)
+==================================================
+
+T1-weighted and resting-state fMRI of 494 healthy adults (19 to 80
+years), acquired at Southwest University (Chongqing, China) on a 3T
+Siemens Trio.
+
+    Wei D, Zhuang K, Ai L, et al. (2018) Structural and functional brain
+    scans from the cross-sectional Southwest University adult lifespan
+    dataset. Sci Data 5:180134.
+    https://doi.org/10.1038/sdata.2018.134
+
+Downloaded by brainspresso from
+s3://fcp-indi/data/Projects/INDI/SALD/RawData_BIDS/. The bucket has no
+participants table (demographics are distributed on the INDI website).

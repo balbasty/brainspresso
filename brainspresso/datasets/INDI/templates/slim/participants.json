@@ -1,0 +1,4 @@
+{
+  "sex": {"Description": "Sex of the participant", "Levels": {"M": "male", "F": "female"}},
+  "age": {"Description": "Age at the first scan", "Units": "years"}
+}

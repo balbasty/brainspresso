@@ -3,6 +3,9 @@ Download a filtered subset of a remote BIDS dataset.
 
 This is independent of where the dataset is hosted: it takes a listing
 of `RemoteEntry` (relative path, URL, size, digests) and a `Selection`.
+Entries may also be `InlineEntry` (relative path and content): files
+generated locally (e.g. a merged `participants.tsv`, or metadata that the
+host lacks) that are selected and written like downloaded files.
 """
 from __future__ import annotations
 
@@ -11,13 +14,15 @@ import datetime
 import json
 import shutil
 from collections import Counter
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 from humanize import naturalsize
 
+from brainspresso.bids.repair import fix_intended_for
+from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
 from brainspresso.bids.tables import is_trimmable, query_participants
 from brainspresso.bids.tables import trim_tables
@@ -27,6 +32,40 @@ from brainspresso.download.session import new_session
 lg = getLogger(__name__)
 
 STATE_DIR = ".brainspresso"
+
+
+@dataclass
+class InlineEntry:
+    """A file of the dataset generated locally (not downloaded)"""
+    path: str                   # relative to dataset root
+    content: bytes
+
+    url = None
+    mtime = None
+    digests = None
+
+    def __post_init__(self):
+        if isinstance(self.content, str):
+            self.content = self.content.encode()
+
+    @property
+    def size(self) -> int:
+        return len(self.content)
+
+
+def write_inline(entry: InlineEntry, dst: Path, ifexists: str) -> bool:
+    """Write a generated file. Returns whether it was (re)written."""
+    dst = Path(dst)
+    if dst.exists():
+        if dst.read_bytes() == entry.content:
+            return False
+        if ifexists == "error":
+            raise FileExistsError(dst)
+        if ifexists == "skip":
+            return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_bytes(entry.content)
+    return True
 
 
 def resolve_participants(entries, selection: Selection, where: Iterable[str]):
@@ -42,6 +81,8 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
         raise ValueError("--where requires a participants.tsv file")
 
     async def fetch():
+        if getattr(table, "content", None) is not None:
+            return table.content.decode()
         async with new_session() as session:
             async with session.get(table.url) as r:
                 r.raise_for_status()
@@ -93,6 +134,7 @@ def harvest(
     dry_run: bool = False,
     listing: bool = False,
     provenance: dict | None = None,
+    repair: bool = False,
 ) -> list:
     """
     Select and download a subset of a remote BIDS dataset.
@@ -111,6 +153,8 @@ def harvest(
         Rewrite participants/sessions/scans tables so that they only
         list what is present locally, so that they describe the
         subset. Untouched copies are kept in `.brainspresso/orig/`.
+        Field map `IntendedFor` targets that are not present locally
+        are removed too.
     if_exists : {"skip", "overwrite", "different", "refresh", "error"}
         Behaviour if a file already exists
     jobs : int
@@ -121,6 +165,9 @@ def harvest(
         Print the list of selected files
     provenance : dict
         Extra information saved in the manifest (source, dataset, tag...)
+    repair : bool
+        Repair common defects of the downloaded JSON and TSV files
+        (see `bids.repair`), before tables are trimmed.
 
     Returns
     -------
@@ -143,11 +190,18 @@ def harvest(
     state = root / STATE_DIR
     originals = {}
     downloaders = []
+    nb_inline = 0
     for e in selected:
         dst = root / PurePosixPath(e.path)
         if trim and is_trimmable(e.path):
             dst = state / "orig" / PurePosixPath(e.path)
             originals[e.path] = dst
+        if isinstance(e, InlineEntry):
+            # generated tables are always refreshed (they are trimmed)
+            nb_inline += write_inline(
+                e, dst, "overwrite" if e.path in originals else if_exists
+            )
+            continue
         downloaders.append(Downloader(
             e.url, dst,
             size=e.size,
@@ -156,9 +210,30 @@ def harvest(
             ifexists=if_exists,
         ))
 
-    DownloadManager(
-        downloaders, ifexists=if_exists, jobs=jobs, path="short",
-    ).run()
+    if nb_inline:
+        lg.info(f"Wrote {nb_inline} generated files")
+    if downloaders:
+        DownloadManager(
+            downloaders, ifexists=if_exists, jobs=jobs, path="short",
+        ).run()
+
+    if repair:
+        targets = [Path(d.dst) for d in downloaders
+                   if str(d.dst).endswith((".json", ".tsv"))]
+        repaired = repair_metadata(targets)
+        if repaired:
+            lg.info(f"Repaired {len(repaired)} metadata files")
+
+    if repair or trim:
+        # field maps: repair free-text `IntendedFor`, drop missing targets
+        fmaps = [Path(d.dst) for d in downloaders
+                 if Path(d.dst).parent.name == "fmap"
+                 and str(d.dst).endswith(".json")]
+        for path in fmaps:
+            if repair:
+                fix_intended_for(path, root, trim=False)
+            if trim:
+                fix_intended_for(path, root, trim=True)
 
     if trim:
         written = trim_tables(root, originals)
@@ -194,6 +269,9 @@ def write_manifest(state: Path, selected, selection, where, provenance):
     })
     files = manifest.setdefault("files", {})
     for e in selected:
+        if isinstance(e, InlineEntry):
+            files[e.path] = {"generated": True, "size": e.size}
+            continue
         files[e.path] = {
             "url": e.url,
             "size": e.size,

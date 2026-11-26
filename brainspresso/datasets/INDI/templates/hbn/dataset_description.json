@@ -1,0 +1,12 @@
+{
+  "Name": "Healthy Brain Network (HBN), MRI",
+  "BIDSVersion": "1.9.0",
+  "DatasetType": "raw",
+  "Authors": ["Child Mind Institute Healthy Brain Network"],
+  "HowToAcknowledge": "Cite Alexander et al. (2017), An open resource for transdiagnostic research in pediatric mental health and learning disorders, Scientific Data 4:170181.",
+  "ReferencesAndLinks": [
+    "https://doi.org/10.1038/sdata.2017.181",
+    "https://healthybrainnetwork.org"
+  ],
+  "DatasetLinks": {"fcp-indi": "s3://fcp-indi/data/Projects/HBN/MRI/"}
+}

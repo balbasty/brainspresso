@@ -59,6 +59,8 @@ def test_cli_commands():
         "abide1", "abide2", "adhd200", "cobre", "corr", "gsp", "ixi",
         "oasis1", "oasis2", "oasis3", "openneuro", "unc-wisconsin",
         "bullitt",
+        "fcon1000", "nki-rs", "hbn", "sald", "slim", "mpi-lemon", "acpi",
+        "natview", "simon",
     }
     assert expected <= commands
 

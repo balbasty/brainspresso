@@ -118,6 +118,8 @@ def nrrd_to_nifti(
         Output b-values/vectors (only for diffusion-weighted NRRDs).
         Required if the input is a DWI.
     """
+    # Load-bearing: the UNC-Wisconsin roaster (imported by its dataset at
+    # registration) imports this module without pynrrd being installed.
     import nrrd  # noqa: PLC0415  lazy: optional dependency (pynrrd)
 
     try:

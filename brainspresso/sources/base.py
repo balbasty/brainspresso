@@ -1309,7 +1309,8 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
 
     for value in values:
         value = getattr(value, "value", value)
-        if width is not None and isinstance(value, str) and ":" in value:
+        if width is not None and isinstance(value, str) and ":" in value \
+                and not Path(value).is_file():     # (`C:\\subs.txt`)
             start, stop, *step = value.split(":")
             try:
                 step = int(step[0]) if step and step[0] else 1

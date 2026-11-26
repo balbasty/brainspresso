@@ -68,8 +68,13 @@ class ABIDE1(Dataset):
             return (
                 "Convert the source data of ABIDE-I to BIDS (legacy "
                 "roasters, `Bidsifier` classes, rewritten in step 5).\n\n"
-                "With `--source xnat`, `--keys` does not filter raw data "
-                "yet (only `--exclude-keys` does): that comes with step 5."
+                "`--source s3` (default) or `nitrc`: the NITRC tarballs or "
+                "the bucket copy; `--keys` selects raw data (T1w, rest) and "
+                "metadata, derivatives are not converted. `--source xnat`: "
+                "the NITRC-IR archives; `--keys` selects raw scans, "
+                "metadata and FreeSurfer outputs (`fs`: the files that BIDS "
+                "describes, `fs-all`: every file), but FreeSurfer archives "
+                "are not found yet (a known bug, fixed in step 5)."
             )
         return super().describe(command)
 

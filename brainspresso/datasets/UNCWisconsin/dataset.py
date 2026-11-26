@@ -20,11 +20,6 @@ ROAST_KEYS = ("meta", "T1w", "T2w", "dwi", "reg", "dti-qc", "dti-proc",
               "raw", "anat", "derivatives")
 
 
-def roast_keys():
-    """Keys of the roast (imported on use: the roaster needs nrrd)."""
-    return KEYS
-
-
 class UNCWisconsin(Dataset):
     """UNC-Wisconsin Rhesus Macaque Neurodevelopment Database."""
 
@@ -42,7 +37,7 @@ class UNCWisconsin(Dataset):
     def keys_for(self, command):
         """Roast keys: those of the roaster."""
         if command == "roast":
-            return KeySpec(roast_keys, ROAST_KEYS, ())
+            return KeySpec(KEYS, ROAST_KEYS, ())
         return self.keys
 
     def sources(self, args=None):

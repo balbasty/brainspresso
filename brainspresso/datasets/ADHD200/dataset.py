@@ -1,5 +1,4 @@
 """`bx adhd200`: ADHD-200."""
-import warnings
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -7,7 +6,11 @@ from cyclopts import Parameter
 from brainspresso.datasets.ADHD200.harvest import S3
 from brainspresso.datasets.ADHD200.keys import allkeys
 from brainspresso.datasets.base import Dataset, KeySpec
-from brainspresso.datasets.options import OptionGroup, option_group
+from brainspresso.datasets.options import (
+    OptionGroup,
+    deprecated,
+    option_group,
+)
 
 HELP = """
 ADHD-200 dataset (attention deficit hyperactivity disorder)
@@ -37,8 +40,7 @@ class BidsCopyOptions(OptionGroup):
         """`bidsify` (the option of the S3 source)."""
         value = self.bids
         if self.bidsify is not None:
-            warnings.warn("--bidsify/--no-bidsify are deprecated: use "
-                          "--bids/--no-bids", FutureWarning, stacklevel=2)
+            deprecated("--bidsify/--no-bidsify", "--bids/--no-bids")
             value = self.bidsify
         return {"bidsify": value}
 

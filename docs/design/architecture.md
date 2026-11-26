@@ -742,9 +742,14 @@ roasters get numbers (`Dataset.numbers`).
   when it is created (`INDI.harvest.harvest_sites`, with the `--wait` of
   the command), and a command on one site (`--out <DS>/<site>`, listed
   by the parent or not) also takes the lock of its parent, so a compost
-  of a site waits for a harvest of the parent. Locks are always taken
-  parents first (`Dataset.lock_states`): two commands that took a site
-  and its parent in opposite orders would wait on each other. All three
+  of a site waits for a whole-parent compost. The parent's lock is
+  always taken **shared** by a command on a site, which takes its own
+  mode only on its target (the dataset, then its sites): a compost of
+  `<DS>/A` runs next to a roast of `<DS>/B` and fails during a roast of
+  `<DS>/A`, and a compost of `<DS>` (exclusive on the parent and every
+  site) excludes every site command. Locks are always taken parents
+  first (`Dataset.lock_states`): two commands that took a site and its
+  parent in opposite orders would wait on each other. All three
   commands fail at once by default (`--wait SECONDS`). Locks disabled
   (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
@@ -980,6 +985,13 @@ up as an XPASS failure once fixed (then drop the marker).
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
   relabel saved to `dst` instead of the action's path.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
+* ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
+  FreeSurfer archives are looked up with the OASIS-3 pattern
+  `OAS3{id:05d}_MR_*`, so `fs`/`fs-all` roasts find nothing; `fixstatus`
+  is called without `mod` and with int counters;
+  `int(label.split('_')[1])` fails on sample labels; `glob(site + '_*')`
+  misses `UCLA1_...`; the `*_{id:05d}` glob misses 7-digit labels.
+* ABIDE-I NITRC: `acq-hires_T1w.json` (UCLA `anat_2`) is never used.
 * ~~`set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II~~ (fixed in OASIS-III, step 2b-ii, with its
   sessions table name; in ABIDE-I/II in step 4, where `--exclude-keys`
@@ -1103,3 +1115,10 @@ up as an XPASS failure once fixed (then drop the marker).
   with several keys fixed (`set().union`), and the roast help says what
   the legacy roasters do not filter; unnamed key groups are not keys;
   bad `--subs` ranges are `UsageError`s.
+* r14: round 4. A command on a site takes its parent's run lock shared
+  and its own mode only on its target (compost of a site runs next to a
+  roast of a sibling; a compost of the whole parent still excludes every
+  site command); legacy roasters get the keys given plus the leaves
+  below them (`fs` stays `fs`); deprecated flags are logged warnings;
+  `--subs` names a file before a range (`C:\subs.txt`); ABIDE-I XNAT and
+  NITRC roast bugs listed for step 5.

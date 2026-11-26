@@ -457,7 +457,7 @@ def test_key_spec_effective():
     ([], True), (["--no-bids"], False), (["--no-bidsify"], False),
     (["--bidsify"], True),
 ])
-def test_adhd200_bids_flag(tmp_path, monkeypatch, flags, value):
+def test_adhd200_bids_flag(tmp_path, monkeypatch, caplog, flags, value):
     seen = {}
 
     def harvest(self, layout, args):
@@ -470,6 +470,8 @@ def test_adhd200_bids_flag(tmp_path, monkeypatch, flags, value):
     except SystemExit as e:
         assert not e.code
     assert seen["bidsify"] is value
+    if "bidsify" in "".join(flags):
+        assert "--bidsify/--no-bidsify is deprecated" in caplog.text
 
 
 # ----------------------------------------------------------------------
@@ -490,7 +492,25 @@ def test_group_defaults_cover_all():
     # legacy roasts get leaves, exclusions removed
     args = Args.of(ABIDE2(), "roast", keys=KeyOptions(
         exclude_keys=("dti", "rest")))
-    assert ABIDE2().legacy_keys("roast", args) == {"T1w", "pheno"}
+    assert ABIDE2().legacy_keys("roast", args) == {
+        "T1w", "anat", "pheno", "meta"}
+
+
+def test_legacy_keys_keep_groups():
+    # `fs` (one leaf, `fs-all`) reaches the legacy roaster as `fs`: it
+    # only converts the files that BIDS describes, `fs-all` converts all
+    abide = ABIDE1()
+    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
+        keys=("fs",))))
+    assert "fs" in keys and keys == {"fs", "fs-all"}
+    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
+        keys=("meta", "anat"))))
+    assert {"meta", "pheno", "anat", "T1w"} == keys
+    # an excluded leaf removes the groups above it
+    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
+        exclude_keys=("fs-all",))))
+    assert not {"fs", "fs-all", "derivatives", "all"} & keys
+    assert {"T1w", "rest", "meta"} <= keys
 
 
 def test_unnamed_key_group():
@@ -527,8 +547,8 @@ def test_abide_roast_help_notes(capsys):
 
 
 def test_lock_states_parent_first(tmp_path):
-    # parent (one dataset per site) before the site, the site listed or
-    # not, and the parent before its sites
+    # the parent (one dataset per site), shared, before the site (listed
+    # or not); a whole parent: itself, then its sites
     root = tmp_path / "DS"
     sites = make_layout("sites", root, child_kind="study")
     sites.child("A")
@@ -536,8 +556,17 @@ def test_lock_states_parent_first(tmp_path):
     record_run(sites, "harvest")
     for name in ("A", "NEW"):
         site = make_layout("study", root / name)
-        assert Dataset.lock_states(site)[:2] == [
-            root / ".brainspresso", root / name / ".brainspresso"]
+        assert Dataset.lock_states(site) == (
+            [root / ".brainspresso"], [root / name / ".brainspresso"])
     found = Layout.detect(root)
-    assert Dataset.lock_states(found) == [root / ".brainspresso",
-                                          root / "A" / ".brainspresso"]
+    assert Dataset.lock_states(found) == (
+        [], [root / ".brainspresso", root / "A" / ".brainspresso"])
+    # not a site
+    assert Dataset.lock_states(make_layout("flat", tmp_path / "X")) == (
+        [], [tmp_path / "X" / ".brainspresso"])
+
+
+def test_subject_file_with_colon(tmp_path):
+    subs = tmp_path / "a:b.txt"
+    subs.write_text("2\n12\n")
+    assert IXI().labels([str(subs)]) == {"002", "012"}

@@ -14,7 +14,7 @@ This module does not use `from __future__ import annotations`: cyclopts
 reads the annotations of the fields.
 """
 import dataclasses
-import warnings
+import logging
 from typing import Annotated, Any, ClassVar, Literal, Mapping
 
 from cyclopts import Group, Parameter
@@ -26,8 +26,24 @@ from brainspresso.errors import UsageError
 from brainspresso.sources.base import DownloadOptions
 from brainspresso.utils.ui import human2bytes
 
+lg = logging.getLogger(__name__)
+
 Many = Parameter(consume_multiple=True)
 Strings = tuple[str, ...]
+
+
+def deprecated(old: str, new: str) -> None:
+    """
+    Warn that a command-line option is deprecated (a log message).
+
+    Parameters
+    ----------
+    old : str
+        The deprecated option (e.g. "--site-layout")
+    new : str
+        What to use instead
+    """
+    lg.warning(f"{old} is deprecated: use {new}")
 
 
 def _many(help: str, **kwargs) -> Parameter:
@@ -556,9 +572,7 @@ class LayoutOptions(OptionGroup):
                     f"--site-layout requires --layout sites (use "
                     f"--layout sites:{self.site_layout})"
                 )
-            warnings.warn("--site-layout is deprecated: use --layout "
-                          f"sites:{self.site_layout}", FutureWarning,
-                          stacklevel=2)
+            deprecated("--site-layout", f"--layout sites:{self.site_layout}")
             value = f"sites:{self.site_layout}"
         if value is not None and dataset is not None \
                 and value not in dataset.layouts:

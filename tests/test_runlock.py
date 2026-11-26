@@ -185,26 +185,102 @@ with run_lock(parent, "compost", exclusive=True):
         print("child", flush=True)
 """
 
+HOLD_ALL = """
+import sys, time
+from brainspresso.actions.runlock import run_lock
+with run_lock(sys.argv[2:], sys.argv[1]):
+    print("ready", flush=True)
+    time.sleep(60)
+"""
 
-def test_parent_before_child(tmp_path):
-    # A locks the parent then a site; B (a compost of the site) locks in
-    # the same order (`Dataset.lock_states`), so neither waits forever
+
+@pytest.fixture
+def two_sites(tmp_path):
+    """`DS/` with one dataset per site, `A` and `B`, each with subjects."""
     root = tmp_path / "DS"
-    sites = make_layout("sites", root, child_kind="study")
-    record_run(sites.child("A"), "harvest")
+    sites = make_layout("sites", root, child_kind="flat")
+    for name in ("A", "B"):
+        child = sites.child(name)
+        for sub in ("sub-01", "sub-02"):
+            (Path(child.raw) / sub / "anat").mkdir(parents=True)
+            (Path(child.raw) / sub / "anat" / f"{sub}_T1w.nii.gz"
+             ).write_bytes(b"x")
+        (Path(child.raw) / "dataset_description.json").write_text(
+            '{"Name": "x", "BIDSVersion": "1.10.0"}')
+        record_run(child, "harvest")
     record_run(sites, "harvest")
-    site = make_layout("study", root / "A")
-    states = Dataset.lock_states(site)
-    assert states == [root / ".brainspresso", root / "A" / ".brainspresso"]
+    return root
+
+
+def _compost_site(root, name, *extra):
+    main(["openneuro", "compost", "ds1", "--out", str(root / name),
+          "--exclude-subs", "01", "--yes", *extra])
+
+
+def _hold(command, *states):
     proc = subprocess.Popen(
-        [sys.executable, "-c", ORDERED, str(states[0]), str(states[1])],
+        [sys.executable, "-c", HOLD_ALL, command, *map(str, states)],
+        stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
+    assert proc.stdout.readline().strip() == "ready"
+    return proc
+
+
+def test_parent_before_child(two_sites):
+    # A compost of the whole parent locks it, then a site; a compost of
+    # the site waits for the parent (shared) first, so neither waits
+    # forever
+    root = two_sites
+    parents, targets = Dataset.lock_states(make_layout("flat", root / "A"))
+    assert parents == [root / ".brainspresso"]
+    proc = subprocess.Popen(
+        [sys.executable, "-c", ORDERED, str(parents[0]), str(targets[0])],
         stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
     try:
         assert proc.stdout.readline().strip() == "parent"
-        with run_lock(states, "compost", exclusive=True, wait=5):
-            pass
+        try:
+            _compost_site(root, "A", "--wait", "5")
+        except SystemExit as e:
+            assert not e.code
         assert proc.stdout.readline().strip() == "child"
         assert proc.wait(timeout=10) == 0
+    finally:
+        proc.kill()
+        proc.wait()
+    assert not (root / "A" / "sub-01").exists()
+
+
+def test_compost_site_next_to_roast_of_sibling(two_sites, capsys):
+    root = two_sites
+    # a roast of B: the parent and B, shared
+    proc = _hold("roast", root / ".brainspresso", root / "B" / ".brainspresso")
+    try:
+        try:
+            _compost_site(root, "A")
+        except SystemExit as e:
+            assert not e.code
+        assert not (root / "A" / "sub-01").exists()
+    finally:
+        proc.kill()
+        proc.wait()
+    # a roast of A: the compost of A fails
+    proc = _hold("roast", root / ".brainspresso", root / "A" / ".brainspresso")
+    try:
+        with pytest.raises(SystemExit) as e:
+            main(["openneuro", "compost", "ds1", "--out", str(root / "A"),
+                  "--exclude-subs", "02", "--yes"])
+        assert e.value.code == 1
+        assert "roast running" in capsys.readouterr().err
+        assert (root / "A" / "sub-02").exists()
+    finally:
+        proc.kill()
+        proc.wait()
+    # a compost of the whole parent fails while any site is roasted
+    proc = _hold("roast", root / ".brainspresso", root / "B" / ".brainspresso")
+    try:
+        with pytest.raises(SystemExit):
+            main(["openneuro", "compost", "ds1", "--out", str(root),
+                  "--exclude-subs", "02", "--yes"])
+        assert "roast running" in capsys.readouterr().err
     finally:
         proc.kill()
         proc.wait()

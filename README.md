@@ -37,7 +37,7 @@ These datasets can be listed by typing `brainspresso` (or `bx`, or
 Usage: brainspresso COMMAND
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃     Brainspresso : Harvest, Roast and Grind public neuroimaging datasets      ┃
+┃       Brainspresso : Harvest, Roast and Grind public neuroimaging datasets        ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
  • Plantation : A public neuroimaging dataset supported brainspresso

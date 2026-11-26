@@ -31,6 +31,7 @@ dataset folder and its layout, as the command line does.
 This module does not use `from __future__ import annotations` (the
 `Args` dataclass is read by tools that resolve annotations).
 """
+import contextlib
 import copy
 import dataclasses
 import logging
@@ -114,8 +115,8 @@ class KeySpec:
     ----------
     tree : KeyAliases | dict | callable | None
         Key hierarchy: a `bids.keys.KeyAliases` (roast), a `utils.keys`
-        nested dict, or a function returning one (imported on use, e.g.
-        a roaster module with optional dependencies)
+        nested dict, or a function returning one (for a roaster module
+        that needs an optional dependency, imported on use: IXI, xlrd)
     choices : tuple[str] | None
         Values of `--keys` (None: the keys of a nested-dict `tree`, else
         any text, checked against the hierarchy before the command runs)
@@ -147,6 +148,27 @@ class KeySpec:
             # (an unnamed group, e.g. OASIS-III's "", is not a key)
             return tuple(sorted(k for k in flatten_keys(self.tree) if k))
         return None
+
+    def expand(self, names: Iterable[str]) -> set:
+        """
+        Return the names given and the leaves below them.
+
+        Parameters
+        ----------
+        names : list[str]
+
+        Returns
+        -------
+        set[str]
+        """
+        names = _names(names)
+        if not isinstance(self.tree, Mapping):
+            return set(names)
+        every = get_leaves(self.tree)
+        out = set()
+        for name in names:
+            out |= (lower_keys(name, self.tree) & every) | {name}
+        return out
 
     def leaves(self, names: Iterable[str]) -> set:
         """
@@ -856,6 +878,10 @@ class Dataset:
         """
         Keys of a legacy roaster: `--keys` (else all) minus excluded.
 
+        The names given stay, with the leaves below them (`fs` is not
+        `fs-all`: a group with one leaf can mean something of its own to
+        a legacy roaster).
+
         Parameters
         ----------
         command : str
@@ -867,8 +893,11 @@ class Dataset:
         """
         spec = self.keys_for(command) or KeySpec()
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
-        keys = spec.leaves(keys or spec.all_choices() or ())
-        return keys - spec.leaves(exclude)
+        keys = spec.expand(keys or spec.all_choices() or ())
+        # excluded keys, and the groups that hold an excluded leaf, go
+        excluded = spec.leaves(exclude)
+        return {k for k in keys
+                if k not in exclude and not spec.leaves([k]) & excluded}
 
     def numbers(self, values: Iterable[str]) -> list:
         """
@@ -990,15 +1019,19 @@ class Dataset:
         subjects(args.select.exclude_subs)
 
     @staticmethod
-    def lock_states(layout) -> list:
+    def lock_states(layout) -> tuple[list, list]:
         """
         Return the state folders whose run lock a command takes.
 
-        Always in the same order, parents before children (two commands
-        that lock a site and its parent in opposite orders would wait on
-        each other): the parent of a site dataset (`--out <DS>/<site>`,
-        whenever `<DS>` has one dataset per site, the site listed or
-        not), the dataset, then its existing sites.
+        A command on a site dataset (`--out <DS>/<site>`, whenever `<DS>`
+        has one dataset per site, the site listed or not) takes the lock
+        of the parent **shared** whatever its mode, so commands on sibling
+        sites run together, while a compost of the whole parent
+        (exclusive on the parent and its sites) excludes them all; it
+        takes its own mode only on its target: the dataset and its
+        existing sites. Parents are always locked first (two commands that
+        took a site and its parent in opposite orders would wait on each
+        other).
 
         Parameters
         ----------
@@ -1006,18 +1039,21 @@ class Dataset:
 
         Returns
         -------
-        list[Path]
+        parents : list[Path]
+            Locked shared, first
+        targets : list[Path]
+            Locked in the mode of the command: the dataset, then its sites
         """
-        states = []
+        parents = []
         if not isinstance(layout, SitesLayout):
             parent = Path(layout.root).parent
             if (parent / STATE_DIR).is_dir() and isinstance(
                     Layout.detect(parent), SitesLayout):
-                states.append(parent / STATE_DIR)
-        states.append(Path(layout.state))
-        states += [Path(d.state) for d in layout.datasets()
-                   if d is not layout and Path(d.state).is_dir()]
-        return states
+                parents.append(parent / STATE_DIR)
+        targets = [Path(layout.state)]
+        targets += [Path(d.state) for d in layout.datasets()
+                    if d is not layout and Path(d.state).is_dir()]
+        return parents, targets
 
     def run(self, command: str, layout=None, args: Args | None = None):
         """
@@ -1052,9 +1088,14 @@ class Dataset:
                                   + (" (harvest it first)"
                                      if command == "roast" else ""))
         layout.ensure_state()
-        states = self.lock_states(layout)
-        with run_lock(states, command, exclusive=mode == "exclusive",
-                      wait=args.wait, force=args.compost.ignore_runs):
+        parents, targets = self.lock_states(layout)
+        with contextlib.ExitStack() as stack:
+            if parents:
+                stack.enter_context(run_lock(parents, command,
+                                             wait=args.wait))
+            stack.enter_context(run_lock(
+                targets, command, exclusive=mode == "exclusive",
+                wait=args.wait, force=args.compost.ignore_runs))
             return body(layout, args)
 
     # ------------------------------------------------------------------

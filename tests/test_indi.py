@@ -22,6 +22,7 @@ from brainspresso.bids.layout import Layout, SitesLayout
 from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
+from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.INDI import harvest as indi
 from brainspresso.datasets.INDI.engine import (
     Site,
@@ -302,12 +303,13 @@ def test_fcon1000_harvest(tmp_path, layout):
 @pytest.mark.parametrize("site_layout,spelling", [
     ("study", "sites:study"), ("flat", "sites:flat"), ("flat", "alias"),
 ])
-def test_fcon1000_layout_sites(tmp_path, site_layout, spelling):
+def test_fcon1000_layout_sites(tmp_path, caplog, site_layout, spelling):
     if spelling == "alias":         # deprecated (until the end of step 5)
         layout = ["--layout", "sites", "--site-layout", site_layout]
-        with pytest.warns(FutureWarning, match="sites:flat"):
-            bx("fcon1000", "harvest", tmp_path, *layout,
-               "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+        bx("fcon1000", "harvest", tmp_path, *layout,
+           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+        assert "--site-layout is deprecated: use --layout sites:flat" \
+            in caplog.text
     else:
         bx("fcon1000", "harvest", tmp_path, "--layout", spelling,
            "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
@@ -759,20 +761,21 @@ def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
 HOLD = """
 import sys, time
 from brainspresso.actions.runlock import run_lock
-with run_lock(sys.argv[1], "harvest"):
+with run_lock(sys.argv[1:], "harvest"):
     print("ready", flush=True)
     time.sleep(60)
 """
 
 
-def test_fcon1000_site_compost_waits_for_parent(tmp_path, capsys):
-    # compost of one site (`--out <DS>/<site>`) also takes the run lock
-    # of the parent, which a harvest of the parent holds
+def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
+    # a harvest of the parent holds the parent and its sites (shared), so
+    # a compost of one site (`--out <DS>/<site>`) fails
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
        "--sites", "ICBM")
     root = tmp_path / "FCON1000"
+    parents, targets = Dataset.lock_states(Layout.detect(root))
     proc = subprocess.Popen(
-        [sys.executable, "-c", HOLD, str(root / ".brainspresso")],
+        [sys.executable, "-c", HOLD, *map(str, parents + targets)],
         stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
     try:
         assert proc.stdout.readline().strip() == "ready"

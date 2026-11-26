@@ -2,15 +2,19 @@
 import ast
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import threading
 import time
+from concurrent.futures import Future
 from pathlib import Path
 
 import pytest
 
 import brainspresso.actions as actions_pkg
 import brainspresso.actions.engine as engine_module
+import brainspresso.actions.state as state_module
 from brainspresso.actions import (
     Action,
     CopyJSON,
@@ -249,9 +253,10 @@ def crash_in_worker(ctx, i, main_pid):
                     tag="units")
 
 
+@pytest.mark.parametrize("state", ["none", "unwritable"])
 @pytest.mark.parametrize("pause", [0, 0.4])
 def test_crashed_shard_without_state_is_an_error(tmp_path, monkeypatch,
-                                                 pause):
+                                                 pause, state):
     markers = tmp_path / "tmp"
     markers.mkdir()
     monkeypatch.setattr(tempfile, "tempdir", str(markers))
@@ -271,7 +276,14 @@ def test_crashed_shard_without_state_is_an_error(tmp_path, monkeypatch,
             # (pause: the pool breaks while the producer yields shards)
             time.sleep(pause)
 
-    ctx = Context(tmp_path / "root")
+    if state == "unwritable":
+        # no state file can be written, from before the shards start
+        # (a file in the place of the tasks folder: even root fails)
+        (tmp_path / "state").mkdir()
+        (tmp_path / "state" / "tasks").write_text("")
+        ctx = Context(tmp_path / "root", state=tmp_path / "state")
+    else:
+        ctx = Context(tmp_path / "root")
     report = run(producer, ctx, jobs=2, display=False)
     assert report.status == "partial"
     # the shard that crashed its worker is not run again
@@ -373,3 +385,99 @@ def test_worker_death_with_an_unwritable_state(tmp_path, monkeypatch,
         "running at the same time, crashed it)"]
     assert "Could not write the state of demo/a" in caplog.text
     assert not (tmp_path / "out").exists()          # not run again
+
+
+def test_handed_back_children_are_counted_on_their_parent(tmp_path):
+    out = tmp_path / "out"
+
+    def local(ctx):
+        # unpicklable (a closure): runs in the main process, while the
+        # worker of `parent` hands back its children (run in the pool)
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            yield WriteText("busy", ctx.root / "busy.txt")
+            if (out / "x.txt").exists() and (out / "y.txt").exists():
+                return
+            time.sleep(0.05)
+        raise TimeoutError("the children did not run")
+
+    def producer(ctx):
+        yield Shard(parent, id="demo/parent")
+        yield Shard(local, id="demo/local")
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    report = run(producer, ctx, jobs=2, display=False)
+    assert not report.errors
+    states = read_task_states(tmp_path / "state")
+    assert states["demo/parent"]["children"] == 2
+    assert states["demo/local"]["children"] == 0
+
+
+class InlineExecutor:
+    """An executor of the submit protocol that is not the local pool."""
+
+    def __init__(self):
+        self.tasks = []
+
+    def submit(self, task, resources=None):
+        self.tasks.append(task)
+        future = Future()
+        future.set_result(task())
+        return future
+
+    def shutdown(self):
+        pass
+
+
+def test_other_executors_get_no_start_markers(tmp_path, caplog):
+    executor = InlineExecutor()
+
+    def producer(ctx):
+        for name in ("a", "b"):
+            yield Shard(leaf, name)
+
+    report = run(producer, Context(tmp_path), executor=executor,
+                 display=False)
+    assert report.summary() == {"run": {"done": 2}}
+    assert [task.started for task in executor.tasks] == [None, None]
+    assert "Could not mark" not in caplog.text
+
+
+def test_stale_start_markers_are_removed(tmp_path, monkeypatch):
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    proc = subprocess.run([sys.executable, "-c",
+                           "import os; print(os.getpid())"],
+                          capture_output=True, text=True, check=True)
+    dead = int(proc.stdout)
+    stale = tmp_path / f"bx-shards-{dead}-abc"
+    alive = tmp_path / f"bx-shards-{os.getppid()}-def"
+    for folder in (stale, alive):
+        folder.mkdir()
+        (folder / "1.started").touch()
+    folder = engine_module._marker_folder()
+    assert folder.name.startswith(f"bx-shards-{os.getpid()}-")
+    assert not stale.exists() and alive.exists() and folder.is_dir()
+
+
+def test_stale_task_state_temporary_files_are_removed(tmp_path,
+                                                      monkeypatch):
+    monkeypatch.setattr(state_module, "_swept", set())
+    tasks = tmp_path / "tasks"
+    tasks.mkdir()
+    stale, fresh = tasks / ".1-dead.tmp", tasks / ".2-live.tmp"
+    old = tasks / "demo%2Fx.json.tmp"      # (name of an older version)
+    for path in (stale, fresh, old):
+        path.write_text("{")
+    past = time.time() - state_module.STALE_TMP_AGE - 60
+    for path in (stale, old):
+        os.utime(path, (past, past))
+    write_task_state(tmp_path, "demo/x", {})
+    assert sorted(p.name for p in tasks.iterdir()) == [
+        ".2-live.tmp", "demo%2Fx.json"]
+
+
+def test_task_state_of_a_long_task_id(tmp_path):
+    task = "x" * 245              # the longest file name: 250 characters
+    path = write_task_state(tmp_path, task, {"status": "done"})
+    assert len(path.name) == 250
+    assert read_task_states(tmp_path)[task]["status"] == "done"

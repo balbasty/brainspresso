@@ -107,8 +107,23 @@ def describe(record: dict) -> str:
             f"{record.get('started', '?')})")
 
 
-def _alive(pid: int) -> bool:
-    """Whether a process of this host is alive."""
+def pid_alive(pid: int) -> bool:
+    """
+    Tell whether a process of this host is alive.
+
+    Parameters
+    ----------
+    pid : int
+        Its process id
+
+    Returns
+    -------
+    bool
+        False only if no such process exists (one that cannot be
+        signalled, or an invalid pid, counts as alive)
+    """
+    if os.name == "nt":         # `os.kill(pid, 0)` would terminate it
+        return True
     try:
         os.kill(int(pid), 0)
     except ProcessLookupError:
@@ -147,7 +162,7 @@ def _check_records(state: Path, force: bool) -> None:
         if record.get("host") == host:
             if record.get("pid") == me:
                 continue
-            if not _alive(record.get("pid")):
+            if not pid_alive(record.get("pid")):
                 with contextlib.suppress(OSError):
                     os.unlink(record["file"])
                 continue

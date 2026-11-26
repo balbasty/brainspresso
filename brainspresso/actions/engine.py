@@ -58,13 +58,18 @@ must `ctx` and the policy; a shard that cannot be pickled runs in the
 main process (or in its worker), and an unpicklable `ctx` or policy
 makes the whole run happen in the main process, both with a warning. If
 a worker dies (`BrokenProcessPool`), the shards that had started (their
-state file says so or, without a state folder, a marker file that the
-worker writes when it starts a shard) are counted as errors, so that a
-shard that crashes its worker is not run again; the others, as well as
-all later ones, run in the main process. With `jobs=1` (default),
-everything runs sequentially, in order. ("spawn" re-imports the main
-module in each worker: a script that calls `run` with `jobs > 1` needs
-an `if __name__ == "__main__":` guard; the `bx` command does.)
+state file says so, or a marker file that a worker of the local pool
+writes when it starts a shard: the state folder may be missing or not
+writable) are counted as errors, so that a shard that crashes its
+worker is not run again; the others, as well as all later ones, run in
+the main process. (Markers live in `<tmp>/bx-shards-<pid>-*`, removed
+at the end of the run, or by a later run if the process was killed.
+Another executor, whose workers may run on other machines, gets no
+markers: only state files tell which shards had started.) With
+`jobs=1` (default), everything runs sequentially, in order. ("spawn"
+re-imports the main module in each worker: a script that calls `run`
+with `jobs > 1` needs an `if __name__ == "__main__":` guard; the `bx`
+command does.)
 
 When the context has a state folder (`ctx.state`), each shard with an
 `id` (and every shard run in a worker) writes its state to
@@ -105,7 +110,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Union
 
 from brainspresso.actions.action import Action, IfExists
-from brainspresso.actions.runlock import held_states, hold_shared
+from brainspresso.actions.runlock import held_states, hold_shared, pid_alive
 from brainspresso.actions.state import (
     now,
     read_task,
@@ -667,7 +672,7 @@ class _Pending:
     tag: str
     task: str
     auto: bool
-    started: Path | None = None     # marker written when it starts
+    started: Path | None = None     # start marker (local pool)
 
 
 @dataclass
@@ -681,8 +686,9 @@ class _ShardTask:
     task: str
     run: str
     signature: str | None = None
-    #: File created when the shard starts (without a state folder: the
-    #: main process tells, if the worker dies, whether it had started)
+    #: File created when the shard starts (local pool): if the worker
+    #: dies, the main process tells whether it had started, even
+    #: without a (writable) state folder
     started: str | None = None
 
     def __call__(self) -> tuple[list, list, list]:
@@ -709,9 +715,44 @@ class _ShardTask:
                 finalizers.append((fin, tag))
             else:
                 engine.drive(fin, tag)
-        # (`dispatch` counted its children, handed back or not)
+        # (`_drive` counted its children, handed back or not)
         state.finish()
         return reporter.events, engine.deferred, finalizers
+
+
+#: Prefix of the folders of start markers, in the temporary folder:
+#: `bx-shards-<pid>-<random>`
+MARKERS_PREFIX = "bx-shards-"
+
+
+def _marker_folder() -> Path | None:
+    """
+    Create the folder of the start markers of a run.
+
+    It is removed when the run ends (`Engine.close`). Those that a
+    killed process left behind (their pid is not alive) are removed
+    first.
+
+    Returns
+    -------
+    Path | None
+        `<tmp>/bx-shards-<pid>-<random>` (None, with a warning, if it
+        cannot be created: only state files tell then)
+    """
+    me = os.getpid()
+    tmp = Path(tempfile.gettempdir())
+    try:
+        for folder in tmp.glob(MARKERS_PREFIX + "*"):
+            pid = folder.name[len(MARKERS_PREFIX):].split("-")[0]
+            if pid.isdigit() and int(pid) != me \
+                    and not pid_alive(int(pid)):
+                shutil.rmtree(folder, ignore_errors=True)
+        return Path(tempfile.mkdtemp(prefix=f"{MARKERS_PREFIX}{me}-"))
+    except OSError as e:
+        lg.warning(f"Could not create the start markers of shards in "
+                   f"{tmp} ({e}): if a worker dies, only state files "
+                   f"tell which shards had started")
+        return None
 
 
 def _name(obj) -> str:
@@ -762,8 +803,9 @@ class Engine:
         self.count = 0
         self.mtimes: dict[str, int] = {}
         self.polled = 0.0
-        # folder of the start markers of submitted shards (no state)
+        # folder of the start markers of submitted shards (local pool)
         self.markers: Path | None = None
+        self.markers_tried = False
 
     # ------------------------------------------------------------------
     #   Producers
@@ -829,6 +871,11 @@ class Engine:
             if isinstance(item, Action):
                 self.run_action(item, tag)
             elif callable(item):
+                # a child of the innermost task that runs here (not in
+                # `dispatch`: children that a worker hands back were
+                # counted on their parent, which does not run here)
+                if self.reporter.tasks:
+                    self.reporter.tasks[-1].record["children"] += 1
                 self.dispatch(item, tag)
             else:
                 self.reporter.outcome(
@@ -870,8 +917,6 @@ class Engine:
             Progress group of the producer that yielded it
         """
         tag = getattr(item, "tag", None) or tag
-        if self.reporter.tasks:
-            self.reporter.tasks[-1].record["children"] += 1
         if self.worker:
             if _picklable(item, warn=False):
                 self.deferred.append((item, tag))       # to the main process
@@ -968,11 +1013,15 @@ class Engine:
         task_id = shard.id or \
             f"{self.ctx.stage}/.auto/{self.run}-{self.count}"
         started = None
-        if self.ctx.state is None:
-            # no state file tells whether it started: a marker does
-            if self.markers is None:
-                self.markers = Path(tempfile.mkdtemp(prefix="bx-shards-"))
-            started = self.markers / f"{self.count}.started"
+        if isinstance(self.executor, LocalExecutor):
+            # whether it started, if its worker dies (its state file
+            # may be missing: no state folder, or one that cannot be
+            # written); local workers only see this machine's tmp
+            if not self.markers_tried:
+                self.markers_tried = True
+                self.markers = _marker_folder()
+            if self.markers is not None:
+                started = self.markers / f"{self.count}.started"
         task = _ShardTask(
             shard, self.ctx, self.policy, tag, task_id, self.run,
             _signature(self.ctx, self.policy, shard) if shard.id else None,
@@ -1054,14 +1103,19 @@ class Engine:
             for shard, tag in deferred:
                 self.dispatch(shard, tag)
         if pending.auto and self.ctx.state is not None:
-            task_path(self.ctx.state, pending.task).unlink(missing_ok=True)
+            try:
+                task_path(self.ctx.state, pending.task).unlink(
+                    missing_ok=True)
+            except OSError as e:          # (a state folder in a bad way)
+                lg.debug(f"Could not remove the state of "
+                         f"{pending.task}: {e}")
 
     def broken(self, pending: _Pending) -> None:
         """
         Handle a worker that died.
 
         The shards that had started (their state file, or their start
-        marker without a state folder, says so) are errors, and are not
+        marker, says so) are errors, and are not
         run again: one of them crashed the worker, and would crash the
         main process. The others (and all later ones) run in the main
         process.

@@ -395,3 +395,43 @@ def test_known_size_short_read_is_resumed(srv, tmp_path, monkeypatch):
     )))
     assert statuses[-1]["status"] == "done"
     assert (tmp_path / "j").read_bytes() == content("j")
+
+
+# ----------------------------------------------------------------------
+#   Actions (used by `roast`)
+# ----------------------------------------------------------------------
+
+def test_action_writes_new_files(tmp_path):
+    # Regressions: writing a new file with ifexists="different" raised
+    # IndexError, and file-object actions (CopyJSON...) failed with
+    # "'OpenedFile' object has no attribute 'close'".
+    import json as _json
+    from brainspresso.actions import Action, CopyJSON
+    (tmp_path / "in.json").write_text('{"x": 1}')
+
+    statuses = list(CopyJSON(tmp_path / "in.json", tmp_path / "out.json"))
+    assert statuses[-1]["status"] == "done"
+    assert _json.loads((tmp_path / "out.json").read_text()) == {"x": 1}
+
+    def write(f):
+        f.write(b"abc")
+
+    out = tmp_path / "sub" / "out.bin"
+    statuses = list(Action(tmp_path / "in.json", out, write))
+    assert statuses[-1]["status"] == "done"
+    assert out.read_bytes() == b"abc"
+
+    # Same file again: skipped
+    statuses = list(Action(tmp_path / "in.json", out, write))
+    assert statuses[-1]["status"] == "skipped"
+
+
+def test_sessions_honour_proxy_settings():
+    # aiohttp ignores HTTP(S)_PROXY unless trust_env=True
+    from brainspresso.download import new_session
+
+    async def check():
+        async with new_session() as session:
+            return session.trust_env, session.timeout.total
+
+    assert asyncio.run(check()) == (True, None)

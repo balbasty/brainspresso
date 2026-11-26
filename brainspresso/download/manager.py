@@ -11,7 +11,7 @@ import aiohttp
 
 from brainspresso.utils.tabular import LogSafeTabular, get_style
 from brainspresso.utils.log import HideLoggingStream
-from brainspresso.download.constants import TIMEOUT
+from brainspresso.download.session import new_session
 from brainspresso.download.downloader import IfExists
 from brainspresso.download.downloader import Downloader
 
@@ -187,9 +187,7 @@ class DownloadManager:
             limit=max(2 * self.jobs, 10),
             limit_per_host=self.jobs_per_host,
         )
-        async with aiohttp.ClientSession(
-            connector=connector, timeout=TIMEOUT
-        ) as session:
+        async with new_session(connector=connector) as session:
             with self.out, IfExists(self.ifexists), HideLoggingStream():
                 tasks = [asyncio.create_task(producer())]
                 tasks += [

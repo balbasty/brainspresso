@@ -2,6 +2,7 @@ import datetime
 import os
 import time
 import traceback
+from contextlib import ExitStack
 from logging import getLogger
 from os.path import lexists
 from enum import Enum as _Enum
@@ -211,7 +212,7 @@ class Action:
 
             # does not exist -> different
             if not all(exists):
-                dst = [d for d, e in zip(dst, exists) if e]
+                dst = [d for d, e in zip(dst, exists) if not e]
                 lg.info(f'File {dst[0]!s} does not exist; reprocessing')
                 return True
 
@@ -257,7 +258,7 @@ class Action:
 
             # does not exist -> different
             if not all(exists):
-                dst = [d for d, e in zip(dst, exists) if e]
+                dst = [d for d, e in zip(dst, exists) if not e]
                 lg.info(f'File {dst[0]!s} does not exist; reprocessing')
                 return True
 
@@ -352,14 +353,16 @@ class Action:
 
                 # Action input is an opened file-object
                 if self.input == 'file':
-                    files = [tmp_file.open() for tmp_file in tmp_files]
-                    try:
+                    # `File.open()` returns a context manager: the
+                    # underlying file is only opened when entered.
+                    with ExitStack() as stack:
+                        files = [
+                            stack.enter_context(tmp_file.open())
+                            for tmp_file in tmp_files
+                        ]
                         action = self.action(*files)
                         if isinstance(action, GeneratorType):
                             yield from action
-                    finally:
-                        for f in files:
-                            f.close()
 
                 # Action input is a path to a file
                 else:

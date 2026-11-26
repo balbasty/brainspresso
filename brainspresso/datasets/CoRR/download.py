@@ -1,15 +1,17 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from enum import Enum
-from typing import Iterable
+from typing import Annotated, Iterable, Literal
 from urllib.parse import urlparse
 from humanize import naturalsize
 from warnings import filterwarnings
 from urllib3.exceptions import InsecureRequestWarning
+from cyclopts import Parameter
 
 from brainspresso.utils.ui import human2bytes
 from brainspresso.utils.path import get_tree_path
 from brainspresso.utils.log import setup_filelog
 from brainspresso.sources.nitrc import nitrc_authentifier_async
+from brainspresso.sources import fcp
 from brainspresso.download import DownloadManager
 from brainspresso.download import Downloader
 from brainspresso.download import IfExists
@@ -18,7 +20,7 @@ from brainspresso.datasets.CoRR.command import corr
 
 
 SITES = (
-    'BMB', 'BNU', 'DC', 'HNU', 'IACAS', 'IBA', 'IPCAS', 'JNHU', 'LMU', 'MPG',
+    'BMB', 'BNU', 'DC', 'HNU', 'IACAS', 'IBA', 'IPCAS', 'JHNU', 'LMU', 'MPG',
     'MRN', 'NKI', 'NYU', 'SWU', 'UM', 'UPSM', 'Utah', 'UWM', 'XHCUMS',
 )
 KEYS = ("raw", "meta")
@@ -178,17 +180,37 @@ URLS['NKI']['raw'] = [
 ]
 
 
+GroupNITRC = Parameter(group="nitrc (login required)")
+
+
+def _value(x):
+    """Enum member -> value (str() of a str-Enum is 'Enum.member')"""
+    return str(getattr(x, "value", x))
+
+
+def _aslist(x) -> list:
+    """A single value (including a str or str-Enum) -> [value]"""
+    if x is None:
+        return []
+    if isinstance(x, (str, int)):
+        return [x]
+    return list(x)
+
+
 @corr.command(name="harvest")
 def download(
     path: str | None = None,
     *,
     keys: Iterable[KeyChoice] = KEYS,
     sites: Iterable[SiteChoice] = SITES,
+    subs: Iterable[int] = (),
+    exclude_subs: Iterable[int] = (),
     if_exists: IfExists.Choice = "skip",
-    user: str | None = None,
-    password: str | None = None,
+    source: Literal["s3", "nitrc"] = "s3",
+    user: Annotated[str | None, GroupNITRC] = None,
+    password: Annotated[str | None, GroupNITRC] = None,
     packet: int | str = naturalsize(CHUNK_SIZE),
-    jobs: int | None = 1,
+    jobs: int | None = None,
     log: str | None = None,
     level: str = "info",
 ):
@@ -199,6 +221,11 @@ def download(
     * **raw**          All the raw imaging data
     * **meta**         Metadata
 
+    With the default source (s3), files are saved as
+    `CoRR/sourcedata/RawData/<Site>_<n>/<id>/session_<n>/<mod>_<n>/*`
+    and the phenotypes in
+    `CoRR/sourcedata/CoRR_AggregatedPhenotypicData.csv`.
+
     Parameters
     ----------
     path
@@ -207,10 +234,17 @@ def download(
         Data categories to download
     sites
         Sites to download
-    parts
-        Parts to download
+    subs
+        Only download these subjects (s3 only; all if empty)
+    exclude_subs
+        Do not download these subjects (s3 only)
     if_exists
         Behaviour if a file already exists
+    source
+        Source to download from:
+
+        * s3: public INDI bucket (s3://fcp-indi), no login.
+        * nitrc: NITRC tarballs (login required).
     user
         NITRC username
     password
@@ -218,16 +252,29 @@ def download(
     packet
         Packet size to download, in bytes
     jobs
-        Number of parallel downloaders
+        Number of parallel downloads (default: 4 with s3, 1 with nitrc)
     log
         Path to log file
 
     """
     setup_filelog(log, level=level)
     path = Path(get_tree_path(path))
-    keys = set(keys or KeyChoice.__args__)
-    sites = set(sites or SiteChoice.__args__)
+    keys = {_value(k) for k in _aslist(keys)} or set(KEYS)
+    sites = {_value(s) for s in _aslist(sites)} or set(SITES)
     src = path / 'CoRR' / 'sourcedata'
+
+    if source == "s3":
+        return download_s3(
+            src,
+            keys=keys,
+            sites=sites,
+            subs={int(_value(s)) for s in _aslist(subs)},
+            exclude_subs={int(_value(s)) for s in _aslist(exclude_subs)},
+            if_exists=if_exists,
+            packet=packet,
+            jobs=jobs,
+        )
+    jobs = jobs or 1
     auth = nitrc_authentifier_async(user, password)
 
     def downloaders():
@@ -248,3 +295,47 @@ def download(
         ifexists=if_exists,
         jobs=jobs,
     ).run("async")
+
+
+def download_s3(
+    src: Path,
+    *,
+    keys: set[str],
+    sites: set[str],
+    subs: set[int],
+    exclude_subs: set[int],
+    if_exists: IfExists.Choice,
+    packet: int | str,
+    jobs: int | None,
+) -> None:
+    """Download CoRR from s3://fcp-indi/data/Projects/CORR/RawData"""
+
+    def rename(rel: PurePosixPath) -> PurePosixPath | None:
+        # Aggregated phenotypes: RawData/CoRR_AggregatedPhenotypicData.csv
+        if len(rel.parts) == 1:
+            if "meta" in keys and rel.suffix == ".csv":
+                return rel
+            return None
+        # Imaging data: RawData/<Site>[_<n>]/<id>/session_<n>/<mod>_<n>/*
+        if "raw" not in keys or len(rel.parts) != 5:
+            return None
+        site, sub = rel.parts[:2]
+        if site.split("_")[0] not in sites:
+            return None
+        try:
+            sub = int(sub)
+        except ValueError:
+            return None
+        if (subs and sub not in subs) or sub in exclude_subs:
+            return None
+        return "RawData" / rel
+
+    DownloadManager(
+        fcp.mirror(
+            "CORR/RawData", src, rename=rename,
+            ifexists=if_exists, chunk_size=human2bytes(packet),
+        ),
+        ifexists=if_exists,
+        jobs=jobs,
+        path="short",
+    ).run()

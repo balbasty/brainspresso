@@ -2,10 +2,8 @@
 from pathlib import Path
 from typing import Iterable
 from logging import getLogger
-from os.path import sep
 
 # externals
-import fsspec
 from humanize import naturalsize
 
 # internals
@@ -20,14 +18,14 @@ from brainspresso.download import IfExists
 from brainspresso.download import CHUNK_SIZE
 from brainspresso.datasets.ADHD200.command import adhd200
 from brainspresso.datasets.ADHD200.keys import allkeys
+from brainspresso.sources import fcp
 
 lg = getLogger(__name__)
 
-S3URL = "https://s3.amazonaws.com"
-S3PATH = "fcp-indi/data/Projects/ADHD200"
-DATA = f"{S3PATH}/RawData"
-PROC = f"{S3PATH}/Outputs"
-SURF = f"{S3PATH}/surfaces"
+# Paths relative to s3://fcp-indi/data/Projects
+DATA = "ADHD200/RawData"
+PROC = "ADHD200/Outputs"
+SURF = "ADHD200/surfaces"
 
 
 @adhd200.command(name="harvest")
@@ -46,7 +44,10 @@ def download(
     jobs: int | None = None
 ):
     """
-    Download source data for the ABIDE-I dataset.
+    Download source data for the ADHD-200 dataset.
+
+    Data are listed and downloaded from the public INDI bucket
+    (s3://fcp-indi/data/Projects/ADHD200); no login is needed.
 
     **Key hierarchy:**
 
@@ -100,8 +101,6 @@ def download(
     raw = path / 'ADHD-200' / 'rawdata'
     out = raw if bidsify else src
 
-    fs = fsspec.filesystem("s3", anon=True)
-
     # Format subjects
     def expand_sub_range(subs):
         for i, sub in enumerate(subs):
@@ -132,145 +131,128 @@ def download(
     # Accumulate downloaders
     def all_downloaders():
         opt = dict(
-            chunk_size=human2bytes(packet),
+            chunk_size=packet,
             ifexists=if_exists,
         )
 
-        # build sub2site map
+        def downloader(obj, dst):
+            return Downloader(
+                fcp.get_bucket().url(obj.key), dst,
+                size=obj.size, mtime=obj.mtime,
+                digests={"md5": obj.md5} if obj.md5 else None,
+                **opt,
+            )
+
+        # List raw data (also used to map subjects to sites)
+        # keys: data/Projects/ADHD200/RawData/<site>/<sub>/<ses>/<mod>_<run>/*
+        raw_objects = fcp.list_objects(DATA)
+        prefix = f"{fcp.PROJECTS}/{DATA}/"
+        raw_entries = []
         sub2site = {}
-        for site in fs.ls(DATA, detail=True):
-            if site["StorageClass"] != "DIRECTORY":
-                continue
-            site = site["Key"].split("/")[-1]
-            for sub in fs.ls(f"{DATA}/{site}"):
-                if sub.endswith(".csv"):
-                    continue
-                sub = int(sub.split("/")[-1])
-                sub2site[f"{sub:07d}"] = site
+        for obj in raw_objects:
+            parts = obj.key[len(prefix):].split("/")
+            raw_entries.append((parts, obj))
+            if len(parts) == 5 and parts[1].isdigit():
+                sub2site[f"{int(parts[1]):07d}"] = parts[0]
+        src.mkdir(parents=True, exist_ok=True)
         write_json(sub2site, src / "sub2site.json")
 
-        # Get downloaders for metadata
+        def keep_site(site):
+            return not (
+                site in exclude_sites or (sites and site not in sites)
+            )
+
+        def keep_sub(sub):
+            return not (sub in exclude_subs or (subs and sub not in subs))
+
+        # Get downloaders for metadata (top-level csv files)
         if (keys & compat_keys("meta", allkeys)):
-            urls = fs.glob(f"{DATA}/*.csv")
-            for url in urls:
-                name = url.split('/')[-1]
-                yield Downloader(f"{S3URL}/{url}", src / name, **opt)
+            for parts, obj in raw_entries:
+                if len(parts) == 1 and parts[0].endswith(".csv"):
+                    yield downloader(obj, src / parts[0])
 
         # Get downloaders for image data
         if (keys & compat_keys("raw", allkeys)):
-            path_raw = DATA
-            for site in fs.ls(path_raw, detail=True):
-                if site["StorageClass"] != "DIRECTORY":
+            for parts, obj in raw_entries:
+                if len(parts) != 5:
                     continue
-                site = site["Key"].split("/")[-1]
-                if site in exclude_sites or (sites and site not in sites):
+                site, sub, ses, mod_run, fname = parts
+                if not keep_site(site) or not sub.isdigit():
                     continue
-                path_site = f"{path_raw}/{site}"
-                for sub in fs.ls(path_site):
-                    if sub.endswith(".csv"):
-                        continue
-                    sub = int(sub.split("/")[-1])
-                    if (
-                        int(sub) in exclude_subs or
-                        (subs and int(sub) not in subs)
-                    ):
-                        continue
-                    sub = f"{sub:07d}"
-                    path_sub = f"{path_site}/{sub}"
-                    for ses in fs.ls(path_sub):
-                        ses = ses.split("/")[-1]
-                        ses_id = int(ses.split('_')[-1])
-                        path_ses = f"{path_sub}/{ses}"
-                        for mod_run in fs.ls(path_ses):
-                            mod_run = mod_run.split("/")[-1]
-                            mod, run = mod_run.split('_')
-                            if not (keys & compat_keys(mod, allkeys)):
-                                continue
-                            run = int(run)
-                            path = out / f"sub-{sub}" / f"ses-{ses_id}"
-                            if mod == "anat":
-                                base = f"sub-{sub}_ses-{ses_id}_T1w.nii.gz"
-                                path = path / "anat" / base
-                                mod = "mprage"
-                            else:
-                                assert mod == "rest"
-                                base = (
-                                    f"sub-{sub}_ses-{ses_id}_task-rest_"
-                                    f"run-{run}_bold.nii.gz"
-                                )
-                                path = path / "func" / base
-                            url = f"{S3URL}/{path_ses}/{mod_run}/{mod}.nii.gz"
-                            yield Downloader(url, path, **opt)
+                sub = int(sub)
+                if not keep_sub(sub):
+                    continue
+                mod, run = mod_run.split('_')
+                if not (keys & compat_keys(mod, allkeys)):
+                    continue
+                expected = {"anat": "mprage.nii.gz", "rest": "rest.nii.gz"}
+                if fname != expected.get(mod):
+                    continue
+                run = int(run)
+                ses_id = int(ses.split('_')[-1])
+                sub = f"{sub:07d}"
+                path = out / f"sub-{sub}" / f"ses-{ses_id}"
+                if mod == "anat":
+                    base = f"sub-{sub}_ses-{ses_id}_T1w.nii.gz"
+                    path = path / "anat" / base
+                else:
+                    base = (
+                        f"sub-{sub}_ses-{ses_id}_task-rest_"
+                        f"run-{run}_bold.nii.gz"
+                    )
+                    path = path / "func" / base
+                yield downloader(obj, path)
 
         # Get downloaders for freesurfer data
+        # keys: data/Projects/ADHD200/surfaces/freesurfer/<ver>/<sub>/...
         if (keys & compat_keys("fs", allkeys)):
-            for dirpath, _, fnames in fs.walk(SURF):
-
-                if not fnames:
+            prefix = f"{fcp.PROJECTS}/{SURF}/"
+            for obj in fcp.list_objects(SURF):
+                parts = obj.key[len(prefix):].split("/")
+                if len(parts) < 4 or not parts[2].isdigit():
                     continue
-
-                # path: fcp-indi/data/Projects/ADHD200/surfaces/
-                #       freesurfer/5.3/{sub}/...
-                splitpath = dirpath.split("/")
-                if len(splitpath) < 8:
+                _, fsver, sub, *rest = parts
+                sub = int(sub)
+                if not keep_sub(sub):
                     continue
-
-                sub = int(splitpath[7])
-                if sub in exclude_subs or (subs and sub not in subs):
+                if not keep_site(sub2site.get(f"{sub:07d}", None)):
                     continue
-                site = sub2site.get(f"{sub:07d}", None)
-                if site in exclude_sites or (sites and site not in sites):
-                    continue
-
-                fsver = splitpath[6]
-                stripdirpath = sep.join(splitpath[7:])
-                for fname in fnames:
-                    url = f"{S3URL}/{dirpath}/{fname}"
-                    path = src / f"freesurfer-{fsver}" / stripdirpath / fname
-                    yield Downloader(url, path, **opt)
+                dst = src / f"freesurfer-{fsver}" / parts[2]
+                yield downloader(obj, dst.joinpath(*rest))
 
         # Get downloaders for preprocessed data
-        if (keys & compat_keys("preproc", allkeys)):
-            for dirpath, _, fnames in fs.walk(PROC):
-
-                if not fnames:
+        # keys: data/Projects/ADHD200/Outputs/<pipeline>/...
+        if (keys & compat_keys("proc", allkeys)):
+            proc_keys = (
+                "cpa", "denoise", "fmriprep", "mindboggle", "mriqc",
+                "mindboggle/ants", "mindboggle/freesurfer"
+            )
+            prefix = f"{fcp.PROJECTS}/{PROC}/"
+            for obj in fcp.list_objects(PROC):
+                rel = obj.key[len(prefix):]
+                parts = rel.split("/")
+                if len(parts) < 4:
                     continue
-
-                splitpath = dirpath.split("/")
-                if len(splitpath) < 8:
-                    continue
-
-                proc_keys = (
-                    "cpa", "denoise", "fmriprep", "mindboggle", "mriqc",
-                    "mindboggle/ants", "mindboggle/freesurfer"
-                )
-
+                dirpath = "/".join(parts[:-1])
                 ok = True
                 for key in proc_keys:
                     if key not in dirpath:
                         continue
-                    ok = ok and (keys & compat_keys(key, allkeys))
+                    ok = ok and bool(keys & compat_keys(key, allkeys))
                 if not ok:
                     continue
-
                 sub = None
-                for part in splitpath:
+                for part in parts:
                     if part.startswith("sub-"):
-                        sub = int(part.split("-")[-1])
+                        label = part.split("-")[-1]
+                        sub = int(label) if label.isdigit() else None
                         break
-
                 if sub is not None:
-                    if sub in exclude_subs or (subs and sub not in subs):
+                    if not keep_sub(sub):
                         continue
-                    site = sub2site.get(f"{sub:07d}", None)
-                    if site in exclude_sites or (sites and site not in sites):
+                    if not keep_site(sub2site.get(f"{sub:07d}", None)):
                         continue
-
-                # path: fcp-indi/data/Projects/ADHD200/Outputs/{pipeline}/...
-                stripdirpath = sep.join(splitpath[5:])
-                for fname in fnames:
-                    url = f"{S3URL}/{dirpath}/{fname}"
-                    yield Downloader(url, src / stripdirpath / fname, **opt)
+                yield downloader(obj, src.joinpath(*parts))
 
     # Download all
     DownloadManager(

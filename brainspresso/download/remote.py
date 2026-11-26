@@ -11,7 +11,8 @@ import requests
 import aiohttp
 
 # internals
-from brainspresso.download.constants import CHUNK_SIZE, TIMEOUT
+from brainspresso.download.constants import CHUNK_SIZE
+from brainspresso.download.session import new_session
 
 lg = getLogger(__name__)
 
@@ -122,7 +123,7 @@ class RemoteFile:
         if isinstance(session, aiohttp.ClientSession) and not session.closed:
             return session
         if isinstance(session, dict):
-            session = aiohttp.ClientSession(**{"timeout": TIMEOUT, **session})
+            session = new_session(**session)
         elif callable(session):
             session = session()
             if inspect.isawaitable(session):
@@ -130,7 +131,7 @@ class RemoteFile:
         else:
             # None, a closed session, or a `requests.Session` (which
             # cannot be used in an async context)
-            session = aiohttp.ClientSession(timeout=TIMEOUT)
+            session = new_session()
             self.session_is_mine = True
         if not isinstance(session, aiohttp.ClientSession):
             raise TypeError(

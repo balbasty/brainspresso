@@ -199,7 +199,9 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   which has no anatomical printout). When the data names no sample (XNAT
   `CMU_<id>`, `MaxMun`), it uses `templates/<Site>/<suffix>.json` if it
   exists, a `common` entry holding only the keys the samples share
-  (`CMU/bold.json`, `MaxMun/bold.json`; a warning is logged), else the
+  (`CMU/bold.json`, `MaxMun/bold.json`; a warning is logged; the bold
+  `RepetitionTime` that CMU's samples do not share is then read from the
+  NIfTI header, or the sidecar is an error), else the
   first sample (only where all samples share one protocol, which the
   tests check). Sites without samples accept only a tarball part as
   suffix (`NYU_a`). An unknown site, sample or suffix, or a missing

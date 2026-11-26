@@ -349,13 +349,89 @@ def test_common_entry(tmp_path, monkeypatch):
     toml = pdir / "sidecars.toml"
     for bad in ('common = ["A/bold.json"]', 'common = ["A/bold.json", '
                 '"Z/bold.json"]', 'common = ["A/bold.json", "B/bold.json"]'
-                '\nnii = "x"'):
+                '\nnii = "x"',
+                # not strings, not distinct, with manual
+                'common = ["A/bold.json", ["B/bold.json"]]',
+                'common = ["A/bold.json", 1]',
+                'common = "A/bold.json"',
+                'common = ["A/bold.json", "A/bold.json"]',
+                'common = ["A/bold.json", "B/bold.json"]\nmanual = true'):
         toml.write_text(
             '[[sidecar]]\noutput = "S/bold.json"\n' + bad + '\n\n'
             '[[sidecar]]\noutput = "A/bold.json"\nprintout = "S/A.pdf"\n\n'
             '[[sidecar]]\noutput = "B/bold.json"\nprintout = "S/B.pdf"\n')
         with pytest.raises(ms.TableError):
             ms.load_table("ABIDE1", root=root)
+
+
+def _common_tree(tmp_path):
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    tpl = root / ms.TEMPLATES["ABIDE1"]
+    for x in ("A", "B"):
+        (pdir / "S" / f"{x}.pdf").write_bytes(x.encode())
+        (tpl / x).mkdir()
+        (tpl / x / "bold.json").write_text("{}")
+    (tpl / "S" / "bold.json").write_text("{}")
+    (pdir / "sidecars.toml").write_text(
+        '[[sidecar]]\noutput = "S/T1w.json"\nprintout = "S/anat.pdf"\n\n'
+        '[[sidecar]]\noutput = "S/bold.json"\n'
+        'common = ["A/bold.json", "B/bold.json"]\n\n'
+        '[[sidecar]]\noutput = "A/bold.json"\nprintout = "S/A.pdf"\n\n'
+        '[[sidecar]]\noutput = "B/bold.json"\nprintout = "S/B.pdf"\n')
+    return root, pdir, tpl
+
+
+def test_common_canonical_values():
+    got = ms.common_keys([
+        {"a": False, "b": 90, "c": [1, 2], "d": {"x": 1, "y": 2}, "e": 1},
+        {"a": 0, "b": 90.0, "c": [1, 2], "d": {"y": 2, "x": 1}, "e": 1}])
+    assert got == {"c": [1, 2], "d": {"x": 1, "y": 2}, "e": 1}
+
+
+def test_common_provenance_from_sources(tmp_path, monkeypatch):
+    """A common entry takes the protocol2bids of its sources' records."""
+    root, pdir, tpl = _common_tree(tmp_path)
+    v1 = {"version": "1.0", "commit": "a" * 40}
+    v2 = {"version": "2.0", "commit": "b" * 40}
+    monkeypatch.setattr(ms, "convert",
+                        lambda p, s=None, n=None: {"EchoTime": 0.03})
+    monkeypatch.setattr(ms, "protocol2bids_version", lambda: v1)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    # only A regenerated, with v2: S/bold.json (common) is "mixed"
+    monkeypatch.setattr(ms, "protocol2bids_version", lambda: v2)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(), only="A/*") == 0
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["A/bold.json"]["protocol2bids"] == v2
+    assert lock["sidecars"]["B/bold.json"]["protocol2bids"] == v1
+    assert lock["sidecars"]["S/bold.json"]["protocol2bids"] == "mixed"
+    sections = ms.report_sections((pdir / "report.md").read_text())
+    assert sections["S/bold.json"].startswith(
+        "protocol2bids mixed; baseline `HEAD`")
+    # protocol2bids not installed: no version recorded
+    monkeypatch.setattr(ms, "protocol2bids_version",
+                        lambda: {"version": None, "commit": None})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(), only="B/*") == 0
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert "protocol2bids" not in lock["sidecars"]["B/bold.json"]
+    # A (v2) is the only source with a version left
+    assert lock["sidecars"]["S/bold.json"]["protocol2bids"] == v2
+    sections = ms.report_sections((pdir / "report.md").read_text())
+    assert sections["B/bold.json"].startswith("baseline `HEAD`")
+    assert "None" not in (pdir / "report.md").read_text()
+
+
+@pytest.mark.parametrize("baseline", ["null", "[]", "3"])
+def test_baseline_not_an_object(tmp_path, monkeypatch, baseline):
+    root = _synthetic_tree(tmp_path)
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002}})
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S"
+    (tpl / "T1w.json").write_text(baseline)
+    out = io.StringIO()
+    assert ms.run("ABIDE1", root=root, out=out) == 0
+    assert "diff unavailable: unreadable baseline (ValueError: not an " \
+        "object" in out.getvalue()
+    assert json.loads((tpl / "T1w.json").read_text())["EchoTime"] == 0.002
 
 
 def test_uncovered_sidecar_is_an_error(tmp_path, monkeypatch):

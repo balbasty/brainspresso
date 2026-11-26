@@ -28,8 +28,9 @@ compared to the sidecar at git `--baseline` (default `HEAD`; an unknown
 ref is an error); each section names its protocol2bids version and
 baseline. An unreadable baseline sidecar only makes its diff unavailable.
 
-With `--only PATTERN`, only the matching entries are regenerated; the lock
-entries and report sections of the other sidecars are kept as they are.
+With `--only PATTERN`, only the matching entries are regenerated, plus the
+`common` entries built from a matching sidecar; the lock entries and report
+sections of the other sidecars are kept as they are.
 
 An entry may set `fill_from` (and `fill_select`) to fill the keys missing
 from the sidecar from another printout of the same acquisition (e.g. the
@@ -114,6 +115,8 @@ def load_table(dataset, root=ROOT):
         if e['output'] in seen:
             raise TableError(f'{path}: duplicate output {e["output"]}')
         seen.add(e['output'])
+        if e.get('manual') and 'common' in e:
+            raise TableError(f'{path}: {e["output"]}: manual and common')
         if e.get('manual') or 'common' in e:
             kind = 'manual' if e.get('manual') else 'common'
             ignored = sorted((CONVERSION_KEYS | {'manual'}) & set(e)
@@ -141,10 +144,11 @@ def load_table(dataset, root=ROOT):
     for e in entries:
         if 'common' in e:
             srcs = e['common']
-            if (not isinstance(srcs, list) or len(srcs) < 2
-                    or not set(srcs) <= converted):
+            if (not isinstance(srcs, list)
+                    or not all(isinstance(x, str) for x in srcs)
+                    or len(set(srcs)) < 2 or not set(srcs) <= converted):
                 raise TableError(f'{path}: {e["output"]}: common must list '
-                                 'two or more converted outputs')
+                                 'two or more distinct converted outputs')
     return entries
 
 
@@ -301,11 +305,16 @@ def _fmt(v):
 # main
 # ---------------------------------------------------------------------------
 
+def _canon(v):
+    return json.dumps(v, sort_keys=True, default=_jsonable)
+
+
 def common_keys(sidecars):
-    """Keys (and values) shared by all sidecars, in the first one's order."""
+    """Keys (and values) shared by all sidecars, in the first one's order
+    (values compared as canonical JSON: `false` != `0`, `90` != `90.0`)."""
     first, *rest = sidecars
     return {k: v for k, v in first.items()
-            if all(k in o and o[k] == v for o in rest)}
+            if all(k in o and _canon(o[k]) == _canon(v) for o in rest)}
 
 
 def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
@@ -321,6 +330,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
 
     in_git = verify_ref(baseline, root)
     version = protocol2bids_version()
+    if version.get('version') is None:
+        version = None      # not installed: no version recorded
 
     lock_path = pdir / 'sidecars.lock.json'
     report_path = pdir / 'report.md'
@@ -363,20 +374,23 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 rec['protocol2bids'] = old_lock['protocol2bids']
             locked[output] = rec
 
-    def write(e, sidecar, entry):
+    def write(e, sidecar, entry, prov):
         output = e['output']
         dst = tpl / output
         text = dumps(sidecar)
         texts[output] = text
-        entry['protocol2bids'] = version
+        if prov is not None:
+            entry['protocol2bids'] = prov
         locked[output] = entry
         try:
             old = json.loads(baselines[output] or '{}')
-        except json.JSONDecodeError as exc:
-            report[output] = ('nodiff', f'{type(exc).__name__}: {exc}')
+            if not isinstance(old, dict):
+                raise ValueError(f'not an object: {type(old).__name__}')
+        except ValueError as exc:   # includes json.JSONDecodeError
+            report[output] = ('nodiff', f'{type(exc).__name__}: {exc}', prov)
         else:
             # roundtrip so that the comparison is done on json values
-            report[output] = ('ok', diff(old, json.loads(text)))
+            report[output] = ('ok', diff(old, json.loads(text)), prov)
         old_text = dst.read_text() if dst.exists() else None
         if old_text != text:
             dirty.append(output)
@@ -384,19 +398,19 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.write_text(text)
 
-    def fail(output, exc):
+    def fail(output, exc, prov=None):
         failures.append(output)
-        report[output] = ('error', f'{type(exc).__name__}: {exc}')
+        report[output] = ('error', f'{type(exc).__name__}: {exc}', prov)
         keep(output)
 
     for e in entries:
         output = e['output']
         if e.get('manual'):
             locked[output] = {'manual': True}
-            report[output] = ('manual', None)
+            report[output] = ('manual', None, None)
         elif not selected(e):
             keep(output)
-            report[output] = ('kept', old_sections.get(output))
+            report[output] = ('kept', old_sections.get(output), None)
         elif 'common' in e:
             continue    # once the sidecars it is made of are known
         else:
@@ -408,7 +422,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 filled = (fill(fill_from, e.get('fill_select'))
                           if fill_from else {})
             except Exception as exc:
-                fail(output, exc)
+                fail(output, exc, version)
                 continue
             sidecar = {**filled, **e.get('defaults', {}), **sidecar,
                        **e.get('assigns', {})}
@@ -423,11 +437,14 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 entry['fill_sha256'] = sha256(fill_from)
                 if 'fill_select' in e:
                     entry['fill_select'] = str(e['fill_select'])
-            write(e, sidecar, entry)
+            write(e, sidecar, entry, version)
 
     for e in entries:
-        if 'common' not in e or not selected(e):
+        if 'common' not in e or e.get('manual') or not selected(e):
             continue
+        # provenance: that of its sources
+        prov = lock_version({src: locked.get(src, {})
+                             for src in e['common']})
         try:
             sources = []
             for src in e['common']:
@@ -438,9 +455,9 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                     text = (tpl / src).read_text()
                 sources.append(json.loads(text))
         except (OSError, ValueError) as exc:
-            fail(e['output'], exc)
+            fail(e['output'], exc, prov)
             continue
-        write(e, common_keys(sources), {'common': list(e['common'])})
+        write(e, common_keys(sources), {'common': list(e['common'])}, prov)
 
     lock = {'protocol2bids': lock_version(locked), 'sidecars': {
         e['output']: locked[e['output']] for e in entries
@@ -451,8 +468,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         dirty.append(lock_path.name)
 
     md = render_report(dataset, [
-        (e['output'], *report[e['output']]) for e in entries],
-        version, baseline)
+        (e['output'], *report[e['output']]) for e in entries], baseline)
     print(md, file=out)
     if check:
         if dirty:
@@ -464,11 +480,11 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
 
 
 def lock_version(locked):
-    """protocol2bids of all lock entries, or "mixed"."""
-    versions = {json.dumps(rec['protocol2bids'], sort_keys=True)
+    """protocol2bids of all lock entries, or "mixed" (None if none)."""
+    versions = {_canon(rec['protocol2bids']): rec['protocol2bids']
                 for rec in locked.values() if 'protocol2bids' in rec}
     if len(versions) == 1:
-        return json.loads(versions.pop())
+        return dict(next(iter(versions.values())))
     return 'mixed' if versions else None
 
 
@@ -500,21 +516,23 @@ def baseline_text(e, tpl, root, baseline, in_git):
 
 
 def _short(version):
+    if not isinstance(version, dict):
+        return str(version)     # "mixed"
     commit = version.get('commit')
     return (f'{version["version"]} (commit {commit[:7]})' if commit
             else str(version['version']))
 
 
-def render_report(dataset, report, version=None, baseline='HEAD'):
+def render_report(dataset, report, baseline='HEAD'):
     lines = [f'# {dataset} sidecar regeneration report', '']
     lines += [
         'Generated by `scripts/make_sidecars.py`. Each section gives the '
         'protocol2bids version it was converted with and the git ref of '
         'the sidecar it is diffed against (`--baseline`).', '',
     ]
-    prov = (f'protocol2bids {_short(version)}; baseline `{baseline}`'
-            if version else f'baseline `{baseline}`')
-    for output, status, info in report:
+    for output, status, info, version in report:
+        prov = (f'protocol2bids {_short(version)}; baseline `{baseline}`'
+                if version else f'baseline `{baseline}`')
         lines.append(f'## {output}')
         lines.append('')
         if status == 'manual':

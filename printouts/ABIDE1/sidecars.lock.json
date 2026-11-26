@@ -1,7 +1,7 @@
 {
     "protocol2bids": {
-        "commit": "198706288dedb5c415a60516044ce1f09c352deb",
-        "version": "0.0.0"
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
     },
     "sidecars": {
         "Caltech/T1w.json": {

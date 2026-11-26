@@ -463,3 +463,56 @@ def test_reader_creates_nothing_next_to_source(layout, tmp_path):
     assert sorted(p.name for p in src.parent.iterdir()) == ["template.json"]
     # outputs are still written atomically (temporary file, then renamed)
     assert not list(layout.raw.glob("*.tmp"))
+
+
+def test_key_classification():
+    """A path has one key (first match); unclassified files follow
+    their scans; category-only key sets keep no data and no claim"""
+    keys = KeyAliases(
+        {"meta": {}, "fs": {}, "anat": {"TSE", "T2w"}, "func": {"bold"},
+         "perf": {"asl"}, "ct": {"CT"}},
+        bids={"TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}},
+              "T2w": {"suffixes": ["T2w"], "datatypes": ["anat"]},
+              "bold": {"datatypes": ["func"], "suffixes": ["bold"]},
+              "asl": {"datatypes": ["perf"], "suffixes": ["asl"]},
+              "CT": {"datatypes": ["ct"], "suffixes": ["CT"]}},
+    )
+    b = "sub-1/ses-1/"
+    tse = b + "anat/sub-1_ses-1_acq-TSE_T2w.nii.gz"
+    t2w = b + "anat/sub-1_ses-1_T2w.nii.gz"
+    sbref = b + "func/sub-1_ses-1_task-rest_sbref.nii.gz"
+    m0 = b + "perf/sub-1_ses-1_m0scan.nii.gz"
+    events = b + "func/sub-1_ses-1_task-rest_events.tsv"
+    aslcontext = b + "perf/sub-1_ses-1_aslcontext.tsv"
+    assert keys.key_of(tse) == "TSE" and keys.key_of(t2w) == "T2w"
+    assert keys.key_of(sbref) is None
+
+    sel = keys.selection(exclude_keys=["TSE"])
+    assert not sel.keeps(tse) and sel.keeps(t2w)
+    assert not sel.keeps(tse.replace(".nii.gz", ".json"))
+    # a sidecar that applies to both TSE and T2w follows either
+    assert sel.keeps("sub-1/sub-1_T2w.json")
+    assert keys.selection(["TSE"]).keeps("sub-1/sub-1_T2w.json")
+
+    sel = keys.selection(exclude_keys=["CT"])
+    assert all(map(sel.keeps, (sbref, m0, events, aslcontext, tse)))
+    sel = keys.selection(["T2w"])
+    assert not any(map(sel.keeps, (sbref, m0, events, aslcontext, tse)))
+    sel = keys.selection(["bold"])
+    assert sel.keeps(sbref) and sel.keeps(events) and not sel.keeps(m0)
+
+    for category in ("meta", "fs"):
+        sel = keys.selection([category])
+        assert sel.wants(category)
+        assert not any(map(sel.keeps, (tse, sbref, events, aslcontext)))
+        for claim in ("sub-1/ses-1", "sub-1/ses-1/anat", "sub-1/ses-1/func"):
+            assert sel.keeps(claim, partial=True) is False
+        assert sel.keeps("participants.tsv")
+        assert sel.keeps("sub-1/sub-1_sessions.tsv")
+    sel = keys.selection(["T2w"])
+    assert sel.keeps("sub-1/ses-1/anat", partial=True) is None
+    assert sel.keeps("sub-1/ses-1/func", partial=True) is False
+    # all BIDS keys (categories excluded): files no key describes too
+    sel = keys.selection(exclude_keys=["meta", "fs"])
+    assert sel.keeps(b + "beh/sub-1_ses-1_beh.tsv")
+    assert sel.keeps(b + "anat/sub-1_ses-1_PDT2.nii.gz")

@@ -73,13 +73,14 @@ def _pet(tracer):
             "entities": {"acq": [tracer]}}
 
 
-# Keys are matched against the output names (after `fix_name`). "meta"
-# (README, participants, sessions) is a category, and the group of all
-# metadata ("pheno" included).
+# Keys are matched against the output names (after `fix_name`), in
+# this order (first match: `TSE` before `T2w`). "meta" (README,
+# participants, sessions) is a category, and the group of all metadata
+# ("pheno" included).
 KEYS = KeyAliases({**allkeys, "meta": {"meta", "pheno"}}, bids={
     "T1w": _anat("T1w"),
-    "T2w": _anat("T2w"),
     "TSE": _anat("T2w", acq=["TSE"]),
+    "T2w": _anat("T2w"),
     "FLAIR": _anat("FLAIR"),
     "T2star": _anat("t2starw", "T2starw", "T2star"),
     "angio": _anat("angio"),
@@ -88,7 +89,6 @@ KEYS = KeyAliases({**allkeys, "meta": {"meta", "pheno"}}, bids={
     "pasl": {"datatypes": ["perf"], "suffixes": ["pasl"]},
     "asl": {"datatypes": ["perf"], "suffixes": ["asl"]},
     "fmap": {"datatypes": ["fmap"]},
-    "fieldmap": {"datatypes": ["fmap"]},
     "dwi": {"datatypes": ["dwi"]},
     "FDG": _pet("FDG"),
     "PIB": _pet("PIB"),

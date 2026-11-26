@@ -6,7 +6,7 @@ allkeys: dict = {
             "anat": {"T1w", "T2w", "TSE", "FLAIR", "T2star", "angio", "swi"},
             "func": {"bold"},
             "perf": {"pasl", "asl"},
-            "": {"fmap", "fieldmap", "dwi"}
+            "": {"fmap", "dwi"}
         },
         "pet": {"FDG", "PIB", "AV45", "AV1451"},
         "ct": {"CT"},

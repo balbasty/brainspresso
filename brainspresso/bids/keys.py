@@ -9,106 +9,238 @@ them to:
   dataset (`{"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}}`);
 * **categories**: anything that is not a set of raw BIDS files
   (metadata, phenotypes, a derivative pipeline, source-only files).
-  Roasters ask `ctx.wants(category)`.
+  Roasters ask `ctx.wants(category)`. A category may also be mapped to
+  folders of the dataset (`folders={"fs": ["derivatives/fs"]}`), which
+  the runner then drops when the category is not wanted.
 
 Keys may be grouped (`raw` -> `anat` -> `T1w`...). A group selects all
 the keys below it.
 
-Several keys select the *union* of their predicates (`T1w` and `TSE` are
-`suffix T1w` or `suffix T2w with acq-TSE`, which one `Selection`, a
-conjunction of filters, cannot express). `KeySelection` is that union,
-with the subject and session filters of the command line applied to
-each branch; it has the `keeps`/`keeps_subject`/`select` interface of
-`Selection`. When no key restricts the raw data (all keys, no exclusion),
-it is the plain `Selection` of the command line, so files that no key
-describes are kept too.
+Classification
+--------------
+A path of the raw dataset is **classified** (`KeyAliases.key_of`): its
+key is the first BIDS key, in declared order, whose predicate keeps it
+as a data file (so more specific keys come first: `TSE`, i.e. acq-TSE
+T2w, before `T2w`). `KeySelection.keeps` then decides:
+
+1. Dataset files (`README`, `participants.tsv`, `phenotype/`...) and
+   subject/session tables (`*_sessions.tsv`, `*_scans.tsv`) are not
+   described by keys: kept if the subject/session filters keep them.
+2. Without a key filter (all BIDS keys wanted; excluding categories
+   only does not count), every path is judged by the subject/session
+   filters alone: files that no key describes are kept too.
+3. With a key filter, a data file is kept iff its key is wanted;
+   a metadata file (sidecar, companion) iff a wanted key may describe
+   it: a key up to its own class (in declared order) whose predicate
+   may apply to it under BIDS inheritance (`sub-01_T2w.json` applies to
+   both `acq-TSE_T2w` and `T2w`; `acq-TSE_T2w.json` only to `TSE`).
+4. Unclassified files with a key filter: metadata (`_events.tsv`,
+   `_aslcontext.tsv`, a top-level `T1w.json`) follow rule 3, against
+   all keys. Other files (`_sbref`, `_m0scan`, unknown suffixes)
+   follow the key of their scans: they are kept iff a wanted key whose
+   predicate, without its suffix filter, still says something (a
+   datatype, an entity) keeps them (`func/*_sbref` follows `bold`,
+   `perf/*_m0scan` follows the ASL keys). Otherwise they are dropped.
+5. Claims (`partial=True`) are judged against the wanted keys only:
+   a key set with no BIDS key (`--keys meta`) answers False for every
+   claim of a subject folder, so that no archive is opened for them.
 """
 from __future__ import annotations
 
+import dataclasses
+import json
 from dataclasses import dataclass, field
 from typing import Collection, Iterable, Mapping
 
-from brainspresso.bids.select import OPTIONAL_FOLDERS, Selection
+from brainspresso.bids.select import (
+    _DATA, _META, OPTIONAL_FOLDERS, BidsName, Selection, _applies,
+    _classify,
+)
 
-# Suffix that no data file has: a selection that keeps dataset files
-# and tables (`participants.tsv`, `*_sessions.tsv`), but no data
-_NO_DATA = "__none__"
+# Companions that are tables of a subject or session (rule 1)
+_TABLES = frozenset({"sessions", "scans"})
 
 
-def _fold_any(verdicts: Iterable[bool | None]) -> bool | None:
-    """True if any is True, else None if any is None, else False"""
-    out = False
-    for v in verdicts:
-        if v is True:
-            return True
-        if v is None:
-            out = None
-    return out
+@dataclass(frozen=True)
+class _Key:
+    """Predicates of a BIDS key"""
+    name: str
+    bare: Selection             # the key's filters alone (classification)
+    branch: Selection           # with the subject/session filters (claims)
+    scans: Selection | None     # without suffix filter, if any is left
+    scans_branch: Selection | None
+
+
+def _restrict(base: Selection, predicate: Mapping) -> Selection:
+    """`base` (subjects, sessions...) with the filters of a key"""
+    predicate = dict(predicate)
+    entities = {**base.entities, **predicate.pop("entities", {})}
+    return dataclasses.replace(base, entities=entities, **predicate)
+
+
+def _scans(predicate: Mapping) -> dict | None:
+    """Predicate of the scans of a key (its suffix filter removed), or
+    None if nothing is left"""
+    out = {k: v for k, v in predicate.items() if k != "suffixes" and v}
+    return out or None
 
 
 @dataclass
 class KeySelection:
     """
-    Union of selections on the raw dataset, plus non-BIDS categories.
+    Selection of a roast: subject/session filters, wanted keys and
+    their predicates. See the module docstring for the rules.
 
     Attributes
     ----------
     base : Selection
-        Subject and session filters (applied to every branch, and alone
+        Subject and session filters (applied to every path, and alone
         to files outside the raw dataset: derivatives, sourcedata)
-    branches : tuple[Selection]
-        A raw path is kept if any branch keeps it
-    categories : frozenset[str] | None
-        Categories wanted (None: all)
-    keys : frozenset[str] | None
-        Keys (leaves) selected, for the record
+    predicates : tuple[_Key]
+        BIDS keys, in declared order (classification)
+    wanted : frozenset[str] | None
+        Leaves wanted (BIDS keys and categories); None: everything
+    filtered : bool
+        Whether the BIDS keys are filtered (rules 3-5 apply)
     """
     base: Selection = field(default_factory=Selection)
-    branches: tuple[Selection, ...] | None = None
-    categories: frozenset[str] | None = None
-    keys: frozenset[str] | None = None
+    predicates: tuple = ()
+    wanted: frozenset | None = None
+    filtered: bool = False
 
-    def __post_init__(self):
-        if self.branches is None:
-            self.branches = (self.base,)
-        if not self.branches:
-            self.branches = (_restrict(self.base, {"suffixes": [_NO_DATA]}),)
-        self.branches = tuple(self.branches)
+    @property
+    def keys(self) -> frozenset | None:
+        """Leaves wanted, for the record (None: everything)"""
+        return self.wanted
 
-    def wants(self, category: str) -> bool:
-        """Whether a non-BIDS category is wanted"""
-        return self.categories is None or category in self.categories
+    def wants(self, key: str) -> bool:
+        """Whether a key (a category, or a BIDS key) is wanted"""
+        return self.wanted is None or key in self.wanted
 
     def keeps_subject(self, label: str) -> bool:
         return self.base.keeps_subject(label)
 
+    # ------------------------------------------------------------------
+    def key_of(self, relpath: str) -> str | None:
+        """Key of a path of the raw dataset (first match), or None"""
+        kind, name = _classify(str(relpath))
+        if kind not in (_DATA, _META):
+            return None
+        index = self._index(name)
+        return None if index is None else self.predicates[index].name
+
+    def _index(self, name: BidsName) -> int | None:
+        for i, key in enumerate(self.predicates):
+            if key.bare._check(name, key.bare._filters(), missing=False):
+                return i
+        return None
+
+    def _wanted_index(self, i: int) -> bool:
+        return self.predicates[i].name in self.wanted
+
+    def _describes(self, name: BidsName, kind: int) -> bool:
+        """Rules 3-4 on a file that the base selection keeps"""
+        index = self._index(name)
+        if kind == _DATA:
+            if index is not None:
+                return self._wanted_index(index)
+            return any(
+                key.scans is not None and key.name in self.wanted
+                and key.scans._check(name, key.scans._filters(), False)
+                for key in self.predicates
+            )
+        # metadata: a wanted key, up to its own class, may describe it
+        stop = len(self.predicates) if index is None else index + 1
+        return any(
+            key.name in self.wanted
+            and key.bare._check(name, key.bare._filters(), missing=True)
+            for key in self.predicates[:stop]
+        )
+
     def keeps(self, relpath: str, partial: bool = False) -> bool | None:
-        """`Selection.keeps` on a path of the raw dataset"""
-        return _fold_any(b.keeps(relpath, partial) for b in self.branches)
+        """`Selection.keeps` on a path of the raw dataset (or a claim)"""
+        relpath = str(relpath)
+        if partial:
+            return self._keeps_claim(relpath)
+        if not self.base.keeps(relpath):
+            return False
+        if not self.filtered:
+            return True
+        kind, name = _classify(relpath)
+        if kind not in (_DATA, _META) or name.suffix in _TABLES:
+            return True
+        return self._describes(name, kind)
+
+    def _keeps_claim(self, relpath: str) -> bool | None:
+        verdict = self.base.keeps(relpath, partial=True)
+        if verdict is False or not self.filtered:
+            return verdict
+        parts = [p for p in relpath.split("/") if p and p != "."]
+        if not parts or not parts[0].startswith("sub-"):
+            return verdict      # dataset files and folders
+        wanted, other = [], []
+        for key in self.predicates:
+            (wanted if key.name in self.wanted else other).append(key)
+        verdicts = [k.branch.keeps(relpath, partial=True) for k in wanted]
+        # unclassified files that follow the scans of a wanted key
+        verdicts += [
+            None for k in wanted if k.scans is not None and
+            k.scans_branch.keeps(relpath, partial=True) is not False
+        ]
+        if all(v is False for v in verdicts):
+            return False
+        if True in verdicts and all(
+            k.branch.keeps(relpath, partial=True) is False for k in other
+        ):
+            return verdict
+        return None
 
     def select(self, paths: Iterable[str]) -> list[str]:
-        paths = list(paths)
-        out = set()
-        for branch in self.branches:
-            out.update(branch.select(paths))
+        """Paths of a listing to keep (with metadata inheritance)"""
+        kept = self.base.select(paths)
+        if not self.filtered:
+            return kept
+        by_dir: dict[str, list[tuple[BidsName, bool]]] = {}
+        out, meta = [], []
+        for path in kept:
+            kind, name = _classify(path)
+            if kind == _DATA:
+                keep = self._describes(name, kind)
+                if keep:
+                    out.append(path)
+                parent = name._dir
+                while True:
+                    by_dir.setdefault(parent, []).append((name, keep))
+                    if not parent:
+                        break
+                    parent = parent.rpartition("/")[0]
+            elif kind == _META and name.suffix not in _TABLES:
+                meta.append(name)
+            else:
+                out.append(path)
+        for m in meta:
+            applies = [keep for d, keep in by_dir.get(m._dir, ())
+                       if _applies(m, d)]
+            if any(applies) or (not applies and self._describes(m, _META)):
+                out.append(m.path)
         return sorted(out)
 
-
-def _restrict(base: Selection, predicate: Mapping) -> Selection:
-    """`base` (subjects, sessions...) with the filters of a key"""
-    kwargs = {
-        "subs": base.subs, "exclude_subs": base.exclude_subs,
-        "sessions": base.sessions, "tasks": base.tasks,
-        "datatypes": base.datatypes, "suffixes": base.suffixes,
-        "include": base.include, "exclude": base.exclude,
-        "folders": base.folders, "entities": dict(base.entities),
-    }
-    for name, values in predicate.items():
-        if name == "entities":
-            kwargs["entities"] = {**kwargs["entities"], **values}
-        else:
-            kwargs[name] = values
-    return Selection(**kwargs)
+    def fingerprint(self) -> str:
+        """Stable description (state signatures)"""
+        def norm(obj):
+            if dataclasses.is_dataclass(obj):
+                return norm(dataclasses.asdict(obj))
+            if isinstance(obj, Mapping):
+                return {str(k): norm(v) for k, v in sorted(obj.items())}
+            if isinstance(obj, (set, frozenset)):
+                return sorted(map(norm, obj))
+            if isinstance(obj, (list, tuple)):
+                return [norm(v) for v in obj]
+            return obj
+        return json.dumps(norm({
+            "base": self.base, "wanted": self.wanted,
+            "keys": [k.name for k in self.predicates],
+        }), sort_keys=True, default=str)
 
 
 class KeyAliases:
@@ -118,8 +250,9 @@ class KeyAliases:
     ```python
     KEYS = KeyAliases(
         {"meta": {"pheno"}, "raw": {"anat": {"T1w", "TSE"}}},
-        bids={"T1w": {"suffixes": ["T1w"]},
-              "TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}}},
+        bids={"TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}},
+              "T1w": {"suffixes": ["T1w"]}},
+        folders={"pheno": ["phenotype"]},
     )
     ```
 
@@ -131,13 +264,20 @@ class KeyAliases:
         Empty group names (`""`) are transparent.
     bids : dict[str, dict]
         Leaf -> `Selection` filters (`suffixes`, `datatypes`,
-        `entities`...). Leaves not listed are categories.
+        `entities`...), in classification order (first match wins).
+        Leaves not listed are categories.
+    folders : dict[str, list[str]]
+        Category -> folders it writes, as paths of a flat BIDS view of
+        the dataset (`phenotype`, `derivatives/<name>`; placed with
+        `Layout.resolve`). The runner drops outputs in a folder whose
+        categories are all unwanted.
     """
 
     def __init__(
         self,
         tree: Mapping | Collection[str],
         bids: Mapping[str, Mapping] | None = None,
+        folders: Mapping[str, Iterable[str]] | None = None,
     ):
         self.groups: dict[str, set[str]] = {}
         self.leaves: set[str] = set()
@@ -147,6 +287,12 @@ class KeyAliases:
         unknown = set(self.bids) - self.leaves
         if unknown:
             raise ValueError(f"BIDS predicates for unknown keys {unknown}")
+        self.folders: dict[str, tuple[str, ...]] = {
+            k: tuple(v) for k, v in (folders or {}).items()
+        }
+        unknown = set(self.folders) - self.categories
+        if unknown:
+            raise ValueError(f"Folders of unknown categories {unknown}")
 
     def _walk(self, tree) -> set[str]:
         if isinstance(tree, str):
@@ -194,6 +340,11 @@ class KeyAliases:
             out |= self._lookup(key)
         return out
 
+    def key_of(self, relpath: str) -> str | None:
+        """Key of a path of the raw dataset: the first BIDS key, in
+        declared order, whose predicate keeps it as a data file"""
+        return self.selection().key_of(relpath)
+
     def selection(
         self,
         keys: Iterable[str] | str = (),
@@ -217,13 +368,16 @@ class KeyAliases:
         base = Selection(**filters)
         wanted = self.expand(keys) if keys else set(self.leaves)
         wanted -= self.expand(exclude_keys)
-        bids = wanted & set(self.bids)
-        branches = None
-        if bids != set(self.bids):
-            branches = tuple(
-                _restrict(base, self.bids[k]) for k in sorted(bids)
-            )
+        predicates = []
+        for name, pred in self.bids.items():
+            scans = _scans(pred)
+            predicates.append(_Key(
+                name, Selection(**pred), _restrict(base, pred),
+                Selection(**scans) if scans else None,
+                _restrict(base, scans) if scans else None,
+            ))
+        predicates = tuple(predicates)
         return KeySelection(
-            base, branches, frozenset(wanted - set(self.bids)),
-            frozenset(wanted),
+            base, predicates, frozenset(wanted),
+            filtered=not set(self.bids) <= wanted,
         )

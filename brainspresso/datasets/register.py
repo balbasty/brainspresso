@@ -229,7 +229,7 @@ def register(dataset: Dataset | type) -> App:
     if isinstance(dataset, type):
         dataset = dataset()
     app = App(name=dataset.name, help=dataset.help or dataset.title,
-              help_format="markdown")
+              help_format="markdown", group_commands="Commands")
     for command in dataset.commands:
         builder = COMMANDS.get(command)
         if builder is None:

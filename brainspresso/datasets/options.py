@@ -120,6 +120,23 @@ class OptionGroup:
         return {}
 
     @classmethod
+    def helps(cls, dataset, command: str) -> dict[str, str]:
+        """
+        Per-dataset help of some fields.
+
+        Parameters
+        ----------
+        dataset : Dataset
+        command : str
+
+        Returns
+        -------
+        dict[str, str]
+            Help of each field
+        """
+        return {}
+
+    @classmethod
     def for_dataset(cls, dataset, command: str) -> type:
         """
         Return the group with the choices and defaults of a dataset.
@@ -136,24 +153,29 @@ class OptionGroup:
         """
         names = {f.name for f in dataclasses.fields(cls)}
         types = cls.choices(dataset, command)
+        helps = cls.helps(dataset, command)
         defaults = dict(cls.defaults(dataset, command))
         defaults.update({
             k: v for k, v in
             dict(dataset.option_defaults.get(command, {})).items()
             if k in names
         })
-        if not types and not defaults:
+        if not types and not defaults and not helps:
             return cls
         hints = _hints(cls)
         fields = []
         for f in dataclasses.fields(cls):
-            if f.name not in types and f.name not in defaults:
+            if f.name not in types and f.name not in defaults and \
+                    f.name not in helps:
                 continue
             hint = hints[f.name]
+            meta = getattr(hint, "__metadata__", ())
+            base = getattr(hint, "__origin__", hint) if meta else hint
             if f.name in types:
-                meta = getattr(hint, "__metadata__", ())
-                hint = Annotated[(types[f.name], *meta)] if meta \
-                    else types[f.name]
+                base = types[f.name]
+            if f.name in helps:
+                meta = (*meta, Parameter(help=helps[f.name]))
+            hint = Annotated[(base, *meta)] if meta else base
             default = defaults.get(f.name, f.default)
             fields.append((f.name, hint, dataclasses.field(default=default)))
         new = dataclasses.make_dataclass(
@@ -236,6 +258,15 @@ class SiteOptions(OptionGroup):
 
     sites: Annotated[Strings, _many("Only these sites (default: all)")] = ()
     exclude_sites: Annotated[Strings, _many("Not these sites")] = ()
+
+    @classmethod
+    def helps(cls, dataset, command):
+        """List the sites of the dataset in the help."""
+        names = dataset.site_names
+        if not names:
+            return {}
+        return {"sites": f"Only these sites (default: all): "
+                         f"{', '.join(names)}"}
 
     def source_options(self, dataset):
         """`sites` (and `exclude_sites`) for the sources."""

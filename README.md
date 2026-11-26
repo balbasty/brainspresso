@@ -31,7 +31,8 @@ pip install "brainspresso[all] @ git+https://github.com/balbasty/brainspresso"
 
 After installation, the `brainspresso` command is available from your shell.
 Each known dataset is a specific command, with a set of subcommands.
-These datasets can be listed by typing `brainspresso`:
+These datasets can be listed by typing `brainspresso` (or `bx`, or
+`python -m brainspresso`):
 ```
 Usage: brainspresso COMMAND
 
@@ -97,51 +98,44 @@ IXI dataset (controls)
  • Populations   Controls
  • Funding       EPSRC GR/S21533/02
  • License       CC BY-SA 3.0
+ • URL           https://brain-development.org/ixi-dataset/
 
-╭─ Commands ────────────────────────────────────────────────────────────────────────╮
-│ harvest    Download source data for the IXI dataset.                              │
-│ roast      Convert source data into a BIDS-compliant directory.                   │
-│ --help,-h  Display this message and exit.                                         │
-│ --version  Display application version.                                           │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-```
-```
-Usage: brainspresso ixi harvest [ARGS] [OPTIONS]
+Harvest: images from NITRC-IR (no login needed; the original tarballs of
+brain-development.org with --source imperial), saved in
+IXI/sourcedata/IXI-{T1,T2,PD,MRA,DTI}/ with the file names of the original tarballs.
+NITRC-IR does not host IXI.xls (demographics): roast uses the copy shipped with
+brainspresso if there is none in sourcedata/. Roast: see IXI/roaster.py.
 
-Download source data for the IXI dataset.
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path  Path to root of all datasets. An IXI folder will be created.         │
-│ --keys       Modalities to download                                               │
-│              [default: ('meta', 'T1w', 'T2w','PDw', 'angio', 'dwi')]              │
-│ --if-exists  Behaviour if a file already exists                                   │
-│              [choices: skip,overwrite,different,refresh,error] [default: skip]    │
-│ --packet     Packet size to download, in bytes [default: 8.4 MB]                  │
-│ --layout     Layout of the dataset: study (raw dataset in rawbids/) or            │
-│              flat (raw dataset at the root) [choices: study,flat]                 │
-│ --log        Path to log file                                                     │
-╰───────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────────────╮
+│ compost  Delete source data, or BIDS data outside a filter.                          │
+│ harvest  Download the IXI dataset.                                                   │
+│ info     Show what the IXI dataset provides.                                         │
+│ roast    Convert the source data of the IXI dataset to BIDS.                         │
+╰──────────────────────────────────────────────────────────────────────────────────────╯
 ```
-```
-Usage: brainspresso ixi roast [ARGS] [OPTIONS]
 
-Convert source data into a BIDS-compliant directory
+Every dataset has the same commands (`harvest`, `roast` when it can be
+roasted, `compost`, `info`), with the same option groups; `bx <dataset>
+<command> --help` lists them:
 
-╭─ Parameters ──────────────────────────────────────────────────────────────────────╮
-│ PATH,--path     Path to root of all datasets. An IXI/sourcedata folder            │
-│                 must exist.                                                       │
-│ --keys          Only bidsify these keys                                           │
-│                 [default: ('meta', 'T1w', 'T2w','PDw', 'angio', 'dwi')]           │
-│ --subs          Only bidsify these subjects (all if empty) [default: ()]          │
-│ --exclude-subs  Do not bidsify these subjects [default: ()]                       │
-│ --json          Whether to write (only) sidecar JSON files                        │
-│                 [choices:yes,no,only] [default: yes]                              │
-│ --if-exists     Behaviour when a file already exists                              │
-│                 [choices: skip,overwrite,different,refresh,error] [default: skip] │
-│ --layout        Layout of the dataset: study (raw dataset in rawbids/)            │
-│                 or flat (raw dataset at the root) [choices: study,flat]           │
-│ --log           Path to log file                                                  │
-╰───────────────────────────────────────────────────────────────────────────────────╯
-```
+* **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
+  (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
+  files that match no key.
+* **Selection** (`--subs`, `--exclude-subs`, `--sessions`, `--sites`,
+  `--exclude-sites`): subject labels with or without `sub-` (a file
+  lists one per line). Datasets with numbered subjects also accept
+  numbers (`--subs 2 12` is `002 012` for IXI) and ranges (`1:10`);
+  other labels are kept verbatim (`--subs 00448`).
+* **Sources** (`--source`), **Credentials** (`--user`/`--password`, or
+  `--token`; else environment variables or a prompt).
+* **Harvest** / **Roast** / **Compost** (`--if-exists`, `--jobs`,
+  `--dry-run`...), **Dataset** (`path`, `--out`, `--layout`) and
+  **Logging** (`--log`, `--level`; `--level debug` prints tracebacks).
+
+A dataset cannot be composted while it is harvested or roasted (also from
+other machines that share its filesystem), and the other way round: the
+second command fails at once, naming the first one (`--wait SECONDS`
+waits for it).
 
 ## OpenNeuro: any dataset, or a filtered subset of it
 
@@ -264,13 +258,15 @@ ways:
   (`AnnArbor_a/sub-04111` -> `sub-AnnArborA04111`), and
   `participants.tsv` has a `site` column.
 * `--layout sites`: one dataset per site (`FCON1000/<site>/`, each a
-  study or a flat dataset, `--site-layout`), with the labels of the
-  bucket and site-level metadata (e.g. one `task-rest_bold.json` per
-  site). This is "option 1" of the BIDS recommendations for multi-site
-  studies. The parent folder is not a BIDS dataset: it holds the README
-  and the merged `participants.tsv`, which is also what `--where`
-  queries. `--subs` accepts both the site labels and the merged labels.
-  `compost` processes each site dataset.
+  study or a flat dataset: `--layout sites:study` or `sites:flat`; the
+  deprecated `--layout sites --site-layout <kind>` still works), with
+  the labels of the bucket and site-level metadata (e.g. one
+  `task-rest_bold.json` per site). This is "option 1" of the BIDS
+  recommendations for multi-site studies. The parent folder is not a
+  BIDS dataset: it holds the README and the merged `participants.tsv`,
+  which is also what `--where` queries. `--subs` accepts both the site
+  labels and the merged labels. `compost` processes each site dataset
+  (`--sites`: only these).
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
 curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders

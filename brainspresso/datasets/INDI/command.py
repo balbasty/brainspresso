@@ -20,6 +20,7 @@ from brainspresso.bids.harvest import (
 from brainspresso.bids.tables import read_tsv, write_tsv
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 from brainspresso.download import IfExists
 from brainspresso.utils.log import setup_filelog
 from brainspresso.utils.path import get_tree_path
@@ -182,10 +183,26 @@ def harvest_sites(
                   [r for r in rows if r["participant_id"] in present])
 
 
+def compost_roots(project: Project, folder: Path) -> list[Path]:
+    """
+    Datasets to compost: the dataset folder, or the site datasets if it
+    was harvested with `--layout sites` (the parent is not BIDS).
+    """
+    if (folder / "dataset_description.json").exists() or \
+            not project.multisite:
+        return [folder]
+    sites = [folder / s.name for s in project.sites
+             if (folder / s.name / "dataset_description.json").exists()]
+    return sites or [folder]
+
+
 def register(project: Project) -> App:
     """Register `bx <project.name> {harvest,info}`"""
     cmd = App(name=project.name, help=project.help)
     app.command(cmd)
+    add_compost(cmd, project.folder, roots=functools.partial(
+        compost_roots, project
+    ))
 
     @cmd.command(name="harvest")
     @user_errors

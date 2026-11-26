@@ -158,7 +158,11 @@ def make_doc(cmd: str, root_params: str) -> str:
     )
 
 
-def add_compost(app: App, folder: str) -> Callable:
+def add_compost(
+    app: App,
+    folder: str,
+    roots: Callable[[Path], list[Path]] | None = None,
+) -> Callable:
     """
     Register a `compost` command in a dataset app.
 
@@ -169,6 +173,9 @@ def add_compost(app: App, folder: str) -> Callable:
     folder : str
         Name of the dataset folder under the root of all datasets
         (e.g. "IXI")
+    roots : callable(Path) -> list[Path], optional
+        Map the dataset folder to the dataset roots to compost (e.g.
+        one per site). By default, the dataset folder itself.
     """
 
     @user_errors
@@ -196,15 +203,19 @@ def add_compost(app: App, folder: str) -> Callable:
         log: str | None = None,
         level: str = "info",
     ):
-        run_compost(
-            get_tree_path(path) / folder,
-            sourcedata=sourcedata, nested=nested, keep=keep,
-            subs=subs, exclude_subs=exclude_subs, sessions=sessions,
-            datatypes=datatypes, suffixes=suffixes, tasks=tasks,
-            include=include, exclude=exclude, where=where,
-            derivatives=derivatives, trim=trim, force=force, yes=yes,
-            dry_run=dry_run, list=list, log=log, level=level,
-        )
+        dataset = get_tree_path(path) / folder
+        for root in (roots(dataset) if roots else [dataset]):
+            if roots:
+                print(f"--- {root.name}")
+            run_compost(
+                root,
+                sourcedata=sourcedata, nested=nested, keep=keep,
+                subs=subs, exclude_subs=exclude_subs, sessions=sessions,
+                datatypes=datatypes, suffixes=suffixes, tasks=tasks,
+                include=include, exclude=exclude, where=where,
+                derivatives=derivatives, trim=trim, force=force, yes=yes,
+                dry_run=dry_run, list=list, log=log, level=level,
+            )
 
     compost_.__doc__ = make_doc(app.name[0], f"""
 path

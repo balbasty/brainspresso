@@ -318,6 +318,31 @@ def test_fcon1000_layout_sites_labels(tmp_path):
     assert not (root / "Atlanta" / "sub-06870").exists()
 
 
+def test_fcon1000_compost(tmp_path):
+    # merged layout: one dataset
+    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
+    root = tmp_path / "FCON1000"
+    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "ICBM11111",
+       "--yes")
+    assert not (root / "sub-ICBM11111").exists()
+    assert (root / "sub-ICBM00448").is_dir()
+    assert [r[0] for r in table(root / "participants.tsv")[1:]] == [
+        "sub-ICBM00448"
+    ]
+
+
+def test_fcon1000_compost_layout_sites(tmp_path):
+    # sites layout: every site dataset (labels of the site)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta")
+    root = tmp_path / "FCON1000"
+    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
+    assert not (root / "ICBM" / "sub-00448").exists()
+    assert not (root / "Atlanta" / "sub-00448").exists()
+    assert (root / "ICBM" / "sub-11111").is_dir()
+    assert (root / "Atlanta" / "sub-06870").is_dir()
+
+
 def test_fcon1000_prunes_listing(tmp_path):
     bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
        "--subs", "ICBM00448")

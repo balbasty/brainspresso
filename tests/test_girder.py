@@ -16,13 +16,13 @@ from pathlib import Path, PurePosixPath
 import numpy as np
 import pytest
 from aiohttp import web
+from cli_utils import Harvest
 
 from brainspresso.bids.layout import Layout
 from brainspresso.download import DownloadManager
 from brainspresso.sources import girder as girder_mod
 from brainspresso.sources.base import mirror
 from brainspresso.sources.girder import Girder, parse_girder_url
-from cli_utils import Harvest
 
 nrrd = pytest.importorskip("nrrd")
 
@@ -324,6 +324,7 @@ def test_uncwisc_harvest_keys(uncwisc, tmp_path):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_uncwisc_roast(uncwisc, tmp_path, layout):
     import nibabel as nib
+
     from brainspresso.datasets.UNCWisconsin.roaster import roast
     uncwisc.download(tmp_path, layout=layout)   # raw + meta, all subjects
     root = tmp_path / "UNC-Wisconsin"
@@ -400,7 +401,9 @@ def _folder_path(server, fid):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_uncwisc_roast_derivatives(uncwisc, tmp_path, layout):
     from brainspresso.datasets.UNCWisconsin.roaster import (
-        roast, SPACE, _age_months,
+        SPACE,
+        _age_months,
+        roast,
     )
     uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"],
                      layout=layout)
@@ -547,6 +550,7 @@ def test_bullitt_harvest_keys(bullitt, tmp_path):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_roast(bullitt, tmp_path, layout):
     import nibabel as nib
+
     from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
     bullitt.download(tmp_path, exclude_subs=["003"], layout=layout)
     root = tmp_path / "Bullitt"

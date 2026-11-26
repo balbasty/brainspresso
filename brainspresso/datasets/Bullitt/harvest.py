@@ -19,8 +19,7 @@ Harvested into `Bullitt/sourcedata/` with the same layout.
 """
 from pathlib import PurePosixPath
 
-
-from brainspresso.sources.girder import GirderSource, KITWARE
+from brainspresso.sources.girder import KITWARE, GirderSource
 
 DATASET = "Bullitt"
 COLLECTION = "591086ee8d777f16d01e0724"

@@ -16,20 +16,34 @@ from pathlib import Path
 
 import pytest
 from aiohttp import web
+from cli_utils import bx
 
 from brainspresso.bids.layout import Layout
 from brainspresso.bids.select import Selection
-from brainspresso.download import DownloadManager, Downloader
+from brainspresso.download import Downloader, DownloadManager
 from brainspresso.sources import credentials
 from brainspresso.sources.base import (
-    DownloadOptions, LabelMap, LocalSource, RemoteEntry, Source,
-    SourceUnavailable, StaticURLs, Wants, harvest_sources, mirror,
-    numeric_labels, plan_sources, select_roaster, subject_labels,
+    DownloadOptions,
+    LabelMap,
+    LocalSource,
+    RemoteEntry,
+    Source,
+    SourceUnavailable,
+    StaticURLs,
+    Wants,
+    harvest_sources,
+    mirror,
+    numeric_labels,
+    plan_sources,
+    select_roaster,
+    subject_labels,
 )
 from brainspresso.sources.credentials import (
-    CredentialsError, NitrcAuth, get_credentials, get_secret,
+    CredentialsError,
+    NitrcAuth,
+    get_credentials,
+    get_secret,
 )
-from cli_utils import bx
 
 
 def serve(app, ssl_context=None):
@@ -641,6 +655,7 @@ def test_dry_run_nitrc_without_credentials(host, no_credentials, tmp_path):
 
 def test_abide2_s3_sidecars_filtered_by_site():
     from types import SimpleNamespace
+
     from brainspresso.datasets.ABIDE.II.harvest import S3
     s3 = S3()
     s3.sites = frozenset({"ETH"})

@@ -1,14 +1,15 @@
 # stdlib
 import json
-from pathlib import Path
 from logging import getLogger
+from pathlib import Path
 
 # externals
-
 # internals
 from brainspresso.datasets.ADHD200.keys import allkeys
 from brainspresso.sources.base import (
-    RemoteEntry, Wants, numeric_labels,
+    RemoteEntry,
+    Wants,
+    numeric_labels,
 )
 from brainspresso.sources.fcp import FCP
 

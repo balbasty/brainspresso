@@ -17,7 +17,10 @@ are only on xnat (`--source xnat`).
 from __future__ import annotations
 
 from brainspresso.sources.base import (
-    CompositeSource, RemoteEntry, as_wants, numeric_labels,
+    CompositeSource,
+    RemoteEntry,
+    as_wants,
+    numeric_labels,
 )
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC

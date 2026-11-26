@@ -1,9 +1,10 @@
 """
 Parse MRI protocols
 """
-import pymupdf
-from typing import Mapping
 from pathlib import Path
+from typing import Mapping
+
+import pymupdf
 from nibabel import Nifti1Header, Nifti2Header
 
 

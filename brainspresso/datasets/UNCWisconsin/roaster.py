@@ -34,10 +34,14 @@ from pathlib import Path
 from typing import Iterator
 
 from brainspresso.actions import Action, Fail, WriteJSON, WriteTSV
-from brainspresso.roast import RoastContext, copy_templates, roast_dataset
-from brainspresso.roast import subject_shards
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.UNCWisconsin.keys import allkeys
+from brainspresso.roast import (
+    RoastContext,
+    copy_templates,
+    roast_dataset,
+    subject_shards,
+)
 from brainspresso.utils.nrrd import nrrd_to_nifti
 
 TEMPLATES = Path(__file__).parent / "templates"

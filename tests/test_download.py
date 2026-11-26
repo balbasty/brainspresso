@@ -13,9 +13,8 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from brainspresso.download import DownloadManager, Downloader
+from brainspresso.download import Downloader, DownloadManager
 from brainspresso.download.constants import TIMEOUT
-
 
 SIZE = 3 * 2**20 + 123          # not a multiple of the chunk size
 
@@ -406,6 +405,7 @@ def test_action_writes_new_files(tmp_path):
     # IndexError, and file-object actions (CopyJSON...) failed with
     # "'OpenedFile' object has no attribute 'close'".
     import json as _json
+
     from brainspresso.actions import Action, CopyJSON
     (tmp_path / "in.json").write_text('{"x": 1}')
 

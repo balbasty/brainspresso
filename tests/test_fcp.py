@@ -12,9 +12,9 @@ from xml.sax.saxutils import escape
 
 import pytest
 from aiohttp import web
+from cli_utils import bx
 
 from brainspresso.sources import fcp
-from cli_utils import bx
 from brainspresso.sources.s3 import S3Bucket
 
 P = "data/Projects"

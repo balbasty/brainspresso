@@ -1,15 +1,16 @@
 """Remote files, read as streams of bytes."""
 # std
-import time
 import inspect
-from typing import Callable
+import time
 from email.utils import parsedate_to_datetime
-from urllib.parse import urlparse, ParseResult
 from logging import getLogger
+from typing import Callable
+from urllib.parse import ParseResult, urlparse
+
+import aiohttp
 
 # externals
 import requests
-import aiohttp
 
 # internals
 from brainspresso.download.constants import CHUNK_SIZE

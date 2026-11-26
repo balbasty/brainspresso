@@ -2,16 +2,15 @@ import tarfile
 from logging import getLogger
 from pathlib import PosixPath
 
-from brainspresso.utils.io import write_from_buffer
-from brainspresso.utils.keys import compat_keys
-from brainspresso.utils.keys import lower_keys
+from brainspresso.actions import Action, Fail, WriteBytes
+from brainspresso.datasets.ABIDE.I.bidsifier import (
+    BidsifierBase,
+    TemplateError,
+)
+from brainspresso.datasets.ABIDE.I.keys import allkeys, allleaves
 from brainspresso.freesurfer import bidsify as fs
-from brainspresso.actions import Action
-from brainspresso.actions import WriteBytes
-from brainspresso.actions import Fail
-from brainspresso.datasets.ABIDE.I.keys import allleaves, allkeys
-from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
-from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
+from brainspresso.utils.io import write_from_buffer
+from brainspresso.utils.keys import compat_keys, lower_keys
 
 lg = getLogger(__name__)
 

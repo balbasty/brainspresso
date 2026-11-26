@@ -1,7 +1,9 @@
-import pymupdf
 import re
 from os import PathLike
 from typing import Iterator
+
+import pymupdf
+
 from .utils import peekable
 
 

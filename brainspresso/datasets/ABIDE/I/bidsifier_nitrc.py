@@ -38,15 +38,16 @@ import shutil
 import tarfile
 from logging import getLogger
 from pathlib import Path, PosixPath
-from typing import IO, Callable, Iterator, Any
+from typing import IO, Any, Callable, Iterator
 
+from brainspresso.actions import Action, Fail
+from brainspresso.datasets.ABIDE.I.bidsifier import (
+    BidsifierBase,
+    TemplateError,
+)
+from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.utils.io import write_from_buffer
 from brainspresso.utils.keys import compat_keys
-from brainspresso.actions import Action
-from brainspresso.actions import Fail
-from brainspresso.datasets.ABIDE.I.keys import allkeys
-from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
-from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
 
 lg = getLogger(__name__)
 

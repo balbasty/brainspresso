@@ -5,8 +5,9 @@ Manual check: download the IXI metadata file into a temporary folder.
 """
 
 import tempfile
-from .manager import DownloadManager
+
 from .downloader import Downloader
+from .manager import DownloadManager
 
 URLBASE = 'http://biomedic.doc.ic.ac.uk/brain-development/downloads/IXI'
 URLS = {

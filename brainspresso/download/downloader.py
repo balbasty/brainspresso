@@ -1,26 +1,25 @@
 """Download of a single remote file into a local file."""
 import asyncio
-import aiofiles.os as aos
-import time
-import random
+import datetime
 import os
 import os.path as op
-import datetime
+import random
+import time
 from enum import Enum as _Enum
+from functools import partial
 from logging import getLogger
 from pathlib import Path, PosixPath
-from typing import Literal, Callable, AsyncIterator
-from urllib.parse import urlparse, ParseResult
-from functools import partial
+from typing import AsyncIterator, Callable, Literal
+from urllib.parse import ParseResult, urlparse
 
+import aiofiles.os as aos
 import aiohttp
-from humanize import naturalsize, naturaldate
+from humanize import naturaldate, naturalsize
 
-from brainspresso.utils.digests import get_digest
-from brainspresso.utils.digests import sort_digests
-from brainspresso.download.remote import RemoteFile, check_request_options
-from brainspresso.download.incomplete import IncompleteFile
 from brainspresso.download.constants import CHUNK_SIZE, RETRY_STATUSES
+from brainspresso.download.incomplete import IncompleteFile
+from brainspresso.download.remote import RemoteFile, check_request_options
+from brainspresso.utils.digests import get_digest, sort_digests
 
 lg = getLogger(__name__)
 aop = aos.path

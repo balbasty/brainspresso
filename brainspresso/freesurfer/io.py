@@ -1,7 +1,8 @@
-import nibabel
 import itertools
-import numpy as np
 import os
+
+import nibabel
+import numpy as np
 
 
 def closest_orientation(lin):

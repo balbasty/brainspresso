@@ -5,11 +5,17 @@ import os
 import nibabel as nib
 import numpy as np
 import pytest
+from roast_utils import (
+    LAYOUTS,
+    init_layout,
+    make_tar,
+    nii_bytes,
+    raw_file,
+    raw_tree,
+    read_tsv,
+)
 
 from brainspresso.datasets.COBRE.bidsifier import Bidsifier
-from roast_utils import (
-    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
-)
 
 CSV = (
     ",Current Age,Gender,Handedness,Subject Type,Diagnosis\n"

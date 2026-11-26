@@ -11,7 +11,12 @@ import re
 from collections import defaultdict
 
 from brainspresso.datasets.INDI.engine import (
-    InlineEntry, Project, Site, format_tsv, read_table, subject_id,
+    InlineEntry,
+    Project,
+    Site,
+    format_tsv,
+    read_table,
+    subject_id,
 )
 
 

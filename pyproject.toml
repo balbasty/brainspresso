@@ -15,8 +15,12 @@ target-version = "py310"
 [tool.ruff.lint]
 # PLC0415: imports at the top level; a local import is kept only for an
 # optional dependency, a cycle or the startup time of `bx --help`, with
-# `# noqa: PLC0415` and the reason.
-select = ["E", "F", "W", "D", "PLC0415"]
+# `# noqa: PLC0415` and the reason. I: imports sorted as ruff's isort
+# rule does (`ruff check --select I --fix .`).
+select = ["E", "F", "W", "D", "I", "PLC0415"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["brainspresso"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

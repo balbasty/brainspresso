@@ -18,20 +18,20 @@ Freesurfer2Gifti(src: Path, dst: Path): ... # Convert a surface file
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable, Iterator, BinaryIO, TextIO, Mapping
+from typing import BinaryIO, Iterable, Iterator, Mapping, TextIO
 
-from brainspresso.utils.io import write_json
-from brainspresso.utils.io import copy_json
-from brainspresso.utils.io import write_tsv
-from brainspresso.utils.io import write_from_buffer
-from brainspresso.utils.io import copy_from_buffer
-from brainspresso.utils.io import write_text
-from brainspresso.utils.io import nibabel_convert
-from brainspresso.freesurfer.io import nibabel_fs2gii
-from brainspresso.actions.action import Action
-from brainspresso.actions.action import IfExistsChoice
-from brainspresso.actions.action import Kind
+from brainspresso.actions.action import Action, IfExistsChoice, Kind
 from brainspresso.actions.locks import FileLock
+from brainspresso.freesurfer.io import nibabel_fs2gii
+from brainspresso.utils.io import (
+    copy_from_buffer,
+    copy_json,
+    nibabel_convert,
+    write_from_buffer,
+    write_json,
+    write_text,
+    write_tsv,
+)
 
 lg = getLogger(__name__)
 

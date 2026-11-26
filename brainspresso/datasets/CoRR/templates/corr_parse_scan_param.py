@@ -1,11 +1,11 @@
-import pymupdf
 import json
 from pathlib import Path
 from warnings import filterwarnings
+
+import pymupdf
 from urllib3.exceptions import InsecureRequestWarning
 
 from brainspresso.download import Downloader, DownloadManager
-
 
 DOWNLOAD = False
 PARSE = True

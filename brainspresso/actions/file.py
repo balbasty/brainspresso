@@ -21,10 +21,10 @@ Waiting for a lock times out (`timeout`, default `locks.lock_timeout()`)
 with a `LockTimeout` that names the file and what holds it.
 """
 import time
-from pathlib import Path
-from shutil import rmtree, copy2
-from typing import IO, Tuple, Iterable, Iterator
 from logging import getLogger
+from pathlib import Path
+from shutil import copy2, rmtree
+from typing import IO, Iterable, Iterator, Tuple
 
 from brainspresso.actions.locks import FileLock, LockError, LockTimeout
 

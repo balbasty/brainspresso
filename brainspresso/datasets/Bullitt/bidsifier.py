@@ -19,14 +19,15 @@ from logging import getLogger
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from brainspresso.actions import Action, CopyBytes, CopyJSON, WriteJSON
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
-from brainspresso.actions import Action, CopyBytes, CopyJSON, WriteJSON
+from brainspresso.datasets.Bullitt.harvest import (
+    FOLDER_KEYS,
+    subject_label,
+)
 from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.datasets.Bullitt.harvest import (
-    FOLDER_KEYS, subject_label,
-)
 
 lg = getLogger(__name__)
 

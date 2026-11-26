@@ -7,10 +7,20 @@ import pytest
 
 import brainspresso.actions as actions_pkg
 from brainspresso.actions import (
-    Action, CopyJSON, Fail, IfExists, WriteJSON, WriteText, WriteTSV,
+    Action,
+    CopyJSON,
+    Fail,
+    IfExists,
+    WriteJSON,
+    WriteText,
+    WriteTSV,
 )
 from brainspresso.actions.engine import (
-    Context, Policy, Rejected, Shard, run,
+    Context,
+    Policy,
+    Rejected,
+    Shard,
+    run,
 )
 from brainspresso.actions.state import read_task_states
 

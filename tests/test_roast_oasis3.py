@@ -3,13 +3,19 @@ import json
 
 import nibabel as nib
 import pytest
+from roast_utils import (
+    LAYOUTS,
+    init_layout,
+    layout_of,
+    make_tar,
+    nii_bytes,
+    raw_file,
+    raw_tree,
+    read_tsv,
+)
 
 from brainspresso.datasets.OASIS.III import roaster
 from brainspresso.datasets.OASIS.III.roaster import roast
-from roast_utils import (
-    LAYOUTS, init_layout, layout_of, make_tar, nii_bytes, raw_file, raw_tree,
-    read_tsv,
-)
 
 DEMO = (
     "OASISID,GENDER,HAND,AgeatEntry,AgeatDeath,EDUC,SES,racecode,AIAN,NHPI,"
@@ -119,6 +125,7 @@ def test_exclude_two_keys(root):
 
 def mgz_bytes(value=1) -> bytes:
     import gzip
+
     import numpy as np
     img = nib.MGHImage(np.full((2, 2, 2), value, np.float32), np.eye(4))
     return gzip.compress(img.to_bytes())

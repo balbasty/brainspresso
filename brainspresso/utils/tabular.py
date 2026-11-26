@@ -1,16 +1,16 @@
 # Derived from `dandi.support.pyout`
 # https://github.com/dandi/dandi-cli/blob/master/dandi/support/pyout.py
 # Apache License Version 2.0
-import sys
-import pyout
-import humanize
 import datetime
-import time
 import logging
-from typing import Any
-from contextlib import contextmanager
+import sys
+import time
 from collections import Counter
+from contextlib import contextmanager
+from typing import Any
 
+import humanize
+import pyout
 
 lg = logging.getLogger(__name__)
 

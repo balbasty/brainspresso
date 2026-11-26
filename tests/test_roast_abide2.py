@@ -3,11 +3,17 @@ import json
 
 import nibabel as nib
 import pytest
+from roast_utils import (
+    LAYOUTS,
+    init_layout,
+    make_tar,
+    nii_bytes,
+    raw_file,
+    raw_tree,
+    read_tsv,
+)
 
 from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
-from roast_utils import (
-    LAYOUTS, init_layout, make_tar, nii_bytes, raw_file, raw_tree, read_tsv,
-)
 
 PHEADER = Bidsifier.ParticipantsMapper.header
 SRS = list(Bidsifier.SRSMapper.header.values())

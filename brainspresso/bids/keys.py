@@ -57,11 +57,16 @@ import json
 from dataclasses import dataclass, field
 from typing import Collection, Iterable, Mapping
 
-from brainspresso.errors import UsageError
 from brainspresso.bids.select import (
-    _DATA, _META, OPTIONAL_FOLDERS, BidsName, Selection, _applies,
+    _DATA,
+    _META,
+    OPTIONAL_FOLDERS,
+    BidsName,
+    Selection,
+    _applies,
     _classify,
 )
+from brainspresso.errors import UsageError
 
 # Companions that are tables of a subject or session (rule 1)
 _TABLES = frozenset({"sessions", "scans"})

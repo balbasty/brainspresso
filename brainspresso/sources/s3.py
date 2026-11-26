@@ -40,7 +40,10 @@ import aiohttp
 from brainspresso.download.constants import RETRY_STATUSES
 from brainspresso.download.session import new_session
 from brainspresso.sources.base import (
-    RemoteEntry, Source, SourceUnavailable, as_wants,
+    RemoteEntry,
+    Source,
+    SourceUnavailable,
+    as_wants,
 )
 
 lg = getLogger(__name__)

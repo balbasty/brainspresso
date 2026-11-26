@@ -1,9 +1,10 @@
+import logging
 import os
 import time
-import requests
-import logging
-from typing import BinaryIO
 from pathlib import Path
+from typing import BinaryIO
+
+import requests
 
 from brainspresso.utils.ui import round_bytes
 

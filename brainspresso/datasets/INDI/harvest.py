@@ -11,22 +11,30 @@ import contextlib
 import copy
 from typing import Iterable
 
-
-from brainspresso.bids.harvest import (
-    InlineEntry, check_selected_subjects, harvest, record_run,
-    resolve_participants, subjects_of, write_inline,
-)
 from brainspresso.actions.runlock import run_lock
+from brainspresso.bids.harvest import (
+    InlineEntry,
+    check_selected_subjects,
+    harvest,
+    record_run,
+    resolve_participants,
+    subjects_of,
+    write_inline,
+)
 from brainspresso.bids.layout import SitesLayout, relative_url
-from brainspresso.bids.tables import read_tsv, write_tsv
 from brainspresso.bids.select import Selection
+from brainspresso.bids.tables import read_tsv, write_tsv
 from brainspresso.datasets.INDI.engine import (
-    Project, Site, complete_participants, fetch_tables, list_extra,
-    list_sites, site_label,
+    Project,
+    Site,
+    complete_participants,
+    fetch_tables,
+    list_extra,
+    list_sites,
+    site_label,
 )
 from brainspresso.errors import UsageError
 from brainspresso.sources import fcp
-
 
 
 def prepare(

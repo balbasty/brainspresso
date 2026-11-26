@@ -53,15 +53,17 @@ anat/
     sub-{03d}_hemi-{L|R}_atlas-Destrieux_dseg.label.gii         [<-{l|r}h.aparc.a2009s.annot]
 
 """  # noqa: E501
-from logging import getLogger
 from functools import partial
-from typing import Callable, Literal, Iterable
+from logging import getLogger
 from pathlib import Path
+from typing import Callable, Iterable, Literal
 
-from brainspresso.actions import Action
-from brainspresso.actions import WriteJSON
-from brainspresso.actions import BabelConvert
-from brainspresso.actions import Freesurfer2Gifti
+from brainspresso.actions import (
+    Action,
+    BabelConvert,
+    Freesurfer2Gifti,
+    WriteJSON,
+)
 from brainspresso.freesurfer.lookup import write_lookup
 
 lg = getLogger(__name__)

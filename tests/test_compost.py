@@ -275,8 +275,8 @@ def test_plan_kept_subjects(roasted):
 
 @pytest.mark.parametrize("kind", ["study", "flat"])
 def test_cli(tmp_path, capsys, kind):
-    from brainspresso.cli import app
     import brainspresso  # noqa: F401  (registers datasets)
+    from brainspresso.cli import app
 
     roasted = tmp_path / "IXI"
     tree = roasted_files(make_layout(kind, roasted))

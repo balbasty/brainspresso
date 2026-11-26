@@ -1,7 +1,6 @@
 
 from brainspresso.sources.base import StaticURLs
 
-
 URLDATA = 'https://download.nrg.wustl.edu/data'
 URLMETA = 'https://sites.wustl.edu/oasisbrains/files'
 UID_META = '5708aa0a98d82080'

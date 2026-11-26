@@ -21,15 +21,15 @@ import time
 import traceback
 from contextlib import ExitStack
 from dataclasses import dataclass
+from enum import Enum as _Enum
 from logging import getLogger
 from os.path import lexists
-from enum import Enum as _Enum
-from typing import Iterable, Iterator, Generator, Literal, Callable, IO
 from pathlib import Path
 from types import GeneratorType
+from typing import IO, Callable, Generator, Iterable, Iterator, Literal
 
-from brainspresso.utils.digests import sort_digests, get_digest
 from brainspresso.actions.file import File, Files
+from brainspresso.utils.digests import get_digest, sort_digests
 
 lg = getLogger(__name__)
 

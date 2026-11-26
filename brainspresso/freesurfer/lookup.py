@@ -1,6 +1,7 @@
 
 from pathlib import Path
 from typing import IO, List
+
 from brainspresso.utils.io import write_tsv
 
 LUT: Path = Path(__file__).parent / 'lut'

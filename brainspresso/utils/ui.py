@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Set
+from typing import Literal, Set, Tuple
 
 ByteUnitChoice = Literal['B', 'KB', 'MB', 'GB', 'TB']
 ByteUnits: Set[ByteUnitChoice] = set(ByteUnitChoice.__args__)

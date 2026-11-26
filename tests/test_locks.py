@@ -13,12 +13,23 @@ from pathlib import Path
 import pytest
 
 from brainspresso.actions import (
-    CopyBytes, File, Files, LockError, LockTimeout, Unlink, WrapAction,
+    CopyBytes,
+    File,
+    Files,
+    LockError,
+    LockTimeout,
+    Unlink,
+    WrapAction,
 )
 from brainspresso.actions.engine import Context, Shard, run
 from brainspresso.actions.locks import (
-    LOCAL_DIR_ENV, STATE_DIR, TIMEOUT_ENV, FileLock, find_dataset,
-    forget_datasets, lock_file,
+    LOCAL_DIR_ENV,
+    STATE_DIR,
+    TIMEOUT_ENV,
+    FileLock,
+    find_dataset,
+    forget_datasets,
+    lock_file,
 )
 from brainspresso.bids.layout import STATE_DIR as LAYOUT_STATE_DIR
 
@@ -518,6 +529,7 @@ def test_unlink_deletes_its_destination_under_its_lock(tmp_path):
 
 def download_file(path, text, finishing, done):
     import asyncio
+
     from brainspresso.download.incomplete import IncompleteFile
 
     async def go():
@@ -552,6 +564,7 @@ def test_download_waits_for_reader_before_replacing(tmp_path, where):
 
 def test_download_package_imports_no_stage_layer():
     import ast
+
     import brainspresso.download as download_pkg
     for path in sorted(Path(download_pkg.__file__).parent.glob("*.py")):
         tree = ast.parse(path.read_text())
@@ -587,6 +600,7 @@ def test_harvest_creates_the_state_folder_before_locks(
     tmp_path, monkeypatch, locks_seen, kind,
 ):
     import asyncio
+
     from brainspresso.bids import harvest as harvest_module
     from brainspresso.bids.select import Selection
     from brainspresso.download.incomplete import IncompleteFile

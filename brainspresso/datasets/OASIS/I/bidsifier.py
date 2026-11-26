@@ -65,33 +65,37 @@ OASIS-1/
 With `--layout flat`, the content of `rawbids/` is in `OASIS-1/` itself
 (and `sourcedata/`, `derivatives/` stay where they are).
 """
-import tarfile
-import nibabel as nib
-import numpy as np
 import csv
-from tempfile import TemporaryDirectory
+import tarfile
 from logging import getLogger
 from pathlib import Path, PosixPath
-from typing import Literal, Iterable, Iterator
+from tempfile import TemporaryDirectory
+from typing import Iterable, Iterator, Literal
 
+import nibabel as nib
+import numpy as np
+
+from brainspresso.actions import (
+    Action,
+    CopyBytes,
+    CopyJSON,
+    IfExists,
+    WrapAction,
+    WriteBytes,
+    WriteJSON,
+)
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
 from brainspresso.freesurfer import bidsify as fs
-from brainspresso.utils.io import read_json
-from brainspresso.utils.io import write_tsv
-from brainspresso.utils.io import write_from_buffer
-from brainspresso.utils.io import nibabel_convert
+from brainspresso.utils.io import (
+    nibabel_convert,
+    read_json,
+    write_from_buffer,
+    write_tsv,
+)
+from brainspresso.utils.tabular import Status, bidsify_tab
 from brainspresso.utils.vol import make_affine
 from brainspresso.utils.vol import relabel as vol_relabel
-from brainspresso.utils.tabular import bidsify_tab
-from brainspresso.utils.tabular import Status
-from brainspresso.actions import IfExists
-from brainspresso.actions import Action
-from brainspresso.actions import CopyBytes
-from brainspresso.actions import CopyJSON
-from brainspresso.actions import WriteBytes
-from brainspresso.actions import WriteJSON
-from brainspresso.actions import WrapAction
 
 lg = getLogger(__name__)
 import openpyxl  # noqa: E402  (extra: brainspresso[oasis])

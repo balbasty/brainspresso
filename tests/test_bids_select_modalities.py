@@ -3,7 +3,10 @@ import pytest
 
 from brainspresso.bids.compost import _bids_candidates
 from brainspresso.bids.select import (
-    COMPANIONS, DATATYPES, BidsName, Selection,
+    COMPANIONS,
+    DATATYPES,
+    BidsName,
+    Selection,
 )
 
 ZARR = "sub-01/micr/sub-01_sample-A_SEM.ome.zarr"

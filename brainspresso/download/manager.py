@@ -3,18 +3,17 @@ __all__ = ["DownloadManager", "DownloadTable"]
 import asyncio
 import time
 import warnings
-from pathlib import Path
 from collections import Counter
 from logging import getLogger
-from typing import Literal, Iterable
+from pathlib import Path
+from typing import Iterable, Literal
 
 import aiohttp
 
-from brainspresso.utils.tabular import LogSafeTabular, get_style
-from brainspresso.utils.log import HideLoggingStream
+from brainspresso.download.downloader import Downloader, IfExists
 from brainspresso.download.session import new_session
-from brainspresso.download.downloader import IfExists
-from brainspresso.download.downloader import Downloader
+from brainspresso.utils.log import HideLoggingStream
+from brainspresso.utils.tabular import LogSafeTabular, get_style
 
 lg = getLogger(__name__)
 

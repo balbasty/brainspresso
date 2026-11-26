@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 abide2_help = """
 ABIDE-II dataset (autism spectrum disorders)
@@ -16,3 +17,5 @@ ABIDE-II dataset (autism spectrum disorders)
 app.command(
     abide2 := App(name="abide2", help=abide2_help)
 )
+
+add_compost(abide2, "ABIDE-2")

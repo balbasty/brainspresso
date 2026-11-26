@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 corr_help = """
 CoRR dataset (controls)
@@ -11,3 +12,5 @@ CoRR dataset (controls)
 """  # noqa: E501
 
 app.command(corr := App(name="corr", help=corr_help))
+
+add_compost(corr, "CoRR")

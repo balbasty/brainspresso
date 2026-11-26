@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 oasis1_help = """
 OASIS-1 dataset (adult lifespan, dementia)
@@ -17,3 +18,5 @@ OASIS-1 dataset (adult lifespan, dementia)
 app.command(
     oasis1 := App(name="oasis1", help=oasis1_help)
 )
+
+add_compost(oasis1, "OASIS-1")

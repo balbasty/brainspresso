@@ -85,7 +85,11 @@ def query_participants(text: str, queries: Iterable[str]) -> set[str]:
     return out
 
 
-def trim_tables(root: Path, originals: dict[str, Path]) -> list[str]:
+def trim_tables(
+    root: Path,
+    originals: dict[str, Path],
+    subjects: Path | None = None,
+) -> list[str]:
     """
     Write trimmed copies of BIDS tables in `root`, keeping only rows that
     refer to something present on disk.
@@ -96,13 +100,18 @@ def trim_tables(root: Path, originals: dict[str, Path]) -> list[str]:
         BIDS root
     originals : dict[str, Path]
         Mapping from table path (relative to root) to the untouched
-        downloaded copy.
+        downloaded copy (which may be the table itself).
+    subjects : Path, default=root
+        Folder that contains the `sub-*` folders listed in
+        `participants.tsv` (e.g. `rawdata/`, if the table lives
+        next to it).
 
     Returns
     -------
     written : list[str]
         Relative paths of the tables written.
     """
+    subjects = Path(subjects if subjects is not None else root)
     written = []
     for relpath, original in sorted(originals.items()):
         if not original.exists():
@@ -112,7 +121,7 @@ def trim_tables(root: Path, originals: dict[str, Path]) -> list[str]:
         folder = (root / relpath).parent
         if name == "participants.tsv":
             rows = [r for r in rows
-                    if (root / r.get("participant_id", "")).is_dir()]
+                    if (subjects / r.get("participant_id", "")).is_dir()]
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
                     if (folder / r.get("session_id", "")).is_dir()]

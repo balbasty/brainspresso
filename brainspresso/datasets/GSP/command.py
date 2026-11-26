@@ -1,5 +1,6 @@
 from cyclopts import App
 from brainspresso.cli import app
+from brainspresso.datasets.compost import add_compost
 
 gsp_help = """
 GSP dataset (controls, genomics)
@@ -11,3 +12,5 @@ GSP dataset (controls, genomics)
 """  # noqa: E501
 
 app.command(gsp := App(name="gsp", help=gsp_help))
+
+add_compost(gsp, "GSP")

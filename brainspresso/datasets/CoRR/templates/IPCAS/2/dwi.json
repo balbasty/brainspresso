@@ -1,5 +1,6 @@
 {
     "Manufacturer": "Siemens",
-    "ManufacturerModelName": "TrioTim",
-    "MagneticFieldStrength": 3
+    "ManufacturersModelName": "TrioTim",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "32 Chan"
 }

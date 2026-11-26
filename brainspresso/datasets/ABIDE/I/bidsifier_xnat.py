@@ -8,9 +8,10 @@ from brainspresso.utils.keys import lower_keys
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.actions import Action
 from brainspresso.actions import WriteBytes
-from brainspresso.actions import CopyJSON
+from brainspresso.actions import Fail
 from brainspresso.datasets.ABIDE.I.keys import allleaves, allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
+from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
 
 lg = getLogger(__name__)
 
@@ -73,8 +74,10 @@ class Bidsifier(BidsifierBase):
         yield {'progress': 0}
         for i, id in enumerate(self.subs):
             for action in self._make_raw(key, id):
+                fname = (action.name if isinstance(action, Fail)
+                         else action.dst.name)
                 for status in action:
-                    yield from self.fixstatus(status, action.dst.name)
+                    yield from self.fixstatus(status, fname)
             yield {'progress': 100*(i+1)/len(self.subs)}
         yield {'status': 'done', 'message': ''}
 
@@ -94,16 +97,16 @@ class Bidsifier(BidsifierBase):
     def _make_raw_scan(self, tar):
         member = tar.getmembers()[0]
         memberpath = PosixPath(member.name)
-        site, id = memberpath.parts[0].split('_')
+        site, id = memberpath.parts[0].rsplit('_', 1)
         id = int(id)
         if memberpath.name.split('.')[0] in ('anat', 'mprage'):
             cat = 'anat'
             mod = 'T1w'
-            json = self.TPLDIR / site / 'T1w.json'
+            tpl = 'T1w.json'
         elif memberpath.name.split('.')[0] == 'rest':
             cat = 'func'
             mod = 'task-rest_bold'
-            json = self.TPLDIR / site / 'bold.json'
+            tpl = 'bold.json'
         else:
             return
         dst = self.raw / f'sub-{id:05d}' / cat
@@ -113,7 +116,16 @@ class Bidsifier(BidsifierBase):
                 lambda f: write_from_buffer(tar.extractfile(member), f)
             )
         if self.json != 'no':
-            yield CopyJSON(json, dst / f'sub-{id:05d}_{mod}.json')
+            try:
+                json = self.template(site, tpl)
+            except TemplateError as e:
+                # counted as an error: the run ends partial
+                yield Fail(f"{tar.name}: {e}",
+                           name=f'sub-{id:05d}_{mod}.json')
+                return
+            yield self.sidecar(json, dst / f'sub-{id:05d}_{mod}.json', mod,
+                               lambda: tar.extractfile(member),
+                               member.name)
 
     # ------------------------------------------------------------------
     #   Write freesurfer

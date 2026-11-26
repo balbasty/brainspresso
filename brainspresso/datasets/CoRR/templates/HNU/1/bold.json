@@ -1,13 +1,18 @@
 {
     "Manufacturer": "GE",
-    "ManufacturerModelName": "Discovery MR750",
-    "MagneticFieldStrength": 3,
+    "ManufacturersModelName": "Discovery MR750",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8 Chan",
     "PulseSequenceType": "EPI",
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "RepetitionTime": 2.0,
     "EchoTime": 0.03,
     "FlipAngle": 90.0,
-    "PhaseEncodingDirection": "AP",
-    "SliceEncodingDirection": "A",
-    "SliceTiming": "Interleaved Ascending",
-    "RepetitionTimeExcitation": 2.0,
-    "EffectiveEchoSpacing": 4.5454545454545455e-06
+    "PixelBandwidth": 3437.5,
+    "SliceThickness": 3.4,
+    "SpacingBetweenSlices": 3.4,
+    "AcquisitionMatrixPE": 64
 }

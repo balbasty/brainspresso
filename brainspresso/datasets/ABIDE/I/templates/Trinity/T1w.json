@@ -1,15 +1,26 @@
 {
-    "Manufacturer":  "Philips",
-    "ManufacturerModelName": "Achieva",
-    "MagneticFieldStrength": 3,
-    "PulseSequenceType": "MPRAGE",
-    "EchoTime": 3.9E-3,
-    "RepetitionTimeExcitation": 8.5E-3,
-    "RepetitionTimePreparation": 3,
-    "InversionTime": 1060.17468,
-    "FlipAngle": 8,
+    "Manufacturer": "Philips",
+    "MagneticFieldStrength": 3.0,
+    "ImagingFrequency": 127.728,
+    "Modality": "MR",
+    "ProtocolName": "anat",
+    "ReceiveCoilName": "SENSE-Head-8",
+    "RepetitionTime": 3.0,
+    "EchoTime": 0.0039,
+    "FlipAngle": 8.0,
+    "InversionTime": 1.06017468,
+    "RepetitionTimePreparation": 3.0,
     "MRAcquisitionType": "3D",
-    "ParallelReductionFactorInPlane": 1.5,
-    "ParallelReductionFactorOutOfPlane": 1,
-    "ParallelAcquisitionTechnique": "SENSE"
-  }
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "PulseSequenceType": "Inversion Recovery Turbo Field Echo (MPRAGE-like)",
+    "RepetitionTimeExcitation": 0.0085,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 1.0,
+    "ParallelReductionFactorOutOfPlane": 1.5,
+    "AcquisitionMatrixPE": 240,
+    "ReconMatrixPE": 256,
+    "PhaseEncodingAxis": "j"
+}

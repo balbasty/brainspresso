@@ -1,11 +1,15 @@
 {
     "Manufacturer": "Siemens",
-    "ManufacturerModelName": "Allegra",
-    "MagneticFieldStrength": 3,
+    "ManufacturersModelName": "Allegra",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "1 Chan",
     "PulseSequenceType": "MPRAGE",
-    "EchoTime": 0.00393,
-    "FlipAngle": 8.0,
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 2.5,
     "RepetitionTimePreparation": 2.5,
+    "EchoTime": 0.00393,
     "InversionTime": 0.9,
-    "MRAcquisitionType": "3D"
+    "FlipAngle": 8.0,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 256
 }

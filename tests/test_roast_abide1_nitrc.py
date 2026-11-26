@@ -72,9 +72,35 @@ def test_roast_raw(root):
     img = nib.load(raw_file(root,
                             "sub-51456/func/sub-51456_task-rest_bold.nii.gz"))
     assert img.shape == (2, 2, 2, 3)
-    tpl = json.loads((Bidsifier.TPLDIR / "MaxMun/T1w.json").read_text())
+    tpl = json.loads((Bidsifier.TPLDIR / "MaxMun_a/T1w.json").read_text())
     assert json.loads(raw_file(
         root, "sub-51330/anat/sub-51330_T1w.json").read_text()) == tpl
+
+
+def test_roast_sample_template(root):
+    """A sample-suffixed site uses its own sidecar; others fall back."""
+    src = root / "sourcedata"
+    make_tar(src / "MaxMun_b.tgz", {
+        "MaxMun_b/0051340/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3)),
+    })
+    make_tar(src / "CMU_a.tgz", {
+        "CMU_a/0050642/session_1/anat_1/mprage.nii.gz": nii_bytes(),
+    })
+    Bidsifier(root, keys={"T1w", "rest"}).run()
+
+    def sidecar(path):
+        return json.loads(raw_file(root, path).read_text())
+
+    def tpl(path):
+        return json.loads((Bidsifier.TPLDIR / path).read_text())
+
+    assert tpl("MaxMun_b/bold.json") != tpl("MaxMun_a/bold.json")
+    assert sidecar("sub-51340/func/sub-51340_task-rest_bold.json") \
+        == tpl("MaxMun_b/bold.json")
+    # CMU_a has no anatomical template: fall back to the site template
+    assert not (Bidsifier.TPLDIR / "CMU_a/T1w.json").exists()
+    assert sidecar("sub-50642/anat/sub-50642_T1w.json") == tpl("CMU/T1w.json")
 
 
 def test_roast_filters(root):

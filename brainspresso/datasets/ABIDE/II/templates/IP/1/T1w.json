@@ -1,17 +1,22 @@
 {
     "Manufacturer": "Philips",
-    "ManufacturerModelName": "Achieva",
+    "ManufacturersModelName": "Intera Achieva",
     "MagneticFieldStrength": 1.5,
-    "PulseSequenceType": "MPRAGE",
+    "ImagingFrequency": 63.864,
+    "Modality": "MR",
+    "ProtocolName": "T1w",
+    "RepetitionTime": 0.025,
     "EchoTime": 0.0056,
     "FlipAngle": 30.0,
-    "ParallelReductionFactorInPlane": 2.0,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "GR"
+    ],
+    "PulseSequenceType": "Fast Field Echo",
     "ParallelAcquisitionTechnique": "SENSE",
-    "SliceEncodingDirection": "A",
-    "SliceThickness": 1.0,
-    "FatSaturation": false,
-    "AcquisitionMatrixSE": 170,
-    "ReconMatrixSE": 170,
-    "RepetitionTimePreparation": 0.025,
-    "MRAcquisitionType": "3D"
+    "ParallelReductionFactorInPlane": 2.0,
+    "ParallelReductionFactorOutOfPlane": 2.0,
+    "AcquisitionMatrixPE": 240,
+    "ReconMatrixPE": 256,
+    "PhaseEncodingAxis": "j"
 }

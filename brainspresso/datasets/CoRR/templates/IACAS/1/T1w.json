@@ -1,17 +1,24 @@
 {
     "Manufacturer": "GE",
-    "ManufacturerModelName": "Signa HDx",
-    "MagneticFieldStrength": 3,
-    "PulseSequenceType": "BRAVO",
-    "EchoTime": 0.002984,
-    "FlipAngle": 7.0,
-    "ParallelReductionFactorInPlane": 2.0,
-    "ParallelAcquisitionTechnique": "ASSET",
-    "PhaseEncodingDirection": "RL",
-    "SliceEncodingDirection": "S",
-    "SliceTiming": "Sequential Ascending",
-    "RepetitionTimePreparation": 0.007788000000000001,
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8HRBRAIN",
+    "Modality": "MR",
+    "ProtocolName": "Sag 3D BRAVO RIGHT",
+    "SeriesDescription": "Sag 3D BRAVO RIGHT",
     "InversionTime": 1.1,
-    "DwellTime": 3.201844262295082e-05,
-    "MRAcquisitionType": "3D"
+    "FlipAngle": 7.0,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "PulseSequenceType": "BRAVO",
+    "ParallelAcquisitionTechnique": "ASSET",
+    "ParallelReductionFactorInPlane": 2.0,
+    "AcquisitionMatrixPE": 256,
+    "PercentPhaseFOV": 90.0,
+    "PixelBandwidth": 244.141,
+    "NumberOfAverages": 1.0,
+    "SliceThickness": 1.0,
+    "PhaseEncodingAxis": "j"
 }

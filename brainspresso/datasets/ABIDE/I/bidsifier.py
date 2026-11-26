@@ -1,7 +1,11 @@
 import csv
+import gzip
+import json as jsonlib
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable, Iterator, Literal
+from typing import IO, Callable, Iterable, Iterator, Literal
+
+import nibabel as nib
 
 from brainspresso.bids.harvest import finish_roast
 from brainspresso.bids.layout import Layout, resolve_layout
@@ -15,9 +19,15 @@ from brainspresso.actions import IfExists
 from brainspresso.actions import Action
 from brainspresso.actions import CopyJSON
 from brainspresso.actions import CopyBytes
+from brainspresso.actions import Fail
+from brainspresso.actions import WriteJSON
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 
 lg = getLogger(__name__)
+
+
+class TemplateError(LookupError):
+    """No sidecar template for a (site, template) pair."""
 
 
 class BidsifierBase:
@@ -35,6 +45,151 @@ class BidsifierBase:
         'Olin', 'Pitt', 'SBL', 'SDSU', 'Stanford', 'Trinity', 'UCLA',
         'UM', 'USM', 'Yale',
     )
+
+    # Sites whose sidecars are per sample (`templates/<Site>_<sample>/`).
+    SAMPLES: dict[str, tuple[str, ...]] = {
+        'CMU': ('a', 'b'),
+        'Leuven': ('1', '2'),
+        'MaxMun': ('a', 'b', 'c', 'd'),
+        'UCLA': ('1', '2'),
+        'UM': ('1', '2'),
+    }
+    # Parts of the NITRC tarballs of sites without samples (`NYU_a.tgz`)
+    # (`sources.PARTS`, whose CMU and MaxMun parts are samples here)
+    PARTS: dict[str, tuple[str, ...]] = {
+        'NYU': ('a', 'b', 'c', 'd', 'e'),
+    }
+
+    @classmethod
+    def parse_site(cls, site: str) -> tuple[str, str | None]:
+        """Split a site name found in the data into (Site, sample).
+
+        Accepts the spellings of all sources: S3/NITRC folders and
+        tarballs (`MaxMun_a`, `UCLA_1`, `NYU_a`), XNAT subject labels and
+        scan-parameter folders (`CMU`, `Leuven-1`, `UCLA1`) and phenotypic
+        site IDs (`MAX_MUN`, `LEUVEN_1`). The sample is None when the data
+        does not give it, or for a site without per-sample sidecars (whose
+        only accepted suffix is a tarball part, e.g. `NYU_a`). Raises
+        `TemplateError` for an unknown site, sample or suffix.
+        """
+        flat = ''.join(c for c in site if c.isalnum()).lower()
+        for name in sorted(cls.SITES, key=len, reverse=True):
+            if flat.startswith(name.lower()):
+                break
+        else:
+            raise TemplateError(f'ABIDE-I: unknown site {site!r}')
+        suffix = flat[len(name):] or None
+        if name not in cls.SAMPLES:
+            if suffix is not None and suffix not in cls.PARTS.get(name, ()):
+                raise TemplateError(
+                    f'ABIDE-I: unknown suffix {suffix!r} of site {name} '
+                    f'(from {site!r}); known parts: '
+                    f'{cls.PARTS.get(name, ())}')
+            return name, None
+        if suffix is not None and suffix not in cls.SAMPLES[name]:
+            raise TemplateError(
+                f'ABIDE-I: unknown sample {suffix!r} of site {name} '
+                f'(from {site!r}); known samples: {cls.SAMPLES[name]}')
+        return name, suffix
+
+    _warned: set = set()
+
+    @classmethod
+    def template(cls, site: str, name: str) -> Path:
+        """Sidecar template for a scan.
+
+        `site` is the site name found in the data (see `parse_site`).
+
+        * Site without samples: `templates/<Site>/<name>`.
+        * Known sample: `templates/<Site>_<sample>/<name>`, else
+          `templates/<Site>/<name>` (e.g. `CMU/T1w.json`, used by CMU_a,
+          which has no anatomical printout).
+        * Unknown sample (e.g. XNAT `CMU_50642`, `MaxMun`):
+          `templates/<Site>/<name>` if it exists, a template holding only
+          what the samples share (e.g. `CMU/bold.json`; a warning is
+          logged); else the first sample's, which is only used where all
+          samples share one protocol (see tests/test_abide1_templates.py).
+
+        Raises `TemplateError`, naming the site and template, if none
+        exists.
+        """
+        site_name, sample = cls.parse_site(site)
+        candidates = []
+        common = f'{site_name}/{name}'
+        if site_name in cls.SAMPLES and sample is None:
+            candidates = [common, f'{site_name}_{cls.SAMPLES[site_name][0]}'
+                          f'/{name}']
+        elif site_name in cls.SAMPLES:
+            candidates = [f'{site_name}_{sample}/{name}', common]
+        else:
+            candidates = [common]
+        for candidate in candidates:
+            path = cls.TPLDIR / candidate
+            if path.is_file():
+                if (sample is None and site_name in cls.SAMPLES
+                        and candidate == common
+                        and (site, name) not in cls._warned):
+                    cls._warned.add((site, name))
+                    lg.warning(
+                        f'ABIDE-I: site {site!r} names no sample of '
+                        f'{site_name}: using the site template '
+                        f'{candidate}')
+                return path
+        raise TemplateError(
+            f'ABIDE-I: no template {name!r} for site {site!r} '
+            f'(tried {", ".join(candidates)})')
+
+    # plausible RepetitionTime (s) read from a NIfTI header
+    TR_RANGE: tuple[float, float] = (0.1, 30.)
+
+    @classmethod
+    def header_tr(cls, fileobj: IO[bytes], name: str = '') -> float | None:
+        """RepetitionTime (s) from a NIfTI-1 header (`pixdim[4]`, time
+        unit of `xyzt_units`), or None if unset, of unknown unit or not
+        plausible (`TR_RANGE`)."""
+        if name.endswith('.gz'):
+            fileobj = gzip.GzipFile(fileobj=fileobj)
+        hdr = nib.Nifti1Header.from_fileobj(fileobj)
+        if hdr['dim'][0] < 4:
+            return None
+        scale = {'sec': 1., 'msec': 1e-3, 'usec': 1e-6}.get(
+            hdr.get_xyzt_units()[1])
+        if scale is None:
+            return None
+        tr = float(hdr['pixdim'][4]) * scale
+        lo, hi = cls.TR_RANGE
+        return round(tr, 6) if lo <= tr <= hi else None
+
+    @classmethod
+    def sidecar(
+        cls, tpl: Path, dst: Path, mod: str,
+        open_image: Callable[[], IO[bytes]], image_name: str,
+    ) -> Action:
+        """Action writing the sidecar `dst` of a scan from template `tpl`.
+
+        A bold template without `RepetitionTime` (REQUIRED by BIDS; e.g.
+        the common `CMU/bold.json`, whose samples differ in TR) gets it
+        from the NIfTI header (`open_image()`); if the header gives none,
+        a `Fail` naming the missing key. (`SliceTiming`, RECOMMENDED,
+        may be absent.)
+        """
+        if not mod.endswith('bold'):
+            return CopyJSON(tpl, dst)
+        meta = jsonlib.loads(tpl.read_text())
+        if 'RepetitionTime' in meta:
+            return CopyJSON(tpl, dst)
+        try:
+            with open_image() as f:
+                tr = cls.header_tr(f, image_name)
+        except Exception as e:
+            lg.debug(f'{image_name}: {e}')
+            tr = None
+        if tr is None:
+            return Fail(
+                f'{dst.name}: template {tpl.relative_to(cls.TPLDIR)} has no '
+                f'RepetitionTime (REQUIRED) and the NIfTI header of '
+                f'{image_name} gives none', name=dst.name)
+        return WriteJSON({**meta, 'RepetitionTime': tr}, dst, src=tpl)
 
     # ------------------------------------------------------------------
     #   Initialise

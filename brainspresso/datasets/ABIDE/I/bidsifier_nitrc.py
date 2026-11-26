@@ -7,9 +7,10 @@ from typing import IO, Callable, Iterator, Any
 from brainspresso.utils.io import write_from_buffer
 from brainspresso.utils.keys import compat_keys
 from brainspresso.actions import Action
-from brainspresso.actions import CopyJSON
+from brainspresso.actions import Fail
 from brainspresso.datasets.ABIDE.I.keys import allkeys
 from brainspresso.datasets.ABIDE.I.bidsifier import BidsifierBase
+from brainspresso.datasets.ABIDE.I.bidsifier import TemplateError
 
 lg = getLogger(__name__)
 
@@ -17,8 +18,10 @@ lg = getLogger(__name__)
 Status = dict[str, Any]
 
 
-# (path inside the FCP layout, source file, function that writes the data)
-Member = tuple[PosixPath, Path, Callable[[IO[bytes]], None]]
+# (path inside the FCP layout, source file, function that writes the data,
+#  function that opens the data)
+Member = tuple[PosixPath, Path, Callable[[IO[bytes]], None],
+               Callable[[], IO[bytes]]]
 
 
 class Bidsifier(BidsifierBase):
@@ -48,7 +51,8 @@ class Bidsifier(BidsifierBase):
 
         def run(members: Iterator[Member]) -> Iterator[Status]:
             for action, mod in self._iter_raw_actions(members):
-                fname = action.dst.name
+                fname = (action.name if isinstance(action, Fail)
+                         else action.dst.name)
                 for status in action:
                     yield from self.fixstatus(status, fname, mod)
 
@@ -76,7 +80,10 @@ class Bidsifier(BidsifierBase):
             def write(f, member=member):
                 write_from_buffer(tar.extractfile(member), f)
 
-            yield PosixPath(member.name), Path(tar.name), write
+            def open_(member=member):
+                return tar.extractfile(member)
+
+            yield PosixPath(member.name), Path(tar.name), write, open_
 
     @staticmethod
     def _folder_members(rawdir: Path) -> Iterator[Member]:
@@ -86,16 +93,19 @@ class Bidsifier(BidsifierBase):
                 with open(path, 'rb') as inp:
                     shutil.copyfileobj(inp, f)
 
-            yield PosixPath(path.relative_to(rawdir).as_posix()), path, write
+            def open_(path=path):
+                return open(path, 'rb')
+
+            yield (PosixPath(path.relative_to(rawdir).as_posix()), path,
+                   write, open_)
 
     def _iter_raw_actions(
         self, members: Iterator[Member]
     ) -> Iterator[tuple[Action, str]]:
-        for memberpath, srcpath, write in members:
+        for memberpath, srcpath, write, open_ in members:
             if len(memberpath.parts) != 5:
                 continue
             site, id, ses, mod, fname = memberpath.parts
-            site, *sample = site.split('_')
             id = int(id)
             ses = int(ses.split('_')[-1])
             base, *ext = fname.split(".")
@@ -109,13 +119,13 @@ class Bidsifier(BidsifierBase):
                     continue
                 cat = 'anat'
                 mod = 'T1w'
-                json = self.TPLDIR / site / 'T1w.json'
+                tpl = 'T1w.json'
             elif base == 'rest':
                 if not (compat_keys('bold', allkeys) & self.keys):
                     continue
                 cat = 'func'
                 mod = 'task-rest_bold'
-                json = self.TPLDIR / site / 'bold.json'
+                tpl = 'bold.json'
             else:
                 continue
             dst = self.raw / f'sub-{id:05d}' / cat
@@ -124,6 +134,14 @@ class Bidsifier(BidsifierBase):
                     srcpath, dst / f'sub-{id:05d}_{mod}{ext}', write
                 ), mod
             if self.json != 'no' and ext == ".nii.gz":
-                yield CopyJSON(
-                    json, dst / f'sub-{id:05d}_{mod}.json'
+                try:
+                    json = self.template(site, tpl)
+                except TemplateError as e:
+                    # counted as an error: the run ends partial
+                    yield Fail(f"{srcpath}: {memberpath}: {e}",
+                               name=f'sub-{id:05d}_{mod}.json'), mod
+                    continue
+                yield self.sidecar(
+                    json, dst / f'sub-{id:05d}_{mod}.json', mod,
+                    open_, memberpath.name
                 ), mod

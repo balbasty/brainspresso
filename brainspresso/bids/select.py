@@ -3,27 +3,53 @@ Select a subset of a (remote) BIDS dataset from its file listing.
 
 The selection works on relative paths only, so it can be applied to any
 listing (OpenNeuro GraphQL, S3, local directory...) before downloading
-anything.
+anything. It knows no modality: what it needs from BIDS is the layout
+(`sub-*/[ses-*/]<datatype>/<file>`), the inheritance principle and the
+short table of companion files below (`COMPANIONS`).
+
+Kinds of files
+--------------
+* *Data files* are the files of a subject tree that are not metadata.
+  Unknown files are data files too, so that nothing is lost by default.
+* *Directory-format recordings* (`*_meg.ds/`, `*.ome.zarr/`, `*.mefd/`,
+  BTi/4D `*_meg/`...): any directory found inside a datatype directory.
+  It is one data unit: its name is the BIDS name of all its files, which
+  are kept or dropped together (filters and globs see the directory).
+* *Sidecars*: `.json`, `.bval`, `.bvec` files. They describe the data
+  files with the same suffix (`T1w.json`, `task-rest_bold.json`).
+* *Companions*: metadata whose suffix differs from the data files they
+  describe (`events`, `channels`, `electrodes`, `blood`, `scans`...), in
+  any extension (`_blood.tsv`, `_physio.tsv.gz`, `_headshape.pos`...).
+* *Dataset files* (`dataset_description.json`, `participants.tsv`,
+  `README`, `.bidsignore`, other top-level files that are not metadata,
+  `phenotype/`).
 
 Selection rules
 ---------------
-1. *Data files* are files inside `sub-*/` that are not sidecars or tables
-   (see `METADATA_EXTENSIONS`). They are kept if they pass all filters:
-   subjects, sessions, datatypes, suffixes, tasks, include/exclude globs.
-2. *Metadata files* (`.json`, `.tsv`, `.bval`, `.bvec`), wherever they are,
-   are kept if they apply to at least one kept data file under the BIDS
-   inheritance principle: their directory is an ancestor of (or equal to)
-   the data file's directory, all their entities match the data file's
-   entities, and their suffix is the same as the data file's suffix (or
-   is a companion such as `events`, `scans`, `sessions`, `physio`).
-3. Dataset-level files (`dataset_description.json`, `participants.tsv`,
-   `README`, `CHANGES`, `.bidsignore`...), other top-level files that are
-   not sidecars, and `phenotype/` are always kept. Top-level sidecars
-   (`T1w.json`, `task-rest_bold.json`) follow rule 2.
-4. `derivatives/`, `sourcedata/`, `code/`, `stimuli/` are skipped unless
-   requested. When requested, the subject and session filters still
-   apply to their files. Hidden files and folders (`.datalad/`,
-   `.gitattributes`...) are always skipped.
+1. A data file is kept if it passes all filters: subjects, sessions,
+   tasks and other entities, datatypes, suffixes, include globs.
+2. A metadata file (sidecar or companion), wherever it is, is kept if it
+   applies to at least one kept data file under the BIDS inheritance
+   principle: its directory is the data file's directory or one of its
+   ancestors, its datatype directory (if any) is the data file's, all its
+   entities have the data file's values, and it has the data file's
+   suffix (sidecars only). Entities that only qualify a companion
+   (`space-` of `_electrodes.tsv`, `recording-` of `_blood.tsv`) are not
+   compared. A metadata file that applies to no data file of the listing,
+   or whose suffix is requested explicitly (`suffixes=["events"]`), is
+   judged as a data file instead (rule 1).
+3. Dataset files are always kept.
+4. `derivatives/`, `sourcedata/`, `code/`, `stimuli/`, `docs/`, `logs/`
+   are skipped unless requested (`folders`). When requested, the subject
+   and session filters still apply to their files. Hidden files and
+   folders (`.datalad/`, `.gitattributes`...) are skipped, except inside
+   directory-format recordings (`.zattrs` of an OME-Zarr).
+5. Exclude globs are applied last, to every kept path but
+   `dataset_description.json`. They do not change which metadata
+   applies: `exclude=["*.nii.gz"]` keeps the sidecars of the images.
+
+An empty selection therefore keeps every file of a valid BIDS dataset
+outside of the optional folders.
 """
 from __future__ import annotations
 
@@ -31,96 +57,287 @@ import fnmatch
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Iterable, Sequence
+from typing import Collection, Iterable, Iterator, Mapping
 
 DATATYPES = frozenset({
     "anat", "func", "dwi", "fmap", "perf", "beh", "eeg", "meg", "ieeg",
-    "pet", "micr", "nirs", "motion", "mrs",
+    "pet", "micr", "nirs", "motion", "mrs", "emg",
 })
-METADATA_EXTENSIONS = frozenset({".json", ".tsv", ".bval", ".bvec"})
-# Metadata whose suffix differs from the data file it describes
-COMPANION_SUFFIXES = frozenset({
-    "scans", "sessions", "events", "physio", "stim", "channels",
-    "electrodes", "coordsystem", "aslcontext", "asllabeling", "beh",
-})
-OPTIONAL_FOLDERS = ("derivatives", "sourcedata", "code", "stimuli")
+# Metadata that describe the data files with the same suffix
+SIDECAR_EXTENSIONS = frozenset({".json", ".bval", ".bvec"})
+# Companion suffix -> entities that only qualify the companion (the data
+# files it describes do not have them, so they are not compared). From
+# BIDS 1.11 (schema: `rules.files.raw`, `meta.associations`); checked
+# against `bidsschematools` by the tests when it is installed.
+COMPANIONS: dict[str, frozenset] = {
+    # tables (subject and session level)
+    "scans": frozenset(), "sessions": frozenset(),
+    # task events and physiological recordings of any modality
+    "events": frozenset(),
+    "physio": frozenset({"recording"}),
+    "physioevents": frozenset({"recording"}),
+    "stim": frozenset({"recording"}),
+    # EEG, iEEG, MEG, EMG, NIRS, motion
+    "channels": frozenset(),
+    "electrodes": frozenset({"space"}),
+    "coordsystem": frozenset({"space"}),
+    "optodes": frozenset(),
+    "photo": frozenset(),
+    "headshape": frozenset(),
+    "markers": frozenset({"space"}),
+    # ASL
+    "aslcontext": frozenset(), "asllabeling": frozenset(),
+    # PET: blood measurements, one per `recording-` (manual, autosampler)
+    "blood": frozenset({"recording"}),
+}
+# `_meg` files that serve every recording of their session (MEG
+# fine-calibration and crosstalk): (suffix, entity, value) -> own entities
+SESSION_COMPANIONS = {
+    ("meg", "acq", "crosstalk"): frozenset({"acq"}),
+    ("meg", "acq", "calibration"): frozenset({"acq"}),
+}
+# Entities whose values are indices: `run-01` is `run-1`
+INDEX_ENTITIES = frozenset({"run", "echo", "flip", "inv", "chunk", "split"})
+OPTIONAL_FOLDERS = (
+    "derivatives", "sourcedata", "code", "stimuli", "docs", "logs",
+)
 # Dataset-level files, always kept
 TOP_LEVEL_FILES = frozenset({
     "dataset_description.json", "participants.tsv", "participants.json",
     "samples.tsv", "samples.json", "genetic_info.json",
     "README", "README.md", "README.txt", "README.rst",
-    "CHANGES", "LICENSE", "CITATION.cff", ".bidsignore",
+    "LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE.rst",
+    "CHANGES", "CITATION.cff", ".bidsignore",
 })
+
+_DIR_ENTITY = re.compile(r"(sub|ses)-([A-Za-z0-9]+)")
 
 
 @dataclass(frozen=True)
 class BidsName:
-    """Parsed components of a BIDS path"""
+    """
+    Parsed components of a BIDS path.
+
+    `entities` are those of the file name, completed with the subject and
+    session of its directories. Files inside a directory-format recording
+    take the components of the recording (`unit` is its path).
+    """
     path: str
     entities: dict = field(hash=False)
     suffix: str | None
     extension: str
     datatype: str | None
+    unit: str | None = None
 
     @classmethod
     def parse(cls, path: str) -> "BidsName":
-        p = PurePosixPath(path)
-        name = p.name
-        stem, dot, ext = name.partition(".")
-        extension = dot + ext
-        parts = stem.split("_")
-        entities = {}
-        suffix = None
-        for i, part in enumerate(parts):
-            key, dash, value = part.partition("-")
-            if dash and key and value:
-                entities[key] = value
-            elif i == len(parts) - 1:
-                suffix = part
-            else:
-                # not a BIDS name
-                entities, suffix = {}, None
+        parts = _parts(path)
+        if not parts:
+            return cls(path, {}, None, "", None)
+        dirs = {}
+        i = 0                    # index of the first non sub/ses directory
+        for key in ("sub", "ses"):
+            match = _DIR_ENTITY.fullmatch(parts[i])
+            if i == len(parts) - 1 or not match or match[1] != key:
                 break
-        parent = p.parent.name
-        datatype = parent if parent in DATATYPES else None
-        return cls(path, entities, suffix, extension, datatype)
+            dirs[key] = match[2]
+            i += 1
+        datatype = unit = None
+        name = parts[-1]
+        if "sub" in dirs and i < len(parts) - 1:
+            datatype = parts[i]
+            if i + 1 < len(parts) - 1:
+                # file of a directory-format recording
+                name = parts[i + 1]
+                unit = "/".join(parts[:i + 2])
+        elif len(parts) > 1 and parts[-2] in DATATYPES:
+            datatype = parts[-2]
+        entities, suffix, extension = _parse_filename(name)
+        for key, value in dirs.items():
+            entities.setdefault(key, value)
+        return cls(path, entities, suffix, extension, datatype, unit)
+
+    @property
+    def companion(self) -> frozenset | None:
+        """Own entities if this is a companion file, else None"""
+        if self.unit is not None:
+            return None
+        if self.suffix in COMPANIONS:
+            return COMPANIONS[self.suffix]
+        for (suffix, key, value), own in SESSION_COMPANIONS.items():
+            if self.suffix == suffix and self.entities.get(key) == value:
+                return own
+        return None
 
     @property
     def is_metadata(self) -> bool:
-        return self.extension in METADATA_EXTENSIONS
+        if self.unit is not None:
+            return False
+        return (self.extension in SIDECAR_EXTENSIONS
+                or self.companion is not None)
 
     @property
     def directory(self) -> PurePosixPath:
-        return PurePosixPath(self.path).parent
+        """Directory that contains the file (or its recording)"""
+        return PurePosixPath(self.unit or self.path).parent
+
+    @property
+    def _dir(self) -> str:
+        """`directory` as a string ("" for the dataset root)"""
+        return "/".join(_parts(self.unit or self.path)[:-1])
+
+
+def _parts(path: str) -> tuple[str, ...]:
+    """Components of a relative POSIX path (faster than `PurePosixPath`)"""
+    return tuple(p for p in path.split("/") if p and p != ".")
+
+
+def _parse_filename(name: str) -> tuple[dict, str | None, str]:
+    stem, dot, ext = name.partition(".")
+    parts = stem.split("_")
+    entities, suffix = {}, None
+    for i, part in enumerate(parts):
+        key, dash, value = part.partition("-")
+        if dash and key and value:
+            entities[key] = value
+        elif i == len(parts) - 1:
+            suffix = part or None
+        else:
+            # not a BIDS name
+            entities, suffix = {}, None
+            break
+    return entities, suffix, dot + ext
+
+
+def _norm(key: str, value) -> str:
+    value = str(value)
+    if key in INDEX_ENTITIES and value.isdigit():
+        return str(int(value))
+    return value
+
+
+def _strip(value, prefix: str) -> str:
+    value = str(value)
+    return value[len(prefix):] if value.startswith(prefix) else value
+
+
+def _fold(verdicts: Iterable[bool | None]) -> bool | None:
+    """False if any is False, else None if any is None, else True"""
+    out = True
+    for v in verdicts:
+        if v is False:
+            return False
+        if v is None:
+            out = None
+    return out
+
+
+def _hidden(parts: tuple[str, ...]) -> bool:
+    """Hidden file or folder, outside of directory-format recordings"""
+    for part in parts:
+        if part.startswith("."):
+            return True
+        if "-" not in part or "." not in part:
+            continue
+        entities, _, extension = _parse_filename(part)
+        if entities and extension:
+            # BIDS name with an extension: from here on we are inside a
+            # recording (`*.ome.zarr/.zattrs`) or this is the file itself
+            return False
+    return False
+
+
+# kinds of paths
+_SKIP, _DATASET, _FOLDER, _DATA, _META = range(5)
+
+
+def _classify(path: str) -> tuple[int, BidsName | None]:
+    parts = _parts(path)
+    if not parts:
+        return _SKIP, None
+    if path in TOP_LEVEL_FILES:
+        return _DATASET, None
+    if _hidden(parts):
+        return _SKIP, None
+    top = parts[0]
+    if len(parts) > 1 and top in OPTIONAL_FOLDERS:
+        return _FOLDER, None
+    name = BidsName.parse(path)
+    if top.startswith("sub-") and len(parts) > 1:
+        return (_META if name.is_metadata else _DATA), name
+    if top == "phenotype":
+        return _DATASET, None
+    if len(parts) == 1:
+        if name.is_metadata and name.suffix:
+            # top-level metadata: T1w.json, task-rest_bold.json
+            return _META, name
+        return _DATASET, None
+    # other top-level folders (e.g. "models/") are skipped
+    return _SKIP, None
 
 
 @dataclass
 class Selection:
     """
-    Filters applied to a BIDS listing. Empty filters select everything.
-    Subject and session labels are given without their `sub-`/`ses-`
-    prefix. Globs are matched against the path relative to the dataset
-    root.
+    Filters applied to a BIDS dataset. Empty filters select everything.
+
+    Parameters
+    ----------
+    subs, exclude_subs, sessions, tasks : list[str]
+        Shortcuts for `entities={"sub": ..., "ses": ..., "task": ...}`
+        (subjects to keep or drop, sessions and tasks to keep). Labels are
+        given with or without their `sub-`/`ses-`/`task-` prefix.
+    datatypes : list[str]
+        Datatype directories to keep (`anat`, `eeg`, `micr`...).
+    suffixes : list[str]
+        Suffixes of the data files to keep (`T1w`, `bold`, `eeg`...).
+    include, exclude : list[str]
+        Glob patterns matched against the path relative to the dataset
+        root (`*` matches `/`). A data file is kept only if it matches an
+        `include` pattern; any kept file that matches an `exclude`
+        pattern is dropped. Files of a directory-format recording are
+        matched through the path of the recording.
+    folders : list[str]
+        Optional top-level folders to keep (see `OPTIONAL_FOLDERS`).
+    entities : dict[str, list[str]]
+        Values to keep, per entity key as it appears in file names, e.g.
+        `{"acq": ["mprage"], "run": ["1", "2"]}`. Index entities (`run`,
+        `echo`...) compare as numbers: `"1"` matches `run-01`.
     """
-    subs: Sequence[str] = ()
-    exclude_subs: Sequence[str] = ()
-    sessions: Sequence[str] = ()
-    datatypes: Sequence[str] = ()
-    suffixes: Sequence[str] = ()
-    tasks: Sequence[str] = ()
-    include: Sequence[str] = ()
-    exclude: Sequence[str] = ()
-    folders: Sequence[str] = ()     # subset of OPTIONAL_FOLDERS
+    subs: Collection[str] = ()
+    exclude_subs: Collection[str] = ()
+    sessions: Collection[str] = ()
+    datatypes: Collection[str] = ()
+    suffixes: Collection[str] = ()
+    tasks: Collection[str] = ()
+    include: Collection[str] = ()
+    exclude: Collection[str] = ()
+    folders: Collection[str] = ()     # subset of OPTIONAL_FOLDERS
+    entities: Mapping[str, Collection[str]] = field(default_factory=dict)
 
     def __post_init__(self):
-        def strip(x, prefix):
-            x = str(x)
-            return x[len(prefix):] if x.startswith(prefix) else x
-
-        self.subs = {strip(s, "sub-") for s in self.subs}
-        self.exclude_subs = {strip(s, "sub-") for s in self.exclude_subs}
-        self.sessions = {strip(s, "ses-") for s in self.sessions}
-        self.tasks = {strip(s, "task-") for s in self.tasks}
+        entities = {}
+        for key, values in dict(self.entities or {}).items():
+            if isinstance(values, str):
+                values = [values]
+            values = {_strip(v, f"{key}-") for v in values}
+            if values:
+                entities[key] = values
+        shortcuts = {"sub": "subs", "ses": "sessions", "task": "tasks"}
+        for key, attr in shortcuts.items():
+            if key not in entities:
+                continue
+            if getattr(self, attr):
+                raise ValueError(
+                    f"`{attr}` and `entities['{key}']` are the same "
+                    f"filter: give only one of them"
+                )
+            setattr(self, attr, entities.pop(key))
+        self.entities = entities
+        self.subs = {_strip(s, "sub-") for s in self.subs}
+        self.exclude_subs = {_strip(s, "sub-") for s in self.exclude_subs}
+        self.sessions = {_strip(s, "ses-") for s in self.sessions}
+        self.tasks = {_strip(s, "task-") for s in self.tasks}
         self.datatypes = set(self.datatypes)
         self.suffixes = set(self.suffixes)
         self.folders = set(self.folders)
@@ -129,107 +346,272 @@ class Selection:
             raise ValueError(f"Unknown optional folders: {unknown}")
 
     # ------------------------------------------------------------------
-    def _glob(self, path: str, patterns) -> bool:
-        return any(fnmatch.fnmatchcase(path, pat) for pat in patterns)
-
-    def keep_data(self, name: BidsName) -> bool:
-        ent = name.entities
-        if self.subs and ent.get("sub") not in self.subs:
-            return False
-        if ent.get("sub") in self.exclude_subs:
-            return False
-        if self.sessions and ent.get("ses") not in self.sessions:
-            return False
-        if self.datatypes and name.datatype not in self.datatypes:
-            return False
-        if self.suffixes and name.suffix not in self.suffixes:
-            return False
-        if self.tasks and ent.get("task") not in self.tasks:
-            return False
-        if self.include and not self._glob(name.path, self.include):
-            return False
-        return True
-
-    def keep_subject(self, label: str) -> bool:
+    #   Per-path predicates
+    # ------------------------------------------------------------------
+    def keeps_subject(self, label: str) -> bool:
+        """
+        Whether files of subject `label` (with or without `sub-`) may be
+        kept. Use it to prune a listing early (e.g. not to list or extract
+        the members of a subject that is dropped anyway).
+        """
+        label = _strip(label, "sub-")
         if self.subs and label not in self.subs:
             return False
         return label not in self.exclude_subs
 
-    def keep_folder_file(self, path: str) -> bool:
+    keep_subject = keeps_subject      # backward compatibility
+
+    def keeps(self, relpath: str, partial: bool = False) -> bool | None:
+        """
+        Whether a path relative to the BIDS dataset root is kept, without
+        a listing.
+
+        With `partial=False`, `relpath` is the path of a file (or of a
+        directory-format recording):
+
+        * data files and recordings: True or False, as in `select`;
+        * metadata (sidecars, companions): True if it *may* apply to a
+          kept data file (its own entities, datatype and suffix do not
+          contradict the filters). Whether such a data file exists can
+          only be known from a listing (`select`);
+        * dataset files: True; hidden files and skipped folders: False.
+
+        With `partial=True`, `relpath` is a *claim*: an output directory
+        (`sub-01`, `sub-01/ses-2/anat`, `derivatives/fs/sub-01`),
+        optionally followed by the known part of the file name, as
+        key-value pairs and possibly the suffix
+        (`sub-01/ses-2/anat/sub-01_ses-2_acq-mprage`). Anything not in the
+        claim is unknown. Returns False if no file of the claim can be
+        kept, True if every file that it may describe is kept, and None
+        if it depends on what is unknown.
+        """
+        relpath = str(PurePosixPath(str(relpath)))
+        relpath = "" if relpath == "." else relpath
+        if partial:
+            return self._keeps_claim(relpath)
+        kind, name = _classify(relpath)
+        if kind == _SKIP:
+            return False
+        if kind == _FOLDER:
+            ok = relpath.split("/")[0] in self.folders \
+                and self._keeps_folder_file(relpath)
+        elif kind == _DATA:
+            ok = self._keeps_data(name, self._filters())
+        elif kind == _META:
+            ok = self._check(name, self._filters(), missing=True)
+        else:
+            ok = True
+        target = (name.unit if name else None) or relpath
+        return bool(ok) and not self._excluded(target)
+
+    def _keeps_claim(self, relpath: str) -> bool | None:
+        parts = PurePosixPath(relpath).parts
+        if not parts:
+            return self._unless_excluded(True)
+        top = parts[0]
+        if top in OPTIONAL_FOLDERS:
+            if top not in self.folders:
+                return False
+            return self._unless_excluded(
+                self._keeps_folder_file(relpath, missing=None)
+            )
+        if not top.startswith("sub-"):
+            # dataset files and folders: decided by the path alone
+            return self.keeps(relpath)
+        if _hidden(parts):
+            return False
+        dirs, datatype, fragment = {}, None, None
+        for part in parts:
+            match = _DIR_ENTITY.fullmatch(part)
+            if match and datatype is None:
+                dirs.setdefault(match[1], match[2])
+            elif datatype is None and not re.search(r"[-_.]", part):
+                datatype = part
+            else:
+                fragment = part
+                break
+        entities, suffix, extension = _parse_filename(fragment or "")
+        name = BidsName(relpath, {**dirs, **entities}, suffix, extension,
+                        datatype)
+        verdict = self._check(name, self._filters(), missing=None)
+        return self._unless_excluded(verdict)
+
+    def _unless_excluded(self, verdict: bool | None) -> bool | None:
+        """A claim cannot be matched against exclude globs"""
+        if verdict is True and self.exclude:
+            return None
+        return verdict
+
+    # ------------------------------------------------------------------
+    #   Listing
+    # ------------------------------------------------------------------
+    def select(self, paths: Iterable[str]) -> list[str]:
+        """Return the subset of `paths` to keep (sorted)"""
+        filters = self._filters()
+        data, meta, kept = [], [], set()
+        units = {}      # path -> path of its recording
+        for path in paths:
+            kind, name = _classify(path)
+            if kind == _DATA:
+                data.append(name)
+                if name.unit:
+                    units[path] = name.unit
+            elif kind == _META:
+                meta.append(name)
+            elif kind == _DATASET:
+                kept.add(path)
+            elif kind == _FOLDER:
+                if path.split("/")[0] in self.folders and \
+                        self._keeps_folder_file(path):
+                    kept.add(path)
+
+        # Index all data files by directory ancestors, with their verdict
+        by_dir: dict[str, list[tuple[BidsName, bool]]] = {}
+        promoted: dict[str, list[tuple[BidsName, bool]]] = {}
+
+        def index(d: BidsName, keep: bool, by_dir=by_dir):
+            parent = d._dir
+            while True:
+                by_dir.setdefault(parent, []).append((d, keep))
+                if not parent:
+                    break
+                parent = parent.rpartition("/")[0]
+
+        for d in data:
+            keep = self._keeps_data(d, filters)
+            if keep:
+                kept.add(d.path)
+            index(d, keep)
+
+        # Inheritance closure. Metadata that describe no data file, or
+        # that are requested explicitly, are judged as data files; those
+        # kept then take part in the closure (e.g. `sessions.tsv`
+        # of a subject with only `_blood.tsv` selected).
+        pending = []
+        for m in meta:
+            verdict = _inherits(m, by_dir)
+            if verdict:
+                kept.add(m.path)
+            elif (verdict is None or m.suffix in self.suffixes) \
+                    and self._keeps_data(m, filters):
+                kept.add(m.path)
+                index(m, True, promoted)
+            else:
+                pending.append(m)
+        for m in pending if promoted else ():
+            if _inherits(m, promoted):
+                kept.add(m.path)
+
+        if self.exclude:
+            kept = {p for p in kept if not self._excluded(units.get(p, p))}
+        return sorted(kept)
+
+    # ------------------------------------------------------------------
+    #   Internals
+    # ------------------------------------------------------------------
+    def _filters(self) -> dict[str, set[str]]:
+        """Entity filters (shortcuts included), with normalised values"""
+        filters = {"sub": self.subs, "ses": self.sessions,
+                   "task": self.tasks, **self.entities}
+        return {k: {_norm(k, v) for v in values}
+                for k, values in filters.items() if values}
+
+    def _glob(self, path: str, patterns) -> bool:
+        return any(fnmatch.fnmatchcase(path, pat) for pat in patterns)
+
+    def _excluded(self, path: str) -> bool:
+        return bool(self.exclude) and self._glob(path, self.exclude) \
+            and path != "dataset_description.json"
+
+    def _keeps_data(self, name: BidsName, filters) -> bool:
+        return bool(self._check(name, filters, missing=False))
+
+    def _check(self, name: BidsName, filters, missing: bool | None):
+        """
+        Evaluate all filters (but exclude globs) on a name. `missing` is
+        the verdict of a filter on something the name does not have:
+        False for data files, True for metadata (it applies to files with
+        any value), None for claims (unknown).
+        """
+        return _fold(self._verdicts(name, filters, missing))
+
+    def _verdicts(
+        self, name: BidsName, filters, missing
+    ) -> Iterator[bool | None]:
+        # judged as a data file (missing=False), a companion is one too
+        own = name.companion if missing is not False else None
+        entities = name.entities
+        for key, values in filters.items():
+            if own and key in own:
+                continue
+            value = entities.get(key)
+            yield missing if value is None else _norm(key, value) in values
+        sub = entities.get("sub")
+        if sub is not None:
+            yield sub not in self.exclude_subs
+        elif self.exclude_subs and missing is None:
+            yield None
+        if self.datatypes:
+            yield missing if name.datatype is None else \
+                name.datatype in self.datatypes
+        if self.suffixes and own is None:
+            yield missing if name.suffix is None else \
+                name.suffix in self.suffixes
+        if self.include:
+            yield self._glob(name.unit or name.path, self.include) \
+                if missing is False else missing
+
+    def _keeps_folder_file(self, path: str, missing=True) -> bool | None:
         """
         Subject and session filters, applied to files of optional
         folders (e.g. `derivatives/<pipeline>/sub-01/...`). Files that
-        do not belong to a subject (or session) are kept.
+        do not belong to a subject (or session) are kept (`missing`).
         """
         entities = {}
         for key, value in re.findall(
             r"(?:^|[/_])(sub|ses)-([A-Za-z0-9]+)", path
         ):
             entities.setdefault(key, value)
-        if "sub" in entities and not self.keep_subject(entities["sub"]):
-            return False
-        if self.sessions and "ses" in entities:
-            return entities["ses"] in self.sessions
-        return True
+        verdicts = []
+        if "sub" in entities:
+            verdicts.append(self.keeps_subject(entities["sub"]))
+        elif self.subs or self.exclude_subs:
+            verdicts.append(missing)
+        if self.sessions:
+            verdicts.append(entities["ses"] in self.sessions
+                            if "ses" in entities else missing)
+        return _fold(verdicts)
 
-    # ------------------------------------------------------------------
-    def select(self, paths: Iterable[str]) -> list[str]:
-        """Return the subset of `paths` to download (sorted)"""
-        data, meta, always = [], [], []
-        folder_files = []
-        for path in paths:
-            parts = PurePosixPath(path).parts
-            if not parts or path in TOP_LEVEL_FILES:
-                if parts:
-                    always.append(path)
-                continue
-            if any(p.startswith(".") for p in parts):
-                continue
-            top = parts[0]
-            if len(parts) > 1 and top in OPTIONAL_FOLDERS:
-                if top in self.folders and self.keep_folder_file(path):
-                    folder_files.append(path)
-                continue
-            name = BidsName.parse(path)
-            if top.startswith("sub-") and len(parts) > 1:
-                (meta if name.is_metadata else data).append(name)
-            elif top == "phenotype":
-                always.append(path)
-            elif len(parts) == 1:
-                if name.is_metadata and name.suffix:
-                    # top-level sidecar: T1w.json, task-rest_bold.json
-                    meta.append(name)
-                else:
-                    always.append(path)
-            # other top-level folders (e.g. "models/") are skipped
 
-        kept_data = [d for d in data if self.keep_data(d)]
-        kept = set(d.path for d in kept_data)
-        kept |= set(always)
-        kept |= set(folder_files)
-
-        # Inheritance closure: index kept data by directory ancestors
-        by_dir: dict[PurePosixPath, list[BidsName]] = {}
-        for d in kept_data:
-            for parent in [d.directory, *d.directory.parents]:
-                by_dir.setdefault(parent, []).append(d)
-        for m in meta:
-            for d in by_dir.get(m.directory, ()):
-                if _applies(m, d):
-                    kept.add(m.path)
-                    break
-
-        if self.exclude:
-            protected = {"dataset_description.json"}
-            kept = {p for p in kept
-                    if p in protected or not self._glob(p, self.exclude)}
-        return sorted(kept)
+def _inherits(meta: BidsName, by_dir) -> bool | None:
+    """
+    True if a metadata file applies to a kept data file, False if it
+    applies only to dropped ones, None if it applies to none.
+    """
+    verdict = None
+    for data, keep in by_dir.get(meta._dir, ()):
+        if data is not meta and _applies(meta, data):
+            if keep:
+                return True
+            verdict = False
+    return verdict
 
 
 def _applies(meta: BidsName, data: BidsName) -> bool:
     """Whether a metadata file applies to a data file (inheritance)"""
-    if meta.suffix != data.suffix and meta.suffix not in COMPANION_SUFFIXES:
-        return False
+    own = meta.companion
+    if own is None:
+        # sidecar: same suffix
+        if meta.suffix != data.suffix:
+            return False
+        own = ()
     if meta.datatype and meta.datatype != data.datatype:
         return False
-    return all(data.entities.get(k) == v for k, v in meta.entities.items())
+    entities = data.entities
+    for key, value in meta.entities.items():
+        if key in own or entities.get(key) == value:
+            continue
+        if key not in INDEX_ENTITIES or key not in entities \
+                or _norm(key, entities[key]) != _norm(key, value):
+            return False
+    return True

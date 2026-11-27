@@ -505,13 +505,14 @@ def test_replaced_lock_file_is_locked_again_then_accepted(tmp_path,
     with FileLock(path, exclusive=True) as lock:
         assert lock.locked
     assert len(joins) == 2
+    assert "replaced" not in caplog.text        # (one round: debug)
     # always replaced: accepted after `_ROUNDS` rounds, with a warning
     joins.clear()
     monkeypatch.setattr(locks, "_path_id", lambda p: (0, 0))
     with FileLock(path, exclusive=True) as lock:
         assert lock.locked
     assert len(joins) == locks._ROUNDS
-    assert "was replaced while it was locked" in caplog.text
+    assert caplog.text.count("was replaced while it was being locked") == 1
 
 
 # ----------------------------------------------------------------------
@@ -627,7 +628,7 @@ OLD_CLIENT = """
 import os, sys, time
 path, mode = sys.argv[1], sys.argv[2]
 fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0))
-if os.name == "nt":     # (fasteners: LockFileEx on byte 0)
+if os.name == "nt":     # (LockFileEx on byte 0, as earlier versions)
     import ctypes, msvcrt
     class OV(ctypes.Structure):
         _fields_ = [("a", ctypes.c_void_p), ("b", ctypes.c_void_p),
@@ -824,3 +825,225 @@ def test_stress_processes_threads_spellings(spellings):
     for name in files:
         n = int((ds / name).read_text().split()[0])
         assert n == int((ds / f"{name}.count").read_text())
+
+
+# ----------------------------------------------------------------------
+#   Review round 5
+# ----------------------------------------------------------------------
+
+def child_release_of_a_parent_lock(lock, path) -> int:
+    """In a forked child: a parent's lock must not touch a reused fd."""
+    if not (lock._entry.forked and lock._entry.fd == -1):
+        return 1
+    fd = os.open(path, os.O_RDWR | os.O_CREAT)      # (may reuse the fd)
+    os.write(fd, b"kept")
+    lock.release()                                  # (a no-op here)
+    try:
+        os.lseek(fd, 0, os.SEEK_SET)
+        return 0 if os.read(fd, 4) == b"kept" else 2
+    except OSError:
+        return 3                                    # (it was closed)
+
+
+def wait_child(pid, seconds=SOON):
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        done, status = os.waitpid(pid, os.WNOHANG)
+        if done:
+            return os.waitstatus_to_exitcode(status)
+        time.sleep(0.05)
+    os.kill(pid, 9)
+    os.waitpid(pid, 0)
+    return "hung"
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="no fork on Windows")
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_fork_child_never_touches_inherited_descriptor_numbers(tmp_path):
+    path = dataset(tmp_path / "DS") / "x.nii"
+    other = tmp_path / "other.txt"
+    lock = FileLock(path, exclusive=True).acquire()
+    try:
+        pid = os.fork()
+        if pid == 0:                    # pragma: no cover (child)
+            os._exit(child_release_of_a_parent_lock(lock, other))
+        assert wait_child(pid) == 0
+        # the parent's lock is intact
+        assert lock._entry.fd >= 0 and not other_process_gets(path)
+    finally:
+        lock.release()
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="no fork on Windows")
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_fork_while_another_thread_holds_the_dataset_lock(tmp_path):
+    ds = dataset(tmp_path / "DS")
+    held, release = threading.Event(), threading.Event()
+
+    def hold():
+        with locks._datasets_lock:
+            held.set()
+            release.wait(SOON)
+
+    thread = threading.Thread(target=hold)
+    thread.start()
+    try:
+        assert held.wait(SOON)
+        pid = os.fork()
+        if pid == 0:                    # pragma: no cover (child)
+            try:
+                ok = locks.find_dataset(ds / "x.nii") == ds
+                with FileLock(ds / "x.nii", exclusive=True, timeout=5):
+                    pass
+                os._exit(0 if ok else 1)
+            except BaseException:       # noqa
+                os._exit(2)
+        assert wait_child(pid, 20) == 0     # (not "hung")
+    finally:
+        release.set()
+        thread.join(SOON)
+
+
+def test_retirements_by_other_threads_are_not_counted(tmp_path,
+                                                      monkeypatch, caplog):
+    """`acquire` never ends in AssertionError, nor warns for others."""
+    path = dataset(tmp_path / "DS") / "x.nii"
+    take, calls = FileLock._take, []
+
+    def retired_by_others(self, *args):
+        calls.append(1)
+        if len(calls) <= 2 * locks._ROUNDS:
+            return locks._RETIRED
+        return take(self, *args)
+
+    monkeypatch.setattr(FileLock, "_take", retired_by_others)
+    with FileLock(path, exclusive=True) as lock:
+        assert lock.locked
+    assert len(calls) == 2 * locks._ROUNDS + 1
+    assert "replaced" not in caplog.text
+
+
+def test_failed_unlock_after_a_stale_verification(tmp_path, monkeypatch):
+    if WINDOWS:     # (no verification on Windows)
+        return
+    path = dataset(tmp_path / "DS") / "x.nii"
+    mechanism = type(locks._MECHANISMS[0])
+
+    def fails(self, fd):
+        raise OSError(errno.EIO, "I/O error")
+
+    monkeypatch.setattr(locks, "_path_id", lambda p: (0, 0))
+    monkeypatch.setattr(mechanism, "unlock", fails)
+    with pytest.raises(LockError, match="Cannot unlock"):
+        FileLock(path, exclusive=True).acquire()
+    assert not locks._entries()         # retired, and closed
+
+
+def test_open_falls_back_to_read_only_only_without_permission(
+    tmp_path, monkeypatch,
+):
+    path = dataset(tmp_path / "DS") / "x.nii"
+    real_open = os.open
+
+    def failing(error):
+        def fake(p, flags, *args):
+            if flags & os.O_RDWR and str(p).endswith(".lock"):
+                raise OSError(error, os.strerror(error))
+            return real_open(p, flags, *args)
+        return fake
+
+    # an I/O error: no read-only fallback (a writer raises)
+    lock_file(path)[0].parent.mkdir(parents=True, exist_ok=True)
+    lock_file(path)[0].write_bytes(b"")
+    monkeypatch.setattr(os, "open", failing(errno.EIO))
+    with pytest.raises(LockError, match="cannot create"):
+        FileLock(path, exclusive=True).acquire()
+    # no permission: read-only, enough for a reader
+    monkeypatch.setattr(os, "open", failing(errno.EACCES))
+    with FileLock(path) as lock:
+        assert lock.locked and not entry_of(lock).writable
+
+
+def test_writer_switches_a_read_only_entry_to_writable(tmp_path,
+                                                       monkeypatch):
+    path = dataset(tmp_path / "DS") / "x.nii"
+    open_lockfile = locks._open_lockfile
+    first = []
+
+    def read_only_once(p):
+        fd, writable = open_lockfile(p)
+        if not first:
+            first.append(fd)
+            os.close(fd)
+            return os.open(p, os.O_RDONLY | getattr(os, "O_BINARY", 0)), \
+                False
+        return fd, writable
+
+    monkeypatch.setattr(locks, "_open_lockfile", read_only_once)
+    reader = FileLock(path).acquire()
+    shared = entry_of(reader)
+    assert not shared.writable
+    writer, out = in_thread(
+        lambda: FileLock(path, exclusive=True, timeout=SOON).acquire())
+    time.sleep(0.2)
+    reader.release()                    # (the writer waited in-process)
+    writer.join(SOON)
+    lock = out["value"]
+    try:
+        assert entry_of(lock) is shared
+        assert entry_of(lock).writable
+        assert len(entry_of(lock).spares) == 1      # (read-only, parked)
+        assert not other_process_gets(path, exclusive=False)
+    finally:
+        lock.release()
+
+
+HOLD_LOCK_FILE = """
+import os, sys
+fd = os.open(sys.argv[1], os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0))
+if os.name == "nt":     # (fasteners' InterProcessLock: msvcrt.locking)
+    import msvcrt
+    try:
+        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        ok = True
+    except OSError:
+        ok = False
+else:                   # (fasteners' InterProcessLock: lockf)
+    import fcntl
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        ok = True
+    except OSError:
+        ok = False
+print("locked" if ok else "busy", flush=True)
+if ok and sys.argv[2] == "hold":
+    sys.stdin.read()
+"""
+
+
+def test_explicit_lock_file_excludes_plain_lockf_clients(tmp_path):
+    """`FileLock(lockfile=...)`: a `<name>.lock` as earlier tools lock it."""
+    name = tmp_path / "data.bin"
+    lockname = tmp_path / "data.bin.lock"
+
+    def client(mode):
+        return subprocess.Popen(
+            [sys.executable, "-c", HOLD_LOCK_FILE, str(lockname), mode],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+
+    proc = client("hold")
+    try:
+        assert proc.stdout.readline().strip() == "locked"
+        with pytest.raises(LockTimeout):
+            FileLock(name, exclusive=True, timeout=0.3, lockfile=lockname,
+                     sign=False).acquire()
+    finally:
+        proc.stdin.close()
+        proc.wait(SOON)
+    with FileLock(name, exclusive=True, lockfile=lockname,
+                  sign=False) as lock:
+        assert lock.lockfile == lockname
+        proc = client("try")
+        assert proc.stdout.readline().strip() == "busy"
+        proc.wait(SOON)
+    assert lockname.read_bytes() == b""             # (not signed)

@@ -440,7 +440,9 @@ layer in 2b-iv):
   that under-exclusion needs both to fail (no dependency: `fcntl`,
   `struct`, `ctypes`; fasteners is no longer used, the per-download lock
   of `download/incomplete.py` included, which is a `FileLock` of the
-  partial file). Layer A, the registry of a process: one `_Entry` per
+  partial file: it does not exclude the `<name>.lock` of earlier
+  versions, which is never deleted). A lock taken before a `fork` is
+  dead in the child (no descriptor; `release` there is a no-op). Layer A, the registry of a process: one `_Entry` per
   lock file, which owns its descriptor for life, found by path
   (`str(lockfile)`, not folded) and by identity, `(st_dev, st_ino,
   alias key)` from `fstat` of a held descriptor, the alias key being the

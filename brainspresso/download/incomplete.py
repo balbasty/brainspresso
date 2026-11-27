@@ -1,18 +1,27 @@
 """
 Partial files of downloads that can be resumed.
 
-A download writes `<name>.download` under the exclusive lock of that
-partial file (`actions.locks.FileLock`, taken without waiting: one
-downloader per file), and renames it to `<name>` under the exclusive
-reader/writer lock of `<name>`, so that it never replaces a file while
-an action reads it. (Earlier versions used a `fasteners` lock file,
-`<name>.lock`, next to the file: one left behind is deleted.)
+A download writes `<name>.download` under an exclusive lock of its own,
+taken without waiting (one downloader per file), and renames it to
+`<name>` under the exclusive reader/writer lock of `<name>`
+(`actions.locks`), so that it never replaces a file while an action
+reads it.
+
+The download lock is the `actions.locks` lock of the partial file
+`<name>.download` (its lock file is in the dataset's lock folder, or in
+the per-user local one outside datasets). Earlier versions locked
+`<name>.lock` next to the destination with `fasteners`: the two do not
+exclude each other (do not download one file with both at once), and
+outside datasets this lock protects one user's processes on one machine
+only. A `<name>.lock` left by an earlier version is never deleted: that
+version may still hold it.
 """
 __all__ = ['IncompleteFile']
 # stdlib
 import asyncio
 import hashlib
 import os
+import threading
 import time
 from functools import partial
 from logging import getLogger
@@ -125,19 +134,65 @@ class IncompleteFile:
         self.filename.parent.mkdir(parents=True, exist_ok=True)
 
         # Acquire lock
-        self.lock = FileLock(self.tempname, exclusive=True, timeout=0)
+        lock = FileLock(self.tempname, exclusive=True, timeout=0)
         lg.debug(f"acquiring lock... {self.tempname}")
+        await self._acquire(lock)
+        self.lock = lock
+        lg.debug(f"acquired lock: {self.tempname}")
         try:
-            await run_async(self.lock.acquire)
+            return await self._enter()
+        except BaseException:
+            # (an error or a cancellation: `__aexit__` will not run)
+            await self._close_and_release()
+            raise
+
+    async def _acquire(self, lock: FileLock) -> None:
+        """
+        Take the download lock in an executor thread.
+
+        If this task is cancelled while it waits, the acquisition may
+        still complete in the executor: whichever side comes last (the
+        thread, or this task) releases the lock, so that it never leaks.
+        """
+        guard = threading.Lock()
+        state = {"cancelled": False, "acquired": False}
+
+        def acquire():
+            lock.acquire()
+            with guard:
+                if state["cancelled"]:
+                    lock.release()
+                else:
+                    state["acquired"] = True
+
+        try:
+            await run_async(acquire)
         except LockError as e:
             # (another download of the file runs: in another process, or
             # in a thread of this one, maybe the same executor thread)
-            self.lock = None
             raise RuntimeError(
                 f'Could not acquire download lock for {self.filename} ({e})'
             ) from e
-        lg.debug(f"acquired lock: {self.tempname}")
+        except BaseException:
+            with guard:
+                state["cancelled"] = True
+                if state["acquired"]:
+                    lock.release()
+            raise
 
+    async def _close_and_release(self) -> None:
+        """Close the partial file (if open) and release the lock."""
+        try:
+            if self.file is not None:
+                await self.file.close()
+        finally:
+            self.file = None
+            lock, self.lock = self.lock, None
+            if lock is not None:
+                lock.release()
+
+    async def _enter(self) -> "IncompleteFile":
+        """Open the partial file (resuming if possible), lock held."""
         # Check if a file was already being downloaded, and if we should
         # continue from where we left off
         try:
@@ -212,12 +267,6 @@ class IncompleteFile:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Close the file, release the lock and finalise (or keep) it."""
-        # Close file
-        lg.debug(f"closing file...  {self.tempname}")
-        assert self.file is not None
-        await self.file.close()
-        lg.debug(f"closed file: {self.tempname}")
-
         # Rename temporary filename to output filename
         # Note that we only rename the file to its final name and
         # remove temporary file if the download was successful (i.e.
@@ -225,6 +274,12 @@ class IncompleteFile:
         success = exc_type is None and not self._discard
         installed = False
         try:
+            # Close file
+            lg.debug(f"closing file...  {self.tempname}")
+            assert self.file is not None
+            file, self.file = self.file, None
+            await file.close()
+            lg.debug(f"closed file: {self.tempname}")
             if success:
                 lg.debug(
                     f"renaming file...  {self.tempname} -> {self.filename}"
@@ -237,27 +292,28 @@ class IncompleteFile:
                     self._digest = await run_async(self.digester.hexdigest)
                     lg.debug(f"saved digest:  {self.filename}")
         finally:
-            # Release lock and delete existing files (a complete file
-            # that could not be renamed is kept, to be resumed)
-            assert self.lock is not None
-            lg.debug(f"releasing lock...  {self.tempname}")
-            await run_async(self.lock.release)
-            lg.debug(f"released lock:  {self.tempname}")
-            if installed or self._discard:
-                lg.debug(f"deleting file...  {self.tempname}")
-                await run_async(self.tempname.unlink, missing_ok=True)
-                lg.debug(f"deleted file:  {self.tempname}")
-                lg.debug(f"deleting file...  {self.lockname}")
-                await run_async(self.lockname.unlink, missing_ok=True)
-                lg.debug(f"deleted file:  {self.lockname}")
-                lg.debug(f"deleting file...  {self.checkname}")
-                await run_async(self.checkname.unlink, missing_ok=True)
-                lg.debug(f"deleted file:  {self.checkname}")
-                await run_async(self.validname.unlink, missing_ok=True)
-            self.lock = None
-            self.file = None
-            self.offset = None
-            self._discard = False
+            # Delete the partial files (a complete file that could not be
+            # renamed is kept, to be resumed) while the lock is held,
+            # then release it. A `<name>.lock` of an earlier version is
+            # left alone (module docstring).
+            lock, self.lock = self.lock, None
+            try:
+                if installed or self._discard:
+                    lg.debug(f"deleting file...  {self.tempname}")
+                    await run_async(self.tempname.unlink, missing_ok=True)
+                    lg.debug(f"deleted file:  {self.tempname}")
+                    lg.debug(f"deleting file...  {self.checkname}")
+                    await run_async(self.checkname.unlink, missing_ok=True)
+                    lg.debug(f"deleted file:  {self.checkname}")
+                    await run_async(self.validname.unlink, missing_ok=True)
+            finally:
+                if lock is not None:
+                    lg.debug(f"releasing lock...  {self.tempname}")
+                    await run_async(lock.release)
+                    lg.debug(f"released lock:  {self.tempname}")
+                self.file = None
+                self.offset = None
+                self._discard = False
 
     def _install(self) -> None:
         """

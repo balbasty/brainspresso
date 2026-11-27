@@ -127,9 +127,13 @@ until then).
 
 Platforms and filesystems
 -------------------------
-Lock files keep their names and locations, and mixed runs of earlier
-commits and this one exclude each other on all three platforms (same
-lock space; same byte on Windows; whole file on POSIX).
+Lock files keep their names and locations, and the file locks of
+earlier commits and of this one exclude each other on all three
+platforms (same lock space; same byte on Windows; whole file on POSIX).
+Not the download locks: earlier versions locked `<name>.lock` next to
+the destination with `fasteners`, this one locks the partial file
+through the dataset's lock folder (`download.incomplete`): do not
+download one file with both versions at once.
 
 * Linux local filesystems (ext4, xfs, btrfs): OFD locks.
 * Linux NFS: OFD (else classic) locks are shared between clients with
@@ -156,6 +160,10 @@ dropped), so two downloads of one file could then write it at once.
 A platform with neither `fcntl` nor the Windows API raises `LockError`
 instead of running unlocked.
 
+A lock taken before a `fork` belongs to the parent: in the child, its
+entry is dead (no descriptor) and `release` is a no-op (a debug message
+says so); the child takes its own locks.
+
 A reader whose lock file can neither be created nor opened (e.g. a
 dataset whose `.brainspresso/` is read-only for this user) reads without
 a lock (a debug message says so). A writer whose lock file cannot be
@@ -172,7 +180,10 @@ Limitations
 * Double failure: a per-process primitive (macOS, Linux before 3.15, a
   filesystem that ignores lock owners) and an identity split (two
   mounts of one export at different mount points in one process, or
-  `st_ino` 0) lose the exclusion in the process. Without merged
+  `st_ino` 0) lose the exclusion in the process, and also *across*
+  processes: when one of the two entries closes its descriptor, the
+  process's locks on the file, those of the other entry included, are
+  dropped while that entry still believes it holds them. Without merged
   aliases, on a per-descriptor primitive, an upgrade through the other
   spelling ends in a `LockTimeout` instead of an immediate `LockError`.
 * Two distinct lock files merge (in one process) only with equal
@@ -827,8 +838,9 @@ def _open_lockfile(path: Path) -> tuple[int, bool]:
     """
     Open (and create) a lock file: (descriptor, writable).
 
-    Read-only where it cannot be written (enough for a reader). Its
-    folder is created first; a folder removed meanwhile is retried.
+    Read-only where it cannot be written for lack of permission
+    (EACCES, EPERM, EROFS: enough for a reader). Its folder is created
+    first; a folder removed meanwhile is retried.
 
     Raises
     ------
@@ -836,16 +848,23 @@ def _open_lockfile(path: Path) -> tuple[int, bool]:
         If it can be neither created nor opened
     """
     flags = getattr(os, "O_BINARY", 0)
-    for attempt in range(3):
+    attempt = 0
+    while True:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             return os.open(path, os.O_RDWR | os.O_CREAT | flags, 0o666), True
         except FileNotFoundError:
-            if attempt == 2:
+            attempt += 1
+            if attempt >= 3:
                 raise
-        except OSError:
+        except OSError as e:
+            if e.errno not in _READ_ONLY:
+                raise
             return os.open(path, os.O_RDONLY | flags), False
-    raise AssertionError("not reached")      # pragma: no cover
+
+
+# errno of a lock file (or its folder) that this user cannot write
+_READ_ONLY = (errno.EACCES, errno.EPERM, errno.EROFS)
 
 
 def _touch(fd: int) -> None:
@@ -874,7 +893,7 @@ class _Entry:
         self.fd, self.writable, self.ident = fd, writable, ident
         self.lockfile = Path(path)
         self.paths = {path}
-        self.spares: list[int] = []
+        self.spares: list[tuple[int, bool]] = []   # (fd, writable)
         self.mech = 0                       # in `_MECHANISMS`
         self.cond = threading.Condition()
         self.mode: str | None = None        # None | "shared" | "exclusive"
@@ -884,6 +903,11 @@ class _Entry:
         self.users = 0                      # holders and waiters
         self.retired = False
         self.gone = threading.Event()       # descriptors closed
+        self.forked = False                 # dead: inherited by a fork
+
+    def descriptors(self) -> list[int]:
+        """Its descriptor and the parked ones."""
+        return [self.fd, *(fd for fd, _ in self.spares)]
 
     def compatible(self, exclusive: bool, me: int) -> bool:
         """Whether this thread may take the lock, given the others."""
@@ -916,7 +940,8 @@ _ROUNDS = 3
 # Seconds that a thread waits for a retired entry to close its
 # descriptors (in-process, short), even past a zero timeout
 _GONE_GRACE = 10.0
-_RETIRED = object()
+_RETIRED = object()                 # found retired by another thread
+_STALE = object()                   # retired by this thread's verification
 
 
 def _entries() -> set[_Entry]:
@@ -926,19 +951,31 @@ def _entries() -> set[_Entry]:
 
 
 def _after_fork() -> None:              # pragma: no cover
-    # The child does not hold the locks of its parent: close its copies
-    # of the descriptors *without unlocking* (an unlock would release
-    # the OFD locks that it shares with the parent), and forget them
-    global _registry_lock
+    # The child does not hold the locks of its parent. Every entry dies
+    # (descriptor -1, no spares, retired, `forked`): the `FileLock`s
+    # that still name one never touch a descriptor in the child, whose
+    # numbers may be reused. The copies of the descriptors of live
+    # entries are closed *without unlocking* (an unlock would release
+    # the OFD locks shared with the parent); those of retired entries
+    # may be closed already (and their numbers reused): left alone.
+    # The locks of the module are recreated: another thread of the
+    # parent may have held one at the fork.
+    global _registry_lock, _datasets_lock
     for entry in {*_by_path.values(), *_by_id.values()}:
-        for fd in (entry.fd, *entry.spares):
-            try:
-                os.close(fd)
-            except OSError:
-                pass
+        if not entry.retired:
+            for fd in entry.descriptors():
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+        entry.fd, entry.spares = -1, []
+        entry.retired = entry.forked = True
+        entry.gone.set()
     _by_path.clear()
     _by_id.clear()
     _registry_lock = threading.Lock()
+    _datasets_lock = threading.Lock()
+    _datasets.clear()
 
 
 if hasattr(os, "register_at_fork"):
@@ -964,6 +1001,13 @@ class FileLock:
         Exclusive (writer) lock instead of a shared (reader) one
     timeout : float | None
         Seconds to wait (default: `lock_timeout()`)
+    lockfile : str | PathLike | None
+        An explicit lock file (e.g. a `<name>.lock` that other tools
+        lock with `lockf`), instead of the one of `lock_file(path)`;
+        same registry and OS primitives
+    sign : bool
+        Write the signature of an exclusive holder in the lock file
+        (False keeps it empty, as lock files of other tools may need)
 
     Attributes
     ----------
@@ -991,14 +1035,21 @@ class FileLock:
         path: str | os.PathLike,
         exclusive: bool = False,
         timeout: float | None = None,
+        *,
+        lockfile: str | os.PathLike | None = None,
+        sign: bool = True,
     ):
         self.path = Path(path)
         self.exclusive = exclusive
         self.timeout = timeout
+        self._lockfile = None if lockfile is None else Path(
+            os.path.abspath(lockfile))
+        self._sign_it = sign
         self.lockfile: Path | None = None
         self.locked = False
         self._entry: _Entry | None = None
         self._thread: int | None = None
+        self._pid: int | None = None
 
     @property
     def kind(self) -> str:
@@ -1030,34 +1081,48 @@ class FileLock:
         _check_backend()
         timeout = lock_timeout(self.timeout)
         deadline = time.monotonic() + timeout
-        lockfile, dataset = lock_file(self.path)
-        if dataset is None:
-            try:
-                _private(_local_dir())
-            except OSError as e:
-                return self._unlocked(f"no local lock folder ({e})")
+        if self._lockfile is not None:
+            lockfile = self._lockfile
+        else:
+            lockfile, dataset = lock_file(self.path)
+            if dataset is None:
+                try:
+                    _private(_local_dir())
+                except OSError as e:
+                    return self._unlocked(f"no local lock folder ({e})")
         self.lockfile = lockfile
         path = str(lockfile)
-        for round_ in range(_ROUNDS):
+        stale = 0                   # retirements of this thread's own
+        while True:                 # verification (others: not counted)
             entry = self._join(path, deadline, timeout)
             if entry is None:
                 return self._unlocked(f"cannot create {lockfile}")
-            verify = round_ < _ROUNDS - 1
-            if not verify:
-                lg.warning(f"{lockfile} was replaced while it was locked, "
-                           f"{_ROUNDS - 1} times: locked as it is now")
+            verify = stale < _ROUNDS - 1
             try:
                 took = self._take(entry, path, deadline, timeout, verify)
             except BaseException:
                 self._leave(entry)
                 raise
-            if took is _RETIRED:
-                lg.debug(f"{lockfile} was replaced: locking it again")
+            if took is _STALE:
                 self._leave(entry)
+                stale += 1
+                if stale < _ROUNDS - 1:
+                    lg.debug(f"{lockfile} was replaced: locking it again")
+                else:
+                    lg.warning(f"{lockfile} was replaced while it was "
+                               f"being locked, {stale} times: locking it "
+                               f"as it is now, without verification")
+                continue
+            if took is _RETIRED:    # (retired by another thread)
+                self._leave(entry)
+                if time.monotonic() > deadline + _GONE_GRACE:
+                    raise LockTimeout(self.path, lockfile, self.exclusive,
+                                      "lock files replaced in this process",
+                                      timeout)
                 continue
             self._entry, self.locked = entry, True
+            self._pid = os.getpid()
             return self
-        raise AssertionError("not reached")      # pragma: no cover
 
     def _unlocked(self, why: str) -> "FileLock":
         """Go on without a lock (a reader), or raise (a writer)."""
@@ -1122,7 +1187,7 @@ class FileLock:
                 # entry of this path must not hide it), else of this path
                 for entry in (by_id, by_path):
                     if entry is not None and not entry.retired:
-                        entry.spares.append(fd)
+                        entry.spares.append((fd, writable))
                         entry.paths.add(path)
                         _by_path[path] = entry
                         entry.users += 1
@@ -1166,8 +1231,7 @@ class FileLock:
             if entry.retired:
                 return _RETIRED
             if self.exclusive and not entry.writable:
-                raise LockError(f"Cannot lock {self.path} for writing: "
-                                f"{entry.lockfile} is read-only")
+                self._writable(entry, path)
             if self.exclusive or entry.mode is None:
                 entry.busy = True
                 try:
@@ -1177,12 +1241,21 @@ class FileLock:
                             and self._stale(entry, path):
                         # lock, then verify: the path names another file
                         # now (replaced or deleted): retire the entry
-                        _MECHANISMS[entry.mech].unlock(entry.fd)
-                        with _registry_lock:
-                            entry.retired = True
-                        return _RETIRED
+                        try:
+                            _MECHANISMS[entry.mech].unlock(entry.fd)
+                        except OSError as e:
+                            raise LockError(
+                                f"Cannot unlock {entry.lockfile} (replaced "
+                                f"while it was being locked): "
+                                f"{_describe(e)}") from e
+                        finally:
+                            # (an entry whose unlock failed still holds
+                            # the OS lock until its descriptors close)
+                            with _registry_lock:
+                                entry.retired = True
+                        return _STALE
                     _touch(entry.fd)
-                    if self.exclusive:
+                    if self.exclusive and self._sign_it:
                         self._sign(entry)
                 finally:
                     entry.busy = False
@@ -1194,6 +1267,49 @@ class FileLock:
                 entry.mode = entry.mode or "shared"
             self._thread = me
         return True
+
+    def _writable(self, entry: _Entry, path: str) -> None:
+        """
+        Give a read-only entry a writable descriptor, for a writer.
+
+        Only while the entry holds no OS lock: a parked writable spare
+        becomes its descriptor, else the lock file is opened again for
+        writing (the same file only: its identity is checked). The
+        read-only descriptor is parked (never closed while the entry
+        lives).
+        """
+        if entry.mode is not None:
+            raise LockError(f"Cannot lock {self.path} for writing: "
+                            f"{entry.lockfile} is open read-only, by "
+                            f"readers of this process")
+        for i, (fd, writable) in enumerate(entry.spares):
+            if writable and self._same_file(entry, fd, path):
+                entry.spares[i] = (entry.fd, False)
+                entry.fd, entry.writable = fd, True
+                return
+        flags = os.O_RDWR | getattr(os, "O_BINARY", 0)
+        try:
+            fd = os.open(path, flags)
+        except OSError as e:
+            raise LockError(f"Cannot lock {self.path} for writing: "
+                            f"{entry.lockfile} is read-only ({e})") from e
+        if not self._same_file(entry, fd, path):
+            _leaked.append(fd)      # (never closed: it may be a live
+            # entry's file)
+            raise LockError(f"Cannot lock {self.path} for writing: "
+                            f"{entry.lockfile} was replaced")
+        entry.spares.append((entry.fd, False))
+        entry.fd, entry.writable = fd, True
+
+    @staticmethod
+    def _same_file(entry: _Entry, fd: int, path: str) -> bool:
+        """Whether a descriptor is one of the file of `entry`."""
+        if entry.ident is None:
+            return True
+        try:
+            return _ident(fd, path)[:2] == entry.ident[:2]
+        except (OSError, TypeError):
+            return False
 
     @staticmethod
     def _stale(entry: _Entry, path: str) -> bool:
@@ -1277,6 +1393,12 @@ class FileLock:
         if entry is None:
             return
         self.locked = False
+        if self._pid != os.getpid() or entry.forked:
+            # (a lock of the parent, in a forked child: it holds nothing
+            # here, and its descriptor numbers may be reused)
+            lg.debug(f"{self.path}: lock taken by process {self._pid}, "
+                     f"not released by process {os.getpid()}")
+            return
         try:
             with entry.cond:
                 if self.exclusive:
@@ -1313,6 +1435,8 @@ class FileLock:
     @staticmethod
     def _leave(entry: _Entry) -> None:
         """Count a holder out; the last one retires and closes the entry."""
+        if entry.forked:            # (dead in a forked child)
+            return
         with _registry_lock:
             entry.users -= 1
             last = entry.users <= 0
@@ -1321,7 +1445,7 @@ class FileLock:
         if not last:
             return
         # (no lock held; the entry holds no OS lock: I1)
-        for fd in (entry.fd, *entry.spares):
+        for fd in entry.descriptors():
             try:
                 os.close(fd)
             except OSError:

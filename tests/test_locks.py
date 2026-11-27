@@ -700,7 +700,7 @@ def test_state_folder_created_later_is_found(tmp_path):
 
 
 # ----------------------------------------------------------------------
-#   The OS layer on every platform (fasteners: lockf / LockFileEx)
+#   The OS layer on every platform (OFD or lockf / LockFileEx)
 # ----------------------------------------------------------------------
 
 def hold_lock(path, exclusive, acquired, release, failed=None, timeout=None):

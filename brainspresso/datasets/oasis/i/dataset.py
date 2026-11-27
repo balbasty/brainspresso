@@ -1,10 +1,13 @@
 """`bx oasis1`: OASIS-1 (cross-sectional, adult lifespan, dementia)."""
+from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
 
 from brainspresso.datasets.base import Dataset, KeySpec
 from brainspresso.datasets.oasis.i.harvest import WUSTL
+from brainspresso.datasets.oasis.i.roaster import KEYS as ROAST_ALIASES
+from brainspresso.datasets.oasis.i.roaster import ROAST_KEYS, check_discs
 from brainspresso.datasets.options import OptionGroup, option_group
 
 HELP = """
@@ -21,20 +24,40 @@ OASIS-1 dataset (adult lifespan, dementia)
 """  # noqa: E501
 
 KEYS = ("raw", "fs", "meta", "reliability", "facts")
-ROAST_KEYS = ("raw", "fs", "fs-all", "fsl", "avg", "tal", "meta")
 DISCS = tuple(range(1, 13))
 
 
 @option_group("OASIS-1", 50)
 class DiscOptions(OptionGroup):
-    """`--discs`."""
+    """
+    `--discs`.
+
+    Attributes
+    ----------
+    discs : tuple[int, ...]
+        Discs to harvest or roast (empty: all)
+    """
 
     discs: Annotated[tuple[int, ...], Parameter(
-        help="Only these discs (1 to 12)", consume_multiple=True,
-    )] = DISCS
+        help="Only these discs (1 to 12; default: all). A named disc "
+             "that is not in sourcedata/ is an error for roast, other "
+             "missing discs are skipped", consume_multiple=True,
+    )] = ()
 
     def source_options(self, dataset):
-        """`discs` (empty: all)."""
+        """
+        Return the options of the sources.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            The dataset
+
+        Returns
+        -------
+        dict
+            `{"discs": frozenset}` (empty `--discs`: all)
+        """
         return {"discs": frozenset(self.discs or DISCS)}
 
 
@@ -45,37 +68,98 @@ class OASIS1(Dataset):
     folder = "OASIS-1"
     title = "OASIS-1"
     help = HELP
-    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
+    subject_width = 4
     harvest_subjects = False
+    template_dir = Path(__file__).parent / "templates"
     requires = {"roast": ("openpyxl",)}
     extra = "oasis1"
 
     def keys_for(self, command):
-        """Roast keys (legacy roaster, `Bidsifier` class)."""
+        """
+        Return the keys of a command.
+
+        Parameters
+        ----------
+        command : str
+            Name of the command
+
+        Returns
+        -------
+        KeySpec
+            Those of the roaster for `roast`, else those of the sources
+        """
         if command == "roast":
-            return KeySpec(None, ROAST_KEYS, ROAST_KEYS)
+            return KeySpec(ROAST_ALIASES, ROAST_KEYS, ROAST_KEYS)
         return self.keys
 
     def options(self, command):
-        """`--discs` (harvest, roast)."""
+        """
+        Return the extra option groups of a command.
+
+        Parameters
+        ----------
+        command : str
+            Name of the command
+
+        Returns
+        -------
+        dict
+            `--discs` (harvest, roast)
+        """
         return {"discs": DiscOptions} if command in ("harvest", "roast") \
             else {}
 
     def sources(self, args=None):
-        """WUSTL discs and spreadsheets."""
+        """
+        Return the sources of the dataset.
+
+        Parameters
+        ----------
+        args : Args, optional
+            Values of the command line (unused)
+
+        Returns
+        -------
+        dict[str, Source]
+            The WUSTL discs and spreadsheets
+        """
         return {"wustl": WUSTL()}
 
-    def roast(self, layout, args):
-        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
-        from brainspresso.datasets.oasis.i.bidsifier import (  # noqa: PLC0415
-            Bidsifier,  # lazy: optional dependency (openpyxl)
-        )
-        Bidsifier(
-            layout.root, keys=self.legacy_keys("roast", args),
-            discs=list(args.extra("discs", "discs", ())),
-            subs=self.numbers(args.select.subs),
-            exclude_subs=self.numbers(args.select.exclude_subs),
-            json=args.roast.sidecar_policy, layout=layout.kind,
-            ifexists=args.roast.if_exists,
-        ).run()
+    def roast_options(self, args):
+        """
+        Return the options of the roaster.
+
+        Parameters
+        ----------
+        args : Args
+            Values of the command line
+
+        Returns
+        -------
+        dict
+            `{"discs": [...]}` when `--discs` is given (a missing named
+            disc is then an error), else `{}` (every disc; missing ones
+            are skipped with a warning)
+        """
+        discs = args.extra("discs", "discs", ())
+        return {"discs": sorted(set(discs))} if discs else {}
+
+    def check(self, command, args):
+        """
+        Check the options of a command (also `--discs`: 1 to 12).
+
+        Parameters
+        ----------
+        command : str
+            Name of the command
+        args : Args
+            Values of the command line
+
+        Raises
+        ------
+        UsageError
+            If an option value cannot be used
+        """
+        super().check(command, args)
+        check_discs(args.extra("discs", "discs", ()))

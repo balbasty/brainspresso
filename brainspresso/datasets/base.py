@@ -1184,7 +1184,7 @@ class Dataset:
         ctx = make_context(
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
             json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
-            templates=self.template_dir,
+            templates=self.template_dir, options=self.roast_options(args),
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
             **filters,
@@ -1193,6 +1193,22 @@ class Dataset:
         if source is not None:
             ctx.source = Path(source.destination(layout))
         return run_roast(roaster, ctx, jobs=args.roast.jobs)
+
+    def roast_options(self, args: Args) -> dict:
+        """
+        Return the dataset options of the roaster (`RoastContext.options`).
+
+        Parameters
+        ----------
+        args : Args
+
+        Returns
+        -------
+        dict
+            Picklable values read by the roaster (default: none; OASIS-I:
+            `--discs`)
+        """
+        return {}
 
     def compost(self, layout, args: Args):
         """

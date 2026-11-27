@@ -1,4 +1,6 @@
 
+"""Sources of OASIS-1: the WUSTL discs and spreadsheets."""
+from brainspresso.datasets.oasis.i.roaster import roast_oasis1
 from brainspresso.sources.base import StaticURLs
 
 URLDATA = 'https://download.nrg.wustl.edu/data'
@@ -33,10 +35,15 @@ NAMES = {
 
 
 class WUSTL(StaticURLs):
-    """OASIS-I discs (download.nrg.wustl.edu) and spreadsheets
-    (sites.wustl.edu), no login. Per-run option: `discs`."""
+    """
+    OASIS-I discs and spreadsheets, no login.
+
+    Discs from download.nrg.wustl.edu, spreadsheets from
+    sites.wustl.edu. Per-run option: `discs`.
+    """
 
     name = "wustl"
+    roaster = staticmethod(roast_oasis1)
     discs: frozenset = frozenset(range(1, 13))
     urls = {
         key: (
@@ -49,7 +56,22 @@ class WUSTL(StaticURLs):
     }
 
     def keep(self, entry, selection, wants) -> bool:
+        """
+        Keep the selected discs (`discs`) and every spreadsheet.
+
+        Parameters
+        ----------
+        entry : RemoteEntry
+            A file of the source
+        selection : Selection
+            Subjects, sessions... (unused: discs hold many subjects)
+        wants : Wants
+            Keys (unused: entries are listed per key)
+
+        Returns
+        -------
+        bool
+            Whether to harvest the entry
+        """
         disc = entry.meta.get("disc")
         return disc is None or disc in self.discs
-
-

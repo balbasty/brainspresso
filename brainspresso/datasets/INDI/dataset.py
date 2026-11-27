@@ -104,6 +104,11 @@ class INDIDataset(Dataset):
             raise UsageError(str(e)) from e
         return tuple(s.name for s in chosen if not s.derivative)
 
+    @property
+    def template_dir(self):
+        """Templates of the project (`Project.template_dir`)."""
+        return self.project.template_dir
+
     def fill_templates(self):
         """Fill-in sidecar templates of the project (`fill.toml`)."""
         return self.project.fill_templates()

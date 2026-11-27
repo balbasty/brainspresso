@@ -153,9 +153,14 @@ layout of each site):
            "origin": "direct | roasted | generated"}}}
 ```
 
-`origin` is written by hosted harvests today (`direct` for downloads,
-`generated` for inline files); `roasted` is reserved for hybrid
-placement (2b-iii). Per-task state: `<state>/tasks/<task id>.json`, see
+`origin` is written by hosted harvests (2b-iii, §4): `direct` for a
+file downloaded to its place (images, and the pristine copies in
+`sourcedata/<folder>/`), `roasted` for metadata roasted from a pristine
+copy, `generated` for files the listing generates. Roasted and
+generated files of a hosted dataset also carry `source` (the pristine
+copy, or the generated base in `<state>/generated/<path>`) and
+optionally `repair: true`, `trim: false`, `site`, and `fill` (the fill-in
+templates merged into them). Per-task state: `<state>/tasks/<task id>.json`, see
 §7. Both are defined in `bids/harvest.py` (`record_run`,
 `write_manifest`, `write_task_state`, `read_task_states`).
 
@@ -309,6 +314,134 @@ Implemented (step 3):
   (`--sourcedata` on a hosted dataset says the next harvest re-fetches it).
 * The manifest records each file's origin: `direct`, `roasted`, `generated`.
 
+Implemented (step 2b-iii; pilots OpenNeuro and INDI SALD, every INDI
+project ported, since they share `Project.entries`):
+
+* `bids/hosted.py` (BIDS knowledge, no I/O beyond the tree):
+  `placement(path) -> "direct" | "roasted"` on the flat view after
+  remapping: "roasted" for every file of a BIDS dataset (raw or
+  `derivatives/<name>/`) whose `default_kind` is not "data" (sidecars,
+  `bval`/`bvec`, every TSV including events, scans, sessions,
+  participants, `phenotype/`, README, `.bidsignore`, descriptions);
+  "direct" for data files, files inside directory-format recordings
+  (`*.ome.zarr/zarr.json`), and `sourcedata/`, `code/`, `stimuli/`...
+  `is_data(path)` (data of a `sub-*` tree, for `--sidecars only`).
+  `render(content, name, repair=, fill=, intended=, sibling=)`: the
+  bytes of a roasted file; the pristine bytes when nothing changes (a
+  valid file is a byte-identical copy). Fill-in templates
+  (`FillTemplate`, `read_fill_templates`, `plan_fill`, `fill_in`), see
+  below. `bids/repair.py` gained pure versions of its in-place repairs
+  (`repair_sidecar`, `repair_table`, `intended_for`).
+* `roast/hosted.py`: `harvest_hosted(entries, layout, selection,
+  folder=, ...)` (the harvest of OpenNeuro, `OpenNeuro.fetch`, and of
+  each INDI dataset or site) selects (`bids.harvest.select_entries`),
+  downloads direct files to their place and metadata to
+  `sourcedata/<folder>/<remote path>` (`entry.meta["remote"]`, default
+  `entry.path`; one download per remote file, also when several local
+  files come from it: INDI site sidecars pushed down to every subject),
+  writes generated metadata (`InlineEntry`) to `<state>/generated/`,
+  records the harvest run and every file (`origin`, `source`), then runs
+  `roast_hosted` on what it placed. Folders: `sourcedata/openneuro/`
+  (path in the snapshot), `sourcedata/fcp-indi/` (key under
+  `data/Projects/`, the same in merged and per-site layouts). A sites
+  parent is not a BIDS dataset: its files (`extra_files`) are placed
+  directly (`bids.harvest.harvest`).
+* `roast_hosted(layout, fill=, site=, selection=, paths=, existing_only=,
+  json=, ifexists=, jobs=)` is the metadata roast: one `RoastMetadata`
+  action (an `actions.Action`: sources under shared locks, output under
+  an exclusive lock, atomic rename) per manifest entry with a `source`,
+  plus new fill-in sidecars; top-level files in the main roaster, one
+  shard per subject (`roast/hosted/sub-<label>`, inputs: pristine
+  copies, sibling, fill-in templates and the files of the subject on
+  disk, so that new images change `IntendedFor`). Repair only where the
+  harvest asked for it (INDI yes, OpenNeuro no: validated datasets);
+  field maps: free-text `IntendedFor` tags replaced, targets not on disk
+  dropped (`trim`); phase differences read the pristine copy of their
+  `magnitude1`. Trimmable tables go to `<state>/orig/` and are trimmed by
+  `trim_originals`, as in every roast. It runs after the images are
+  placed, on its own (`bx <ds> roast`, everything the manifest records,
+  no network), and after a compost of BIDS data (`existing_only`:
+  files still there, never re-created). INDI and OpenNeuro gain a
+  `roast` command (`Dataset.roast` of a `hosted` dataset:
+  `Dataset.roast_hosted` over `hosted_datasets`, each site of a sites
+  layout with `--sites`; INDI site datasets accept merged labels).
+
+Interactions (decided):
+
+* `--sidecars yes|no|only` is the placement policy, on hosted harvests
+  (new, `HostedOptions.sidecars`) and roasts, through
+  `bids.kinds.accepts`: at harvest "no" does not fetch (nor record) the
+  JSON sidecars of data files, "only" does not fetch data files; tables,
+  `bval`/`bvec`, README and descriptions always. In a roast it drops
+  the actions of the excluded kinds; files on disk are left as they are
+  (a roast never deletes). A sidecar not fetched with "no" is not in the
+  manifest: harvest again with "yes" to get it.
+* Selection: a harvest roasts exactly what it selected (keys, subs,
+  sessions, sites, datatypes, globs, `--where`); a roast takes `--subs`,
+  `--exclude-subs`, `--sessions` (and `--sites` for sites layouts).
+  Tables are trimmed to what is on disk, so successive partial harvests
+  add up (`participants.tsv` lists every subject harvested so far).
+* Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
+  `sites[:kind]` in each site's own `sourcedata/` (the parent's files
+  are direct). Fill-in placement depends on the layout (below).
+* `--if-exists`: downloads as before; roasted files under "skip" use
+  "different" with `compare` (they are cheap and derived: a new pristine
+  copy or template must reach the dataset); "overwrite", "error" and
+  "refresh" (mtime of the pristine copy) apply as such.
+* Re-runs: a harvest that runs again skips existing downloads and the
+  subject shards whose signature is unchanged; an *edited* roasted file
+  is not an input, so it survives `skip`; `roast --if-exists different`
+  restores it.
+* Pristine copy missing (composted with `--sourcedata`): the roasted
+  file is left as it is (its existence then enters the signature); if
+  it is missing too, a `Fail` ("harvest again"). Datasets harvested
+  before 2b-iii have no pristine copies: their next harvest fetches them
+  and replaces the roasted files that differ.
+* Compost keeps the pristine copies (`source` of `roasted` entries,
+  `bids.compost.pristine_files`) unless `--sourcedata` is given
+  explicitly; then the next harvest fetches them again. A compost that
+  deletes BIDS data roasts the rest again (`existing_only`). Copies
+  whose roasted files were all composted are no longer referenced and
+  go with the next default compost.
+
+Fill-in sidecars (`bids/hosted.py`): templates of a hosted dataset that
+**add** the keys its hosted (or generated) sidecars lack and **never**
+change one. Found from the dataset package, never a fixed path:
+`<Dataset.template_dir>/fill.toml` (INDI: `Project.template_dir`,
+`templates/<project>/`), listing `[<site>/]<name>.json` files:
+
+```toml
+version = 1
+files = ["T1w.json", "ICBM/T1w.json", "*/task-rest_bold.json"]
+```
+
+`<name>` is a sidecar name without `sub-`/`ses-`; `<site>` a site name
+of the dataset; patterns glob one segment at a time and must match;
+listed files and `fill.toml` are never mirrored as plain templates.
+Placement (BIDS inheritance principle, chosen over merging into every
+hosted sidecar: data files without any hosted sidecar get the fill-in
+too, a template is written once per level, and lower levels win, which
+is exactly "never override"): dataset templates, and the templates of
+the site a dataset *is* (`--layout sites`), at the top level as
+`<name>`; site templates of a merged multi-site dataset pushed down to
+the subjects of the site (`sub-<label>/sub-<label>_<name>`, the site
+from the manifest's `site`); merged into the file already at that path
+(precedence: file, site template, dataset template), else written only
+where it describes a selected file. A hosted file of the same level
+with another name that may describe the same data takes the fill-in if
+it is at least as specific, else the template is skipped there (two
+sidecars of one level must not describe one file); keys of hosted
+top-level sidecars are never pushed down. Recorded as `generated` (new
+file) or keeping the origin of the merged file, with `fill: [ids]`.
+
+Not done: `IntendedFor` paths of INDI multi-site datasets are not
+relabelled with the site code (targets that do not exist are trimmed);
+ABIDE-II from S3 (§9) would be an INDI-style `Project` over
+`ABIDE2/RawData/` (site remap `ETHZ` -> `ETH`, runs, the bucket's
+`RawData/sidecards/` as site sidecars) with the ABIDE-II printout
+templates as fill-in templates (`templates/<site>/<sample>/`, a
+`fill.toml`), opt-in until its roast reads the same subjects as NITRC.
+
 ## 5. Roast: roasters on the action engine
 
 * A **roaster** is a plain callable `roaster(ctx) -> Iterator[Action |
@@ -344,7 +477,9 @@ Implemented (step 3):
   accumulated across actions. A `finalize(ctx)` hook sees the finished tree
   (e.g. sites computed from a tar scan).
 * Common steps after every roast, also for hosted datasets: repair, trim,
-  `dataset_description` for the layout, `.bidsignore`, manifest.
+  `dataset_description` for the layout, `.bidsignore`, manifest. For
+  hosted datasets, repair is part of their metadata roast
+  (`roast.hosted`, §4), not a common step.
 * For gz tarballs, listing members is a full decompression: early pruning by
   selection (`selection.keeps_subject(label)`) is expected there.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
@@ -1049,8 +1184,8 @@ units take the run lock (§7, "What the ports must and must not assume").
 | COBRE, Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
-| INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | none | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
-| OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | none | default compost; `info` override |
+| INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
+| OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | hosted metadata roast (2b-iii) | default compost (re-roasts after composting BIDS data); `info` override |
 
 ### CLI compatibility
 
@@ -1085,6 +1220,10 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   hidden deprecated alias on harvest and compost, none on roast (r24).
 * Added: `bx config show|paths`, the global `--config FILE`, and config
   files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
+* Added (2b-iii): `--sidecars yes|no|only` on hosted harvests
+  (OpenNeuro, INDI); a `roast` command for OpenNeuro and every INDI
+  project (`--sites` where sites layouts exist). Changed: compost keeps
+  the pristine metadata of hosted datasets unless `--sourcedata`.
 
 ### Tests
 
@@ -1842,7 +1981,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1370 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -1963,7 +2102,8 @@ up as an XPASS failure once fixed (then drop the marker).
   BIDS-like copy as a hosted-BIDS source (INDI-style project with
   hybrid placement, 2b-iii), or keep the NITRC tarballs as the default.
   The two copies differ (runs, acquisitions, sessions), so a dataset
-  harvested from both is not one BIDS dataset.
+  harvested from both is not one BIDS dataset. What the S3 route would
+  need is listed at the end of §4 (2b-iii).
 
 ## 10. Revision log
 
@@ -2187,3 +2327,13 @@ up as an XPASS failure once fixed (then drop the marker).
   arguments of a dataset, the location the command line does not give
   as built-in; a shared list warns once per value; `split_env` quotes
   whole values only.
+* r28: step 2b-iii. Hybrid placement for hosted BIDS (§4): images
+  direct, metadata to `sourcedata/<folder>/<remote path>` then roasted
+  (`roast.hosted`, through the action engine), generated files based in
+  `<state>/generated/`; manifest entries carry `origin` and `source`;
+  OpenNeuro and every INDI project harvest this way and gain `roast`;
+  `--sidecars` on hosted harvests is a placement policy; roasted files
+  under `skip` are compared, subject shards skipped by signature;
+  compost keeps pristine metadata unless `--sourcedata` and re-roasts
+  what is left; fill-in sidecar templates (`<template_dir>/fill.toml`,
+  inherited sidecars, never overriding).

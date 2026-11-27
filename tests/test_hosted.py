@@ -661,3 +661,21 @@ def test_hosted_commands():
                                                           "yes"]
     assert "--sites" in snapshot_flags("acpi")["roast"]
     assert "--sites" not in snapshot_flags("openneuro")["roast"]
+
+
+def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
+    # any hosted dataset: `<template_dir>/fill.toml` (no fixed path)
+    write(tmp_path / "pkg/fill.toml", 'files = ["T1w.json"]\n')
+    write(tmp_path / "pkg/T1w.json", '{"A": 1}')
+
+    class Hosted(load("openneuro").__class__):
+        template_dir = tmp_path / "pkg"
+
+    assert [t.id for t in Hosted().fill_templates()] == ["T1w.json"]
+    assert load("openneuro").fill_templates() == []
+    # INDI: the project's folder (`Project.template_dir`)
+    sald = load("sald")
+    assert sald.template_dir == templates / "sald"
+    write(templates / "sald/fill.toml", 'files = ["T1w.json"]\n')
+    write(templates / "sald/T1w.json", '{"A": 1}')
+    assert [t.id for t in sald.fill_templates()] == ["T1w.json"]

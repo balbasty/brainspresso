@@ -43,6 +43,7 @@ from typing import Any, Callable, ClassVar, Iterable, Literal, Mapping
 from brainspresso.actions.locks import is_state_folder
 from brainspresso.actions.runlock import run_lock
 from brainspresso.bids.harvest import record_run
+from brainspresso.bids.hosted import read_fill_templates
 from brainspresso.bids.layout import (
     STATE_DIR,
     SitesLayout,
@@ -1231,12 +1232,19 @@ class Dataset:
         """
         Fill-in sidecar templates of a hosted dataset (`bids.hosted`).
 
+        Read from `<template_dir>/fill.toml` (relative to the package of
+        the dataset, never a fixed path), with the site names of the
+        dataset (`site_names`).
+
         Returns
         -------
         list[FillTemplate]
-            None by default
+            None if the dataset has no `template_dir` or no `fill.toml`
         """
-        return []
+        if self.template_dir is None:
+            return []
+        return read_fill_templates(self.template_dir,
+                                   self.site_names or None)
 
     def hosted_selection(self, args: Args | None = None) -> Selection:
         """

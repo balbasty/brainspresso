@@ -282,8 +282,19 @@ class Project:
         )))
         return out
 
+    @property
+    def template_dir(self) -> Path:
+        """
+        Folder of the templates of the project.
+
+        Curated files mirrored into the dataset, and fill-in sidecar
+        templates (`fill.toml`). Default: `templates/<name>/` next to
+        this module; a project defined elsewhere overrides it.
+        """
+        return TEMPLATES / self.name
+
     def _templates(self) -> list[InlineEntry]:
-        root = TEMPLATES / self.name
+        root = self.template_dir
         if not root.is_dir():
             return []
         # fill-in templates are merged by the metadata roast instead
@@ -302,7 +313,7 @@ class Project:
 
     def fill_templates(self) -> list[FillTemplate]:
         """
-        Fill-in sidecar templates (`templates/<name>/fill.toml`).
+        Fill-in sidecar templates (`<template_dir>/fill.toml`).
 
         See `bids.hosted` for the convention: `[<site>/]<name>.json`,
         `<site>` a `Site.name` of the project.
@@ -313,7 +324,7 @@ class Project:
         """
         parent = getattr(self, "parent", None)
         sites = (parent or self).sites
-        return read_fill_templates(TEMPLATES / self.name,
+        return read_fill_templates(self.template_dir,
                                    [s.name for s in sites if s.name])
 
     # ------------------------------------------------------------------

@@ -3032,7 +3032,7 @@ up as an XPASS failure once fixed (then drop the marker).
   `SITE_ID` spellings, the column names of the CSV files and the
   scan folder of UCLA's high-resolution anatomical. Not done: the
   roast of the bucket copy (§9).
-* r43: engine follow-ups, problem 1: per-shard scope (§5 "Scope of a
+* r44: engine follow-ups (PR 2), problem 1: per-shard scope (§5 "Scope of a
   shard"). A shard may declare `Shard(scope=roast.scope(keys=,
   subs=))`; its signature then holds only its inputs and `config`, and
   its record keeps the scopes it ran with (`scopes`) and the subjects

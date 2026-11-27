@@ -32,11 +32,9 @@
       "ONRC2": "ONRC, sample 2",
       "SU1": "SU, sample 1",
       "SU2": "SU, sample 2",
-      "UCLA1": "UCLA, ABIDE-I sample 1",
-      "UCLA2": "UCLA, ABIDE-I sample 2",
-      "UCLALong": "UCLA, longitudinal sample",
-      "UPSM1": "UPSM, ABIDE-I sample (Pitt)",
-      "UPSMLong": "UPSM, longitudinal sample"
+      "UCLA1": "UCLA, sample 1",
+      "UCLALong": "UCLA, longitudinal sample (baseline: ABIDE-I UCLA_1 or UCLA_2)",
+      "UPSMLong": "UPSM, longitudinal sample (baseline: ABIDE-I Pitt)"
     }
   },
   "ndar_guid": {

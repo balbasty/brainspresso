@@ -29,34 +29,47 @@ ABIDE-2/
             func/sub-<id>_ses-<ss>_task-rest[_run-<n>]_bold.{nii.gz,json}
             dwi/sub-<id>_ses-<ss>[_run-<n>]_dwi.{nii.gz,json,bval,bvec}
 
-`<id>` has 5 digits, `<ss>` 2 (`session_1` is `ses-01`); the first scan
-of a kind (`anat_1`) has no run entity, the others are `run-<n>`. With
-`--layout flat`, the content of `rawbids/` is in `ABIDE-2/` itself. The
-participants and phenotype tables are written complete (every subject
-of the CSV files) to `.brainspresso/orig/` and trimmed to the subjects
-on disk.
+`<id>` has 5 digits, `<ss>` 2 (`session_1` is `ses-01`). Runs (owner
+decision): a subject whose session has several scans of a kind
+(`rest_1`, `rest_2`) has `run-<n>` on every one of them (`<n>` the
+number of the folder), a subject with a single scan of that kind has no
+run entity. With `--layout flat`, the content of `rawbids/` is in
+`ABIDE-2/` itself. The participants and phenotype tables are written
+complete (every subject of the CSV files) to `.brainspresso/orig/` and
+trimmed to the subjects on disk.
 
-Each tarball is one shard, decompressed once: its members are read
-lazily, in archive order, and each selected one is extracted when it is
-reached. The sidecar templates that a shard may use (paths, hashes) are
-its `Shard.config`. A corrupt or truncated tarball fails its shard only.
+Each tarball is one shard, decompressed once, read lazily in archive
+order. Names are only known once every scan of a subject's session has
+been read (a tarball lists a subject's folders together): the selected
+images of a session are spooled to a temporary folder of the dataset
+(`.brainspresso/tmp/`) as they are reached, then moved into place when
+the next session starts (or the tarball ends). The sidecar templates
+that a shard may use (paths, hashes) are its `Shard.config`. A corrupt
+or truncated tarball fails its shard only (the session it was reading
+is not written).
 """
 from __future__ import annotations
 
+import io
+import os
 import re
+import shutil
+import tempfile
 from collections import Counter
+from dataclasses import dataclass, field
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator, NamedTuple
 
-from brainspresso.actions import Action, Fail
-from brainspresso.actions.archive import ExtractMember
+from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.ii.keys import allkeys
 from brainspresso.datasets.indi.abide.ii.sites import (
+    NO_TEMPLATES,
+    SITES,
     TEMPLATES,
     parse_site,
     site_template,
@@ -69,9 +82,11 @@ from brainspresso.datasets.indi.abide.ii.tables import (
 )
 from brainspresso.datasets.indi.abide.scans import (
     ARCHIVE_ERRORS,
+    HeaderSidecar,
     TemplateError,
     image_ext,
     member_parts,
+    read_template,
 )
 from brainspresso.datasets.indi.abide.tables import WIDTH, participant_label
 from brainspresso.roast import (
@@ -114,9 +129,13 @@ TEMPLATE_NAMES = ("T1w.json", "bold.json", "dwi.json")
 #: written as runs of the T1w
 HIRES_SITES = ("UCLA",)
 
-#: Gradient tables of a DWI folder: member suffix -> BIDS extension
+#: Gradient tables of a DWI folder: member suffix (any case) -> BIDS
+#: extension
 GRADIENTS = {".bval": ".bval", ".bvals": ".bval",
              ".bvec": ".bvec", ".bvecs": ".bvec"}
+
+#: Bytes of a member read for its NIfTI header (`--sidecars only`)
+HEADER_BYTES = 65536
 
 
 class Kind(NamedTuple):
@@ -143,9 +162,9 @@ class Kind(NamedTuple):
     suffix: str
     template: str
 
-    def name(self, sub: str, ses: str, run: int) -> str:
-        """`sub-<id>_ses-<ss>_<entities>[run-<n>_]<suffix>` (run > 1)."""
-        run_ = f"run-{run}_" if run > 1 else ""
+    def name(self, sub: str, ses: str, run: int | None) -> str:
+        """`sub-<id>_ses-<ss>_<entities>[run-<n>_]<suffix>`."""
+        run_ = "" if run is None else f"run-{run}_"
         return f"sub-{sub}_ses-{ses}_{self.entities}{run_}{self.suffix}"
 
 
@@ -158,7 +177,7 @@ KINDS = {
 }
 
 SCAN_FOLDER = re.compile(r"(?P<kind>[A-Za-z]+)_(?P<n>\d+)")
-SESSION_FOLDER = re.compile(r"session_(?P<n>\d+)")
+SESSION_FOLDER = re.compile(r"session_(?P<n>\d+)", re.IGNORECASE)
 
 
 # ----------------------------------------------------------------------
@@ -262,15 +281,34 @@ def template_config(ctx: RoastContext, path: Path) -> dict:
     -------
     dict
         `{"site": "<SITE>/<sample>", "templates": {name: [path, sha256]
-        | None}}`; `{"site": None}` if the name gives no site (the
-        members do)
+        | None}}`; if the name gives no site (the members do), `{"site":
+        None, "templates": {"<SITE>/<sample>": {name: ...}}}` for every
+        site and sample with templates (packaged or in `sourcedata/`)
     """
     site = tarball_site(path)
-    if site is None:
-        return {"site": None}
-    return scans.template_config(
-        lambda name: site_template(*site, name, ctx.resource),
-        TEMPLATE_NAMES, f"{site[0]}/{site[1] or '1'}")
+    if site is not None:
+        return scans.template_config(
+            lambda name: site_template(*site, name, ctx.resource),
+            TEMPLATE_NAMES, f"{site[0]}/{site[1] or '1'}")
+    out = {}
+    for site, sample in template_folders(ctx.source):
+        config = scans.template_config(
+            partial(site_template, site, sample, resource=ctx.resource),
+            TEMPLATE_NAMES, f"{site}/{sample}")
+        out[config["site"]] = config["templates"]
+    return {"site": None, "templates": out}
+
+
+def template_folders(source: Path) -> list[tuple[str, str]]:
+    """(SITE, sample) of the template folders, packaged or in `source`."""
+    out = set()
+    for root in (TEMPLATES, source):
+        for site in SITES:
+            folder = Path(root) / site
+            if folder.is_dir():
+                out.update((site, p.name) for p in folder.iterdir()
+                           if p.is_dir())
+    return sorted(out)
 
 
 def roast_nitrc(ctx: RoastContext) -> Iterator:
@@ -384,6 +422,84 @@ def parse_member(name: str, default: tuple | None = None) -> Member | None:
                   scan_match["kind"].lower(), int(scan_match["n"]), file)
 
 
+def spool_folder(ctx: RoastContext) -> Path | None:
+    """Folder of the spooled images (`.brainspresso/tmp/`, else None)."""
+    folder = Path(ctx.layout.state) / "tmp"
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None                     # (the system's temporary folder)
+    return folder
+
+
+@dataclass
+class Candidate:
+    """
+    A file of a scan folder (an image or a gradient table).
+
+    Parameters
+    ----------
+    name : str
+        Member name
+    ext : str
+        BIDS extension (`.nii.gz`, `.bval`)
+    preferred : bool
+        Its stem is the kind of its folder (`anat_1/anat.nii.gz`)
+    spool : Path | None
+        Spooled copy of an image
+    data : bytes | None
+        Content of a gradient table, or the first bytes of an image
+        (its header, when it is not spooled)
+    """
+
+    name: str
+    ext: str
+    preferred: bool
+    spool: Path | None = None
+    data: bytes | None = None
+
+
+@dataclass
+class Scan:
+    """
+    A scan folder of a session (`anat_1/`).
+
+    Parameters
+    ----------
+    member : Member
+        What the name of its first file says
+    kind : Kind
+        Its kind
+    images : list[Candidate]
+        Its images, in archive order
+    gradients : dict[str, list[Candidate]]
+        Its gradient tables, by extension
+    """
+
+    member: Member
+    kind: Kind
+    images: list = field(default_factory=list)
+    gradients: dict = field(default_factory=dict)
+
+    def chosen(self, candidates: list, path: Path) -> Candidate | None:
+        """Choose the file of a scan: the preferred one, else the first."""
+        if not candidates:
+            return None
+        best = next((c for c in candidates if c.preferred), candidates[0])
+        if len(candidates) > 1:
+            lg.warning(f"{path.name}: {len(candidates)} files for "
+                       f"{best.ext} in {PurePosixPath(best.name).parent}: "
+                       f"{PurePosixPath(best.name).name} used")
+        return best
+
+
+def preferred(folder: str, name: str, ext: str) -> bool:
+    """Whether a file's stem is the kind of its folder (any case)."""
+    stem = name[:len(name) - len(ext)].lower()
+    kinds = {"dti", "dwi"} if folder in ("dti", "dwi") else {folder}
+    return stem in kinds
+
+
 def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     """
     Convert the scans of one tarball (a shard).
@@ -398,50 +514,226 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     Yields
     ------
     Action
-        Per selected scan: its image, then its sidecar (and gradient
-        tables); a `Fail` if the tarball cannot be read
+        Per session of a subject, once all its scans are read: per
+        selected scan, its image, its sidecar and gradient tables; a
+        `Fail` if the tarball cannot be read
 
     Notes
     -----
-    Members are read lazily and each selected one is extracted when it
-    is reached (the engine runs an action before asking for the next):
-    a tarball is decompressed once.
+    Members are read lazily, in archive order, so that a tarball is
+    decompressed once. The selected images of the session being read
+    are spooled as they are reached (their names depend on the other
+    scans of the session); its actions are yielded, and run, when the
+    next session starts (the engine runs an action before asking for
+    the next), then its spooled files are removed.
     """
     default = tarball_site(path)
-    seen = set()
     unknown = Counter()
-    try:
-        with TarArchive(path) as archive:
-            for member in archive:
-                if not member.isfile():
-                    continue
-                parsed = parse_member(member.name, default)
-                if parsed is None:
-                    continue
-                kind = KINDS.get(parsed.folder)
-                if kind is None:
-                    unknown[f"{parsed.folder}_<n>"] += 1
-                    continue
-                if not (ctx.selection.keeps_subject(parsed.sub)
-                        and ctx.wants(kind.key)):
-                    continue
-                yield from member_actions(ctx, path, archive, member,
-                                          parsed, kind, seen, unknown)
-    except ARCHIVE_ERRORS as e:
-        yield Fail(f"{path.name}: cannot be read ({type(e).__name__}: "
-                   f"{e})", name=path.name, tag="raw")
-    finally:
-        if unknown:
-            files = ", ".join(f"{k} ({n} files)"
-                              for k, n in sorted(unknown.items()))
-            lg.warning(f"{path.name}: no BIDS name for {files}: skipped")
+    notes = set()
+    with tempfile.TemporaryDirectory(prefix="abide2-",
+                                     dir=spool_folder(ctx)) as tmp:
+        session = None
+        done = set()
+        try:
+            with TarArchive(path) as archive:
+                for member in archive:
+                    if not member.isfile():
+                        continue
+                    parsed = parse_member(member.name, default)
+                    if parsed is None:
+                        continue
+                    kind = KINDS.get(parsed.folder)
+                    if kind is None:
+                        unknown[f"{parsed.folder}_<n>"] += 1
+                        continue
+                    if not (ctx.selection.keeps_subject(parsed.sub)
+                            and ctx.wants(kind.key)):
+                        continue
+                    key = (parsed.sub, parsed.ses)
+                    if session is not None and session.key != key:
+                        yield from session.actions(ctx, path, notes)
+                        session.close()
+                        done.add(session.key)
+                        session = None
+                    if key in done:
+                        if key not in notes:
+                            notes.add(key)
+                            lg.warning(
+                                f"{path.name}: the folders of sub-{key[0]} "
+                                f"ses-{key[1]} are not together: "
+                                f"{member.name} and the later ones skipped")
+                        continue
+                    if session is None:
+                        session = Session(key, Path(tmp))
+                    session.add(ctx, path, archive, member, parsed, kind,
+                                unknown)
+                if session is not None:
+                    yield from session.actions(ctx, path, notes)
+        except ARCHIVE_ERRORS as e:
+            lost = "" if session is None else \
+                f"; sub-{session.key[0]} ses-{session.key[1]} not written"
+            yield Fail(f"{path.name}: cannot be read ({type(e).__name__}: "
+                       f"{e}){lost}", name=path.name, tag="raw")
+        finally:
+            if unknown:
+                files = ", ".join(f"{k} ({n} files)"
+                                  for k, n in sorted(unknown.items()))
+                lg.warning(f"{path.name}: no BIDS name for {files}: "
+                           f"skipped")
 
 
-def member_actions(ctx: RoastContext, path: Path, archive, member,
-                   parsed: Member, kind: Kind, seen: set,
-                   unknown: Counter) -> Iterator[Action]:
+class Session:
     """
-    Convert one member: an image (and its sidecar) or a gradient table.
+    The scans of one session of a subject, as they are read.
+
+    Parameters
+    ----------
+    key : (str, str)
+        Subject and session labels
+    tmp : Path
+        Spool folder of the shard
+    """
+
+    def __init__(self, key: tuple[str, str], tmp: Path):
+        self.key = key
+        self.tmp = tmp
+        self.scans: dict[tuple[str, int], Scan] = {}
+        self.spooled: list[Path] = []
+
+    def add(self, ctx: RoastContext, path: Path, archive, member,
+            parsed: Member, kind: Kind, unknown: Counter) -> None:
+        """
+        Read one member: spool an image, keep a gradient table.
+
+        Parameters
+        ----------
+        ctx : RoastContext
+            Context of the roast
+        path : Path
+            Tarball
+        archive : TarArchive
+            The open tarball
+        member : TarInfo
+            The member (the current one: read forward only)
+        parsed : Member
+            What its name says
+        kind : Kind
+            Its kind of scan
+        unknown : Counter
+            Files without a BIDS name (updated)
+        """
+        name = PurePosixPath(member.name).name
+        if name.startswith("."):
+            unknown["hidden files"] += 1      # (`._anat.nii.gz`: macOS)
+            return
+        if kind.key == "T1w" and parsed.run > 1 and \
+                parsed.site in HIRES_SITES:
+            lg.warning(f"{path.name}: {member.name}: {parsed.site} "
+                       f"anat_{parsed.run} may be the high-resolution scan "
+                       f"(no template): skipped")
+            return
+        scan = self.scans.setdefault((kind.key, parsed.run),
+                                     Scan(parsed, kind))
+        ext = image_ext(name)
+        if ext is not None:
+            candidate = Candidate(member.name, ext,
+                                  preferred(parsed.folder, name, ext))
+            if any(c.preferred for c in scan.images) or \
+                    (scan.images and not candidate.preferred):
+                scan.images.append(candidate)   # (never used: not read)
+                return
+            if ctx.accepts("data"):
+                candidate.spool = self.tmp / f"{len(self.spooled)}{ext}"
+                with archive.extractfile(member) as src, \
+                        open(candidate.spool, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                self.spooled.append(candidate.spool)
+            else:                               # (`--sidecars only`)
+                with archive.extractfile(member) as src:
+                    candidate.data = src.read(HEADER_BYTES)
+            scan.images.append(candidate)
+            return
+        lower = name.lower()
+        ext = next((v for k, v in GRADIENTS.items() if lower.endswith(k)),
+                   None)
+        if ext is None or kind.datatype != "dwi":
+            unknown[f"{parsed.folder}_<n>/{name}"] += 1
+            return
+        with archive.extractfile(member) as src:
+            data = src.read()
+        scan.gradients.setdefault(ext, []).append(Candidate(
+            member.name, ext, preferred(parsed.folder, name, ext),
+            data=data))
+
+    def actions(self, ctx: RoastContext, path: Path,
+                notes: set) -> Iterator[Action]:
+        """
+        Convert the scans of the session (all of them have been read).
+
+        Parameters
+        ----------
+        ctx : RoastContext
+            Context of the roast
+        path : Path
+            Tarball
+        notes : set
+            Warnings already logged by the shard (updated)
+
+        Yields
+        ------
+        Action
+            Per scan with an image: the image, its sidecar, its gradient
+            tables
+        """
+        scans_ = [s for s in self.scans.values() if s.images]
+        counts = Counter(s.kind.key for s in scans_)
+        for scan in sorted(scans_, key=lambda s: (s.kind.key, s.member.run)):
+            m, kind = scan.member, scan.kind
+            run = m.run if counts[kind.key] > 1 else None
+            stem = (ctx.layout.raw / f"sub-{m.sub}" / f"ses-{m.ses}"
+                    / kind.datatype / kind.name(m.sub, m.ses, run))
+            image = scan.chosen(scan.images, path)
+            dst = Path(f"{stem}{image.ext}")
+            if image.spool is not None:
+                yield Action(path, dst, partial(place, image.spool),
+                             input="path", kind="data", tag=kind.key)
+            yield from sidecar_actions(ctx, path, scan, stem, dst, image,
+                                       notes)
+            for ext, candidates in sorted(scan.gradients.items()):
+                table = scan.chosen(candidates, path)
+                yield Action(path, f"{stem}{ext}",
+                             partial(write_bytes, table.data),
+                             tag=kind.key)
+
+    def close(self) -> None:
+        """Remove the spooled files that were not moved into place."""
+        for spool in self.spooled:
+            try:
+                spool.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError as e:
+                lg.debug(f"{spool}: {e}")
+
+
+def place(spool: Path, path: str) -> None:
+    """Move a spooled image into place (copy it across filesystems)."""
+    try:
+        os.replace(spool, path)
+    except OSError:
+        shutil.copyfile(spool, path)
+
+
+def write_bytes(data: bytes, file) -> None:
+    """Write bytes to an opened file."""
+    file.write(data)
+
+
+def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
+                    image_path: Path, image: Candidate,
+                    notes: set) -> Iterator[Action]:
+    """
+    Write the sidecar of a scan.
 
     Parameters
     ----------
@@ -449,57 +741,54 @@ def member_actions(ctx: RoastContext, path: Path, archive, member,
         Context of the roast
     path : Path
         Tarball
-    archive : TarArchive
-        The open tarball
-    member : TarInfo
-        The member
-    parsed : Member
-        What its name says
-    kind : Kind
-        Its kind of scan
-    seen : set
-        Outputs already written by this shard (updated)
-    unknown : Counter
-        Files without a BIDS name (updated)
+    scan : Scan
+        The scan
+    stem : Path
+        Its output path, without extension
+    image_path : Path
+        Its output image
+    image : Candidate
+        Its source image
+    notes : set
+        Warnings already logged by the shard (updated)
 
     Yields
     ------
     Action
+        Its sidecar (a copy of the template, or the template and the
+        RepetitionTime of the header); a `Fail` if the template is
+        missing (a warning, once per shard, for the sites without
+        templates: `sites.NO_TEMPLATES`) or cannot be read
     """
-    name = PurePosixPath(member.name).name
-    if kind.key == "T1w" and parsed.run > 1 and parsed.site in HIRES_SITES:
-        lg.warning(f"{path.name}: {member.name}: {parsed.site} "
-                   f"anat_{parsed.run} may be the high-resolution scan "
-                   f"(no template): skipped")
+    if not ctx.accepts("sidecar"):
         return
-    stem = (ctx.layout.raw / f"sub-{parsed.sub}" / f"ses-{parsed.ses}"
-            / kind.datatype / kind.name(parsed.sub, parsed.ses, parsed.run))
-    ext = image_ext(name)
-    if ext is None and kind.datatype == "dwi":
-        ext = next((v for k, v in GRADIENTS.items() if name.endswith(k)),
-                   None)
-        if ext is None:
-            unknown[f"{parsed.folder}_<n>/{name}"] += 1
+    m, kind = scan.member, scan.kind
+    image_name = PurePosixPath(image.name).name
+    try:
+        template = site_template(m.site, m.sample, kind.template,
+                                 ctx.resource)
+    except TemplateError as e:
+        if m.site in NO_TEMPLATES:
+            if m.site not in notes:
+                notes.add(m.site)
+                lg.warning(f"{path.name}: {m.site} has no sidecar "
+                           f"templates (no protocol printout): its images "
+                           f"are written without sidecars")
             return
-        if (stem, ext) in seen:
-            lg.warning(f"{path.name}: {member.name}: a second "
-                       f"{stem.name}{ext}: skipped")
-            return
-        seen.add((stem, ext))
-        yield ExtractMember(archive, member, f"{stem}{ext}", tag=kind.key)
+        yield Fail(f"{image_name}: {e}", name=f"{stem.name}.json",
+                   tag=kind.key)
         return
-    if ext is None:
-        unknown[f"{parsed.folder}_<n>/{name}"] += 1
+    content, error = read_template(template, stem, kind.key)
+    if error is not None:
+        yield error
         return
-    if (stem, "image") in seen:
-        lg.warning(f"{path.name}: {member.name}: a second image of "
-                   f"{stem.name}: skipped")
+    if kind.suffix == "bold" and "RepetitionTime" not in content:
+        def open_image(image=image):
+            if image.spool is not None and image.spool.is_file():
+                return open(image.spool, "rb")
+            return io.BytesIO(image.data or b"")
+
+        yield HeaderSidecar(template, f"{stem}.json", image_path,
+                            open_image, image_name, tag=kind.key)
         return
-    seen.add((stem, "image"))
-    yield from scans.scan_actions(
-        ctx, stem, ext, kind.key,
-        partial(site_template, parsed.site, parsed.sample, kind.template,
-                ctx.resource),
-        lambda dst: ExtractMember(archive, member, dst, tag=kind.key),
-        partial(archive.extractfile, member), name,
-        bold=kind.suffix == "bold")
+    yield CopyJSON(template, f"{stem}.json", tag=kind.key)

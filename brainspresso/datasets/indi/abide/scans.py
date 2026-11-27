@@ -38,6 +38,7 @@ __all__ = [
     "header_tr",
     "image_ext",
     "member_parts",
+    "read_template",
     "roast_meta",
     "scan_actions",
     "template_config",
@@ -57,8 +58,9 @@ class TemplateError(LookupError):
 
 
 def image_ext(name: str) -> str | None:
-    """`.nii.gz`/`.nii` of an image name (None: not an image)."""
-    return next((e for e in NIFTI if name.endswith(e)), None)
+    """`.nii.gz`/`.nii` of an image name, in any case (None: not one)."""
+    lower = name.lower()
+    return next((e for e in NIFTI if lower.endswith(e)), None)
 
 
 def member_parts(name: str) -> tuple[str, ...] | None:
@@ -109,8 +111,11 @@ def template_config(find: Callable[[str], Path], names, site: str) -> dict:
         except TemplateError:
             out[name] = None
             continue
-        out[name] = [path.as_posix(),
-                     hashlib.sha256(path.read_bytes()).hexdigest()]
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as e:            # (a `Fail` of its sidecars)
+            digest = f"unreadable: {type(e).__name__}"
+        out[name] = [path.as_posix(), digest]
     return {"site": site, "templates": out}
 
 
@@ -200,6 +205,40 @@ class HeaderSidecar(WriteJSON):
         return write_json({**meta, "RepetitionTime": tr}, file)
 
 
+def read_template(path: Path, stem: Path,
+                  key: str) -> tuple[dict | None, Fail | None]:
+    """
+    Read a sidecar template.
+
+    Parameters
+    ----------
+    path : Path
+        Template
+    stem : Path
+        Output path of the scan, without extension
+    key : str
+        Key of the scan (progress tag)
+
+    Returns
+    -------
+    content : dict | None
+        Its content (None if it cannot be read)
+    error : Fail | None
+        A `Fail` of the sidecar if it cannot be read or is not a JSON
+        object
+    """
+    try:
+        content = read_json(path)
+    except (OSError, ValueError) as e:
+        message = f"cannot be read ({type(e).__name__}: {e})"
+    else:
+        if isinstance(content, dict):
+            return content, None
+        message = "not a JSON object"
+    return None, Fail(f"template {path}: {message}",
+                      name=f"{stem.name}.json", tag=key)
+
+
 def scan_actions(
     ctx: RoastContext, stem: Path, ext: str, key: str,
     find: Callable[[], Path], extract: Callable[[Path], Action],
@@ -244,7 +283,11 @@ def scan_actions(
     except TemplateError as e:
         yield Fail(f"{image_name}: {e}", name=f"{stem.name}.json", tag=key)
         return
-    if bold and "RepetitionTime" not in read_json(path):
+    template, error = read_template(path, stem, key)
+    if error is not None:
+        yield error
+        return
+    if bold and "RepetitionTime" not in template:
         yield HeaderSidecar(path, f"{stem}.json", image, open_image,
                             image_name, tag=key)
         return

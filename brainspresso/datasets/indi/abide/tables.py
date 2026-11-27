@@ -57,7 +57,16 @@ def _warn(path: Path, line: int, message: str) -> None:
     key = (str(path), path.stat().st_mtime_ns, line, message)
     if key not in _warned:
         _warned.add(key)
-        lg.warning(f"{path.name}, line {line}: {message}")
+        where = f", line {line}" if line else ""
+        lg.warning(f"{path.name}{where}: {message}")
+
+
+def _once(message: str, paths: Iterable[Path] = ()) -> None:
+    """Log a warning once (per message and version of the files)."""
+    key = (message, *((str(p), p.stat().st_mtime_ns) for p in paths))
+    if key not in _warned:
+        _warned.add(key)
+        lg.warning(message)
 
 
 def participant_label(value: str) -> str:
@@ -107,7 +116,7 @@ def read_csv(path: Path) -> list[list[str]]:
         except UnicodeDecodeError:
             continue
     if encoding != ENCODINGS[0]:
-        lg.debug(f"{Path(path).name}: read as {encoding}")
+        lg.info(f"{Path(path).name}: not UTF-8, read as {encoding}")
     return list(csv.reader(io.StringIO(text, newline="")))
 
 
@@ -128,10 +137,16 @@ class Table:
         lists alternative names, the first one a file has is read
     values : dict[str, dict | callable]
         BIDS column -> value mapping (values not in a dict are kept)
+    baseline : str, optional
+        CSV column (`AGE_AT_SCAN`) that tells, among the rows of a
+        subject listed more than once in a file (baseline and
+        follow-up), which one is kept: the lowest value. Without it,
+        the first row is kept
     """
 
     columns: Mapping[str, str | tuple[str, ...]]
     values: Mapping[str, object] = field(default_factory=dict)
+    baseline: str | None = None
 
     def names(self, column: str) -> tuple[str, ...]:
         """
@@ -175,18 +190,31 @@ class Table:
             return mapping.get(value, value)
         return value
 
-    def rows(self, paths: Iterable[Path]) -> Iterator[list[str]]:
+    def _order(self, row: list[str], index: int | None) -> float:
+        """Sort key of a row among those of one subject (`baseline`)."""
+        try:
+            return float(row[index])
+        except (TypeError, IndexError, ValueError):
+            return float("inf")
+
+    def rows(self, paths: Iterable[Path],
+             name: str = "table") -> Iterator[list[str]]:
         """
         Rows of the table (header first) from CSV files.
 
         Blank rows are skipped; rows without a subject, or that do not
-        reach the subject column, are skipped with a warning, as are the
-        later rows of a subject listed twice.
+        reach the subject column, are skipped with a warning. Of the
+        rows of a subject listed more than once, one is kept (that of
+        the first file, and in it the first row or the `baseline` one),
+        with one warning per file. A mapped column that no file has is
+        warned about once.
 
         Parameters
         ----------
         paths : list[path]
             Phenotypic CSV files
+        name : str
+            Name of the table (in warnings)
 
         Yields
         ------
@@ -195,28 +223,31 @@ class Table:
         """
         yield list(self.columns)
         seen = set()
+        found = set()
+        paths = [Path(path) for path in paths]
         for path in paths:
-            path = Path(path)
             rows = read_csv(path)
             header = rows[0] if rows else []
             index = {}
-            for i, name in enumerate(header):
-                index.setdefault(column_key(name), i)
+            for i, column in enumerate(header):
+                index.setdefault(column_key(column), i)
 
-            def find(column, index=index):
-                return next((index[column_key(n)] for n in self.names(column)
+            def find(names, index=index):
+                return next((index[column_key(n)] for n in names
                              if column_key(n) in index), None)
 
-            where = {column: find(column) for column in self.columns}
+            where = {column: find(self.names(column))
+                     for column in self.columns}
+            found.update(c for c, i in where.items() if i is not None)
             sub = where["participant_id"]
             if sub is None:
                 lg.warning(f"{path.name}: no column "
                            f"{' or '.join(self.names('participant_id'))}: "
                            f"skipped")
                 continue
-            missing = [c for c, i in where.items() if i is None]
-            if missing:
-                lg.debug(f"{path.name}: no column(s) for {missing} (n/a)")
+            order = find((self.baseline,)) if self.baseline else None
+            kept: dict[str, list[str]] = {}
+            twice: list[tuple[int, str]] = []
             for line, row in enumerate(rows[1:], start=2):
                 if not any(cell.strip() for cell in row):
                     continue
@@ -228,17 +259,39 @@ class Table:
                     _warn(path, line, f"row skipped (subject {label!r} is "
                                       f"not a label)")
                     continue
-                if label in seen:
-                    _warn(path, line, f"row skipped (subject {label} "
-                                      f"listed twice)")
+                if label in seen or label in kept:
+                    twice.append((line, label))
+                    if label in kept and order is not None and \
+                            self._order(row, order) < \
+                            self._order(kept[label], order):
+                        kept[label] = row
                     continue
-                seen.add(label)
+                kept[label] = row
+            seen.update(kept)
+            if len(twice) == 1:
+                _warn(path, twice[0][0], f"row skipped (subject "
+                                         f"{twice[0][1]} listed twice)")
+            elif twice:
+                labels = sorted({label for _, label in twice})
+                which = (f"the row of the lowest {self.baseline} kept"
+                         if order is not None else "the first row kept")
+                _warn(path, 0, f"{len(twice)} rows skipped (subjects listed "
+                               f"more than once: {', '.join(labels[:5])}"
+                               f"{'...' if len(labels) > 5 else ''}; "
+                               f"{which})")
+            for label, row in kept.items():
                 out = [f"sub-{label}"]
                 for column in list(self.columns)[1:]:
                     i = where[column]
                     cell = row[i] if i is not None and i < len(row) else ""
                     out.append(self.convert(column, cell))
                 yield out
+        absent = [c for c in self.columns if c not in found]
+        if paths and absent and len(absent) < len(self.columns):
+            _once(f"{name}: no CSV file has a column for "
+                  f"{', '.join(absent)} (n/a): "
+                  f"{', '.join(p.name for p in paths[:3])}"
+                  f"{'...' if len(paths) > 3 else ''}", paths)
 
 
 def write_table(table: Table, paths: list[Path], path_tsv) -> None:
@@ -254,4 +307,5 @@ def write_table(table: Table, paths: list[Path], path_tsv) -> None:
     path_tsv : path
         Output table
     """
-    write_tsv(table.rows(paths), path_tsv)
+    name = getattr(path_tsv, "name", None) or Path(path_tsv).name
+    write_tsv(table.rows(paths, name), path_tsv)

@@ -18,8 +18,9 @@ Two things can be composted:
    `subs=["01", "02"]` leaves exactly what harvesting with the same
    filters would have downloaded. Metadata that still applies to a kept
    data file (BIDS inheritance principle) is kept, dataset-level files
-   are never touched, and participants/sessions/scans tables are
-   rewritten so that they only list what is left.
+   are never touched, and participants/sessions/scans tables (and the
+   phenotype tables with a pristine copy) are rewritten so that they
+   only list what is left.
 
 Paths come from the dataset `Layout` (`bids.layout`): the BIDS tree is
 `layout.raw` (`<dataset>/rawbids/` for a study, `<dataset>/` for a flat
@@ -541,8 +542,8 @@ def compost(
     derivatives : bool
         Apply subject/session filters to `derivatives/*/` too
     trim : bool
-        Rewrite participants/sessions/scans tables after composting
-        BIDS data
+        Rewrite participants/sessions/scans tables (and the phenotype
+        tables with a pristine copy) after composting BIDS data
     force : bool
         Compost source data even if nothing seems to have been roasted
     yes : bool

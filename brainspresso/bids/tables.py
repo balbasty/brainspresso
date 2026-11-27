@@ -23,17 +23,23 @@ _QUERY = re.compile(r"^\s*([^\s=!<>]+)\s*(==|!=|>=|<=|>|<|=)\s*(.*?)\s*$")
 
 
 def read_tsv(text: str) -> tuple[list[str], list[dict]]:
-    """Parse a TSV table: header, rows."""
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    """
+    Parse a TSV table: header, rows.
+
+    BIDS tables are not quoted: a `"` is part of its field (as
+    `utils.io.write_tsv` writes it).
+    """
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t",
+                            quoting=csv.QUOTE_NONE)
     return list(reader.fieldnames or []), list(reader)
 
 
 def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
-    """Write rows (dictionaries) as a TSV table."""
+    """Write rows (dictionaries) as a TSV table (fields as they are)."""
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f, header, delimiter="\t", lineterminator="\n",
-            extrasaction="ignore",
+            extrasaction="ignore", quoting=csv.QUOTE_NONE, quotechar=None,
         )
         writer.writeheader()
         writer.writerows(rows)
@@ -151,10 +157,17 @@ def is_phenotype(relpath: str) -> bool:
     """
     Whether a table is a phenotype table (`[<raw>/]phenotype/<name>.tsv`).
 
-    Its rows are trimmed to the subjects on disk, as those of the
-    participants table, when a roaster writes a pristine copy of it
-    (`.brainspresso/orig/`): the phenotype tables of hosted datasets
-    are never trimmed.
+    `trim_tables` trims its rows to the subjects on disk, by
+    `participant_id`, as those of the participants table. Which tables
+    reach it: those a roaster writes a pristine copy of
+    (`.brainspresso/orig/`: `trim_originals`, compost's
+    `retrim_tables`), and those a hosted harvest trims
+    (`is_trimmable`): a harvested `phenotype/<name>_sessions.tsv` is
+    trimmed by `participant_id` too (it was trimmed by `session_id`
+    against `phenotype/ses-*`, which dropped every row). Other
+    phenotype tables of hosted harvests are not trimmed; the metadata
+    roast of hosted datasets does not use this function
+    (`bids.hosted.trim_rows`, by file name, unchanged).
 
     Parameters
     ----------

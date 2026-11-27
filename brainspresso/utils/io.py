@@ -155,6 +155,9 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     r"""
     Write a BIDS tsv (delimiter = '\t', quoting=QUOTE_NONE)
 
+    Fields are written as they are: no quoting, so a `"` in a field
+    is written (and read back by `bids.tables.read_tsv`) unchanged.
+
     Rows end with "\n". A field that contains a line break ("\n" or
     "\r") raises `ValueError` before anything is written: with
     `QUOTE_NONE` it cannot be written, and `csv` itself does not reject
@@ -193,6 +196,10 @@ def _write_tsv_rows(rows: list[list], dst, **kwargs) -> None:
     """Write checked rows to an open text file (`write_tsv`)."""
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
+    # (no quote character: a `"` in a field is written as it is, and
+    # read back so by `bids.tables.read_tsv`)
+    if kwargs['quoting'] == csv.QUOTE_NONE:
+        kwargs.setdefault('quotechar', None)
     # (`csv` ends rows with "\r\n" by default; BIDS tables use "\n")
     kwargs.setdefault('lineterminator', '\n')
     writer = csv.writer(dst, **kwargs)

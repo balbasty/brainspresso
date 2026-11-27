@@ -453,3 +453,22 @@ def test_dataset_declares_the_roasters():
     assert "source" in abide.groups("roast")
     assert abide.labels(["51456", "sub-0051457", "51456:51459"]) == {
         "51456", "51457", "51458"}
+
+
+def test_shared_table_changes(tmp_path, caplog):
+    """Changes from the tables shared with ABIDE-II (#37): `-9999.00` is
+    n/a, a file that is not UTF-8 is read as Windows-1252 (logged)"""
+    root = tmp_path / "ABIDE-1"
+    src = root / "sourcedata"
+    src.mkdir(parents=True)
+    (src / "phenotypic_SBL.csv").write_bytes(
+        "SUB_ID,SITE_ID,FIQ,MEDICATION_NAME\n51556,SBL,-9999.00,Caf\xe9\n"
+        .encode("cp1252"))
+    with caplog.at_level(logging.INFO):
+        report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = [line.split("\t") for line in
+            original(root).read_text(encoding="utf-8").splitlines()]
+    row = dict(zip(rows[0], rows[1]))
+    assert (row["fiq"], row["med_name"]) == ("n/a", "Caf\xe9")
+    assert "not UTF-8, read as cp1252" in caplog.text

@@ -21,7 +21,8 @@ BIDS). If BIDS filters are given, BIDS data that does *not* match them
 is deleted instead (and source data is kept, unless `--sourcedata` is
 used). Filters describe what is kept, exactly as in `harvest`: the
 metadata that still applies to a kept file is kept, dataset-level files
-are never deleted, and participants/sessions/scans tables are rewritten
+are never deleted, and participants/sessions/scans tables (and the
+phenotype tables a roast wrote, with a pristine copy) are rewritten
 to only list what is left. A dataset with one dataset per site is
 composted site by site (`--sites`: only these sites).
 

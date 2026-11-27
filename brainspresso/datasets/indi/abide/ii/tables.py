@@ -15,9 +15,12 @@ spellings of a few columns (typos of the legend) are accepted both ways.
 from __future__ import annotations
 
 import re
+from logging import getLogger
 
 from brainspresso.datasets.indi.abide.ii.sites import sample_label, site_label
 from brainspresso.datasets.indi.abide.tables import Table
+
+lg = getLogger(__name__)
 
 __all__ = ["CSV_GLOB", "COMPOSITE", "PARTICIPANTS", "PHENOTYPES"]
 
@@ -28,6 +31,44 @@ CSV_GLOB = "ABIDEII-*.csv"
 COMPOSITE = "ABIDEII_Composite_Phenotypic.csv"
 
 YES_NO = {'0': 'N', '1': 'Y'}
+
+#: Column that tells the baseline row of a subject listed twice (the
+#: longitudinal samples, `*_Long.csv`: baseline and follow-up)
+BASELINE = 'AGE_AT_SCAN'
+
+#: Handedness categories (`participants.json`: L, R, B)
+HANDEDNESS = {'r': 'R', 'right': 'R', 'l': 'L', 'left': 'L',
+              'ambi': 'B', 'mixed': 'B', 'b': 'B'}
+
+_warned: set = set()
+
+
+def handedness(value: str) -> str:
+    """
+    Handedness category (`participants.json`: L, R, B).
+
+    Parameters
+    ----------
+    value : str
+        `R`, `L`, `Ambi`, `Mixed` (any case)
+
+    Returns
+    -------
+    str
+        `R`, `L` or `B`; `n/a` for a number (a code that the legend of
+        the legacy roaster does not give: warned once); other values as
+        they are
+    """
+    out = HANDEDNESS.get(value.strip().lower())
+    if out is not None:
+        return out
+    if re.fullmatch(r"-?\d+(\.\d*)?", value.strip()):
+        if "handedness" not in _warned:
+            _warned.add("handedness")
+            lg.warning(f"HANDEDNESS_CATEGORY: numeric codes ({value!r}) "
+                       f"are not known: n/a")
+        return "n/a"
+    return value
 
 
 def _flat(value: str) -> str:
@@ -118,7 +159,7 @@ PARTICIPANTS = Table(
         'site': site_label,
         'sample': sample_label,
         'sex': {'1': 'M', '2': 'F'},
-        'handedness': {'Ambi': 'B'},
+        'handedness': handedness,
         'group': {'1': 'A', '2': 'C'},
         'fiq_type': iq_type,
         'viq_type': iq_type,
@@ -127,6 +168,7 @@ PARTICIPANTS = Table(
         'off_stimulant': YES_NO,
         'eye_status': {'1': 'O', '2': 'C'},
     },
+    baseline=BASELINE,
 )
 
 # ----------------------------------------------------------------------
@@ -145,6 +187,7 @@ PHENOTYPES: dict[str, Table] = {
             'reliable': 'ADI_R_RSRCH_RELIABLE',
         },
         values={'reliable': YES_NO},
+        baseline=BASELINE,
     ),
     'adir_a1': Table(
         columns={
@@ -154,6 +197,7 @@ PHENOTYPES: dict[str, Table] = {
             'facial_expressions': 'ADI_R_A1_FACIAL_EXPRESSIONS',
             'total': 'ADI_R_A1_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_a2': Table(
         columns={
@@ -166,6 +210,7 @@ PHENOTYPES: dict[str, Table] = {
             'friendships': 'ADI_R_A2_FRIENDSHIPS',
             'total': 'ADI_R_A2_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_a3': Table(
         columns={
@@ -176,6 +221,7 @@ PHENOTYPES: dict[str, Table] = {
             'seeking_share_enjoyment': 'ADI_R_A3_SEEKING_SHARE_ENJOYMENT',
             'total': 'ADI_R_A3_Total',
         },
+        baseline=BASELINE,
     ),
     'adir_a4': Table(
         columns={
@@ -189,6 +235,7 @@ PHENOTYPES: dict[str, Table] = {
                 'ADI_R_A4_APPROPRIATE_SOCIAL_RESPONSES',
             'total': 'ADI_R_A4_Total',
         },
+        baseline=BASELINE,
     ),
     'adir_b1': Table(
         columns={
@@ -199,6 +246,7 @@ PHENOTYPES: dict[str, Table] = {
             'conventional_gestures': 'ADI_R_B1_CONVENTIONAL_GESTURES',
             'total': 'ADI_R_B1_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_b2': Table(
         columns={
@@ -207,6 +255,7 @@ PHENOTYPES: dict[str, Table] = {
             'reciprocal_conversation': 'ADI_R_B2_RECIPROCAL_CONVERSATION',
             'total': 'ADI_R_B2_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_b3': Table(
         columns={
@@ -217,6 +266,7 @@ PHENOTYPES: dict[str, Table] = {
             'neologisms': 'ADI_R_B3_NEOLOGISMS',
             'total': 'ADI_R_B3_Total',
         },
+        baseline=BASELINE,
     ),
     'adir_c1': Table(
         columns={
@@ -225,6 +275,7 @@ PHENOTYPES: dict[str, Table] = {
             'circumscribed_interests': 'ADI_R_C1_CIRCUMSCRIBED_INTERESTS',
             'total': 'ADI_R_C1_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_c2': Table(
         columns={
@@ -233,6 +284,7 @@ PHENOTYPES: dict[str, Table] = {
             'compulsions': 'ADI_R_C2_COMPULSIONS',
             'total': 'ADI_R_C2_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_c3': Table(
         columns={
@@ -242,6 +294,7 @@ PHENOTYPES: dict[str, Table] = {
             'other_complex_mannerisms': 'ADI_R_C3_OTHER_COMPLEX_MANNERISMS',
             'total': 'ADI_R_C3_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_c4': Table(
         columns={
@@ -251,6 +304,7 @@ PHENOTYPES: dict[str, Table] = {
             'unusual_sensory_interests': 'ADI_R_C4_UNUSUAL_SENSORY_INTERESTS',
             'total': 'ADI_R_C4_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'adir_d': Table(
         columns={
@@ -261,6 +315,7 @@ PHENOTYPES: dict[str, Table] = {
             'age_when_abnormality': 'ADI_R_D_AGE_WHEN_ABNORMALITY',
             'interviewer_judgement': 'ADI_R_D_INTERVIEWER_JUDGMENT',
         },
+        baseline=BASELINE,
     ),
     'ados_2': Table(
         columns={
@@ -273,6 +328,7 @@ PHENOTYPES: dict[str, Table] = {
             'reliable': 'ADOS_RSRCH_RELIABLE',
         },
         values={'reliable': YES_NO},
+        baseline=BASELINE,
     ),
     'ados_generic': Table(
         columns={
@@ -286,6 +342,7 @@ PHENOTYPES: dict[str, Table] = {
             'reliable': 'ADOS_RSRCH_RELIABLE',
         },
         values={'reliable': YES_NO},
+        baseline=BASELINE,
     ),
     'srs': Table(
         columns={
@@ -306,6 +363,7 @@ PHENOTYPES: dict[str, Table] = {
             'mannerisms_t': 'SRS_MANNERISMS_T',
         },
         values={'version': {'1': 'C', '2': 'A'}},
+        baseline=BASELINE,
     ),
     'rbsr_6': Table(
         columns={
@@ -318,6 +376,7 @@ PHENOTYPES: dict[str, Table] = {
             'restricted': 'RBSR_6SUBSCALE_RESTRICTED',
             'total': 'RBSR_6SUBSCALE_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'rbsr_5': Table(
         columns={
@@ -329,6 +388,7 @@ PHENOTYPES: dict[str, Table] = {
             'restricted': 'RBSR_5SUBSCALE_RESTRICTED',
             'total': 'RBSR_5SUBSCALE_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'masc': Table(
         columns={
@@ -348,6 +408,7 @@ PHENOTYPES: dict[str, Table] = {
             'adi': 'MASC_ADI_T',
             'inconsistency_score': 'MASC_INCONSISTENCY_SCORE',
         },
+        baseline=BASELINE,
     ),
     'brief': Table(
         columns={
@@ -369,6 +430,7 @@ PHENOTYPES: dict[str, Table] = {
             'negativity_score': 'BRIEF_NEGATIVITY_SCORE',
         },
         values={'version': {'1': 'C', '2': 'A'}},
+        baseline=BASELINE,
     ),
     'cbcl_6-18': Table(
         columns={
@@ -400,6 +462,7 @@ PHENOTYPES: dict[str, Table] = {
             'obsessive': 'CBCL_6-18_OBSESSIVE_T',
             'post_traumatic': 'CBCL_6-18_POST_TRAUMATIC_T',
         },
+        baseline=BASELINE,
     ),
     'cbcl_1.5-5': Table(
         columns={
@@ -421,6 +484,7 @@ PHENOTYPES: dict[str, Table] = {
             'attention_deficit': 'CBCL_1.5-5_ATTENTION_DEFICIT_T',
             'oppositional': 'CBCL_1.5-5_OPPOSITIONAL_T',
         },
+        baseline=BASELINE,
     ),
     'bdi': Table(
         columns={
@@ -428,6 +492,7 @@ PHENOTYPES: dict[str, Table] = {
             'edition': 'BDI_EDITION',
             'total': 'BDI_TOTAL',
         },
+        baseline=BASELINE,
     ),
     'vmi': Table(
         columns={
@@ -435,6 +500,7 @@ PHENOTYPES: dict[str, Table] = {
             'edition': 'VMI_EDITION',
             'total': 'VMI_VMI_S',
         },
+        baseline=BASELINE,
     ),
     'celf_9-21': Table(
         columns={
@@ -444,6 +510,7 @@ PHENOTYPES: dict[str, Table] = {
             'receptive': 'CELF_9-21_RECEPTIVE_S',
             'expressive': 'CELF_9-21_EXPRESSIVE_S',
         },
+        baseline=BASELINE,
     ),
     'celf_5-8': Table(
         columns={
@@ -453,6 +520,7 @@ PHENOTYPES: dict[str, Table] = {
             'receptive': 'CELF_5-8_RECEPTIVE_S',
             'expressive': 'CELF_5-8_EXPRESSIVE_S',
         },
+        baseline=BASELINE,
     ),
     'basc': Table(
         columns={
@@ -488,6 +556,7 @@ PHENOTYPES: dict[str, Table] = {
             'negative': 'BASC2_PRS_NEGATIVE_T',
             'resiliency': 'BASC2_PRS_RESILIENCY_T',
         },
+        baseline=BASELINE,
     ),
     'cprs': Table(
         columns={
@@ -509,6 +578,7 @@ PHENOTYPES: dict[str, Table] = {
             'inatt_symptoms': 'CPRS_INATT_SYMPTOMS',
             'hyper_impul_symptoms': 'CPRS_HYPER_IMPUL_SYMPTOMS',
         },
+        baseline=BASELINE,
     ),
     'casi': Table(
         columns={
@@ -543,6 +613,7 @@ PHENOTYPES: dict[str, Table] = {
             'bulimia_nervosa_cutoff': 'CASI_BULIMIA_NERVOSA_CUTOFF',
             'substance_use_cutoff': 'CASI_SUBSTANCE_USE_CUTOFF',
         },
+        baseline=BASELINE,
     ),
     'csi': Table(
         columns={
@@ -590,6 +661,7 @@ PHENOTYPES: dict[str, Table] = {
             'encopresis_severity': 'CSI_ENCOPRESIS_SEVERITY',
             'encopresis_cutoff': 'CSI_ENCOPRESIS_CUTOFF',
         },
+        baseline=BASELINE,
     ),
     'wiat_2': Table(
         columns={
@@ -599,6 +671,7 @@ PHENOTYPES: dict[str, Table] = {
             'spelling': 'A_SPELLING_T',
             'total_composite': 'A_TOTAL_COMPOSITE_S',
         },
+        baseline=BASELINE,
     ),
     'vineland': Table(
         columns={
@@ -625,5 +698,6 @@ PHENOTYPES: dict[str, Table] = {
             'informant': 'VINELAND_INFORMANT',
         },
         values={'informant': {'1': 'P', '2': 'S', '3': 'O'}},
+        baseline=BASELINE,
     ),
 }

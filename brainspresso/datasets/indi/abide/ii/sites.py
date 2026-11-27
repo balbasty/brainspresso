@@ -19,13 +19,17 @@ from __future__ import annotations
 
 import os
 import re
+from logging import getLogger
 from pathlib import Path
 from typing import Callable
 
 from brainspresso.datasets.indi.abide.scans import TemplateError
 
+lg = getLogger(__name__)
+
 __all__ = [
     "ALIASES",
+    "NO_TEMPLATES",
     "SAMPLES",
     "SITES",
     "SITE_LABELS",
@@ -45,17 +49,25 @@ SITES: tuple[str, ...] = (
     'OHSU', 'TCD', 'SDSU', 'SU', 'UCD', 'UCLA', 'U_MIA', 'USM', 'UPSM'
 )
 
-#: Other spellings of sites (upper case, without `_`)
-ALIASES: dict[str, str] = {'ETHZ': 'ETH', 'PITT': 'UPSM', 'MIA': 'U_MIA'}
+#: Other spellings of sites (upper case, without `_`; `OILH`: Olin,
+#: Institute of Living at Hartford Hospital, the ONRC printouts)
+ALIASES: dict[str, str] = {'ETHZ': 'ETH', 'PITT': 'UPSM', 'MIA': 'U_MIA',
+                           'OILH': 'ONRC'}
+
+#: Sites without sidecar templates (no protocol printout): their images
+#: are written without sidecars, with a warning
+NO_TEMPLATES: tuple[str, ...] = ('SU', 'U_MIA')
 
 #: Sites with several samples (their `sample` in `participants.tsv` is
-#: `<SITE><sample>`; that of the others is the site)
+#: `<SITE><sample>`; that of the others is the site). The `SITE_ID`s of
+#: ABIDE-I (`ABIDE-I_UCLA_1`, `ABIDE-I_PITT`) are the baselines of the
+#: longitudinal samples: their sample is `UCLALong`, `UPSMLong`
 SAMPLES: dict[str, tuple[str, ...]] = {
     'NYU': ('1', '2'),
     'ONRC': ('1', '2'),
     'SU': ('1', '2'),
-    'UCLA': ('1', '2', 'Long'),
-    'UPSM': ('1', 'Long'),
+    'UCLA': ('1', 'Long'),
+    'UPSM': ('Long',),
 }
 
 #: Site names of `participants.tsv` that are not those of `SITES`
@@ -113,6 +125,22 @@ def parse_site(name: str) -> tuple[str, str | None]:
     return site, sample
 
 
+_unknown: set = set()
+
+
+def _parse_site_id(site_id: str) -> tuple[str, str | None, bool] | None:
+    """(SITE, sample, ABIDE-I) of a `SITE_ID` (None, warned once: none)."""
+    try:
+        site, sample = parse_site(site_id)
+    except TemplateError:
+        if site_id not in _unknown:
+            _unknown.add(site_id)
+            lg.warning(f"ABIDE-II: unknown SITE_ID {site_id!r}: kept as "
+                       f"it is in participants.tsv")
+        return None
+    return site, sample, bool(_PREFIX_I.match(str(site_id).strip()))
+
+
 def site_label(site_id: str) -> str:
     """
     Site of a `SITE_ID` (`participants.tsv`).
@@ -126,13 +154,12 @@ def site_label(site_id: str) -> str:
     -------
     str
         `NYU`, `UPSM`, `UMia` (`SITE_LABELS`); the value itself if it
-        names no site
+        names no site (warned once)
     """
-    try:
-        site, _ = parse_site(site_id)
-    except TemplateError:
+    parsed = _parse_site_id(site_id)
+    if parsed is None:
         return site_id
-    return SITE_LABELS.get(site, site)
+    return SITE_LABELS.get(parsed[0], parsed[0])
 
 
 def sample_label(site_id: str) -> str:
@@ -148,13 +175,17 @@ def sample_label(site_id: str) -> str:
     -------
     str
         `<SITE><sample>` for the sites with several samples (`NYU2`,
-        `UCLALong`, `UPSM1`), else the site (`BNI`, `UMia`); the value
-        itself if it names no site
+        `UCLA1`, `UCLALong`); `<SITE>Long` for a `SITE_ID` of ABIDE-I
+        (`ABIDE-I_UCLA_1`, `ABIDE-I_PITT`: the baseline of a
+        longitudinal sample); else the site (`BNI`, `UMia`); the value
+        itself if it names no site (warned once)
     """
-    try:
-        site, sample = parse_site(site_id)
-    except TemplateError:
+    parsed = _parse_site_id(site_id)
+    if parsed is None:
         return site_id
+    site, sample, abide1 = parsed
+    if abide1:
+        return f"{site}Long"
     if site in SAMPLES and sample is not None:
         return f"{site}{sample}"
     return SITE_LABELS.get(site, site)

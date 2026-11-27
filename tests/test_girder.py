@@ -506,10 +506,11 @@ def bullitt(bullitt_server, monkeypatch):
 
 
 def test_bullitt_subject_labels():
-    from brainspresso.datasets.bullitt.harvest import _labels, subject_label
+    from brainspresso.datasets.bullitt.harvest import subject_label
+    from brainspresso.sources.base import subject_labels
     assert subject_label("Normal-042") == "042"
     assert subject_label("Administration") is None
-    assert _labels(["1", "sub-2", "003"], "sub-") == {"001", "002", "003"}
+    assert subject_labels(["1", "sub-2", "003"], 3) == {"001", "002", "003"}
 
 
 def test_bullitt_harvest(bullitt, tmp_path):
@@ -551,10 +552,10 @@ def test_bullitt_harvest_keys(bullitt, tmp_path):
 def test_bullitt_roast(bullitt, tmp_path, layout):
     import nibabel as nib
 
-    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.roaster import roast
     bullitt.download(tmp_path, exclude_subs=["003"], layout=layout)
     root = tmp_path / "Bullitt"
-    Bidsifier(root, layout=layout).run()
+    roast(root, display=False)
     found = Layout.detect(root)
     raw = found.raw
     out = {p for p in files(raw) if not p.startswith((
@@ -595,10 +596,10 @@ def test_bullitt_roast(bullitt, tmp_path, layout):
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_roast_keys(bullitt, tmp_path, layout):
-    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.roaster import roast
     bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
-    Bidsifier(root, keys=["T2w"], json="no").run()
+    roast(root, keys=["T2w"], json="no", display=False)
     raw = Layout.detect(root).raw
     assert {p for p in files(raw) if not p.startswith((
         "sourcedata/", ".brainspresso/"))} == {
@@ -616,10 +617,10 @@ def test_compost_commands():
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_compost_sourcedata(bullitt, tmp_path, layout):
     from brainspresso.bids.compost import compost
-    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.roaster import roast
     bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
-    Bidsifier(root).run()
+    roast(root, display=False)
     compost(root, yes=True)
     assert not (root / "sourcedata").exists()
     raw = Layout.detect(root).raw

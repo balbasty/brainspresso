@@ -1,6 +1,7 @@
 """
-Generate the templates of the Bullitt dataset from the files of its
-"Administration" folder (data.kitware.com):
+Generate the templates of the Bullitt dataset (a maintainer tool).
+
+From the files of its "Administration" folder (data.kitware.com):
 
 * `Adjunct information/NormalDatabase2.pdf` -> `participants.tsv`
 * `DICOM Headers/dicom_header_*.txt`        -> `*_T1w.json`, `T2w.json`,
@@ -58,6 +59,20 @@ FAMILY_EXTRA = {24: "sister of Tumor069 (not in this database)"}
 
 
 def parse_pdf(path: Path) -> dict[int, dict]:
+    """
+    Read the demographics table of `NormalDatabase2.pdf`.
+
+    Parameters
+    ----------
+    path : Path
+        The PDF
+
+    Returns
+    -------
+    dict[int, dict]
+        `{subject number: {age, sex, race, handedness, vessels_quality,
+        notes}}`
+    """
     import pymupdf  # noqa: PLC0415  lazy: optional dependency
     text = "\n".join(page.get_text() for page in pymupdf.open(str(path)))
     text = text.split("ABNORMALS")[0]
@@ -97,6 +112,14 @@ def parse_pdf(path: Path) -> dict[int, dict]:
 
 
 def write_participants(rows: dict[int, dict]) -> None:
+    """
+    Write `participants.tsv` (findings and family relationships added).
+
+    Parameters
+    ----------
+    rows : dict[int, dict]
+        Rows of `parse_pdf`
+    """
     notes = {sub: [r["notes"]] if r["notes"] else []
              for sub, r in rows.items()}
     for sub, finding in FINDINGS.items():
@@ -159,6 +182,19 @@ NUMBERS = {"FlipAngle": "FlipAngle", "PixelBandwidth": "PixelBandwidth",
 
 
 def parse_dicom_text(path: Path) -> dict:
+    """
+    Read a sample DICOM header (text dump).
+
+    Parameters
+    ----------
+    path : Path
+        `dicom_header_*.txt`
+
+    Returns
+    -------
+    dict
+        `{DICOM keyword: value or list of values}`
+    """
     values = {}
     text = path.read_text(encoding="utf-8", errors="replace")
     for line in text.splitlines():
@@ -174,6 +210,19 @@ def parse_dicom_text(path: Path) -> dict:
 
 
 def make_sidecar(path: Path) -> dict:
+    """
+    Build a BIDS sidecar from a sample DICOM header.
+
+    Parameters
+    ----------
+    path : Path
+        `dicom_header_*.txt`
+
+    Returns
+    -------
+    dict
+        Sidecar (times in seconds, `SidecarSource`)
+    """
     v = parse_dicom_text(path)
     out = {}
     for src, dst in STRINGS.items():
@@ -196,6 +245,14 @@ def make_sidecar(path: Path) -> dict:
 
 
 def main(admin: Path) -> None:
+    """
+    Write every template.
+
+    Parameters
+    ----------
+    admin : Path
+        The "Administration" folder of the dataset
+    """
     pdf = admin / "Adjunct information" / "NormalDatabase2.pdf"
     write_participants(parse_pdf(pdf))
     for src, dst in SIDECARS.items():

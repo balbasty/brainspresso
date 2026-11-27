@@ -590,6 +590,17 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   (`roast.hosted`, §4), not a common step.
 * For gz tarballs, listing members is a full decompression: early pruning by
   selection (`selection.keeps_subject(label)`) is expected there.
+* A gz tarball that holds many subjects (OASIS-I discs) is read by one
+  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc and
+  the templates its actions read, so an unchanged disc is skipped by
+  signature), not one shard per subject: each of those would
+  decompress the disc again, up to its own members. The shard lists
+  the disc once, then extracts in archive order (actions sorted by the
+  offset of their first member, each reading its members in order: a
+  backward seek in a gz `TarFile` restarts decompression from byte
+  0); a FreeSurfer disc is unpacked by one `ExtractMembers` pass. Cost:
+  2 decompressions per image disc, 1 per FreeSurfer disc, 0 when
+  skipped (step 5).
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
@@ -2096,7 +2107,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: OASIS-I ported (per-subject shards over its discs, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; 1536 passed, 2 skipped, 18 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; NNNN) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2199,11 +2210,13 @@ up as an XPASS failure once fixed (then drop the marker).
   relabel saved to `dst` instead of the action's path.~~ Fixed in the
   port of OASIS-I (step 5, `datasets/oasis/i/roaster.py`; xfails
   removed). Also fixed there: `fs-all` crashed on the directory members
-  of a FreeSurfer disc. Open question: the FSL segmentation keeps the
-  lookup `{1: 2, 2: 3, 3: 1}` of the legacy roaster, which
-  `utils.vol.relabel` reads as `{new: old}` (FSL 1, 2, 3 become 3, 1,
-  2); the xfail of step 1 expected `{old: new}`, its test now checks
-  the former (to confirm).
+  of a FreeSurfer disc; a truncated disc aborted the roast; blank
+  trailing spreadsheet rows crashed the participants table. The FSL
+  segmentation keeps the lookup `{1: 2, 2: 3, 3: 1}` of the legacy
+  roaster, which `utils.vol.relabel` reads as `{new: old}`: FAST's
+  1 = CSF, 2 = GM, 3 = WM become GM = 1, WM = 2, CSF = 3 (SPM order,
+  confirmed on review; the xfail of step 1 expected `{old: new}`),
+  described by `derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv`.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
 * ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
@@ -2537,11 +2550,11 @@ up as an XPASS failure once fixed (then drop the marker).
   grouped by collection (`datasets/indi/`, ...; Conventions, §8);
   `INDI/projects.py` split into one subpackage per project, each a
   catalog entry; `Dataset.indi_category`. No import shim.
-* r36: step 5, OASIS-I on the roast engine: one shard per subject
-  (subjects found by listing the selected discs), participants table
-  through `.brainspresso/orig/` and trim, FreeSurfer lookup tables with
-  the `fs` keys; `Dataset.roast_options(args)` passes dataset options
-  (`--discs`) to `RoastContext.options`; `legacy_subjects`,
-  `legacy_keys` and the `Bidsifier` class no longer used by OASIS-I
-  (`subject_width = 4`); its known bugs fixed (§8), relabel direction
-  left as an open question.
+* r36: step 5, OASIS-I on the roast engine: one shard per disc (§5),
+  participants table through `.brainspresso/orig/` and trim,
+  FreeSurfer lookup tables with the `fs` keys, a `dseg.tsv` for the
+  relabelled FSL segmentation; missing discs are skipped with a warning
+  unless named with `--discs`; `Dataset.roast_options(args)` passes
+  dataset options (`--discs`) to `RoastContext.options`;
+  `legacy_subjects`, `legacy_keys` and the `Bidsifier` class no longer
+  used by OASIS-I (`subject_width = 4`); its known bugs fixed (§8).

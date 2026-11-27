@@ -136,6 +136,9 @@ class OASIS1(Dataset):
         Returns
         -------
         dict
-            `{"discs": [...]}` (`--discs`; empty: all)
+            `{"discs": [...]}` when `--discs` names some of the discs
+            (a missing one is then an error), else `{}` (every disc;
+            missing ones are skipped with a warning)
         """
-        return {"discs": sorted(args.extra("discs", "discs", ()) or DISCS)}
+        discs = set(args.extra("discs", "discs", ()) or DISCS)
+        return {"discs": sorted(discs)} if discs != set(DISCS) else {}

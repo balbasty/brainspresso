@@ -139,10 +139,36 @@ def test_roast_raw_filters(root):
     assert raw_tree(root) == {p for p in raw_runs(2) if p.endswith("json")}
 
 
-def test_missing_disc(root):
+def test_missing_disc(root, caplog):
+    """A missing disc named with `--discs` is an error, other missing
+    discs are skipped with a warning"""
     report = roast(root, keys={"raw"}, discs=[2], display=False)
     assert raw_tree(root) == set()
-    assert report.counts["raw"] == {"error": 1}
+    assert report.counts == {"discs": {"error": 1}}
+    report = roast(root, keys={"raw"}, display=False)
+    assert not report.errors
+    assert raw_tree(root) == raw_runs(1) | raw_runs(2)
+    assert "oasis_cross-sectional_disc12.tar.gz not found (skipped)" \
+        in caplog.text
+
+
+def test_unreadable_disc(root):
+    """A truncated disc is an error; the other discs are roasted"""
+    src = root / "sourcedata"
+    image_disc(src, disc=2, ids=(3,))
+    data = (src / "oasis_cross-sectional_disc1.tar.gz").read_bytes()
+    (src / "oasis_cross-sectional_disc1.tar.gz").write_bytes(
+        data[:len(data) // 2])
+    report = roast(root, keys={"raw"}, display=False)
+    assert report.counts["discs"]["error"] == 1
+    assert raw_tree(root) >= raw_runs(3)
+
+
+def test_duplicate_subject_warns(root, caplog):
+    image_disc(root / "sourcedata", disc=2, ids=(1,))
+    roast(root, keys={"raw"}, display=False)
+    assert "sub-0001 is on several raw discs" in caplog.text
+    assert "sub-0002 is on several" not in caplog.text
 
 
 def test_meta(root):
@@ -239,6 +265,43 @@ def test_fsl_relabel(root):
     # expected [0, 2, 3, 1] ({old: new}); the lookup is kept as it was
     # (to be confirmed by the owner, see the PR)
     assert list(dat[:4]) == [0, 3, 1, 2]
+    rows = read_tsv(drv(root) / roaster.DSEG_NAME)
+    assert rows == [["index", "name"], ["1", "GM"], ["2", "WM"],
+                    ["3", "CSF"]]
+
+
+def test_missing_masked_talairach(root):
+    """A missing member fails its own conversion only"""
+    src = root / "sourcedata"
+    m = {}
+    s = "disc1/OAS1_0001_MR1"
+    for run in (1, 2):
+        _analyze(m, f"{s}/RAW/OAS1_0001_MR1_mpr-{run}_anon")
+    _analyze(m, f"{s}/PROCESSED/MPRAGE/T88_111/"
+                "OAS1_0001_MR1_mpr_n4_anon_111_t88_gfc")
+    make_tar(src / "oasis_cross-sectional_disc1.tar.gz", m)
+    report = roast(root, keys={"raw", "tal"}, display=False)
+    assert report.counts["tal"] == {"done": 3, "error": 1}
+    assert raw_tree(root) == raw_runs(1)
+    assert drv_tree(root) == tal_files() - {
+        f"{TAL}_desc-skullstripped_T1w.nii.gz"}
+
+
+def test_members_read_in_archive_order(root, monkeypatch):
+    """One forward pass: members are extracted in archive order"""
+    read = []
+    real = roaster.TarArchive
+
+    class Spy(real):
+        def extractfile(self, member):
+            read.append(self.getmember(member).offset)
+            return super().extractfile(member)
+
+    monkeypatch.setattr(roaster, "TarArchive", Spy)
+    report = roast(root, keys={"raw", "avg", "tal", "fsl"}, discs=[1],
+                   display=False)
+    assert not report.errors
+    assert len(read) == 2 * 2 * 6 and read == sorted(read)
 
 
 def test_missing_processed_image(root):
@@ -291,8 +354,11 @@ def test_missing_freesurfer_disc(root):
     freesurfer_disc(root / "sourcedata")
     # disc 2 is missing; there is no FreeSurfer disc 12
     report = roast(root, keys={"fs"}, discs=[1, 2, 12], display=False)
-    assert report.counts["fs"]["error"] == 1
+    assert report.counts["discs"]["error"] == 1
     assert f"{SEG}.nii.gz" in drv_tree(root, FS)
+    # not named: skipped (as by the legacy roaster)
+    report = roast(root, keys={"fs"}, display=False)
+    assert not report.errors
 
 
 @pytest.mark.parametrize("keys", [{"meta"}, {"fs"}])
@@ -361,23 +427,22 @@ def test_cli_layout(tmp_path, layout):
     assert (root / "rawbids").is_dir() == (layout == "study")
 
 
-def test_rerun_skips_subjects(root, monkeypatch):
-    """Under `skip`, unchanged subjects are not roasted again; another
-    `--if-exists` policy or a changed disc runs them again"""
+def test_rerun_skips_discs(root, monkeypatch):
+    """Under `skip`, unchanged discs are not read again; another
+    `--if-exists` policy, a changed disc or template runs them again"""
     report = roast(root, keys={"raw"}, discs=[1], display=False)
     assert report.counts["raw"] == {"done": 8}
     states = read_task_states(layout_of(root).state)
-    assert {"roast/subjects/sub-0001", "roast/subjects/sub-0002"} <= \
-        set(states)
+    assert states["roast/discs/raw-disc01"]["status"] == "done"
 
     calls = []
-    real = roaster.roast_images
+    real = roaster.roast_image_disc
 
-    def spy(ctx, sub, tarball):
-        calls.append(sub)
-        return real(ctx, sub, tarball)
+    def spy(ctx, path):
+        calls.append(path.name)
+        return real(ctx, path)
 
-    monkeypatch.setattr(roaster, "roast_images", spy)
+    monkeypatch.setattr(roaster, "roast_image_disc", spy)
     report = roast(root, keys={"raw"}, discs=[1], display=False)
     # (a skipped shard counts what it did last time as skipped)
     assert calls == [] and report.counts == {"raw": {"skipped": 8}}
@@ -387,7 +452,7 @@ def test_rerun_skips_subjects(root, monkeypatch):
     sidecar.write_text("{}")
     roast(root, keys={"raw"}, discs=[1], ifexists="overwrite",
           display=False)
-    assert sorted(calls) == ["0001", "0002"]
+    assert calls == ["oasis_cross-sectional_disc1.tar.gz"]
     assert json.loads(sidecar.read_text()) != {}
 
     calls.clear()
@@ -396,8 +461,30 @@ def test_rerun_skips_subjects(root, monkeypatch):
     mtime = disc.stat().st_mtime - 3600
     os.utime(disc, (mtime, mtime))
     report = roast(root, keys={"raw"}, discs=[1], display=False)
-    assert sorted(calls) == ["0001", "0002"]
-    assert report.counts["raw"] == {"skipped": 8}
+    assert len(calls) == 1 and report.counts["raw"] == {"skipped": 8}
+
+    # a template (`ctx.resource`: `sourcedata/` first) is an input
+    calls.clear()
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    roast(root, keys={"raw"}, discs=[1], display=False)
+    assert len(calls) == 1
+    roast(root, keys={"raw"}, discs=[1], ifexists="overwrite",
+          display=False)
+    assert json.loads(sidecar.read_text()) == {"EchoTime": 1}
+
+
+def test_spreadsheet_edit_updates_participants(root):
+    roast(root, keys={"meta", "raw"}, discs=[1], display=False)
+    xlsx = root / "sourcedata" / "oasis_cross-sectional.xlsx"
+    book = openpyxl.load_workbook(xlsx)
+    book.active["B2"] = "M"
+    book.active.append([None] * 12)             # a blank trailing row
+    book.active["A6"] = "  "
+    book.save(xlsx)
+    report = roast(root, keys={"meta", "raw"}, discs=[1], display=False)
+    assert not report.errors
+    rows = read_tsv(raw_file(root, "participants.tsv"))
+    assert rows[1][:2] == ["sub-0001", "M"] and len(rows) == 3
 
 
 def test_roast_shards_in_processes(root):
@@ -406,4 +493,4 @@ def test_roast_shards_in_processes(root):
     assert not report.errors
     assert raw_tree(root) == META | raw_runs(1) | raw_runs(2)
     assert f"{SEG}.nii.gz" in drv_tree(root, FS)
-    assert len(drv_tree(root)) == 2 * 8
+    assert len(drv_tree(root)) == 2 * 8 + 1        # + dseg.tsv

@@ -634,7 +634,8 @@ def test_repair_json(tmp_path):
     desc = tmp_path / "dataset_description.json"
     desc.write_text('{"Name": "X",\xa0"BIDSVersion": "1.0.1",'
                     ' "Authors": ["A\tB"], "Funding": "grant",'
-                    ' "Acknowledgements": ["C", "D"]}')
+                    ' "Acknowledgements": ["C", "D"]}',
+                    encoding="utf-8")          # (BIDS JSON is UTF-8)
     mp2rage = tmp_path / "sub-1_inv-1_MP2RAGE.json"
     mp2rage.write_text('{"RepetitionTime": 5}')
     magnitude = tmp_path / "sub-1_magnitude1.json"

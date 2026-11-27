@@ -181,7 +181,8 @@ def repair_json(path: Path) -> bool:
         unchanged = False
     if unchanged:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8", newline="\n")
     return True
 
 
@@ -194,7 +195,7 @@ def _phasediff(path: Path, meta: dict) -> dict:
     if "EchoTime" not in meta or not magnitude.exists():
         return meta
     try:
-        te1 = loads(magnitude.read_text()).get("EchoTime")
+        te1 = loads(magnitude.read_text(encoding="utf-8")).get("EchoTime")
     except json.JSONDecodeError:
         return meta
     te2 = meta["EchoTime"]
@@ -245,7 +246,7 @@ def repair_tsv(path: Path) -> bool:
     out = "".join("\t".join(r) + "\n" for r in [header, *body])
     if out == text:
         return False
-    path.write_text(out)
+    path.write_text(out, encoding="utf-8", newline="\n")
     return True
 
 
@@ -304,7 +305,7 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
     session = subject / rel.parts[1] \
         if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
     try:
-        meta = loads(path.read_text())
+        meta = loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return False
     if not isinstance(meta, dict) or "IntendedFor" not in meta:
@@ -343,7 +344,8 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
         fixed.pop("IntendedFor")
     if fixed == meta:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8", newline="\n")
     return True
 
 
@@ -351,7 +353,8 @@ def _bidsignore(root: Path) -> list[str]:
     path = Path(root) / ".bidsignore"
     if not path.exists():
         return []
-    return [line.strip().lstrip("/") for line in path.read_text().splitlines()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [line.strip().lstrip("/") for line in lines
             if line.strip() and not line.startswith("#")]
 
 

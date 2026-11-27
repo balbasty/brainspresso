@@ -36,6 +36,35 @@ __all__ = [
 ]
 
 
+def _text_options(mode: str, options: dict) -> dict:
+    r"""
+    Options of `open`, with the defaults of text files.
+
+    Text files are UTF-8 (BIDS), and written with "\n" line endings, so
+    that outputs are byte-identical on every platform (the locale
+    encoding and "\r\n" of Windows otherwise). Readers keep universal
+    newlines.
+
+    Parameters
+    ----------
+    mode : str
+        Opening mode
+    options : dict
+        Options given (they win)
+
+    Returns
+    -------
+    dict
+        Options to pass to `open`
+    """
+    if "b" in mode:
+        return dict(options)
+    defaults = {"encoding": "utf-8"}
+    if _is_writer(mode):
+        defaults["newline"] = "\n"
+    return {**defaults, **options}
+
+
 def _folder_in_the_way(src: Path, dst: Path) -> bool:
     """Whether a rename of file `src` failed because `dst` is a folder."""
     return src.is_file() and dst.is_dir() and not dst.is_symlink()
@@ -599,7 +628,8 @@ class FileObj(FileObjMixin, File):
         """Lock the file and open the file object."""
         super().__enter__()
         try:
-            self.fileobj = self.safename.open(self.mode)
+            self.fileobj = self.safename.open(
+                self.mode, **_text_options(self.mode, {}))
         except BaseException as e:
             super().__exit__(type(e), e, e.__traceback__)
             raise
@@ -676,7 +706,8 @@ class OpenedFile(FileObjMixin):
 
         # protection deferred to here (`File(path)` without mode)
         self.file.protect(mode)
-        self.fileobj: IO = self.file.safename.open(mode, **self.kwargs)
+        self.fileobj: IO = self.file.safename.open(
+            mode, **_text_options(mode, self.kwargs))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:

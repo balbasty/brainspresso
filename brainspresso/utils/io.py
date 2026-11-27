@@ -88,7 +88,7 @@ def read_json(src, **kwargs):
         Nested structure
     """
     if isinstance(src, (str, Path)):
-        with open(src, 'rt') as fsrc:
+        with open(src, 'rt', encoding='utf-8') as fsrc:
             return read_json(fsrc, **kwargs)
     return json.load(src, **kwargs)
 
@@ -114,7 +114,7 @@ def write_json(src, dst, makedirs=True, **kwargs):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return write_json(src, fdst, **kwargs)
     kwargs.setdefault('indent', 2)
     json.dump(src, dst, **kwargs)
@@ -142,10 +142,10 @@ def copy_json(src, dst, makedirs=True, **kwargs):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return copy_json(src, fdst, **kwargs, makedirs=False)
     if isinstance(src, (str, Path)):
-        with open(src, 'rt') as fsrc:
+        with open(src, 'rt', encoding='utf-8') as fsrc:
             return copy_json(fsrc, dst, **kwargs, makedirs=False)
     kwargs.setdefault('indent', 2)
     json.dump(json.load(src), dst, **kwargs)
@@ -172,7 +172,7 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt', newline='') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='') as fdst:
             return write_tsv(src, fdst, makedirs=False, **kwargs)
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
@@ -230,7 +230,7 @@ def write_text(src, dst, makedirs=True):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return write_text(src, fdst, makedirs=False)
     dst.write(src)
 

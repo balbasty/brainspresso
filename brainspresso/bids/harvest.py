@@ -440,7 +440,7 @@ def record_run(
     manifest = {}
     if path.exists():
         try:
-            manifest = json.loads(path.read_text())
+            manifest = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             shutil.copy(path, path.with_suffix(".json.bak"))
             manifest = {}
@@ -454,7 +454,8 @@ def record_run(
         entries.pop(f, None)
     entries.update(files or {})
     layout.ensure_state()
-    path.write_text(json.dumps(manifest, indent=2, default=str))
+    path.write_text(json.dumps(manifest, indent=2, default=str),
+                    encoding="utf-8", newline="\n")
     return path
 
 

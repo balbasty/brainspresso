@@ -226,7 +226,8 @@ def needed(ctx, path, kind="data") -> bool:
 
 
 def read_table(path) -> list[list[str]]:
-    return [line.split() for line in path.read_text().splitlines()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [line.split() for line in lines
             if line.strip()]
 
 

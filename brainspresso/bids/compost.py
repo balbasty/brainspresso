@@ -157,7 +157,7 @@ def restrict_participants(
     table = find_participants(layout)
     if table is None:
         raise UsageError("--where requires a participants.tsv file")
-    matching = query_participants(table.read_text(), where)
+    matching = query_participants(table.read_text(encoding="utf-8"), where)
     if selection.subs:
         matching &= set(selection.subs)
     lg.info(f"{len(matching)} participants match {where}")

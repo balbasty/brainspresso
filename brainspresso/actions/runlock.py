@@ -94,7 +94,7 @@ def read_records(state: str | os.PathLike) -> list[dict]:
     folder = Path(state) / RECORDS_DIR
     for path in sorted(folder.glob("*.json")) if folder.is_dir() else ():
         try:
-            record = json.loads(path.read_text())
+            record = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         record["file"] = str(path)
@@ -198,7 +198,7 @@ def _write_record(state: Path, command: str) -> Path:
         .isoformat(timespec="seconds"),
     }
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(record))
+    tmp.write_text(json.dumps(record), encoding="utf-8", newline="\n")
     os.replace(tmp, path)
     return path
 

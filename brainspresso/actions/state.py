@@ -104,7 +104,8 @@ def write_task_state(
     # long task id plus a suffix could exceed the limit of file names
     tmp = path.with_name(f".{os.getpid()}-{secrets.token_hex(4)}.tmp")
     try:
-        tmp.write_text(json.dumps(record, indent=2, default=str))
+        tmp.write_text(json.dumps(record, indent=2, default=str),
+                       encoding="utf-8", newline="\n")
         _replace(tmp, path)
     except BaseException:
         tmp.unlink(missing_ok=True)
@@ -189,7 +190,8 @@ def read_task(state: str | os.PathLike, task: str) -> dict | None:
         Its content (None if missing or invalid)
     """
     try:
-        return json.loads(task_path(state, task).read_text())
+        path = task_path(state, task)
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
@@ -214,7 +216,7 @@ def read_task_states(state: str | os.PathLike) -> dict[str, dict]:
         return out
     for path in sorted(folder.glob("*.json")):
         try:
-            record = json.loads(path.read_text())
+            record = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             lg.warning(f"Could not parse {path}")
             continue

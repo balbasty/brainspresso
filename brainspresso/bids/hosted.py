@@ -599,21 +599,25 @@ def relabel_scans(text: str, mapping: Mapping[str, str],
     """
     if not mapping:
         return text
-    lines = text.replace("\r\n", "\n").split("\n")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
     header = lines[0].split("\t")
     if "filename" not in header:
         return text
     col = header.index("filename")
-    out = [lines[0]]
+    out, changed = [lines[0]], False
     for line in lines[1:]:
         cells = line.split("\t")
         if len(cells) > col and cells[col]:
             path = f"{remote}/{cells[col]}"
             mapped = mapping.get(path, path)
-            if mapped.startswith(local + "/"):
+            if mapped.startswith(local + "/") and \
+                    mapped[len(local) + 1:] != cells[col]:
                 cells[col] = mapped[len(local) + 1:]
+                changed = True
         out.append("\t".join(cells))
-    return "\n".join(out)
+    # (line endings kept; unchanged text as it was)
+    return newline.join(out) if changed else text
 
 
 # ----------------------------------------------------------------------

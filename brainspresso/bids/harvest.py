@@ -757,7 +757,8 @@ def write_manifest(
 
 
 def trim_originals(layout: Layout,
-                   present: Iterable[str] | None = None) -> list[str]:
+                   present: Iterable[str] | None = None,
+                   untrimmed: Iterable[str] = ()) -> list[str]:
     """
     Derive the visible tables of a roasted dataset from pristine copies.
 
@@ -774,6 +775,9 @@ def trim_originals(layout: Layout,
         Files that count as present although they are not on disk
         (relative to `layout.root`: data selected but not fetched,
         `--sidecars only`)
+    untrimmed : iterable of str
+        Tables not to trim (relative to `layout.root`: harvested with
+        `--no-trim`; their pristine copy in `<state>/orig/` is kept)
 
     Returns
     -------
@@ -781,6 +785,7 @@ def trim_originals(layout: Layout,
         The tables written, relative to `layout.root`
     """
     present = _present(present)
+    untrimmed = set(untrimmed)
     orig = Path(layout.state) / ORIG_DIR
     if not orig.is_dir():
         return []
@@ -794,6 +799,8 @@ def trim_originals(layout: Layout,
         if Path(relpath).name != "participants.tsv" and \
                 not (Path(layout.root) / relpath).parent.is_dir() and \
                 folder not in present["dirs"]:
+            continue
+        if relpath in untrimmed:
             continue
         originals[relpath] = path
     written = trim_tables(layout.root, originals, present=present["files"])

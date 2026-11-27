@@ -621,7 +621,8 @@ def _signature(ctx: Context, policy: Policy, shard: Shard) -> str | None:
     blob = json.dumps({
         "version": _SIGNATURE_VERSION, "inputs": inputs,
         **policy.fingerprint(ctx),
-        **({"config": config} if config is not None else {}),
+        # (a key no policy fingerprint uses)
+        **({"shard_config": config} if config is not None else {}),
     }, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()
 

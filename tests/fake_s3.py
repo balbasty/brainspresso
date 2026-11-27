@@ -33,12 +33,13 @@ def serve(application):
     return f"http://127.0.0.1:{port}", stop
 
 
-def bucket_app(name: str, objects: dict, requests=None):
+def bucket_app(name: str, objects: dict, requests=None, fail=None):
     """
     An aiohttp app serving `objects` ({key: bytes}) as bucket `name`.
 
     `objects` is read at each request (tests may change it); `requests`
-    (a Counter) counts listings by prefix and downloads by key.
+    (a Counter) counts listings by prefix and downloads by key; the keys
+    in `fail` (a set) are listed, but their download fails (404).
     """
     def listing(request):
         prefix = request.query.get("prefix", "")
@@ -78,7 +79,7 @@ def bucket_app(name: str, objects: dict, requests=None):
         key = request.match_info["key"]
         if requests is not None:
             requests["GET " + key] += 1
-        if key not in objects:
+        if key not in objects or key in (fail or ()):
             raise web.HTTPNotFound()
         return web.Response(body=objects[key])
 

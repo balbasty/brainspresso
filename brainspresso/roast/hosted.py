@@ -121,21 +121,22 @@ def _remote_fields(entry, rel: str) -> dict:
     """
     Remote path of an entry, where it differs from its local one.
 
-    `remote` is relative to `remote_root`, the folder of the remote BIDS
-    dataset that holds it (INDI: its site): the paths that its sidecars
-    and tables give are relative to it. Nothing for an entry placed
-    under its remote name (OpenNeuro).
+    `remote_root` is the folder of the remote BIDS dataset that holds it
+    (INDI: its site), recorded on every entry that has one, renamed or
+    not: the paths that its sidecars and tables give are relative to it.
+    `remote` is its path there, recorded where it differs from the local
+    one. Nothing for a listing without remote roots (OpenNeuro: placed
+    under its remote names).
     """
     meta = getattr(entry, "meta", None) or {}
     remote = meta.get("remote")
-    if remote is None:
-        return {}
     root = str(meta.get("remote_root") or "").strip("/")
-    if root and remote.startswith(root + "/"):
-        remote = remote[len(root) + 1:]
-    if remote == rel:
+    if remote is None or not root:
         return {}
-    return {"remote": remote, **({"remote_root": root} if root else {})}
+    if remote.startswith(root + "/"):
+        remote = remote[len(root) + 1:]
+    return {"remote_root": root,
+            **({"remote": remote} if remote != rel else {})}
 
 
 def harvest_hosted(
@@ -454,10 +455,10 @@ def _plan(
         label = _subject(rel)
         if label and entry.get("site"):
             subject_sites.setdefault(label, entry["site"])
-        remote = entry.get("remote")
-        if isinstance(remote, str):
+        if entry.get("remote_root"):
+            remote = str(entry.get("remote") or rel)
             remapped.setdefault(
-                (entry.get("remote_root") or "", remote.split("/")[0]), {}
+                (entry["remote_root"], remote.split("/")[0]), {}
             )[remote] = rel
 
     def read(rel):
@@ -542,11 +543,11 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
     previous = sorted(plan.previous) if plan else []
     # paths of the file in the remote layout (remapped labels, runs...)
     relabel = None
-    if fmap or name.endswith("_scans.tsv"):
+    if (fmap or name.endswith("_scans.tsv")) and entry.get("remote_root"):
         remote = str(entry.get("remote") or rel)
         mapping = context["remapped"].get(
-            (entry.get("remote_root") or "", remote.split("/")[0]), {})
-        if mapping:
+            (entry["remote_root"], remote.split("/")[0]), {})
+        if any(k != v for k, v in mapping.items()):
             if fmap:
                 relabel = [mapping, remote.split("/")[0], rel.split("/")[0]]
             else:
@@ -567,7 +568,8 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "fill": plan,
         "subject": _subject(rel),
         "table": table,
-        # a pristine table copy that a roast without trimming removes
+        # a full table that a roast without trimming starts from when the
+        # pristine copy is gone (it is kept: no row is ever lost)
         "orig": str(layout.original(target)) if trimmable and not table
         else None,
         "sha256": entry.get("sha256"),
@@ -658,8 +660,13 @@ def _edited(item: dict) -> bool:
         return False
     if _renders(item, data):
         return False
-    if item["sha256"] is None and item["fill"] is not None:
-        return not _renders({**item, "fill": None}, data)
+    if item["sha256"] is None:
+        # what an older harvest may have written: no fill-in, paths not
+        # remapped, or neither
+        for older in ({"fill": None}, {"relabel": None},
+                      {"fill": None, "relabel": None}):
+            if _renders({**item, **older}, data):
+                return False
     return True
 
 
@@ -674,13 +681,19 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
     ifexists = "different" if skip else None
     missing = source is not None and not Path(source).exists()
+    if missing and item["orig"] and Path(item["orig"]).exists():
+        # not trimmed, no pristine copy: the full table in `orig/`
+        item = {**item, "source": item["orig"], "repair": False,
+                "relabel": None}
+        missing = False
     if missing and not dst.exists():
+        if item["table"] and Path(item["target"]).exists():
+            # (an older harvest: neither `orig/` nor a pristine copy)
+            lg.info(f"{item['key']}: no pristine copy, left as it is")
+            return
         yield Fail(f"{item['key']}: its pristine copy {source} is "
                    f"missing (harvest again)", name=dst.name, tag=ctx.tag)
         return
-    if item["orig"] and Path(item["orig"]).exists():
-        # not trimmed (any more): no stale pristine table to trim from
-        yield Unlink(item["orig"], tag=ctx.tag)
     edited = item.get("edited")
     if edited is None:
         edited = skip and not missing and _edited(item)
@@ -809,8 +822,7 @@ def roast_metadata(ctx: RoastContext, items: Iterable[dict] = (),
     Action | Shard
     """
     for orphan in orphans:
-        if orphan["subject"] is None or \
-                ctx.selection.keeps_subject(orphan["subject"]):
+        if orphan.get("handled", True):
             yield from _orphan_actions(ctx, orphan)
     subjects: dict[str, list[dict]] = {}
     for item in items:
@@ -896,11 +908,16 @@ def roast_hosted(
         every=every)
     skip = IfExists.from_any(ifexists) is IfExists.SKIP
     for item in items:
-        if item["source"] is not None and not Path(item["source"]).exists():
+        if item["source"] is not None and \
+                not Path(item["source"]).exists() and \
+                not (item["orig"] and Path(item["orig"]).exists()):
             # (no pristine copy: decided here, before the file changes)
             item["edited"] = skip and _edited(item)
     unfetched = sorted(k for k, v in every.items()
                        if v.get("fetched") is False)
+    untrimmed = sorted(
+        k for k, v in every.items() if v.get("trim") is False and (
+            is_trimmable(k) or k.endswith("/participants.tsv")))
     base = selection or Selection()
     ctx = RoastContext(
         layout=layout,
@@ -910,12 +927,17 @@ def roast_hosted(
         )),
         json=json, ifexists=ifexists, tag=TAG,
     )
+    for orphan in orphans:
+        # what this roast handles: in the selection, under the policy
+        orphan["handled"] = ctx.accepts("sidecar") and (
+            orphan["subject"] is None
+            or ctx.selection.keeps_subject(orphan["subject"]))
     roaster = functools.partial(roast_metadata, items=items,
                                 orphans=orphans)
     roaster.__name__ = "roast_metadata"
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
                        info={"hosted": True, **(info or {})},
-                       present=unfetched)
+                       present=unfetched, untrimmed=untrimmed)
     _record(layout, items, orphans, report)
     return report
 
@@ -949,13 +971,21 @@ def _record(layout, items, orphans, report) -> None:
             continue
         data = dst.read_bytes()
         missing = item["source"] is not None and \
-            not Path(item["source"]).exists()
+            not Path(item["source"]).exists() and \
+            not (item["orig"] and Path(item["orig"]).exists())
         if missing:
-            ours = not item.get("edited")
-        else:
-            ours = _renders(item, data)
-        if not ours:
+            # trimmed in place: its hash if unedited; its fill-in list
+            # untouched (nothing merged)
+            if not item.get("edited"):
+                recorded[item["key"]] = {"sha256": sha256(data)}
             continue
+        source = item["source"]
+        if not _renders(item, data):
+            # (a no-trim table without pristine copy: from `orig/`)
+            if not (item["orig"] and source and not Path(source).exists()
+                    and _renders({**item, "source": item["orig"],
+                                  "repair": False, "relabel": None}, data)):
+                continue
         entry = recorded[item["key"]] = {"sha256": sha256(data)}
         # (None removes a stale list)
         entry["fill"] = item["fill"].ids if item["fill"] else None
@@ -965,7 +995,7 @@ def _record(layout, items, orphans, report) -> None:
     for orphan in orphans:
         if not Path(orphan["dst"]).exists():
             deleted.append(orphan["key"])
-        else:
+        elif orphan.get("handled"):
             recorded[orphan["key"]] = {"fill": None}    # (a kept edit)
     if recorded or deleted:
         update_files(layout, recorded, deleted=deleted)

@@ -59,6 +59,7 @@ def run_roast(
     executor=None,
     policy: RoastPolicy | None = None,
     present: Iterable[str] | None = None,
+    untrimmed: Iterable[str] = (),
 ) -> RoastReport:
     """
     Run a roaster and the common steps that follow every roast.
@@ -84,6 +85,8 @@ def run_roast(
         Files that count as present for the trimming of tables although
         they are not on disk (relative to `layout.root`; hosted datasets
         harvested with `--sidecars only`)
+    untrimmed : iterable of str
+        Tables not to trim (relative to `layout.root`)
 
     Returns
     -------
@@ -100,7 +103,7 @@ def run_roast(
     finally:
         status = report.status
         try:
-            trim_originals(ctx.layout, present)
+            trim_originals(ctx.layout, present, untrimmed)
         except Exception as e:
             lg.error(f"Could not trim tables: {e}\n{traceback.format_exc()}")
             report.status = status = "failed" if status == "failed" \

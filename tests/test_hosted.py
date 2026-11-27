@@ -9,6 +9,7 @@ templates add the keys that hosted sidecars lack.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -279,11 +280,13 @@ ON = {
 }
 ON_OBJECTS = {f"{DS}/{k}": v for k, v in ON.items()}
 ON_REQUESTS = Counter()
+ON_FAIL = set()                 # listed, but their download fails
 
 
 @pytest.fixture(scope="module")
 def openneuro_url():
-    url, stop = serve(bucket_app("openneuro.org", ON_OBJECTS, ON_REQUESTS))
+    url, stop = serve(bucket_app("openneuro.org", ON_OBJECTS, ON_REQUESTS,
+                                 ON_FAIL))
     yield url
     stop()
 
@@ -293,10 +296,12 @@ def openneuro(openneuro_url, monkeypatch):
     monkeypatch.setattr(openneuro_mod, "S3Bucket",
                         lambda name: S3Bucket(name, endpoint=openneuro_url))
     ON_REQUESTS.clear()
+    ON_FAIL.clear()
     original = dict(ON_OBJECTS)
     yield ON_OBJECTS
     ON_OBJECTS.clear()
     ON_OBJECTS.update(original)
+    ON_FAIL.clear()
 
 
 def on(command, path, *args):
@@ -875,6 +880,16 @@ INDI.update({
     f"{CODED}/A/sub-01/fmap/sub-01_phasediff.nii.gz": b"\x07" * 32,
     f"{CODED}/A/sub-01/fmap/sub-01_phasediff.json": b'{"EchoTime": 0.00738}',
     f"{CODED}/B/sub-01/anat/sub-01_T1w.nii.gz": b"\x08" * 32,
+    f"{CODED}/B/sub-02/anat/sub-02_T1w.nii.gz": b"\x0c" * 32,
+    # a single site whose run folders become `run-<n>` (fcon1000-like)
+    f"{P}/RUNS/raw/sub-01/func_2/sub-01_task-rest_bold.nii.gz":
+        b"\x0d" * 32,
+    f"{P}/RUNS/raw/sub-01/fmap/sub-01_epi.nii.gz": b"\x0e" * 32,
+    f"{P}/RUNS/raw/sub-01/fmap/sub-01_epi.json":
+        b'{"IntendedFor": "func_2/sub-01_task-rest_bold.nii.gz"}',
+    f"{P}/RUNS/raw/sub-01/sub-01_scans.tsv": tsv(
+        ["filename", "acq_time"],
+        ["func_2/sub-01_task-rest_bold.nii.gz", "n/a"]),
     # paths in the hosted metadata, with the labels of the bucket
     f"{CODED}/A/sub-01/func/sub-01_task-rest_bold.nii.gz": b"\x09" * 32,
     f"{CODED}/A/sub-01/fmap/sub-01_dir-AP_epi.nii.gz": b"\x0a" * 32,
@@ -968,7 +983,8 @@ def test_no_trim_restores_the_full_table(tmp_path, openneuro):
     assert table_rows(table) == ["sub-01"]
     on("harvest", tmp_path, "--subs", "01", "--no-trim")
     assert table.read_bytes() == ON["participants.tsv"]
-    assert not lay.original(table).exists()
+    # (the full table in `orig/` is kept, not trimmed from)
+    assert lay.original(table).read_bytes() == ON["participants.tsv"]
     on("roast", tmp_path)                       # stays untrimmed
     assert table.read_bytes() == ON["participants.tsv"]
     on("harvest", tmp_path, "--subs", "01")     # trimmed again
@@ -1135,3 +1151,95 @@ def test_read_manifest_that_is_not_utf8(tmp_path, caplog):
     (state / "manifest.json").write_bytes(b'{"x": "\xe9"}')
     assert read_manifest(state) is None
     assert "Could not parse" in caplog.text
+
+
+
+# ----------------------------------------------------------------------
+#   Review of #27 (round 3)
+# ----------------------------------------------------------------------
+
+class Runs(Project):
+    """One site; run folders (`func_2/`) become `run-<n>` entities."""
+
+    name = "runs"
+    folder = "RUNS"
+    title = "Runs"
+    sites = (Site("", "RUNS/raw"),)
+
+    def remap(self, items):
+        for path, it in super().remap(items):
+            yield re.sub(r"/func_(\d+)/(sub-[^_]+)_task-rest_bold",
+                         r"/func/\2_task-rest_run-\1_bold", path), it
+
+
+def test_unrenamed_files_point_at_renamed_runs(tmp_path, templates):
+    INDIDataset(Runs()).execute("harvest", path=tmp_path)
+    raw = Layout.detect(tmp_path / "RUNS").raw
+    assert (raw / "sub-01/func/sub-01_task-rest_run-2_bold.nii.gz").exists()
+    # the field map and the scans table kept their names
+    assert read_json(raw / "sub-01/fmap/sub-01_epi.json") == {
+        "IntendedFor": ["func/sub-01_task-rest_run-2_bold.nii.gz"]}
+    assert table_rows(raw / "sub-01/sub-01_scans.tsv") == [
+        "func/sub-01_task-rest_run-2_bold.nii.gz"]
+
+
+def test_no_trim_without_pristine_copy_keeps_every_row(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    table = lay.raw / "participants.tsv"
+    on("compost", tmp_path, "--sourcedata", "--yes")
+    # the pristine table cannot be fetched again
+    ON_FAIL.add(f"{DS}/participants.tsv")
+    bx("openneuro", "harvest", DS, tmp_path, "--source", "s3", "--subs",
+       "01", "--no-trim")
+    assert table.read_bytes() == ON["participants.tsv"]
+    assert lay.original(table).read_bytes() == ON["participants.tsv"]
+
+
+def test_orphans_outside_the_selection_are_kept_for_later(tmp_path,
+                                                          templates):
+    coded = templates / "coded"
+    write(coded / "_fill.json", '{"fill": ["B/T1w.json"]}')
+    write(coded / "B/T1w.json", '{"Manufacturer": "GE"}')
+    dataset = INDIDataset(Coded())
+    dataset.execute("harvest", path=tmp_path)
+    lay = Layout.detect(tmp_path / "CODED")
+    one = lay.raw / "sub-B01/sub-B01_T1w.json"
+    two = lay.raw / "sub-B02/sub-B02_T1w.json"
+    assert read_json(one) == read_json(two) == {"Manufacturer": "GE"}
+    (coded / "_fill.json").unlink()
+    (coded / "B/T1w.json").unlink()
+    roast_hosted(lay, selection=Selection(subs=["B01"]), display=False)
+    assert not one.exists() and two.exists()
+    assert manifest_entry(lay, two)["fill"] == ["B/T1w.json"]
+    roast_hosted(lay, display=False)
+    assert not two.exists()
+    assert "rawbids/sub-B02/sub-B02_T1w.json" not in \
+        read_manifest(lay.state)["files"]
+
+
+def test_older_field_maps_with_remapped_targets_are_ours(tmp_path,
+                                                         templates, caplog):
+    INDIDataset(Coded()).execute("harvest", path=tmp_path)
+    lay = Layout.detect(tmp_path / "CODED")
+    epi = lay.raw / "sub-A01/fmap/sub-A01_dir-AP_epi.json"
+    relabelled = epi.read_bytes()
+    # what an older harvest wrote: paths not remapped, so all trimmed
+    epi.write_text('{\n  "B0FieldIdentifier": "pepolar"\n}\n')
+    update_files(lay, {k: {"sha256": None} for k in
+                       read_manifest(lay.state)["files"]})
+    caplog.clear()
+    roast_hosted(lay, selection=Selection(subs=["A01"]), display=False)
+    assert epi.read_bytes() == relabelled
+    assert "was edited" not in caplog.text
+
+
+def test_old_tables_without_copies_are_left_alone(tmp_path, openneuro):
+    lay = on("harvest", tmp_path)
+    scans = lay.raw / "sub-01/sub-01_scans.tsv"
+    # an older harvest: no `orig/` copy, and no pristine copy any more
+    lay.original(scans).unlink()
+    on("compost", tmp_path, "--sourcedata", "--yes")
+    on("compost", tmp_path, "--exclude-subs", "03", "--yes")
+    runs = read_manifest(lay.state)["runs"]
+    assert runs[-2]["stage"] == "roast" and runs[-2]["status"] == "complete"
+    assert scans.exists()

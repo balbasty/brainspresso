@@ -589,9 +589,10 @@ def compost(
         if not plan.kept_subjects and plan.data:
             lg.warning("All subjects will be deleted")
 
-    if dry_run or not plan.files:
+    # (no file to delete, but unfetched entries to forget: no question)
+    if dry_run or not (plan.files or plan.forgotten):
         return plan
-    if not yes and not confirm(
+    if plan.files and not yes and not confirm(
         f"Permanently delete {len(plan.files)} files?", ask
     ):
         print("Aborted.")
@@ -608,10 +609,10 @@ def compost(
     count = delete_files(root, bids_files)
     if bids_files or plan.forgotten:
         update_files(plan.layout, deleted=[*bids_files, *plan.forgotten])
-    if trim and bids_files:
+    if trim and (bids_files or plan.forgotten):
         written = retrim_tables(plan.layout, unfetched_files(plan.layout))
         lg.info(f"Trimmed tables: {written}")
-    if after_data is not None and bids_files:
+    if after_data is not None and (bids_files or plan.forgotten):
         after_data(plan.layout)
     count += delete_files(root, plan.sourcedata)
     lg.info(f"Deleted {count} files under {root}")

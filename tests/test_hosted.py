@@ -20,7 +20,7 @@ from fake_s3 import bucket_app, serve
 
 from brainspresso.actions.state import read_task_states
 from brainspresso.bids.compost import compost
-from brainspresso.bids.harvest import sha256, update_files
+from brainspresso.bids.harvest import InlineEntry, sha256, update_files
 from brainspresso.bids.hosted import (
     FillPlan,
     FillTemplate,
@@ -33,13 +33,19 @@ from brainspresso.bids.hosted import (
     render,
 )
 from brainspresso.bids.layout import Layout, make_layout, read_manifest
+from brainspresso.bids.select import Selection
 from brainspresso.cli import app
 from brainspresso.datasets.catalog import load
 from brainspresso.datasets.INDI import engine
 from brainspresso.datasets.INDI.dataset import INDIDataset
 from brainspresso.datasets.INDI.engine import Project, Site
 from brainspresso.datasets.register import register
-from brainspresso.roast.hosted import RoastMetadata, _plan, roast_hosted
+from brainspresso.roast.hosted import (
+    RoastMetadata,
+    _plan,
+    harvest_hosted,
+    roast_hosted,
+)
 from brainspresso.sources import fcp
 from brainspresso.sources import openneuro as openneuro_mod
 from brainspresso.sources.s3 import S3Bucket
@@ -869,6 +875,25 @@ INDI.update({
     f"{CODED}/A/sub-01/fmap/sub-01_phasediff.nii.gz": b"\x07" * 32,
     f"{CODED}/A/sub-01/fmap/sub-01_phasediff.json": b'{"EchoTime": 0.00738}',
     f"{CODED}/B/sub-01/anat/sub-01_T1w.nii.gz": b"\x08" * 32,
+    # paths in the hosted metadata, with the labels of the bucket
+    f"{CODED}/A/sub-01/func/sub-01_task-rest_bold.nii.gz": b"\x09" * 32,
+    f"{CODED}/A/sub-01/fmap/sub-01_dir-AP_epi.nii.gz": b"\x0a" * 32,
+    f"{CODED}/A/sub-01/fmap/sub-01_dir-AP_epi.json": json.dumps({
+        "IntendedFor": ["func/sub-01_task-rest_bold.nii.gz",
+                        "bids::sub-01/func/sub-01_task-rest_bold.nii.gz",
+                        "dwi/sub-01_dwi.nii.gz"],
+        "B0FieldIdentifier": "pepolar"}).encode(),
+    f"{CODED}/A/sub-01/sub-01_scans.tsv": tsv(
+        ["filename", "acq_time"],
+        ["func/sub-01_task-rest_bold.nii.gz", "n/a"],
+        ["dwi/sub-01_dwi.nii.gz", "n/a"]),
+    # NKI-RS (single site): a hosted top-level sidecar
+    f"{P}/RocklandSample/RawDataBIDSLatest/participants.tsv": tsv(
+        ["participant_id", "age"], ["sub-A0001", "30"]),
+    f"{P}/RocklandSample/RawDataBIDSLatest/T1w.json":
+        b'{"EchoTime": "0.00247", "RepetitionTime": 2.5}',
+    f"{P}/RocklandSample/RawDataBIDSLatest/sub-A0001/ses-BAS1/anat/"
+    f"sub-A0001_ses-BAS1_T1w.nii.gz": b"\x0b" * 32,
 })
 
 
@@ -883,7 +908,7 @@ def test_phasediff_of_a_remapped_subject(tmp_path, templates):
     (fmap / "sub-A01_magnitude1.json").unlink()
     item, = (i for i in _plan(lay, {
         k: v for k, v in read_manifest(lay.state)["files"].items()
-        if v.get("source")}) if i["key"].endswith("_phasediff.json"))
+        if v.get("source")})[0] if i["key"].endswith("_phasediff.json"))
     assert Path(item["sibling"]).name == "sub-01_magnitude1.json"
     assert json.loads(RoastMetadata(item).render())["EchoTime1"] == 0.00492
 
@@ -916,3 +941,197 @@ def test_stale_fill_list_is_removed(tmp_path, templates):
     write(sald / "_fill.json", '{"fill": []}')
     bx("sald", "roast", out, "--if-exists", "different")
     assert "fill" not in manifest_entry(lay, bold)
+
+
+
+# ----------------------------------------------------------------------
+#   Review of #27 (round 2) and owner decisions
+# ----------------------------------------------------------------------
+
+def test_paths_in_hosted_metadata_are_relabelled(tmp_path, templates):
+    """Owner (Q1): paths are remapped as the images are, then trimmed."""
+    INDIDataset(Coded()).execute("harvest", path=tmp_path)
+    raw = Layout.detect(tmp_path / "CODED").raw
+    epi = read_json(raw / "sub-A01/fmap/sub-A01_dir-AP_epi.json")
+    assert epi["IntendedFor"] == [
+        "func/sub-A01_task-rest_bold.nii.gz",
+        "bids::sub-A01/func/sub-A01_task-rest_bold.nii.gz"]
+    assert epi["B0FieldIdentifier"] == "pepolar"   # an identifier
+    assert table_rows(raw / "sub-A01/sub-A01_scans.tsv") == [
+        "func/sub-A01_task-rest_bold.nii.gz"]
+
+
+def test_no_trim_restores_the_full_table(tmp_path, openneuro):
+    """Owner (Q5): trimming always starts from the pristine copy."""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    table = lay.raw / "participants.tsv"
+    assert table_rows(table) == ["sub-01"]
+    on("harvest", tmp_path, "--subs", "01", "--no-trim")
+    assert table.read_bytes() == ON["participants.tsv"]
+    assert not lay.original(table).exists()
+    on("roast", tmp_path)                       # stays untrimmed
+    assert table.read_bytes() == ON["participants.tsv"]
+    on("harvest", tmp_path, "--subs", "01")     # trimmed again
+    assert table_rows(table) == ["sub-01"]
+
+
+def test_skipped_shard_never_adopts_an_edit(tmp_path, openneuro, caplog):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    recorded = manifest_entry(lay, t1w)["sha256"]
+    t1w.write_text('{"EchoTime": 1}\n')
+    on("roast", tmp_path)                       # skipped: unchanged
+    assert manifest_entry(lay, t1w)["sha256"] == recorded
+    (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").write_text(
+        '{"EchoTime": 0.005}')
+    caplog.clear()
+    on("roast", tmp_path)
+    assert read_json(t1w) == {"EchoTime": 1}
+    assert "was edited since brainspresso wrote it" in caplog.text
+
+
+def test_edited_field_map_without_pristine_copy(tmp_path, openneuro):
+    lay = on("harvest", tmp_path)
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    recorded = manifest_entry(lay, fmap)["sha256"]
+    on("compost", tmp_path, "--sourcedata", "--yes")
+    fmap.write_text(json.dumps({**read_json(fmap), "Note": "mine"}))
+    on("compost", tmp_path, "--exclude", "sub-01/func/*", "--yes")
+    # only `IntendedFor` is trimmed; the edit is kept, not adopted
+    assert read_json(fmap) == {"Note": "mine"}
+    assert manifest_entry(lay, fmap)["sha256"] == recorded
+
+
+@pytest.mark.parametrize("with_pristine", [True, False])
+def test_edited_field_map_after_compost(tmp_path, openneuro, with_pristine):
+    lay = on("harvest", tmp_path)
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    if not with_pristine:
+        on("compost", tmp_path, "--sourcedata", "--yes")
+    fmap.write_text(json.dumps({**read_json(fmap), "Note": "mine"}))
+    on("compost", tmp_path, "--exclude", "sub-01/func/*", "--yes")
+    assert read_json(fmap) == {"Note": "mine"}
+
+
+def test_upgraded_dataset_gets_its_fill_ins(tmp_path, templates):
+    """An older harvest (no hashes, no fill-in): its files are ours."""
+    nki = templates / "nki-rs"
+    aside = tmp_path / "aside"
+    aside.mkdir()
+    fill = json.loads((nki / "_fill.json").read_text())["fill"]
+    for name in ["_fill.json", *fill]:
+        shutil.move(nki / name, aside / name)
+    out = tmp_path / "data"
+    bx("nki-rs", "harvest", out)
+    lay = Layout.detect(out / "NKI-RS")
+    t1w = lay.raw / "T1w.json"
+    assert read_json(t1w) == {"EchoTime": 0.00247, "RepetitionTime": 2.5}
+    update_files(lay, {k: {"sha256": None} for k in
+                       read_manifest(lay.state)["files"]})
+    for name in ["_fill.json", *fill]:
+        shutil.move(aside / name, nki / name)
+    bx("nki-rs", "harvest", out)
+    merged = read_json(t1w)
+    assert merged["EchoTime"] == 0.00247 and merged["RepetitionTime"] == 2.5
+    template = read_json(nki / "T1w.json")
+    assert set(template) <= set(merged)
+    assert manifest_entry(lay, t1w)["fill"] == ["T1w.json"]
+
+
+@pytest.mark.parametrize("edited", [False, True])
+def test_fill_in_sidecar_whose_template_is_gone(tmp_path, templates, caplog,
+                                                edited):
+    sald = templates / "sald"
+    for name in ("T1w.json", "task-rest_bold.json"):
+        (sald / name).unlink(missing_ok=True)
+    write(sald / "_fill.json", '{"fill": ["T1w.json"]}')
+    write(sald / "T1w.json", '{"Manufacturer": "Siemens"}')
+    out = tmp_path / "data"
+    bx("sald", "harvest", out)
+    lay = Layout.detect(out / "SALD")
+    t1w = lay.raw / "T1w.json"
+    if edited:
+        t1w.write_text('{"Manufacturer": "GE"}\n')
+    write(sald / "_fill.json", '{"fill": []}')
+    (sald / "T1w.json").unlink()
+    caplog.clear()
+    bx("sald", "roast", out)
+    files = read_manifest(lay.state)["files"]
+    if edited:
+        assert read_json(t1w) == {"Manufacturer": "GE"}
+        assert "no longer applies" in caplog.text
+        assert "fill" not in files["rawbids/T1w.json"]
+    else:
+        assert not t1w.exists()
+        assert "rawbids/T1w.json" not in files
+
+
+def test_top_level_sidecar_change_reaches_pushed_down_fill(tmp_path):
+    lay = make_layout("flat", tmp_path / "ds")
+    pristine = write(lay.source / "x/inv-1_MP2RAGE.json",
+                     '{"RepetitionTime": 5}')
+    write(lay.raw / "sub-A1/anat/sub-A1_inv-1_MP2RAGE.nii.gz", "x")
+    write(lay.state / "manifest.json", json.dumps({"layout": "flat",
+                                                   "files": {
+        "inv-1_MP2RAGE.json": {"origin": "roasted", "repair": True,
+                               "source": "sourcedata/x/inv-1_MP2RAGE.json"},
+        "sub-A1/anat/sub-A1_inv-1_MP2RAGE.nii.gz": {"origin": "direct",
+                                                    "site": "A"},
+    }}))
+    fill = [FillTemplate("MP2RAGE.json",
+                         {"RepetitionTimePreparation": 9, "FlipAngle": 4},
+                         "A")]
+    pushed = lay.raw / "sub-A1/sub-A1_MP2RAGE.json"
+    roast_hosted(lay, fill=fill, display=False)
+    assert read_json(pushed) == {"FlipAngle": 4}
+    # the hosted top-level sidecar now gives FlipAngle, not the TR
+    pristine.write_text('{"FlipAngle": 7}')
+    roast_hosted(lay, fill=fill, display=False)
+    assert read_json(pushed) == {"RepetitionTimePreparation": 9}
+
+
+def test_forgotten_unfetched_files_re_trim_field_maps(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01", "--sidecars", "only")
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    assert read_json(fmap)["IntendedFor"] == [
+        "func/sub-01_task-rest_bold.nii.gz"]
+    # nothing on disk to delete: only an unfetched file to forget
+    on("compost", tmp_path, "--exclude", "sub-01/func/*_bold.nii.gz",
+       "--yes")
+    assert "rawbids/sub-01/func/sub-01_task-rest_bold.nii.gz" not in \
+        read_manifest(lay.state)["files"]
+    assert "IntendedFor" not in read_json(fmap)
+    assert table_rows(lay.raw / "sub-01/sub-01_scans.tsv") == [
+        "anat/sub-01_T1w.nii.gz"]
+
+
+def test_directly_placed_generated_files_refresh_unless_edited(
+    tmp_path, caplog
+):
+    root = tmp_path / "ds"
+    selection = Selection(folders=["sourcedata"])
+
+    def harvest(text):
+        harvest_hosted([InlineEntry("sourcedata/notes.txt", text)], root,
+                       selection, folder="x", display=False)
+
+    harvest("v1")
+    lay = Layout.detect(root)
+    notes = lay.source / "notes.txt"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v1")
+    harvest("v2")                       # unedited: refreshed
+    assert notes.read_text() == "v2"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
+    notes.write_text("mine")
+    harvest("v3")                       # edited: kept
+    assert notes.read_text() == "mine"
+    assert "edited?" in caplog.text
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
+
+
+def test_read_manifest_that_is_not_utf8(tmp_path, caplog):
+    state = tmp_path / ".brainspresso"
+    state.mkdir()
+    (state / "manifest.json").write_bytes(b'{"x": "\xe9"}')
+    assert read_manifest(state) is None
+    assert "Could not parse" in caplog.text

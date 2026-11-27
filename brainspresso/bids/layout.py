@@ -110,7 +110,7 @@ def read_manifest(state: str | os.PathLike) -> dict | None:
         return None
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):       # (also not UTF-8)
         lg.warning(f"Could not parse {path}")
         return None
     return manifest if isinstance(manifest, dict) else None

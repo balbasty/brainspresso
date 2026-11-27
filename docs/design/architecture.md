@@ -363,8 +363,17 @@ project ported, since they share `Project.entries`):
   harvest asked for it (INDI yes, OpenNeuro no: validated datasets);
   field maps: free-text `IntendedFor` tags replaced, targets not on disk
   dropped (`trim`); phase differences read the pristine copy of their
-  `magnitude1`. Trimmable tables go to `<state>/orig/` and are trimmed by
-  `trim_originals`, as in every roast. It runs after the images are
+  `magnitude1`. Paths that hosted metadata gives (`IntendedFor` of
+  field maps, plain or `bids::`; the `filename` column of scans tables)
+  are remapped as the images are (site codes, label maps, runs,
+  typos: from the manifest's `remote`/`remote_root` of every remapped
+  file), then trimmed against what is present (owner, Q1); identifiers
+  (`B0FieldIdentifier`, `B0FieldSource`) are not paths and are kept.
+  Trimmable tables go to `<state>/orig/` (always the full table,
+  rendered from the pristine copy) and are trimmed by `trim_originals`,
+  as in every roast; a table roasted without trimming (`--no-trim`)
+  removes its `orig/` copy, so that trimming always starts from the
+  pristine copy and `--no-trim` restores the full table (owner, Q5). It runs after the images are
   placed, on its own (`bx <ds> roast`, everything the manifest records,
   no network), and after a compost of BIDS data (`existing_only`:
   files still there, never re-created). INDI and OpenNeuro gain a
@@ -410,9 +419,21 @@ Interactions (decided):
   it is a known earlier version of its template (`InlineEntry.previous`,
   `FillTemplate.previous`: refreshed) or already what the roast writes
   (adopted: its hash is recorded). A dataset without hashes (harvested
-  before they were recorded) follows the same rule: equal to the output,
-  adopted; else kept. New fill-in sidecars are judged from their own
-  record too.
+  before they were recorded): a file that is what the older harvest
+  wrote (the pristine copy repaired and trimmed, without fill-in) or
+  what this roast writes is ours (adopted, then rendered again, so
+  fill-ins reach upgraded datasets); any other is kept. New fill-in
+  sidecars are judged from their own record too. A hash is recorded
+  only for a file that holds what the roast writes (never for the
+  outputs a skipped shard replays). An edited field map is kept, but
+  its `IntendedFor` is trimmed in place (its other keys untouched, its
+  hash not adopted), as is a field map whose pristine copy is gone. A
+  fill-in sidecar whose template no longer applies is removed if
+  unedited (and forgotten), else kept with a warning. Directly placed
+  generated files keep #26's refresh-if-unedited (`write_inline`). The
+  signature of a subject shard also covers its `Shard.config`: the
+  options of each file (`repair`, `trim`, fill-in templates and their
+  excluded keys, unfetched files, remapped paths).
 * Pristine copy missing (composted with `--sourcedata`): the roasted
   file is left as it is (its existence then enters the signature), but
   a field map is still trimmed in place (`IntendedFor` of its file on
@@ -2011,7 +2032,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1412 passed, 2 skipped, 28 xfailed) |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1425 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -2377,3 +2398,14 @@ up as an XPASS failure once fixed (then drop the marker).
   difference siblings are found by their local name; compost roasts
   before deleting source data, and trims field maps in place without
   pristine copies; stale `fill` lists are removed.
+* r30: owner decisions on #27 and review round 2. Paths in hosted
+  metadata (`IntendedFor`, scans `filename`) are remapped like the
+  images, then trimmed (Q1); OpenNeuro repair stays off (Q2); edited
+  roasted files are kept under `skip` (Q4); trimming always starts from
+  the pristine copy, `--no-trim` restores full tables (Q5). Hashes are
+  recorded only for files holding what the roast writes; edited or
+  orphaned field maps are trimmed in place; the no-hash migration
+  compares with what an older harvest wrote; orphan fill-in sidecars are
+  removed; `Shard(config=)` enters shard signatures; directly placed
+  generated files refresh if unedited; compost applies forgotten
+  entries alone; `read_manifest` tolerates non-UTF-8 manifests.

@@ -412,7 +412,8 @@ class Project:
                 )
                 continue
             path = reorder_entities(path)
-            out[path] = remote_entry(it.obj, path, it.site.name)
+            out[path] = remote_entry(it.obj, path, it.site.name,
+                                     it.site.prefix.strip("/"))
         inline = list(self.generated(items, tables))
         participants = self.participants(tables)
         if participants is not None:
@@ -507,13 +508,16 @@ def reorder_entities(path: str) -> str:
     return f"{folder}/{name}" if folder else name
 
 
-def remote_entry(obj: S3Object, path: str, site: str = "") -> RemoteEntry:
+def remote_entry(obj: S3Object, path: str, site: str = "",
+                 root: str = "") -> RemoteEntry:
     """
     Entry of a bucket object placed at `path` (flat BIDS view).
 
     `meta["remote"]` is its key relative to `data/Projects/` (the path
     of its pristine copy, `sourcedata/fcp-indi/<remote>`, when it is
-    metadata) and `meta["site"]` its site, if any.
+    metadata), `meta["remote_root"]` the folder of the BIDS dataset of
+    the bucket that holds it (the site prefix: paths in its sidecars are
+    relative to it) and `meta["site"]` its site, if any.
 
     Parameters
     ----------
@@ -523,6 +527,8 @@ def remote_entry(obj: S3Object, path: str, site: str = "") -> RemoteEntry:
         Its local path (flat view)
     site : str
         Name of its site ("" for single-site projects)
+    root : str
+        Folder of its site in the bucket, relative to `data/Projects/`
 
     Returns
     -------
@@ -535,6 +541,8 @@ def remote_entry(obj: S3Object, path: str, site: str = "") -> RemoteEntry:
         else key
     if site:
         entry.meta["site"] = site
+    if root:
+        entry.meta["remote_root"] = root
     return entry
 
 

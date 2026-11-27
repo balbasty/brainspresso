@@ -95,7 +95,7 @@ lg = getLogger(__name__)
 __all__ = [
     "FILL_FILE", "FillPlan", "FillTemplate", "Placement", "fill_files",
     "fill_in", "is_data", "placement", "plan_fill", "read_fill_templates",
-    "render",
+    "relabel_intended", "relabel_scans", "render",
 ]
 
 Placement = Literal["direct", "roasted"]
@@ -528,6 +528,95 @@ def fill_in(meta: dict, plan: FillPlan | None) -> dict:
 
 
 # ----------------------------------------------------------------------
+#   Relabelling: paths that a hosted file gives, in the local layout
+# ----------------------------------------------------------------------
+
+def relabel_intended(meta: dict, mapping: Mapping[str, str],
+                     remote: str, local: str) -> dict:
+    """
+    Rewrite the `IntendedFor` paths of a field map in the local layout.
+
+    The images are remapped (site codes, label maps, runs from folders,
+    typos...): the paths that point at them are remapped the same way
+    (before they are trimmed to what is present). Free-text tags and
+    paths of no remapped file are left as they are.
+
+    Parameters
+    ----------
+    meta : dict
+        Content of the sidecar
+    mapping : dict[str, str]
+        Remote path -> local path, both relative to their dataset
+    remote, local : str
+        Remote and local subject folders of the sidecar (`sub-01`,
+        `sub-A01`): `IntendedFor` paths are relative to them
+
+    Returns
+    -------
+    dict
+        The new content (`meta` itself if nothing changed)
+    """
+    targets = meta.get("IntendedFor") if isinstance(meta, dict) else None
+    if not mapping or targets is None:
+        return meta
+    single = isinstance(targets, str)
+    out = []
+    for target in ([targets] if single else list(targets)):
+        if not isinstance(target, str):
+            out.append(target)
+        elif target.startswith("bids::"):
+            path = target[len("bids::"):]
+            out.append("bids::" + mapping.get(path, path))
+        else:
+            path = f"{remote}/{target}"
+            mapped = mapping.get(path, path)
+            out.append(mapped[len(local) + 1:]
+                       if mapped.startswith(local + "/") else target)
+    out = out[0] if single else out
+    if out == targets:
+        return meta
+    return {**meta, "IntendedFor": out}
+
+
+def relabel_scans(text: str, mapping: Mapping[str, str],
+                  remote: str, local: str) -> str:
+    """
+    Rewrite the `filename` column of a scans table in the local layout.
+
+    Parameters
+    ----------
+    text : str
+        Content of the table
+    mapping : dict[str, str]
+        Remote path -> local path, relative to their dataset
+    remote, local : str
+        Remote and local folders of the table (filenames are relative
+        to them)
+
+    Returns
+    -------
+    str
+    """
+    if not mapping:
+        return text
+    lines = text.replace("\r\n", "\n").split("\n")
+    header = lines[0].split("\t")
+    if "filename" not in header:
+        return text
+    col = header.index("filename")
+    out = [lines[0]]
+    for line in lines[1:]:
+        cells = line.split("\t")
+        if len(cells) > col and cells[col]:
+            path = f"{remote}/{cells[col]}"
+            mapped = mapping.get(path, path)
+            if mapped.startswith(local + "/"):
+                cells[col] = mapped[len(local) + 1:]
+        out.append("\t".join(cells))
+    return "\n".join(out)
+
+
+# ----------------------------------------------------------------------
 #   Rendering of a roasted file
 # ----------------------------------------------------------------------
 
@@ -539,6 +628,7 @@ def render(
     fill: FillPlan | None = None,
     intended: tuple | None = None,
     sibling: Callable[[str], dict | None] | None = None,
+    relabel: tuple | None = None,
 ) -> bytes:
     """
     Content of a roasted metadata file, from its pristine copy.
@@ -563,20 +653,28 @@ def render(
         count as there, relative to `root`)
     sibling : callable(name) -> dict | None
         Content of a sibling sidecar (phase difference repairs)
+    relabel : tuple(mapping, remote, local) | None
+        Remote -> local paths (relative to their dataset) and the remote
+        and local folders of the file: `IntendedFor` of a field map and
+        the `filename` column of a scans table point at local files
+        (`relabel_intended`, `relabel_scans`)
 
     Returns
     -------
     bytes
     """
     if name.endswith(".tsv"):
-        if not repair or content is None:
+        scans = relabel is not None and name.endswith("_scans.tsv")
+        if not (repair or scans) or content is None:
             return content or b""
         try:
             text = content.decode("utf-8")
         except UnicodeDecodeError as e:
             lg.warning(f"{name}: not valid UTF-8, not repaired ({e})")
             return content
-        fixed = repair_table(text, name)
+        fixed = repair_table(text, name) if repair else text
+        if fixed is not None and scans:
+            fixed = relabel_scans(fixed, *relabel)
         return content if fixed is None or fixed == text \
             else fixed.encode("utf-8")
     if not name.endswith(".json"):
@@ -585,7 +683,7 @@ def render(
     if content is None:
         meta = {}
     else:
-        if not (repair or fill or intended):
+        if not (repair or fill or intended or relabel):
             return content
         try:
             text = content.decode("utf-8")
@@ -605,6 +703,8 @@ def render(
             original = None
     fixed = repair_sidecar(meta, name, sibling) if repair else dict(meta)
     fixed = fill_in(fixed, fill)
+    if relabel is not None:
+        fixed = relabel_intended(fixed, *relabel)
     if intended is not None:
         root, path, trim, *more = intended
         fixed = intended_for(fixed, PurePosixPath(path), Path(root), trim,

@@ -78,8 +78,9 @@ When the context has a state folder (`ctx.state`), each shard with an
 start and end; `actions.state`); the main process reads progress from
 these while shards run. A shard that declares its `inputs` (source
 files) and finished without errors is skipped by a later run under
-`IfExists` "skip" if its inputs (paths, sizes, mtimes) and the policy's
-`fingerprint` are unchanged and its outputs exist: its inputs are not
+`IfExists` "skip" if its inputs (paths, sizes, mtimes), its `config`
+(JSON-able options of what it writes) and the policy's `fingerprint`
+are unchanged and its outputs exist: its inputs are not
 reopened (its `finalize` still runs). A shard that yielded shards is
 never skipped this way.
 """
@@ -326,17 +327,22 @@ class Shard:
         Entities of the unit (task state), e.g. `{"sub": "01"}`
     source : path
         `ctx.source` while it runs (default: that of its parent)
+    config : JSON-able, optional
+        What else decides its outputs (e.g. the options of each file it
+        writes): part of its input signature, with `inputs`
     **kwargs
         Keyword arguments of `fn` (none of the names above)
     """
 
     def __init__(self, fn, *args, tag=None, id=None, inputs=None,
-                 advance=None, unit=None, source=None, **kwargs):
+                 advance=None, unit=None, source=None, config=None,
+                 **kwargs):
         self.fn, self.args, self.kwargs = fn, args, kwargs
         self.tag, self.id, self.advance = tag, id, advance
         self.inputs = list(inputs) if inputs is not None else None
         self.unit = dict(unit or {})
         self.source = source
+        self.config = config
 
     def __call__(self, ctx):
         """Run the producer: `fn(ctx, *args, **kwargs)`."""
@@ -611,10 +617,12 @@ def _signature(ctx: Context, policy: Policy, shard: Shard) -> str | None:
             inputs.append([str(path), stat.st_size, stat.st_mtime_ns])
         except OSError:
             inputs.append([str(path), None, None])
+    config = getattr(shard, "config", None)
     blob = json.dumps({
         "version": _SIGNATURE_VERSION, "inputs": inputs,
         **policy.fingerprint(ctx),
-    }, sort_keys=True)
+        **({"config": config} if config is not None else {}),
+    }, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()
 
 

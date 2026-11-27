@@ -190,8 +190,13 @@ def brainfilter(themed=True):
 
 
 # ---------------------------------------------------------- brainspresso (latte)
-def brainspresso_latte(themed=True):
-    """A cappuccino seen from above, the BIDS mark drawn in the foam."""
+def brainspresso_latte(themed=True, wobble=16, soft=1.0):
+    """
+    A cappuccino seen from above, the BIDS mark poured in the foam.
+
+    `wobble` (displacement of the foam edges) and `soft` (blur of the
+    edges) make the art look poured rather than printed.
+    """
     cx, cy = 240, 206           # centre of the rim
     rx, ry = 172, 96            # rim (a circle seen at an angle)
     tilt = ry / rx
@@ -199,8 +204,8 @@ def brainspresso_latte(themed=True):
     body = (f'M{cx-rx} {cy} C{cx-rx} {cy+120} {cx-104} {bot} {cx} {bot} '
             f'C{cx+104} {bot} {cx+rx} {cy+120} {cx+rx} {cy} Z')
     hx, hy = cx + rx + 18, cy + 62
-    art = (f'<g transform="translate({cx} {cy+8}) scale(1 {tilt:.3f}) '
-           f'translate({-cx} {-(cy+8)})">'
+    art = (f'<g filter="url(#poured)" transform="translate({cx} {cy+8}) '
+           f'scale(1 {tilt:.3f}) translate({-cx} {-(cy+8)})">'
            f'{foam_mark(cx - 6, cy + 8, 192, "foam")}</g>')
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
   <title id="title">brainspresso</title>
@@ -213,6 +218,20 @@ def brainspresso_latte(themed=True):
       <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="#000" stroke="#000" stroke-width="22"/>
       <ellipse cx="{hx}" cy="{hy}" rx="40" ry="30" fill="none" stroke="#000" stroke-width="42"/>
     </mask>
+    <!-- poured foam: wobbly edges, soft rim, milk spreading in the crema -->
+    <filter id="poured" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.016 0.024" numOctaves="2" seed="11" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="{wobble}" xChannelSelector="R" yChannelSelector="G" result="wavy"/>
+      <feGaussianBlur in="wavy" stdDeviation="{soft}" result="foam"/>
+      <feGaussianBlur in="wavy" stdDeviation="{soft*4}" result="spread"/>
+      <feComponentTransfer in="spread" result="halo"><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="foam"/></feMerge>
+    </filter>
+    <radialGradient id="latte" cx="50%" cy="46%" r="55%">
+      <stop offset="0" stop-color="#d39a5e"/>
+      <stop offset=".7" stop-color="#bf7f45"/>
+      <stop offset="1" stop-color="#9d5f2f"/>
+    </radialGradient>
   </defs>
   <g>
     <!-- saucer -->
@@ -223,7 +242,7 @@ def brainspresso_latte(themed=True):
     <path class="ink" d="{body}"/>
     <ellipse class="ink" cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}"/>
     <ellipse class="coffee" cx="{cx}" cy="{cy+3}" rx="{rx-16}" ry="{ry-12}"/>
-    <ellipse class="crema" cx="{cx}" cy="{cy+4}" rx="{rx-28}" ry="{ry-21}"/>
+    <ellipse fill="url(#latte)" cx="{cx}" cy="{cy+4}" rx="{rx-26}" ry="{ry-20}"/>
     <!-- latte art: the BIDS mark in milk foam -->
     {art}
   </g>

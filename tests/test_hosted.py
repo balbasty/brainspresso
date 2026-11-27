@@ -1224,7 +1224,7 @@ def test_older_field_maps_with_remapped_targets_are_ours(tmp_path,
     epi = lay.raw / "sub-A01/fmap/sub-A01_dir-AP_epi.json"
     relabelled = epi.read_bytes()
     # what an older harvest wrote: paths not remapped, so all trimmed
-    epi.write_text('{\n  "B0FieldIdentifier": "pepolar"\n}\n')
+    write(epi, '{\n  "B0FieldIdentifier": "pepolar"\n}\n')
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
     caplog.clear()

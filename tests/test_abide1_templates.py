@@ -10,14 +10,14 @@ import numpy as np
 import pytest
 from roast_utils import init_layout, make_tar, nii_bytes, raw_file
 
-from brainspresso.datasets.indi.abide.i import sources
-from brainspresso.datasets.indi.abide.i.bidsifier import (
-    BidsifierBase,
+from brainspresso.datasets.indi.abide.i import sites, sources
+from brainspresso.datasets.indi.abide.i.roaster import header_tr, roast
+from brainspresso.datasets.indi.abide.i.sites import (
     TemplateError,
+    site_template,
 )
-from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import Bidsifier
 
-TPL = BidsifierBase.TPLDIR
+TPL = sites.TEMPLATES
 NAMES = ("T1w.json", "bold.json")
 
 
@@ -38,7 +38,7 @@ XNAT = sorted({
     "CMU_50642".rsplit("_", 1)[0],
     *sources.XNAT_SITES,
 })
-SITES = sorted({*BidsifierBase.SITES, *NITRC, *PHENO, *XNAT})
+SITES = sorted({*sites.SITES, *NITRC, *PHENO, *XNAT})
 
 
 def test_site_spellings():
@@ -51,12 +51,12 @@ def test_site_spellings():
 @pytest.mark.parametrize("name", NAMES)
 @pytest.mark.parametrize("site", SITES)
 def test_template_exists(site, name):
-    assert BidsifierBase.template(site, name).is_file()
+    assert site_template(site, name).is_file()
 
 
 @pytest.mark.parametrize("site", ["UCLA", "UCLA_1", "UCLA2", "UCLA_2"])
 def test_template_hires(site):
-    assert BidsifierBase.template(site, "acq-hires_T1w.json").is_file()
+    assert site_template(site, "acq-hires_T1w.json").is_file()
 
 
 @pytest.mark.parametrize("site, name, expected", [
@@ -87,31 +87,31 @@ def test_template_hires(site):
     ("USM", "T1w.json", "USM/T1w.json"),
 ])
 def test_template_mapping(site, name, expected):
-    assert BidsifierBase.template(site, name) == TPL / expected
+    assert site_template(site, name) == TPL / expected
 
 
 def test_template_errors():
     with pytest.raises(TemplateError, match="unknown site 'Nowhere'"):
-        BidsifierBase.template("Nowhere", "T1w.json")
+        site_template("Nowhere", "T1w.json")
     with pytest.raises(TemplateError, match="unknown sample 'e'.*MaxMun"):
-        BidsifierBase.template("MaxMun_e", "T1w.json")
+        site_template("MaxMun_e", "T1w.json")
     with pytest.raises(TemplateError, match="'dwi.json' for site 'CMU_a'"):
-        BidsifierBase.template("CMU_a", "dwi.json")
+        site_template("CMU_a", "dwi.json")
     # sites without samples: only a tarball part is accepted as suffix
     with pytest.raises(TemplateError, match="unknown suffix 'backup'.*SDSU"):
-        BidsifierBase.template("SDSU_backup", "T1w.json")
+        site_template("SDSU_backup", "T1w.json")
     with pytest.raises(TemplateError, match="unknown suffix 'f'.*NYU"):
-        BidsifierBase.template("NYU_f", "T1w.json")
+        site_template("NYU_f", "T1w.json")
     with pytest.raises(TemplateError, match="unknown suffix 'a'.*Caltech"):
-        BidsifierBase.template("Caltech_a", "T1w.json")
+        site_template("Caltech_a", "T1w.json")
 
 
 def test_parts_match_sources():
     """Tarball parts of sites without samples are those of the sources."""
     expected = {site: tuple(p.lstrip("_") for p in parts)
                 for site, parts in sources.PARTS.items()
-                if site not in BidsifierBase.SAMPLES}
-    assert BidsifierBase.PARTS == expected
+                if site not in sites.SAMPLES}
+    assert sites.PARTS == expected
 
 
 def _load(path):
@@ -119,17 +119,17 @@ def _load(path):
 
 
 @pytest.mark.parametrize("name", NAMES + ("acq-hires_T1w.json",))
-@pytest.mark.parametrize("site", sorted(BidsifierBase.SAMPLES))
+@pytest.mark.parametrize("site", sorted(sites.SAMPLES))
 def test_unknown_sample_never_borrows(site, name):
     """With no sample in the data, a site whose samples differ uses a
     template holding only what they share, never one sample's values."""
     samples = [TPL / f"{site}_{s}" / name
-               for s in BidsifierBase.SAMPLES[site]]
+               for s in sites.SAMPLES[site]]
     samples = [_load(p) for p in samples if p.is_file()]
     if not samples:
         return
     common = TPL / site / name
-    got = _load(BidsifierBase.template(site, name))
+    got = _load(site_template(site, name))
     if all(s == samples[0] for s in samples):
         assert got in samples
     else:
@@ -139,12 +139,12 @@ def test_unknown_sample_never_borrows(site, name):
 
 
 def test_unknown_sample_warns(caplog):
-    BidsifierBase._warned.clear()
+    sites._warned.clear()
     with caplog.at_level(logging.WARNING):
-        BidsifierBase.template("CMU", "bold.json")
-        BidsifierBase.template("CMU", "bold.json")
-        BidsifierBase.template("CMU_b", "bold.json")
-        BidsifierBase.template("Leuven", "bold.json")
+        site_template("CMU", "bold.json")
+        site_template("CMU", "bold.json")
+        site_template("CMU_b", "bold.json")
+        site_template("Leuven", "bold.json")
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1
     assert "'CMU' names no sample" in warnings[0].getMessage()
@@ -155,12 +155,12 @@ def test_samples_match_templates():
     folders = {p.name for p in TPL.iterdir() if p.is_dir()
                and p.name != "phenotype"}
     declared = {f"{site}_{s}" for site, samples in
-                BidsifierBase.SAMPLES.items() for s in samples}
+                sites.SAMPLES.items() for s in samples}
     assert {f for f in folders if "_" in f} == declared
-    assert {f for f in folders if "_" not in f} <= set(BidsifierBase.SITES)
-    for site in BidsifierBase.SITES:
+    assert {f for f in folders if "_" not in f} <= set(sites.SITES)
+    for site in sites.SITES:
         for name in NAMES:
-            assert BidsifierBase.template(site, name).is_file()
+            assert site_template(site, name).is_file()
 
 
 def bold_bytes(tr=None, unit="sec"):
@@ -178,12 +178,12 @@ def bold_bytes(tr=None, unit="sec"):
 ])
 def test_header_tr(tr, unit, expected):
     f = io.BytesIO(bold_bytes(tr, unit))
-    assert BidsifierBase.header_tr(f, "rest.nii.gz") == expected
+    assert header_tr(f, "rest.nii.gz") == expected
 
 
 def test_header_tr_3d():
     f = io.BytesIO(nii_bytes())
-    assert BidsifierBase.header_tr(f, "mprage.nii.gz") is None
+    assert header_tr(f, "mprage.nii.gz") is None
 
 
 def test_roast_unsampled_sites(tmp_path, caplog):
@@ -204,9 +204,8 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     make_tar(src / "Nowhere.tgz", {
         "Nowhere/0099999/session_1/anat_1/mprage.nii.gz": nii_bytes(),
     })
-    roast = Bidsifier(root, keys={"T1w", "rest"})
     with caplog.at_level(logging.ERROR):
-        roast.run()
+        report = roast(root, keys={"T1w", "rest"}, display=False)
 
     def sidecar(path):
         return json.loads(raw_file(root, path).read_text())
@@ -228,4 +227,4 @@ def test_roast_unsampled_sites(tmp_path, caplog):
     assert raw_file(root, "sub-99999/anat/sub-99999_T1w.nii.gz").exists()
     assert not raw_file(root, "sub-99999/anat/sub-99999_T1w.json").exists()
     assert "unknown site 'Nowhere'" in caplog.text
-    assert roast.nb_errors == {"T1w": 1, "task-rest_bold": 1}
+    assert sorted(tag for tag, *_ in report.errors) == ["T1w", "rest"]

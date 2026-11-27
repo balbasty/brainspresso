@@ -19,6 +19,7 @@ from roast_utils import (
     read_tsv,
 )
 
+from brainspresso.cli import main
 from brainspresso.datasets.indi.abide.i import roaster, sources, tables
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.i.roaster import FS_NAME, roast
@@ -563,3 +564,113 @@ def test_harvest_s3_hires_key(path, keys, kept):
     wants = ABIDE1().wants("harvest", keys)
     entry = RemoteEntry(path=f"RawData/{path}")
     assert sources.S3().keep_raw(entry, None, wants) is kept
+
+
+# ----------------------------------------------------------------------
+#   Review round 2 of #33
+# ----------------------------------------------------------------------
+
+def test_keys_as_a_string(root):
+    """`roast(keys="fs")`: one key, not its letters"""
+    report = xnat(root, keys="fs", subs=[50003])
+    assert not report.errors, report.errors
+    assert fs_tree(root) == {p for p in FS_OUT if "51456" not in p}
+    report = xnat(root, exclude_keys="fs", subs=[50003])
+    assert not report.errors
+    assert raw_tree(root) >= {"sub-50003/anat/sub-50003_T1w.nii.gz"}
+    assert roaster.roast_options("fs") == {"fs_named": True}
+
+
+@pytest.mark.parametrize("keys, named", [
+    ((), False), (("T1w",), False), (("fs",), True), (("fs-all",), True),
+    (("all",), True), (("derivatives",), True), (("proc",), True),
+    (("FS",), True), (("Derivatives",), True), (("qa",), False),
+])
+def test_fs_named_through_the_hierarchy(keys, named):
+    """A missing FreeSurfer archive is an error when `--keys` names `fs`,
+    `fs-all` or a group above them, in any case"""
+    assert roaster.roast_options(keys) == {"fs_named": named}
+
+
+def test_fs_named_by_a_group_fails_without_archives(root):
+    for keys in ({"all"}, {"derivatives"}, {"proc"}):
+        report = xnat(root, keys=keys, subs=[51330])
+        assert [e[0] for e in report.errors] == ["fs"], keys
+
+
+@pytest.mark.parametrize("spec", ["roast", "harvest"])
+def test_add_on_any_case(spec):
+    """`--keys FS-ALL` implies `fs`; `--exclude-keys FS` excludes
+    `fs-all` (names through the hierarchy, any case)"""
+    keys = ABIDE1().keys_for(spec)
+    select, _ = keys.effective(["FS-ALL"])
+    assert keys.selects(select, "fs") and keys.selects(select, "fs-all")
+    _, exclude = keys.effective((), ["FS"])
+    assert keys.selects(exclude, "fs-all")
+    # a group that holds both needs no add-on
+    assert keys.effective(["derivatives"])[0] == ("derivatives",)
+    _, exclude = keys.effective((), ["proc"])
+    assert exclude[0] == "proc" and exclude.count("fs-all") <= 1
+
+
+def test_add_on_any_case_cli(tmp_path):
+    root = make_source(tmp_path / "ABIDE-1")
+    bx("abide1", "roast", "--out", root, "--source", "xnat", "--keys",
+       "FS-ALL", "--subs", "50003")
+    drv = layout_of(root).derivative(FS_NAME)
+    assert (drv.source / "sub-50003/stats/aseg.stats").exists()
+    assert (drv.root / "sub-50003/anat/"
+            "sub-50003_atlas-Aseg_dseg.nii.gz").exists()
+
+
+def test_fs_all_unpacks_the_whole_root(tmp_path):
+    """`fs-all`: every member under the subject's root, FreeSurfer
+    folders or not (`tmp/`, `trash/`, `bem/`, `src/`, root files)"""
+    root = tmp_path / "ABIDE-1"
+    label = "Pitt_0050003"
+    lead = f"{label}/assessors/a/files/{label}"
+    make_tar(root / "sourcedata" / label / f"{label}-fs.tar.gz", {
+        f"{lead}/mri/aseg.mgz": mgz_bytes(),
+        f"{lead}/tmp/x.log": b"tmp",
+        f"{lead}/trash/y": b"trash",
+        f"{lead}/bem/z": b"bem",
+        f"{lead}/src/w": b"src",
+        f"{lead}/README": b"readme",
+        f"{lead}/scripts/recon-all.log": b"log",
+    })
+    report = xnat(root, keys={"fs-all"})
+    assert not report.errors, report.errors
+    unpacked = layout_of(root).derivative(FS_NAME).source / "sub-50003"
+    assert {p.relative_to(unpacked).as_posix()
+            for p in unpacked.rglob("*") if p.is_file()} == {
+        "mri/aseg.mgz", "tmp/x.log", "trash/y", "bem/z", "src/w", "README",
+        "scripts/recon-all.log"}
+    # `fs` alone: only the files that BIDS describes
+    tree = roaster.FreeSurferTree("x", "50003")
+    assert tree.relpath(f"{lead}/mri/aseg.mgz") == PurePosixPath(
+        "mri/aseg.mgz")
+    assert tree.relpath(f"{lead}/tmp/x.log") == PurePosixPath("tmp/x.log")
+    assert tree.relpath(f"{lead}/../x") is None
+
+
+def test_freesurfer_root_warnings(caplog):
+    """A template tree first: "template subject"; a root that does not
+    name the subject: a warning"""
+    with caplog.at_level(logging.WARNING):
+        tree = roaster.FreeSurferTree("a.tar.gz", "50003")
+        assert tree.relpath("files/fsaverage/mri/aseg.mgz") is None
+        assert "fsaverage/ skipped (template subject)" in caplog.text
+        assert tree.relpath("files/Pitt_0050003/mri/aseg.mgz") is not None
+        assert "does not name subject" not in caplog.text
+        other = roaster.FreeSurferTree("b.tar.gz", "50003")
+        assert other.relpath("files/Pitt_0050004/mri/aseg.mgz") is not None
+        assert "Pitt_0050004/ does not name subject 50003" in caplog.text
+
+
+def test_help_wording(capsys):
+    try:
+        main(["abide1", "roast", "--help"])
+    except SystemExit:
+        pass
+    out = " ".join(capsys.readouterr().out.split())
+    assert "not selected by default" in out

@@ -87,6 +87,7 @@ from brainspresso.roast import (
     RoastContext,
     RoastReport,
     Shard,
+    as_list,
     copy_templates,
     roast_dataset,
 )
@@ -107,7 +108,8 @@ RAWDATA = "RawData"
 # category of the dataset files and participants table (`--keys pheno`:
 # phenotypes only). `fs` and `fs-all` are siblings: `fs` converts the
 # files that BIDS describes; `fs-all`, an add-on of `fs` (`FS_ADD_ON`),
-# also unpacks every other file, only when named (`ROAST_SPEC`).
+# also unpacks every other file; it is not selected by default (only
+# when it or a group above it is named, `ROAST_SPEC`).
 KEYS = KeyAliases(
     {"all": {**allkeys["all"], "meta": {"meta", "pheno"}}},
     bids={
@@ -125,7 +127,7 @@ KEYS = KeyAliases(
 #: `fs-all` implies `fs`; excluding `fs` excludes `fs-all`
 FS_ADD_ON = (("fs-all", "fs"),)
 
-#: Keys of the roast (`--keys`): `fs-all` only when named
+#: Keys of the roast (`--keys`): `fs-all` not selected by default
 ROAST_SPEC = KeySpec(KEYS, off=("fs-all",), implies=FS_ADD_ON)
 
 #: Sidecar templates of a site (`templates/<Site>[_<sample>]/`)
@@ -157,8 +159,8 @@ def roast(root, *, source: str = "s3", keys=(), exclude_keys=(), subs=(),
         Subjects: numbers (`51456` is `sub-51456`), labels with or
         without `sub-`, ranges, files (as `--subs`)
     keys, exclude_keys : list[str]
-        `--keys`, `--exclude-keys` (`fs-all` only when named, see
-        `ROAST_SPEC`)
+        `--keys`, `--exclude-keys` (a name or a list; `fs-all` is not
+        selected by default, see `ROAST_SPEC`)
     **options
         Those of the command line (`json`, `ifexists`, `layout`), `jobs`
         and `display`
@@ -170,6 +172,7 @@ def roast(root, *, source: str = "s3", keys=(), exclude_keys=(), subs=(),
     if source not in ROASTERS:
         raise ValueError(f"Unknown source {source!r}: "
                          f"{', '.join(ROASTERS)}")
+    keys, exclude_keys = as_list(keys), as_list(exclude_keys)
     select, exclude = ROAST_SPEC.effective(keys, exclude_keys)
     return roast_dataset(
         ROASTERS[source], root, KEYS, templates=TEMPLATES,
@@ -186,17 +189,19 @@ def roast_options(keys) -> dict:
 
     Parameters
     ----------
-    keys : list[str]
+    keys : str | list[str]
         `--keys`, as given
 
     Returns
     -------
     dict
-        `fs_named`: whether `--keys` names `fs` or `fs-all` (then a
-        missing FreeSurfer archive is an error)
+        `fs_named`: whether `--keys` names `fs`, `fs-all` or a group
+        above them (`all`, `derivatives`, `proc`; any case): then a
+        missing FreeSurfer archive is an error
     """
-    names = {str(getattr(k, "value", k)) for k in keys or ()}
-    return {"fs_named": bool(names & {"fs", "fs-all"})}
+    keys = as_list(keys)
+    return {"fs_named": any(ROAST_SPEC.selects(keys, k)
+                            for k in ("fs", "fs-all"))}
 
 
 # ----------------------------------------------------------------------
@@ -979,19 +984,26 @@ class FreeSurferTree:
     root of a member is the folder just before its deepest FreeSurfer
     folder (`mri`, `surf`, `label`, `stats`, `scripts`, `touch`), so a
     wrapper named like one does not re-root the tree. Members are read
-    in archive order (one pass): the first root is the subject's;
-    members of another root (a second tree, e.g. `fsaverage/`) are
-    skipped with a warning, as are template subjects, absolute paths and
-    paths with `..`.
+    in archive order (one pass): the first root is the subject's (a
+    warning if its name lacks the subject's id), and every later member
+    under it belongs to the tree (also outside the FreeSurfer folders:
+    `tmp/`, `bem/`, files at the root; `fs-all` unpacks them); members of
+    another root (a second tree, e.g. `fsaverage/`) are skipped with a
+    warning, as are template subjects, absolute paths and paths with
+    `..`. Members under the root that come before its first FreeSurfer
+    folder cannot be placed yet and are skipped (one pass).
 
     Parameters
     ----------
     archive : str
         Name of the archive (for the warnings)
+    sub : str
+        Subject label (`51456`): the root should contain its id
     """
 
-    def __init__(self, archive: str = ""):
+    def __init__(self, archive: str = "", sub: str = ""):
         self.archive = archive
+        self.sub = sub
         self.root: tuple | None = None
         self.others: set = set()
 
@@ -1035,22 +1047,37 @@ class FreeSurferTree:
         PurePosixPath | None
             None for members outside it (warned once per other tree)
         """
+        path = PurePosixPath(member)
+        if path.is_absolute() or ".." in path.parts:
+            return None
+        if self.root is not None and len(path.parts) > len(self.root) \
+                and path.parts[:len(self.root)] == self.root:
+            return PurePosixPath(*path.parts[len(self.root):])
         split = self.split(member)
         if split is None:
             return None
         root, rel = split
-        if root == self.root:
-            return rel
         template = bool(root) and FS_TEMPLATES.fullmatch(root[-1])
         if self.root is None and not template:
             self.root = root
+            self.check_root()
             return rel
         if root not in self.others:
             self.others.add(root)
+            kept = (f"the subject's is {'/'.join(self.root) or '.'}/"
+                    if self.root is not None else "template subject")
             lg.warning(f"{self.archive}: FreeSurfer tree "
-                       f"{'/'.join(root) or '.'}/ skipped (the subject's "
-                       f"is {'/'.join(self.root or ()) or '.'}/)")
+                       f"{'/'.join(root) or '.'}/ skipped ({kept})")
         return None
+
+    def check_root(self) -> None:
+        """Warn if the chosen root is not named after the subject."""
+        number = self.sub.lstrip("0") if self.sub.isdigit() else self.sub
+        if self.root and number and number not in self.root[-1]:
+            lg.warning(f"{self.archive}: FreeSurfer tree "
+                       f"{'/'.join(self.root)}/ does not name subject "
+                       f"{self.sub}: converted as sub-{self.sub}, check "
+                       f"that it is not another subject's tree")
 
 
 def fs_relpath(member: str) -> PurePosixPath | None:
@@ -1120,7 +1147,7 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
     """
     drv = ctx.layout.derivative(FS_NAME)
     src = fs_source(ctx, sub)
-    tree = FreeSurferTree(f"{archive.parent.name}/{archive.name}")
+    tree = FreeSurferTree(f"{archive.parent.name}/{archive.name}", sub)
     t1 = f"bids:raw:sub-{sub}/anat/sub-{sub}_T1w.nii.gz"
     dst = drv.root / f"sub-{sub}"
     if ctx.json == "only":

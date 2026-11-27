@@ -232,11 +232,41 @@ class KeySpec:
         """
         keys, exclude = self._effective(*_names(keys), exclude=exclude)
         for add_on, key in self.implies:
-            if add_on in keys and key not in keys:
+            if self.selects(keys, add_on) and not self.selects(keys, key):
                 keys += (key,)
-            if key in exclude and add_on not in exclude:
+            if self.selects(exclude, key) and \
+                    not self.selects(exclude, add_on):
                 exclude += (add_on,)
         return keys, exclude
+
+    def selects(self, names: Iterable[str], leaf: str) -> bool:
+        """
+        Whether keys select a leaf, through the hierarchy.
+
+        Names are matched case-insensitively (`--keys FS-ALL`), and a
+        group selects the leaves below it (`--keys derivatives`).
+
+        Parameters
+        ----------
+        names : list[str]
+            Keys (`--keys`, `--exclude-keys`)
+        leaf : str
+            A key of the hierarchy
+
+        Returns
+        -------
+        bool
+        """
+        names = _names(names)
+        if not names:
+            return False
+        tree = self.resolve()
+        if hasattr(tree, "expand"):
+            return leaf in tree.expand(names)
+        if isinstance(tree, Mapping):
+            known = {k.lower(): k for k in flatten_keys(tree) if k}
+            names = [known.get(n.lower(), n) for n in names]
+        return leaf in self.leaves(names) or leaf in names
 
     def _effective(self, *keys: str, exclude: Iterable[str] = ()
                    ) -> tuple[tuple, tuple]:

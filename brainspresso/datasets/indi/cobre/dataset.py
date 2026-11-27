@@ -44,3 +44,15 @@ class COBRE(Dataset):
     def sources(self, args=None):
         """NITRC files (roasted by `roaster.roast_cobre`)."""
         return sources()
+
+    def describe(self, command):
+        """Roast: how the participants table is trimmed."""
+        if command == "roast":
+            return (
+                "Convert the source data of COBRE to BIDS.\n\n"
+                "`participants.tsv` lists the subjects whose folder is on "
+                "disk (all of them are in the pristine copy, "
+                "`.brainspresso/orig/`): a roast of `--keys meta` alone, "
+                "before any image, writes its header only."
+            )
+        return super().describe(command)

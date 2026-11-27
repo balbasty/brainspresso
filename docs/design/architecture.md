@@ -2099,7 +2099,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1516 passed, 2 skipped, 26 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2543,4 +2543,11 @@ up as an XPASS failure once fixed (then drop the marker).
   `.brainspresso/orig/` and trimmed to the subjects on disk; a missing
   tarball or phenotype file is an error (`Fail`), no longer a warning.
   The images of the single gz tarball are extracted by one shard
-  (§5), not one per subject.
+  (§5), not one per subject, reading it once (members extracted as they
+  are reached); the sidecar templates (paths, hashes) are its
+  `Shard.config`. Review of #31: CSV ids zero-padded to the 7 digits of
+  the tarball labels; missing diagnoses and empty cells are `n/a`
+  (BIDS), blank and short CSV rows skipped; a missing sidecar template
+  is an error only when sidecars are written. Open: the shard
+  signature includes the whole selection, so toggling `meta` re-reads
+  the tarball (a per-shard fingerprint needs an engine hook).

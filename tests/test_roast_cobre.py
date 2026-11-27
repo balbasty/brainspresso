@@ -122,6 +122,39 @@ def test_participants_disenrolled(root):
     assert rows[3] == ["sub-0040002"] + ["n/a"] * 6
 
 
+def test_participants_missing_values(root):
+    """No diagnosis or subtype: n/a (BIDS), not an empty cell"""
+    roast(root, keys={"meta"}, display=False)
+    rows = read_tsv(original(root))
+    assert rows[2] == ["sub-0040001", "30", "F", "L", "N", "n/a", "n/a"]
+    assert "" not in {cell for row in rows for cell in row}
+
+
+def test_participants_unpadded_ids(root):
+    """CSV ids that are not zero-padded match the tarball labels"""
+    csv = root / "sourcedata" / "COBRE_phenotypic_data.csv"
+    csv.write_text(CSV.replace("\n0040", "\n40"))
+    assert "\n40000," in csv.read_text()
+    roast(root, display=False)
+    assert [r[0] for r in read_tsv(raw_file(root, "participants.tsv"))] == [
+        "participant_id", "sub-0040000", "sub-0040001"]
+
+
+def test_participants_bad_rows(root, caplog):
+    """Blank and short rows are skipped (short ones with a warning), empty
+    cells are n/a"""
+    csv = root / "sourcedata" / "COBRE_phenotypic_data.csv"
+    csv.write_text(CSV + "\n0040003,40\n,,,,,\n,50,Male,Right,Patient,None\n"
+                   "0040004,,,,,\n")
+    report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = read_tsv(original(root))
+    assert [r[0] for r in rows[1:]] == ["sub-0040000", "sub-0040001",
+                                        "sub-0040002", "sub-0040004"]
+    assert rows[4] == ["sub-0040004"] + ["n/a"] * 6
+    assert caplog.text.count("row skipped") == 2
+
+
 def test_keys_and_subject_filters(root):
     roast(root, keys={"T1w"}, exclude_subs=[40001], display=False)
     assert raw_tree(root) == {
@@ -193,6 +226,72 @@ def test_missing_phenotypes(tmp_path):
     report = roast(root, keys={"meta"}, display=False)
     assert raw_tree(root) == META - {"participants.tsv"}
     assert len(report.errors) == 1
+
+
+def test_dataset_files_compared(root):
+    """`dataset_description.json` and `participants.json` are compared
+    (tables), so a new template replaces them under `skip`"""
+    roast(root, keys={"meta"}, display=False)
+    files = [raw_file(root, n) for n in ("dataset_description.json",
+                                         "participants.json")]
+    first = [f.stat().st_mtime_ns for f in files]
+    roast(root, keys={"meta"}, display=False)
+    assert [f.stat().st_mtime_ns for f in files] == first
+    (root / "sourcedata" / "dataset_description.json").write_text(
+        json.dumps({"Name": "COBRE (local)", "BIDSVersion": "1.8.0"}))
+    roast(root, keys={"meta"}, display=False)
+    assert json.loads(files[0].read_text())["Name"] == "COBRE (local)"
+
+
+def test_subject_labels_in_python_api(root):
+    roast(root, keys={"T1w"}, subs=["sub-0040001"], display=False)
+    assert raw_tree(root) == {p for p in RAW if "0040001" in p}
+    roast(root, keys={"T1w"}, subs=["0040000:0040001"], json="no",
+          display=False)
+    assert "sub-0040000/anat/sub-0040000_T1w.nii.gz" in raw_tree(root)
+
+
+def test_missing_sidecar_template(root, monkeypatch):
+    """A missing sidecar resource is an error only if sidecars are wanted"""
+    monkeypatch.setattr(roaster.RoastContext, "resource",
+                        lambda self, name: None)
+    report = roast(root, keys={"T1w"}, json="no", display=False)
+    assert not report.errors
+    assert raw_tree(root) == {p for p in RAW if p.endswith("T1w.nii.gz")}
+    report = roast(root, keys={"T1w"}, ifexists="overwrite", display=False)
+    assert len(report.errors) == 2
+
+
+def test_tarball_read_once(root, monkeypatch):
+    """Members are read lazily (no listing first: one decompression)"""
+    def listing(self):
+        raise AssertionError("the tarball is listed")
+
+    monkeypatch.setattr(roaster.TarArchive, "getmembers", listing)
+    monkeypatch.setattr(roaster.TarArchive, "getnames", listing)
+    report = roast(root, display=False)
+    assert not report.errors
+    assert raw_tree(root) == RAW | META
+
+
+def test_template_change_reruns_the_shard(root, monkeypatch):
+    opened = []
+    real = roaster.TarArchive
+
+    def opener(path):
+        opened.append(path)
+        return real(path)
+
+    monkeypatch.setattr(roaster, "TarArchive", opener)
+    roast(root, keys={"T1w"}, display=False)
+    roast(root, keys={"T1w"}, display=False)
+    assert len(opened) == 1
+    # (a new sidecar template: the shard signature changes, under `skip`)
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    roast(root, keys={"T1w"}, display=False)
+    assert len(opened) == 2
+    roast(root, keys={"T1w"}, display=False)
+    assert len(opened) == 2
 
 
 def test_exclude_keys(root):

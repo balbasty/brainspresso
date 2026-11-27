@@ -764,9 +764,11 @@ def test_edited_fill_in_sidecar_is_kept(tmp_path, templates, caplog):
     assert "was edited since brainspresso wrote it: kept" in caplog.text
 
 
-def test_datasets_without_hashes(tmp_path, openneuro, caplog):
+def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
     """A manifest of before hashes were recorded: a file that equals
-    the roasted output is adopted, any other is an edit (kept)."""
+    the roasted output is adopted, any other is kept under the "keep"
+    migration rule (the "replace" default is tested below)."""
+    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "keep")
     lay = on("harvest", tmp_path, "--subs", "01")
     files = read_manifest(lay.state)["files"]
     update_files(lay, {k: {"sha256": None} for k in files})
@@ -1389,7 +1391,8 @@ def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
                 ).read_bytes() == pristine
 
 
-def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog):
+def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
+                                          monkeypatch):
     lay = on("harvest", tmp_path, "--subs", "01", "--datatypes", "anat",
              "fmap")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
@@ -1397,6 +1400,7 @@ def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog):
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
     caplog.clear()
+    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "keep")
     on("harvest", tmp_path, "--subs", "01")
     # (MIGRATION_RULE "keep": an older file that differs is kept)
     assert fmap.read_bytes() == old

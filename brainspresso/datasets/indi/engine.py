@@ -164,7 +164,8 @@ class Project:
     name: str = ""                  # command name
     folder: str = ""                # local folder
     # INDI sharing category ("retro", "pro" or "enhanced": the folder of
-    # the project's page under fcon_1000.projects.nitrc.org/indi/)
+    # the project's page under fcon_1000.projects.nitrc.org/indi/; "fcp"
+    # for the original 1000 Functional Connectomes Project)
     category: str | None = None
     title: str = ""
     help: str = ""                  # CLI help (markdown)

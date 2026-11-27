@@ -210,7 +210,7 @@ INDI_CATEGORIES = {
     "abide1": "retro", "abide2": "retro", "adhd200": "retro",
     "cobre": "retro", "corr": "retro", "mpi-lemon": "retro",
     "natview": "retro", "sald": "retro", "simon": "retro", "slim": "retro",
-    "hbn": "pro", "nki-rs": "enhanced",
+    "hbn": "pro", "nki-rs": "enhanced", "fcon1000": "fcp",
 }
 
 

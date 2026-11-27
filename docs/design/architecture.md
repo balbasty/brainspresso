@@ -495,8 +495,7 @@ authoritative copy first):
   adopted; any other follows `MIGRATION_RULE` ("keep": kept, with a
   warning; "replace": copied to `<state>/replaced/<path>` as the action
   writes it, which replaces it atomically; nothing is copied or lost if
-  no action writes). Default "keep" (owner to decide; "replace" is
-  recommended by the review).
+  no action writes). Default "replace" (owner decision).
 * Only `_record` writes the hashes of roasted files: that of a file
   holding the render, whatever its state was (an edit replaced with
   `--if-exists overwrite` is ours again; a merged field map or a

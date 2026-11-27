@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import functools
 import os
+import shutil
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator, Literal
@@ -75,7 +76,6 @@ from humanize import naturalsize
 
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
-from brainspresso.actions.locks import FileLock
 from brainspresso.actions.writers import Unlink
 from brainspresso.bids.harvest import (
     InlineEntry,
@@ -288,6 +288,7 @@ def harvest_hosted(
                 **({"chunk_size": chunk_size} if chunk_size else {}),
             )
 
+    unchanged: dict[Path, tuple] = {}
     touched: set[str] = set()
     fetched_paths = {e.path for e in selected}
     remotes: dict[str, dict] = {}
@@ -322,12 +323,11 @@ def harvest_hosted(
                 files[key] = {"origin": "generated",
                               "source": _rel(layout, base),
                               "trim": flags["trim"], "repair": None,
+                              # (earlier versions of its template: an
+                              # unedited copy of one is ours, `_state`)
+                              "previous": sorted(getattr(e, "previous", ())
+                                                 or ()) or None,
                               **extra}
-                # an earlier version of a template, unedited: ours
-                previous = set(getattr(e, "previous", ()) or ())
-                if previous and local.is_file() and \
-                        sha256(local.read_bytes()) in previous:
-                    files[key]["sha256"] = sha256(local.read_bytes())
                 placed.add(key)
             else:
                 # placed directly: refreshed if unedited (#26)
@@ -345,13 +345,23 @@ def harvest_hosted(
             if path.is_absolute() or ".." in path.parts:
                 raise ValueError(f"Invalid remote path: {path}")
             pristine = layout.source.joinpath(folder, *path.parts)
-            # pristine copies follow the listing (size, digests), whatever
-            # `--if-exists` says (it governs the visible files)
-            download(e, pristine, "different")
+            # pristine copies follow the listing whatever `--if-exists`
+            # says (it governs the visible files): by digest, else by
+            # size and mtime, else downloaded again (`unchanged` keeps
+            # the mtime of an identical copy: shard signatures)
+            policy = "different" if e.digests else \
+                "refresh" if e.mtime is not None and e.size is not None \
+                else "different"
+            if pristine.is_file() and pristine not in unchanged:
+                unchanged[pristine] = (sha256(pristine.read_bytes()),
+                                       pristine.stat().st_mtime_ns)
+            download(e, pristine, policy)
             files[_rel(layout, pristine)] = {**remote, "origin": "direct"}
+            # (a None clears what an older, direct entry had)
             files[key] = {"origin": "roasted",
                           "source": _rel(layout, pristine),
-                          "url": e.url, **flags, **extra}
+                          "url": e.url, "size": None, "digests": None,
+                          **flags, **extra}
             placed.add(key)
         else:
             download(e, local, if_exists)
@@ -366,6 +376,14 @@ def harvest_hosted(
     for policy, group in groups.items():
         DownloadManager(group, ifexists=policy, jobs=jobs,
                         path="short").run()
+    for path, (digest, mtime) in unchanged.items():
+        # downloaded again, identical: its old mtime back
+        try:
+            if path.stat().st_mtime_ns != mtime and \
+                    sha256(path.read_bytes()) == digest:
+                os.utime(path, ns=(path.stat().st_atime_ns, mtime))
+        except OSError:
+            pass
     record_run(layout, "harvest", {
         **(provenance or {}),
         "filters": _filters(selection),
@@ -593,7 +611,8 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
     source = entry.get("source")
     fmap = name.endswith(".json") and target.parent.name == "fmap"
     intended = fmap and (repair or trim)
-    previous = sorted(plan.previous) if plan else []
+    previous = sorted({*(plan.previous if plan else ()),
+                       *(entry.get("previous") or ())})
     # paths of the file in the remote layout (remapped labels, runs...)
     relabel = None
     if (fmap or name.endswith("_scans.tsv")) and entry.get("remote_root"):
@@ -672,12 +691,17 @@ class RoastMetadata(Action):
     keep : bool
         The output is an edited field map: keep its keys, take
         `IntendedFor` from the render
+    backup : path, optional
+        Copy the existing output there before it is replaced (the
+        migration rule "replace"); nothing is copied unless the action
+        writes
     """
 
     def __init__(self, item: dict, *, ifexists=None, tag=None,
-                 keep: bool = False):
+                 keep: bool = False, backup=None):
         self.item = item
         self.keep = keep
+        self.backup = backup
         fill: FillPlan | None = item.get("fill")
         src = [p for p in (item["source"], item["sibling"]) if p]
         src += fill.paths if fill else []
@@ -720,6 +744,11 @@ class RoastMetadata(Action):
 
     def write(self, file) -> None:
         """Write the output (the actor of the action)."""
+        target = Path(self.item["target"])
+        if self.backup is not None and target.is_file():
+            # (a copy: the file itself is replaced atomically, or kept)
+            Path(self.backup).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(target, self.backup)
         file.write(self.render())
 
 
@@ -743,33 +772,34 @@ def _state(item: dict) -> str:
     return "edited" if item["sha256"] else "unknown"
 
 
-def _migrate(ctx: RoastContext, item: dict, rule: str) -> bool:
+def _migrate(ctx: RoastContext, item: dict, rule: str
+             ) -> tuple[bool, Path | None]:
     """
     Apply the migration rule to a file without a recorded hash.
 
     Called when the file differs from the render. "keep": it is kept,
-    with a warning; "replace": it is moved to `<state>/replaced/<path>`
-    (then written again), with a warning naming the backup.
+    with a warning; "replace": it is copied to `<state>/replaced/<path>`
+    as the action writes it (which replaces it atomically; if no action
+    writes, it stays as it is), with a warning naming the backup.
 
     Returns
     -------
-    bool
+    write : bool
         Whether the file is to be written
+    backup : Path | None
+        Where the action copies it first
     """
     dst = Path(item["target"])
     if rule == "replace":
         backup = Path(ctx.layout.state) / REPLACED_DIR / item["key"]
-        backup.parent.mkdir(parents=True, exist_ok=True)
-        with FileLock(dst, exclusive=True):
-            os.replace(dst, backup)
         lg.warning(f"{dst} differs from what brainspresso writes and has no "
                    f"recorded hash (an older harvest): replaced, the old "
                    f"file is in {backup}")
-        return True
+        return True, backup
     lg.warning(f"{dst} differs from what brainspresso writes and has no "
                f"recorded hash (an older harvest, or edited): kept "
                f"(--if-exists different or overwrite replaces it)")
-    return False
+    return False, None
 
 
 def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
@@ -788,22 +818,26 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     if state == "edited":
         if item["fmap"] and item["intended"]:
             lg.warning(f"{dst} was edited since brainspresso wrote it: "
-                       f"kept, its IntendedFor from the pristine copy "
-                       f"(--if-exists different or overwrite replaces it)")
+                       f"kept, but its IntendedFor is taken from the "
+                       f"pristine copy (yours is replaced; --if-exists "
+                       f"different or overwrite replaces the whole file)")
             yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
                                 keep=True)
             return
         lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
                    f"(--if-exists different or overwrite replaces it)")
         return
+    backup = None
     if state == "unknown":
         try:
             same = RoastMetadata(item).render() == dst.read_bytes()
         except (OSError, ValueError):
             same = False
-        if not same and not _migrate(ctx, item, MIGRATION_RULE):
-            return
-    yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag)
+        if not same:
+            write, backup = _migrate(ctx, item, MIGRATION_RULE)
+            if not write:
+                return
+    yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag, backup=backup)
 
 
 def _orphan_actions(ctx: RoastContext, orphan: dict) -> Iterator[Action]:
@@ -937,6 +971,7 @@ def roast_hosted(
     existing_only: bool = False,
     json: str = "yes",
     repair: bool | None = None,
+    tables: bool = True,
     ifexists: IfExists.Choice = "skip",
     jobs: int = 1,
     display: bool = True,
@@ -973,6 +1008,9 @@ def roast_hosted(
     repair : bool | None
         Repair the hosted metadata (`--repair/--no-repair`; recorded per
         file); None: as each file was harvested
+    tables : bool
+        Roast the participants, sessions and scans tables (False: left
+        as they are, `compost --no-trim`)
     ifexists : {"skip", "overwrite", "different", "refresh", "error"}
         Default `IfExists` of the visible files
     jobs : int
@@ -994,8 +1032,17 @@ def roast_hosted(
         layout, files, fill=fill, site=site, paths=paths,
         subjects=subjects, present=present, existing_only=existing_only,
         every=every, repair=repair, selection=selection)
+    if not tables:
+        items = [i for i in items if not is_trimmable(i["rel"])]
     for item in items:
         item["state"] = _state(item)        # (before anything changes)
+        # a file the shard leaves as it is (an edit, a file without a
+        # hash, a frozen one) is no recorded output: whether it exists
+        # is in the shard config, so that deleting it runs the shard
+        frozen = item["source"] is not None and \
+            not Path(item["source"]).exists()
+        item["kept"] = Path(item["target"]).exists() \
+            if frozen or item["state"] in ("edited", "unknown") else None
     base = selection or Selection()
     ctx = RoastContext(
         layout=layout,
@@ -1033,16 +1080,17 @@ def _record(layout, items, orphans, report, ctx, repair) -> None:
     for item in items:
         dst = Path(item["target"])
         if os.path.normcase(os.path.abspath(dst)) not in written or \
-                item["state"] == "edited" or not dst.is_file():
+                not dst.is_file():
             continue
         data = dst.read_bytes()
-        if item["state"] == "unknown":
-            # (a skipped shard replays outputs: only the render counts)
-            try:
-                if RoastMetadata(item).render() != data:
-                    continue
-            except (OSError, ValueError):
+        # whatever its state was: ours iff it holds the render (an edit
+        # replaced by `--if-exists overwrite` is ours; an edited field
+        # map merged with the render, or a replayed output, is not)
+        try:
+            if RoastMetadata(item).render() != data:
                 continue
+        except (OSError, ValueError):
+            continue
         entry = recorded[item["key"]] = {"sha256": sha256(data)}
         # (None removes a stale list)
         entry["fill"] = item["fill"].ids if item["fill"] else None

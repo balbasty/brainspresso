@@ -32,6 +32,7 @@ from brainspresso.bids.hosted import (
     plan_fill,
     read_fill_templates,
     render,
+    trim_rows,
 )
 from brainspresso.bids.layout import Layout, make_layout, read_manifest
 from brainspresso.bids.select import Selection
@@ -50,6 +51,7 @@ from brainspresso.roast.hosted import (
 )
 from brainspresso.sources import fcp
 from brainspresso.sources import openneuro as openneuro_mod
+from brainspresso.sources.base import RemoteEntry
 from brainspresso.sources.s3 import S3Bucket
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
@@ -1492,3 +1494,160 @@ def test_render_version_and_bidsignore_sign_shards(tmp_path, openneuro,
     write(lay.raw / ".bidsignore", "*_bold.nii.gz\n")
     on("roast", tmp_path)
     assert read_task_states(lay.state)[task]["started"] != second
+
+
+# ----------------------------------------------------------------------
+#   Fable follow-up of #27
+# ----------------------------------------------------------------------
+
+def test_deleted_files_return(tmp_path, openneuro):
+    lay = on("harvest", tmp_path)
+    paths = [lay.raw / p for p in (
+        "sub-01/anat/sub-01_T1w.json", "sub-01/sub-01_scans.tsv",
+        "participants.tsv", "sub-01/func/sub-01_task-rest_events.tsv")]
+    for path in paths:
+        path.unlink()
+    on("roast", tmp_path)
+    assert all(path.exists() for path in paths)
+
+
+def test_deleted_kept_edit_returns(tmp_path, openneuro):
+    """N2: a file the last shard run left as it is, then deleted."""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    t1w.write_text('{"EchoTime": 1}\n')
+    (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").write_text(
+        '{"EchoTime": 0.005}')
+    on("roast", tmp_path)                   # the shard runs: edit kept
+    assert read_json(t1w) == {"EchoTime": 1}
+    t1w.unlink()
+    on("roast", tmp_path)
+    assert read_json(t1w) == {"EchoTime": 0.005}
+
+
+def test_deleted_frozen_file_is_reported(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").unlink()
+    roast_hosted(lay, display=False)        # frozen
+    t1w.unlink()
+    report = roast_hosted(lay, display=False)
+    assert report.summary()["hosted"].get("error") == 1
+
+
+def test_overwritten_edit_is_ours_again(tmp_path, openneuro, caplog):
+    """N1: after `--if-exists overwrite`, the file follows its base."""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    readme = lay.raw / "README"
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    readme.write_text("My notes\n")
+    t1w.write_text('{"EchoTime": 1}\n')
+    pristine = lay.source / "openneuro"
+    write(pristine / "README", "New README\n")
+    write(pristine / "sub-01/anat/sub-01_T1w.json", '{"EchoTime": 0.005}')
+    on("roast", tmp_path, "--if-exists", "overwrite")
+    assert readme.read_text() == "New README\n"
+    assert read_json(t1w) == {"EchoTime": 0.005}
+    write(pristine / "README", "Newer README\n")
+    write(pristine / "sub-01/anat/sub-01_T1w.json", '{"EchoTime": 0.006}')
+    caplog.clear()
+    on("roast", tmp_path)
+    assert readme.read_text() == "Newer README\n"
+    assert read_json(t1w) == {"EchoTime": 0.006}
+    assert "was edited" not in caplog.text
+
+
+def test_old_tables_are_still_trimmed_by_compost(tmp_path, openneuro):
+    """N4: tables of a dataset harvested before hybrid placement."""
+    lay = on("harvest", tmp_path)
+    update_files(lay, {k: {"origin": "direct", "source": None,
+                           "sha256": None}
+                       for k, v in read_manifest(lay.state)["files"].items()
+                       if v.get("source")})
+    on("compost", tmp_path, "--subs", "01", "--yes")
+    assert table_rows(lay.raw / "participants.tsv") == ["sub-01"]
+
+
+@pytest.mark.parametrize("failure", ["policy", "write"])
+def test_replace_never_loses_the_file(tmp_path, openneuro, monkeypatch,
+                                      failure):
+    """N3: the migration rule "replace" copies, the action replaces."""
+    lay = on("harvest", tmp_path, "--no-repair")
+    t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
+    before = t1w.read_bytes()
+    update_files(lay, {k: {"sha256": None} for k in
+                       read_manifest(lay.state)["files"]})
+    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "replace")
+    if failure == "policy":
+        on("roast", tmp_path, "--sidecars", "no")
+        assert t1w.read_bytes() == before
+        assert not (lay.state / "replaced").exists()
+        return
+
+    def fail(self):
+        raise OSError("disk full")
+    monkeypatch.setattr(hosted_mod.RoastMetadata, "render", fail)
+    roast_hosted(lay, display=False)
+    assert t1w.read_bytes() == before
+
+
+def test_edited_field_map_intended_for_follows_the_render(tmp_path,
+                                                          openneuro,
+                                                          caplog):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    fmap.write_text(json.dumps({"IntendedFor": [], "Note": "mine"}))
+    caplog.clear()
+    on("roast", tmp_path, "--subs", "01")
+    assert read_json(fmap) == {
+        "IntendedFor": ["func/sub-01_task-rest_bold.nii.gz"], "Note": "mine"}
+    assert "IntendedFor is taken from the pristine copy" in caplog.text
+
+
+def test_compost_no_trim_leaves_hosted_tables(tmp_path, openneuro):
+    lay = on("harvest", tmp_path)
+    table = lay.raw / "participants.tsv"
+    on("compost", tmp_path, "--subs", "01", "--no-trim", "--yes")
+    assert table_rows(table) == ["sub-01", "sub-02", "sub-03"]
+    on("roast", tmp_path)
+    assert table_rows(table) == ["sub-01"]
+
+
+def test_trim_rows_labels_and_short_rows(caplog):
+    here = {"sub-01"}.__contains__
+    # labels without `sub-` (an unrepaired table)
+    text = "participant_id\tage\n01\t30\n02\t40\n"
+    out = trim_rows(text, "participants.tsv", lambda p, folder: here(p))
+    assert out == "participant_id\tage\n01\t30\n"
+    assert "has no" not in caplog.text
+    # a row too short to have the column: kept, with a warning
+    out = trim_rows("a\tparticipant_id\nx\n", "participants.tsv",
+                    lambda p, folder: False)
+    assert out == "a\tparticipant_id\nx\n"
+    assert "a row has no participant_id, kept" in caplog.text
+
+
+def test_unchanged_pristine_copies_keep_their_mtime(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    readme = lay.source / "openneuro/README"
+    before = readme.stat().st_mtime_ns
+    on("harvest", tmp_path, "--subs", "01")
+    assert readme.stat().st_mtime_ns == before
+
+
+def test_pristine_copies_without_digest_or_mtime(tmp_path, openneuro_url,
+                                                 openneuro):
+    """A listing without digests nor mtimes (OpenNeuro GraphQL, files
+    not annexed): downloaded again, but an identical copy keeps its
+    mtime (shard signatures)."""
+    url = f"{openneuro_url}/openneuro.org/{DS}/README"
+    entries = [RemoteEntry("README", url=url, size=len(ON["README"]))]
+    root = tmp_path / "ds"
+    harvest_hosted(entries, root, Selection(), folder="x", display=False)
+    lay = Layout.detect(root)
+    copy = lay.source / "x/README"
+    before = copy.stat().st_mtime_ns
+    ON_REQUESTS.clear()
+    harvest_hosted(entries, root, Selection(), folder="x", display=False)
+    assert ON_REQUESTS[f"GET {DS}/README"] == 1     # (downloaded again)
+    assert copy.stat().st_mtime_ns == before

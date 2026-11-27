@@ -444,10 +444,18 @@ def retrim_tables(layout: Layout) -> list[str]:
     Rewrite participants/sessions/scans tables to what is on disk.
 
     Untouched copies saved by `harvest` in
-    `.brainspresso/orig/` are used as reference when they exist.
+    `.brainspresso/orig/` are used as reference when they exist. Tables
+    rendered from a base by the metadata roast of a hosted dataset
+    (their manifest entry has a `source`) are left to it.
     Returns the tables written, relative to `layout.root`.
     """
     root, bids = layout.root, layout.raw
+    manifest = read_manifest(layout.state) or {}
+    rendered = {
+        k for k, v in (manifest.get("files") or {}).items()
+        if isinstance(v, dict) and v.get("source")
+        and v.get("origin") in ("roasted", "generated")
+    }
 
     def original(path: Path) -> Path:
         orig = layout.original(path)
@@ -461,6 +469,7 @@ def retrim_tables(layout: Layout) -> list[str]:
     for path in list_files(bids, bids):
         if path.startswith("sub-") and is_trimmable(path):
             tables[_relative(bids / path, root)] = original(bids / path)
+    tables = {k: v for k, v in tables.items() if k not in rendered}
     return trim_tables(root, tables)
 
 

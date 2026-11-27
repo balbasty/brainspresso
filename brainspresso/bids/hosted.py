@@ -482,6 +482,7 @@ def plan_fill(
     for path in present:
         by_subject.setdefault(path.split("/")[0], []).append(path)
     plans: dict[str, list] = {}
+    warned: set[str] = set()
     for target, layers in wanted.items():
         resolved = _resolve(target, placements)
         for path in resolved:
@@ -504,8 +505,11 @@ def plan_fill(
             if unknown:
                 # the keys a pushed-down fill-in must not give are not
                 # known: none is pushed down (never "no keys")
-                lg.warning(f"Fill-in {path} skipped: a top-level sidecar "
-                           f"of its suffix cannot be read")
+                if suffix not in warned:
+                    warned.add(suffix)
+                    lg.warning(f"Fill-in sidecars of suffix {suffix} not "
+                               f"pushed down: a top-level {suffix} "
+                               f"sidecar cannot be read")
                 continue
             plan = plans.setdefault(path, [[], set()])
             plan[0] += [t for t in layers if t not in plan[0]]
@@ -629,10 +633,23 @@ def trim_rows(text: str, name: str,
     if column not in header:
         return text
     col = header.index(column)
+    participants = column == "participant_id"
     out, dropped = [lines[0]], False
     for line in lines[1:]:
         cells = line.split("\t")
-        if line and (len(cells) <= col or not here(cells[col], folder)):
+        if not line:
+            out.append(line)
+            continue
+        if len(cells) <= col:
+            lg.warning(f"{name}: a row has no {column}, kept: {line!r}")
+            out.append(line)
+            continue
+        cell = cells[col].strip()
+        # (an unrepaired table may give labels without `sub-`)
+        found = here(cell, folder) or (
+            participants and not cell.startswith("sub-")
+            and here("sub-" + cell, folder))
+        if not found:
             dropped = True
             continue
         out.append(line)

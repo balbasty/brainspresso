@@ -1209,16 +1209,19 @@ class Dataset:
             # and tables trimmed to what is left; nothing is re-created),
             # before its pristine copies may go (`--sourcedata`)
             def after_data(dataset):
+                # (`--no-trim`: the tables are left as they are)
                 self.roast_hosted(layout, None, existing_only=True,
-                                  only={Path(dataset.root)})
+                                  only={Path(dataset.root)},
+                                  tables=c.trim)
         return run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
             sessions=args.sessions.sessions,
             where=args.filters.where, derivatives=c.derivatives,
-            # (hosted: the roast after the deletion trims the tables)
-            trim=c.trim and not self.hosted, force=c.force, yes=c.yes,
+            # (hosted: the roast after the deletion trims the tables it
+            # renders; `retrim_tables` the others)
+            trim=c.trim, force=c.force, yes=c.yes,
             dry_run=c.dry_run, list=c.list,
             sites=self.select_sites(args.sites.sites),
             exclude_sites=self.select_sites(args.sites.exclude_sites),
@@ -1292,7 +1295,8 @@ class Dataset:
                 and Path(child.root).is_dir()]
 
     def roast_hosted(self, layout, args: Args | None = None, *,
-                     existing_only: bool = False, only=None):
+                     existing_only: bool = False, only=None,
+                     tables: bool = True):
         """
         Roast the metadata of a hosted dataset (`roast.hosted`).
 
@@ -1308,6 +1312,8 @@ class Dataset:
             Only rewrite the files that exist
         only : set[Path], optional
             Only the datasets with these roots
+        tables : bool
+            Roast the participants, sessions and scans tables
 
         Returns
         -------
@@ -1323,7 +1329,7 @@ class Dataset:
                 print(f"--- {site}")
             reports.append(roast_hosted(
                 child, fill=fill, site=site, selection=selection,
-                existing_only=existing_only,
+                existing_only=existing_only, tables=tables,
                 json=args.roast.sidecar_policy if args else "yes",
                 repair=args.extra("hosted_roast", "repair", True)
                 if args else None,

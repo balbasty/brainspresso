@@ -16,7 +16,7 @@ from roast_utils import (
 )
 
 openpyxl = pytest.importorskip("openpyxl")
-from brainspresso.datasets.OASIS.I.bidsifier import Bidsifier  # noqa: E402
+from brainspresso.datasets.oasis.i.bidsifier import Bidsifier  # noqa: E402
 
 DRV = "oasis-processed"
 

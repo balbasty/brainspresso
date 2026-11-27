@@ -6,13 +6,13 @@ templates of datasets whose providers do not distribute sidecars:
 
 | folder    | dataset  | templates                                |
 | --------- | -------- | ---------------------------------------- |
-| `ABIDE1/` | ABIDE-I  | `brainspresso/datasets/ABIDE/I/templates` |
-| `ABIDE2/` | ABIDE-II | `brainspresso/datasets/ABIDE/II/templates` |
-| `CoRR/`   | CoRR     | `brainspresso/datasets/CoRR/templates`    |
-| `MPI-LEMON/` | INDI MPI-LEMON | `brainspresso/datasets/INDI/templates/mpi-lemon` (fill-in) |
-| `NKI-RS/` | INDI NKI-RS | `brainspresso/datasets/INDI/templates/nki-rs` (fill-in) |
-| `SALD/`   | INDI SALD | `brainspresso/datasets/INDI/templates/sald` (fill-in) |
-| `SLIM/`   | INDI SLIM | `brainspresso/datasets/INDI/templates/slim` (fill-in) |
+| `ABIDE1/` | ABIDE-I  | `brainspresso/datasets/indi/abide/i/templates` |
+| `ABIDE2/` | ABIDE-II | `brainspresso/datasets/indi/abide/ii/templates` |
+| `CoRR/`   | CoRR     | `brainspresso/datasets/indi/corr/templates`    |
+| `MPI-LEMON/` | INDI MPI-LEMON | `brainspresso/datasets/indi/mpi_lemon/templates` (fill-in) |
+| `NKI-RS/` | INDI NKI-RS | `brainspresso/datasets/indi/nki_rs/templates` (fill-in) |
+| `SALD/`   | INDI SALD | `brainspresso/datasets/indi/sald/templates` (fill-in) |
+| `SLIM/`   | INDI SLIM | `brainspresso/datasets/indi/slim/templates` (fill-in) |
 
 INDI projects host BIDS sidecars in the bucket, but they are often
 incomplete (unless dcm2niix wrote them). Their templates are **fill-in**
@@ -63,7 +63,8 @@ imaging data themselves are subject to the providers' terms of use.
 Files come from two sources:
 
 - **brainspresso**: printouts previously stored in
-  `brainspresso/datasets/{ABIDE/II,CoRR}/templates/PDFs/` (downloaded by the
+  `brainspresso/datasets/{ABIDE/II,CoRR}/templates/PDFs/` (now
+  `datasets/indi/{abide/ii,corr}/`; downloaded by the
   old, since removed, `*_parse_scan_param.py` scripts), moved here with
   `git mv` (byte-identical, renamed). The empty `CoRR/templates/PDFs.download` and
   `PDFs.lock` marker files were removed.
@@ -79,9 +80,9 @@ ABIDE-I had no printouts in brainspresso; all come from the corpus.
 
 ### INDI projects
 
-Single-site projects (site `""` in `brainspresso/datasets/INDI/projects.py`):
+Single-site projects (site `""` in `brainspresso/datasets/indi/<project>/dataset.py`):
 the files sit directly in `printouts/<DATASET>/` (no site folder), and the
-templates in `templates/<Project.name>/`. Downloaded on 2026-11-27 from
+templates in `brainspresso/datasets/indi/<project>/templates/`. Downloaded on 2026-11-27 from
 `https://fcon_1000.projects.nitrc.org/indi/`, unchanged (only renamed where
 said):
 
@@ -250,8 +251,8 @@ this is the **fill marker** the engine reads. The fill-in hook and its
 final convention (template location, flag or naming) belong to the
 hosted-BIDS placement work (step 2b-iii); the names are single constants
 of `make_sidecars.py` (`FILL_KEY`, `LOCK_FILL_KEY`, `FILL_INDEX`) and of
-`INDI/engine.py` (`FILL_INDEX`). Until that hook lands, the INDI engine
-mirrors `templates/<Project.name>/*` at the dataset root, where BIDS
+`indi/engine.py` (`FILL_INDEX`). Until that hook lands, the INDI engine
+mirrors `indi/<project>/templates/*` at the dataset root, where BIDS
 inheritance lets the hosted, lower-level sidecars win, and a bucket file
 at the same path as a fill-in template is kept (the template is skipped,
 with a warning; non-fill templates still override, as before).

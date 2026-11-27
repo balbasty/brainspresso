@@ -15,7 +15,7 @@ from roast_utils import (
     read_tsv,
 )
 
-from brainspresso.datasets.COBRE.bidsifier import Bidsifier
+from brainspresso.datasets.indi.cobre.bidsifier import Bidsifier
 
 CSV = (
     ",Current Age,Gender,Handedness,Subject Type,Diagnosis\n"

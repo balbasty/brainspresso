@@ -26,10 +26,10 @@ from brainspresso.bids.layout import Layout, is_sites_parent, make_layout
 from brainspresso.cli import build_app, global_options, main
 from brainspresso.config import ConfigError, Loader, dataset_names, tree
 from brainspresso.datasets import base
-from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
-from brainspresso.datasets.IXI.dataset import IXI
+from brainspresso.datasets.indi.adhd200.dataset import ADHD200
+from brainspresso.datasets.ixi.dataset import IXI
 from brainspresso.errors import UsageError
 
 # ----------------------------------------------------------------------
@@ -824,7 +824,7 @@ IMPORTED = (
     (["config", "--help"], []),
     (["config", "show"], []),
     (["config", "paths"], []),
-    (["config", "show", "ixi", "info"], ["IXI"]),
+    (["config", "show", "ixi", "info"], ["ixi"]),
 ])
 def test_config_commands_import_no_dataset(tokens, datasets):
     out = run_python(IMPORTED.format(tokens=tokens))

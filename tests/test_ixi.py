@@ -20,7 +20,7 @@ from cli_utils import bx
 from roast_utils import LAYOUTS
 
 from brainspresso.bids.layout import Layout
-from brainspresso.datasets.IXI import roaster
+from brainspresso.datasets.ixi import roaster
 from brainspresso.download import DownloadManager
 
 # Templates of the installed package (CI tests the installed package)
@@ -145,7 +145,7 @@ def xnat():
 
 
 def harvest(server, src, **kwargs):
-    from brainspresso.datasets.IXI.harvest import nitrc_downloaders
+    from brainspresso.datasets.ixi.harvest import nitrc_downloaders
     kwargs.setdefault("keys", {"T1w", "T2w", "PDw", "angio", "dwi"})
     DownloadManager(
         nitrc_downloaders(src, server=server, **kwargs),
@@ -194,7 +194,7 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
 def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
     # images from NITRC-IR (default), metadata from the bundled IXI.xls
     # (nothing to download, the offline imperial host is not tried)
-    from brainspresso.datasets.IXI import harvest as dl
+    from brainspresso.datasets.ixi import harvest as dl
     server, _ = xnat
     monkeypatch.setattr(dl.NitrcIR, "server", server)
     monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})

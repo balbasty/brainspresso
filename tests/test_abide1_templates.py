@@ -10,12 +10,12 @@ import numpy as np
 import pytest
 from roast_utils import init_layout, make_tar, nii_bytes, raw_file
 
-from brainspresso.datasets.ABIDE.I import sources
-from brainspresso.datasets.ABIDE.I.bidsifier import (
+from brainspresso.datasets.indi.abide.i import sources
+from brainspresso.datasets.indi.abide.i.bidsifier import (
     BidsifierBase,
     TemplateError,
 )
-from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
+from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import Bidsifier
 
 TPL = BidsifierBase.TPLDIR
 NAMES = ("T1w.json", "bold.json")

@@ -6,7 +6,8 @@ conversion-table entries that have none (protocol2bids needs a header to
 map phase-encoding / slice directions to voxel axes).
 
 Only the first 64 KiB of the `.nii.gz` is downloaded (HTTP Range request,
-anonymous HTTPS, as in `brainspresso/datasets/INDI/make_fcon1000.py`); just
+anonymous HTTPS, as in
+`brainspresso/datasets/indi/fcon1000/make_templates.py`); just
 enough is decompressed to read the NIfTI-1/2 header, and the header (plus
 extensions up to `vox_offset`) is stored as an uncompressed `.nii` without
 data.

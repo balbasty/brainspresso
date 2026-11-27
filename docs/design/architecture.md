@@ -291,7 +291,7 @@ Implemented (step 3):
   with basic credentials). Downloads take `insecure=True`; TLS keys in
   `get_opt` raise, the `_normalize_request_options` shim is gone.
 * Datasets declare `sources()` and `DEFAULTS` next to their harvest
-  command (ABIDE-I `datasets/ABIDE/I/sources.py`: `{"raw": ["s3",
+  command (ABIDE-I `datasets/indi/abide/i/sources.py`: `{"raw": ["s3",
   "nitrc"], "meta": ["s3", "nitrc"]}`, derivatives with `--source xnat`;
   CoRR: s3 then nitrc; IXI: images nitrc then imperial, meta `bundled`
   (`LocalSource`); ABIDE-II: nitrc, `--source s3` opt-in; OASIS-III:
@@ -514,7 +514,7 @@ Fill-in sidecars (`bids/hosted.py`): templates of a hosted dataset that
 **add** the keys its hosted (or generated) sidecars lack and **never**
 change one. Found from the dataset package, never a fixed path:
 `<Dataset.template_dir>/_fill.json` (INDI: `Project.template_dir`,
-`templates/<project>/`; the marker of the printouts PR #26, written by
+`indi/<project>/templates/`; the marker of the printouts PR #26, written by
 `scripts/make_sidecars.py` and checked by its `--check`), listing
 `[<site>/]<name>.json` files:
 
@@ -1232,7 +1232,7 @@ absence of the key.
   takes it before planning and holds it through its confirmation.
   `--dry-run` and `info` take none. Sites: the parent and every
   existing site; a site created by a harvest takes its own shared lock
-  when it is created (`INDI.harvest.harvest_sites`, with the `--lock-wait` of
+  when it is created (`indi.harvest.harvest_sites`, with the `--lock-wait` of
   the command), and a command on one site (`--out <DS>/<site>`, listed
   by the parent or not) also takes the lock of its parent, so a compost
   of a site waits for a whole-parent compost. The parent's lock is
@@ -2093,6 +2093,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1459 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
+| 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
@@ -2118,6 +2119,34 @@ Each step lands as commits on the refactor branch with its tests green.
   and the ported modules; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
+* Dataset packages (step 4p): lower-case PEP 8 names, grouped by
+  collection, with the modules shared by every dataset (`base.py`,
+  `options.py`, `register.py`, `catalog.py`, `compost.py`) at
+  `datasets/`:
+
+  ```
+  datasets/
+    indi/        INDI: the shared engine of the s3://fcp-indi projects
+                 (engine.py, harvest.py, dataset.py), then
+      fcon1000/ slim/ sald/ nki_rs/ mpi_lemon/ hbn/ natview/ acpi/ simon/
+                 one subpackage per project: dataset.py (its Project and
+                 catalog entry), templates/ (curated files, _fill.json)
+      abide/i/ abide/ii/ adhd200/ corr/ cobre/
+    oasis/i/ oasis/ii/ oasis/iii/
+    adni/i/
+    ixi/ bullitt/ unc_wisconsin/ gsp/ openneuro/
+  ```
+
+  Templates sit in `templates/` next to the module that uses them
+  (`Path(__file__).parent`; INDI: `Project.template_dir`, next to the
+  module that defines the project), and ship as package data
+  (`templates/**` of every package, `setup.cfg`). Package names are
+  not user-facing: CLI names (`bx abide1`), config sections
+  (`[abide1.roast]`) and dataset folders (`ABIDE-1/`) are the
+  `Dataset` declarations. INDI's sharing category
+  (`fcon_1000.projects.nitrc.org/indi/{retro,pro,enhanced}/`) is
+  metadata (`Dataset.indi_category`, `Project.category`, shown by
+  `info`), not a folder.
 * Imports are at the top level of modules (ruff `PLC0415`, step 4). A
   local import is kept only for an optional dependency, a genuine
   import cycle that moving code cannot break, or the start-up time of
@@ -2156,7 +2185,7 @@ up as an XPASS failure once fixed (then drop the marker).
 
 * ABIDE-II `_make_raw`: `return` instead of `continue` in the member loop.
 * ABIDE-II `_run`: `rawkeys` built from `allleaves`, ignoring `keys`
-  (same pattern, untested, in `ABIDE/I/bidsifier_xnat.py`).
+  (same pattern, untested, in `indi/abide/i/bidsifier_xnat.py`).
 * ABIDE-II participants mapper: stray backtick in `CURRENT_MED_STATUS`.
 * ABIDE-II `make_participants` reads ABIDE-I's `Phenotypic_V1_0b.csv`
   (suspected, no xfail).
@@ -2495,3 +2524,7 @@ up as an XPASS failure once fixed (then drop the marker).
   config; "replace" copies as the action writes; compost re-trims
   tables without a rendered entry, `--no-trim` reaches the roast;
   pristine refresh by digest, size and mtime, or content.
+* r35: step 4p, dataset packages renamed to lower-case PEP 8 names and
+  grouped by collection (`datasets/indi/`, ...; Conventions, §8);
+  `INDI/projects.py` split into one subpackage per project, each a
+  catalog entry; `Dataset.indi_category`. No import shim.

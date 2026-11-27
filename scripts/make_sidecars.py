@@ -15,7 +15,8 @@ DATASET is one of ABIDE1, ABIDE2, CoRR, MPI-LEMON, NKI-RS, SALD, SLIM
 
 For each entry of the conversion table, the printout is converted with
 protocol2bids, `defaults` and `assigns` are applied, and the sidecar is
-written to `brainspresso/datasets/<DS>/templates/<output>`. Provenance
+written to `TEMPLATES[<DATASET>]/<output>` (e.g. `brainspresso/datasets/
+indi/abide/i/templates/<output>`). Provenance
 (including, per sidecar, the protocol2bids version and commit) is written
 to `printouts/<DATASET>/sidecars.lock.json` and a diff report to
 `printouts/<DATASET>/report.md`.
@@ -84,14 +85,14 @@ except ModuleNotFoundError:     # Python < 3.11
 ROOT = Path(__file__).resolve().parent.parent
 PRINTOUTS = ROOT / 'printouts'
 TEMPLATES = {
-    'ABIDE1': 'brainspresso/datasets/ABIDE/I/templates',
-    'ABIDE2': 'brainspresso/datasets/ABIDE/II/templates',
-    'CoRR': 'brainspresso/datasets/CoRR/templates',
-    # INDI projects: brainspresso/datasets/INDI/templates/<Project.name>
-    'MPI-LEMON': 'brainspresso/datasets/INDI/templates/mpi-lemon',
-    'NKI-RS': 'brainspresso/datasets/INDI/templates/nki-rs',
-    'SALD': 'brainspresso/datasets/INDI/templates/sald',
-    'SLIM': 'brainspresso/datasets/INDI/templates/slim',
+    'ABIDE1': 'brainspresso/datasets/indi/abide/i/templates',
+    'ABIDE2': 'brainspresso/datasets/indi/abide/ii/templates',
+    'CoRR': 'brainspresso/datasets/indi/corr/templates',
+    # INDI projects: brainspresso/datasets/indi/<project>/templates
+    'MPI-LEMON': 'brainspresso/datasets/indi/mpi_lemon/templates',
+    'NKI-RS': 'brainspresso/datasets/indi/nki_rs/templates',
+    'SALD': 'brainspresso/datasets/indi/sald/templates',
+    'SLIM': 'brainspresso/datasets/indi/slim/templates',
 }
 # template JSON files that are not acquisition sidecars
 NON_SIDECARS = ('dataset_description.json', 'participants.json',

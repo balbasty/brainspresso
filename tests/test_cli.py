@@ -7,6 +7,7 @@ The command line built from `Dataset` classes (step 4).
 * The root help lists the catalog without importing datasets; a dataset
   help is the full help; `python -m brainspresso[.cli]` works.
 """
+import importlib
 import json
 import subprocess
 import sys
@@ -27,20 +28,22 @@ from brainspresso.bids.layout import (
 )
 from brainspresso.cli import app, main
 from brainspresso.datasets import catalog
-from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
+from brainspresso.datasets.base import Args, Dataset, KeySpec
+from brainspresso.datasets.bullitt.dataset import Bullitt
+from brainspresso.datasets.catalog import CATALOG, load
+from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import (
     Bidsifier as BidsifierI,
 )
-from brainspresso.datasets.ABIDE.I.dataset import ABIDE1
-from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier as BidsifierII
-from brainspresso.datasets.ABIDE.II.dataset import ABIDE2
-from brainspresso.datasets.ADHD200.dataset import ADHD200
-from brainspresso.datasets.base import Args, Dataset, KeySpec
-from brainspresso.datasets.Bullitt.dataset import Bullitt
-from brainspresso.datasets.catalog import CATALOG, load
-from brainspresso.datasets.COBRE.dataset import COBRE
-from brainspresso.datasets.IXI.dataset import IXI, KEYS
-from brainspresso.datasets.OASIS.III.dataset import OASIS3
-from brainspresso.datasets.OpenNeuro.dataset import OpenNeuroDataset
+from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
+from brainspresso.datasets.indi.abide.ii.bidsifier import (
+    Bidsifier as BidsifierII,
+)
+from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
+from brainspresso.datasets.indi.adhd200.dataset import ADHD200
+from brainspresso.datasets.indi.cobre.dataset import COBRE
+from brainspresso.datasets.ixi.dataset import IXI, KEYS
+from brainspresso.datasets.oasis.iii.dataset import OASIS3
+from brainspresso.datasets.openneuro.dataset import OpenNeuroDataset
 from brainspresso.datasets.options import (
     HarvestOptions,
     KeyOptions,
@@ -48,8 +51,8 @@ from brainspresso.datasets.options import (
     SelectionOptions,
     option_group,
 )
-from brainspresso.datasets.register import register
-from brainspresso.datasets.UNCWisconsin.dataset import UNCWisconsin
+from brainspresso.datasets.register import command_names, register
+from brainspresso.datasets.unc_wisconsin.dataset import UNCWisconsin
 from brainspresso.errors import UsageError
 from brainspresso.sources.base import LocalSource, StaticURLs
 from brainspresso.utils.deps import UNAVAILABLE
@@ -181,6 +184,44 @@ def test_catalog_up_to_date():
 def test_catalog_summaries():
     for name, (_, summary) in CATALOG.items():
         assert load(name).summary == summary
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG))
+def test_catalog_name_resolves_and_has_help(name, capsys):
+    """Every catalog import path resolves; `bx <name> --help` works."""
+    module, _, attr = CATALOG[name][0].partition(":")
+    assert module.startswith("brainspresso.datasets.")
+    assert module == module.lower()             # PEP 8 package names
+    assert hasattr(importlib.import_module(module), attr)
+    dataset = load(name)
+    assert dataset.name == name
+    try:
+        main([name, "--help"])
+    except SystemExit as e:     # (cyclopts >= 4 exits after the help)
+        assert not e.code, e.code
+    out = capsys.readouterr()
+    assert "unavailable" not in out.err, out.err
+    for command in command_names(dataset):
+        assert command in out.out
+
+
+# INDI sharing category (`fcon_1000.projects.nitrc.org/indi/<category>/`)
+INDI_CATEGORIES = {
+    "abide1": "retro", "abide2": "retro", "adhd200": "retro",
+    "cobre": "retro", "corr": "retro", "mpi-lemon": "retro",
+    "natview": "retro", "sald": "retro", "simon": "retro", "slim": "retro",
+    "hbn": "pro", "nki-rs": "enhanced",
+}
+
+
+def test_indi_category(capsys):
+    for name in CATALOG:
+        assert load(name).indi_category == INDI_CATEGORIES.get(name), name
+    try:
+        main(["abide1", "info"])
+    except SystemExit as e:
+        assert not e.code, e.code
+    assert "  INDI category: retro\n" in capsys.readouterr().out
 
 
 def test_broken_dataset(monkeypatch, capsys):

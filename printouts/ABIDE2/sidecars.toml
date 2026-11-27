@@ -2,7 +2,7 @@
 # Run `python scripts/make_sidecars.py ABIDE2` to regenerate the sidecars.
 #
 # Each [[sidecar]] entry has:
-#   output    path of the sidecar, relative to brainspresso/datasets/ABIDE/II/templates/
+#   output    path of the sidecar, relative to brainspresso/datasets/indi/abide/ii/templates/
 #   printout  path of the protocol printout, relative to printouts/ABIDE2
 #   select    (optional) protocol selector: 0-based index or name glob
 #             (see `p2b list <printout>`); must match exactly one protocol

@@ -37,10 +37,9 @@ from brainspresso.bids.hosted import (
 from brainspresso.bids.layout import Layout, make_layout, read_manifest
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
-from brainspresso.datasets.catalog import load
-from brainspresso.datasets.INDI import engine
-from brainspresso.datasets.INDI.dataset import INDIDataset
-from brainspresso.datasets.INDI.engine import Project, Site
+from brainspresso.datasets.catalog import CATALOG, load
+from brainspresso.datasets.indi.dataset import INDIDataset
+from brainspresso.datasets.indi.engine import Project, Site
 from brainspresso.datasets.register import register
 from brainspresso.roast import hosted as hosted_mod
 from brainspresso.roast.hosted import (
@@ -530,8 +529,15 @@ def templates(tmp_path, indi_url, monkeypatch):
         fcp, "get_bucket", lambda: S3Bucket("fcp-indi", endpoint=indi_url))
     INDI_REQUESTS.clear()
     folder = tmp_path / "templates"
-    shutil.copytree(engine.TEMPLATES, folder)
-    monkeypatch.setattr(engine, "TEMPLATES", folder)
+    folder.mkdir()
+    # `<folder>/<name>`: the templates of each project (`indi/<project>/
+    # templates/`), and of the projects of these tests
+    for name in CATALOG:
+        dataset = load(name)
+        if isinstance(dataset, INDIDataset) and dataset.template_dir.is_dir():
+            shutil.copytree(dataset.template_dir, folder / name)
+    monkeypatch.setattr(Project, "template_dir",
+                        property(lambda self: folder / self.name))
     return folder
 
 

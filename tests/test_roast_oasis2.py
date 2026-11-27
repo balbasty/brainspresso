@@ -15,7 +15,7 @@ from roast_utils import (
 )
 
 openpyxl = pytest.importorskip("openpyxl")
-from brainspresso.datasets.OASIS.II.bidsifier import Bidsifier  # noqa: E402
+from brainspresso.datasets.oasis.ii.bidsifier import Bidsifier  # noqa: E402
 
 HEADER = ["Subject ID", "MRI ID", "Group", "Visit", "MR Delay", "M/F",
           "Hand", "Age", "EDUC", "SES", "MMSE", "CDR", "eTIV", "nWBV", "ASF"]

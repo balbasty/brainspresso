@@ -1,5 +1,5 @@
 # Maintainer tools (scripts/make_sidecars.py,
-# datasets/Bullitt/templates/make_templates.py); never a runtime dependency.
+# datasets/bullitt/templates/make_templates.py); never a runtime dependency.
 # Kept out of setup.cfg: PyPI rejects direct URL references in package
 # metadata. Pinned to the protocol2bids commit recorded in
 # printouts/*/sidecars.lock.json (1987062).

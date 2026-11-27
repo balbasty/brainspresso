@@ -31,9 +31,6 @@ from brainspresso.datasets import catalog
 from brainspresso.datasets.base import Args, Dataset, KeySpec
 from brainspresso.datasets.bullitt.dataset import Bullitt
 from brainspresso.datasets.catalog import CATALOG, load
-from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import (
-    Bidsifier as BidsifierI,
-)
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.ii.bidsifier import (
     Bidsifier as BidsifierII,
@@ -529,7 +526,8 @@ def test_adhd200_bids_flag(tmp_path, monkeypatch, caplog, flags, value):
 def test_group_defaults_cover_all():
     # ("all",) and groups that cover every key count as "no --keys"
     abide = ABIDE1().keys_for("harvest")
-    assert abide.effective(("all",), ["fs"]) == ((), ("fs",))
+    # (excluding `fs` excludes its add-on `fs-all`)
+    assert abide.effective(("all",), ["fs"]) == ((), ("fs", "fs-all"))
     adhd = ADHD200().keys_for("harvest")
     assert adhd.effective(("all",), ["mriqc"]) == ((), ("mriqc",))
     # Bullitt's default leaves `phantoms` out: it stays a selection
@@ -544,21 +542,20 @@ def test_group_defaults_cover_all():
         "T1w", "anat", "pheno", "meta"}
 
 
-def test_legacy_keys_keep_groups():
-    # `fs` (one leaf, `fs-all`) reaches the legacy roaster as `fs`: it
-    # only converts the files that BIDS describes, `fs-all` converts all
-    abide = ABIDE1()
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        keys=("fs",))))
-    assert "fs" in keys and keys == {"fs", "fs-all"}
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        keys=("meta", "anat"))))
-    assert {"meta", "pheno", "anat", "T1w"} == keys
-    # an excluded leaf removes the groups above it
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        exclude_keys=("fs-all",))))
-    assert not {"fs", "fs-all", "derivatives", "all"} & keys
-    assert {"T1w", "rest", "meta"} <= keys
+def test_abide1_fs_keys_are_siblings():
+    # `fs` converts the files that BIDS describes, `fs-all` every file:
+    # siblings in the roast keys (`KeyAliases` expands a group to its
+    # leaves, so `fs` could not be told from `fs-all` as their group)
+    keys = ABIDE1().keys_for("roast").resolve()
+    fs = keys.selection(["fs"])
+    assert fs.wants("fs") and not fs.wants("fs-all")
+    assert keys.selection(["fs-all"]).wants("fs-all")
+    meta = keys.selection(["meta", "anat"])
+    assert {meta.wants(k) for k in ("meta", "pheno", "T1w")} == {True}
+    assert not meta.wants("rest") and not meta.wants("fs")
+    assert not keys.selection(["pheno"]).wants("meta")
+    derivatives = keys.selection(exclude_keys=["fs-all"])
+    assert derivatives.wants("fs") and not derivatives.wants("fs-all")
 
 
 def test_unnamed_key_group():
@@ -581,17 +578,20 @@ def test_bad_subject_range(tmp_path, capsys):
 def test_abide_two_exclude_keys(tmp_path):
     assert BidsifierII(tmp_path / "A2", exclude_keys={"dti", "rest"}
                        ).exclude_keys == {"dti", "rest"}
-    assert {"T1w", "rest"} <= BidsifierI(
-        tmp_path / "A1", exclude_keys={"T1w", "rest"}).exclude_keys
+    # ABIDE-I (engine): two excluded keys select the rest
+    selection = ABIDE1().keys_for("roast").resolve().selection(
+        exclude_keys=["T1w", "rest"])
+    assert not selection.wants("T1w") and not selection.wants("rest")
+    assert selection.wants("meta")
 
 
 def test_abide_roast_help_notes(capsys):
-    for ds in ("abide1", "abide2"):
+    for ds, note in (("abide1", "--source xnat"), ("abide2", "step 5")):
         try:
             main([ds, "roast", "--help"])
         except SystemExit:
             pass
-        assert "step 5" in capsys.readouterr().out
+        assert note in capsys.readouterr().out
 
 
 def test_lock_states_parent_first(tmp_path):

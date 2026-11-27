@@ -1,14 +1,13 @@
 """`bx abide1`: ABIDE-I (autism spectrum disorders)."""
 from brainspresso.datasets.base import Dataset, KeySpec
-from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import (
-    Bidsifier as BidsifierNITRC,
-)
-from brainspresso.datasets.indi.abide.i.bidsifier_xnat import (
-    Bidsifier as BidsifierXNAT,
-)
 from brainspresso.datasets.indi.abide.i.keys import allkeys
-from brainspresso.datasets.indi.abide.i.sources import DEFAULTS, SITES, sources
-from brainspresso.errors import UsageError
+from brainspresso.datasets.indi.abide.i.roaster import (
+    FS_ADD_ON,
+    ROAST_SPEC,
+    roast_options,
+)
+from brainspresso.datasets.indi.abide.i.sites import SITES, TEMPLATES
+from brainspresso.datasets.indi.abide.i.sources import DEFAULTS, sources
 from brainspresso.utils.keys import flatten_keys
 
 HELP = """
@@ -24,7 +23,6 @@ ABIDE-I dataset (autism spectrum disorders)
 """  # noqa: E501
 
 
-
 class ABIDE1(Dataset):
     """ABIDE-I: s3://fcp-indi, NITRC tarballs, NITRC-IR (derivatives)."""
 
@@ -33,18 +31,23 @@ class ABIDE1(Dataset):
     indi_category = "retro"
     title = "ABIDE-I"
     help = HELP
-    legacy_subjects = True
-    keys = KeySpec(allkeys, tuple(flatten_keys(allkeys)), ("all",))
+    keys = KeySpec(allkeys, tuple(flatten_keys(allkeys)), ("all",),
+                   implies=FS_ADD_ON)
     subject_width = 5
     site_names = SITES
     credentials = "login"
+    template_dir = TEMPLATES
     option_defaults = {"roast": {"source": ("s3",)}}
 
     def keys_for(self, command):
-        """Roast keys: the key hierarchy of the legacy roaster."""
+        """Roast keys: those of the roasters (the same hierarchy)."""
         if command == "roast":
-            return KeySpec(allkeys)
+            return ROAST_SPEC
         return self.keys
+
+    def roast_options(self, args):
+        """Options of the roasters (`roaster.roast_options`)."""
+        return roast_options(args.keys.keys)
 
     @property
     def defaults(self):
@@ -52,45 +55,28 @@ class ABIDE1(Dataset):
         return DEFAULTS
 
     def sources(self, args=None):
-        """s3://fcp-indi, NITRC tarballs, NITRC-IR."""
+        """s3://fcp-indi, NITRC tarballs, NITRC-IR (and their roasters)."""
         return sources()
 
-    def groups(self, command):
-        """Roast: `--source` picks the legacy roaster."""
-        groups = super().groups(command)
-        if command == "roast" and "source" not in groups:
-            i = groups.index("roast")
-            groups = (*groups[:i], "source", *groups[i:])
-        return groups
-
     def describe(self, command):
-        """Roast: what the legacy roasters filter."""
+        """Roast: what the roaster of each source converts."""
         if command == "roast":
             return (
-                "Convert the source data of ABIDE-I to BIDS (legacy "
-                "roasters, `Bidsifier` classes, rewritten in step 5).\n\n"
-                "`--source s3` (default) or `nitrc`: the NITRC tarballs or "
-                "the bucket copy; `--keys` selects raw data (T1w, rest) and "
-                "metadata, derivatives are not converted. `--source xnat`: "
-                "the NITRC-IR archives; `--keys` selects raw scans, "
-                "metadata and FreeSurfer outputs (`fs`: the files that BIDS "
-                "describes, `fs-all`: every file), but FreeSurfer archives "
-                "are not found yet (a known bug, fixed in step 5)."
+                "Convert the source data of ABIDE-I to BIDS.\n\n"
+                "`--source s3` (default) or `nitrc`: the bucket copy or "
+                "the NITRC tarballs (T1w, rest, phenotypes; the UCLA "
+                "high-resolution anatomical is `acq-hires_T2w`, key "
+                "`T2w`). `--source xnat`: the NITRC-IR archives (the same, "
+                "and "
+                "FreeSurfer outputs: `fs`, the files that BIDS describes; "
+                "`fs-all`, an add-on of `fs` not selected by default "
+                "(only when it or a group above it is named), "
+                "also unpacks every other file, and `--exclude-keys fs` "
+                "excludes both); other derivatives are not converted. A "
+                "missing FreeSurfer archive is an error only when "
+                "`--keys` names `fs`, `fs-all` or a group above them. "
+                "`participants.tsv` lists the subjects whose "
+                "folder is on disk (all of them are in the pristine copy, "
+                "`.brainspresso/orig/`)."
             )
         return super().describe(command)
-
-    def roast(self, layout, args):
-        """Legacy roasters (`Bidsifier` classes, step 5): one per source."""
-        source = (args.source.source or ("s3",))[0]
-        roasters = {"xnat": BidsifierXNAT, "nitrc": BidsifierNITRC,
-                      "s3": BidsifierNITRC}
-        if source not in roasters:
-            raise UsageError(f"Unknown source {source!r}")
-        roasters[source](
-            layout.root, keys=self.legacy_keys("roast", args),
-            exclude_keys=set(args.keys.exclude_keys),
-            subs=self.numbers(args.select.subs),
-            exclude_subs=self.numbers(args.select.exclude_subs),
-            json=args.roast.sidecar_policy, layout=layout.kind,
-            ifexists=args.roast.if_exists,
-        ).run()

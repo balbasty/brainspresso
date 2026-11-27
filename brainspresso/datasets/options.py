@@ -14,6 +14,7 @@ This module does not use `from __future__ import annotations`: cyclopts
 reads the annotations of the fields.
 """
 import dataclasses
+import functools
 import logging
 from typing import Annotated, Any, ClassVar, Literal, Mapping
 
@@ -82,9 +83,13 @@ class OptionGroup:
     ----------
     panel : tuple[str, int]
         Title and position of the help panel
+    deprecated : dict[str, tuple[str, str]]
+        Deprecated alias fields: field -> (the field it stands for, what
+        to use instead). Config files refuse them (`brainspresso.config`)
     """
 
     panel: ClassVar[tuple[str, int]] = ("Options", 50)
+    deprecated: ClassVar[Mapping[str, tuple[str, str]]] = {}
 
     def source_options(self, dataset) -> dict[str, Any]:
         """
@@ -181,7 +186,7 @@ class OptionGroup:
         })
         if not types and not defaults and not helps:
             return cls
-        hints = _hints(cls)
+        hints = field_hints(cls)
         fields = []
         for f in dataclasses.fields(cls):
             if f.name not in types and f.name not in defaults and \
@@ -207,8 +212,20 @@ class OptionGroup:
                          group=Group(title, sort_key=sort_key))(new)
 
 
-def _hints(cls) -> dict[str, Any]:
-    """Annotations of the fields of a dataclass (with `Annotated`)."""
+def field_hints(cls) -> dict[str, Any]:
+    """
+    Annotations of the fields of a dataclass (with `Annotated`).
+
+    Parameters
+    ----------
+    cls : type
+        An option group
+
+    Returns
+    -------
+    dict[str, Any]
+        Field -> annotation (of the class that defines it last)
+    """
     out = {}
     for klass in reversed(cls.__mro__):
         out.update(getattr(klass, "__annotations__", {}))
@@ -416,8 +433,43 @@ class TokenOptions(OptionGroup):
 #   Commands
 # ----------------------------------------------------------------------
 
-_WAIT = Parameter(help="Seconds to wait for a dataset in use by another "
-                       "command (default: fail at once)")
+_LOCK_WAIT = Parameter(help="Seconds to wait for a dataset in use by "
+                            "another command (default: fail at once)")
+# `--wait SECONDS`: the deprecated name of `--lock-wait` (harvest and
+# compost only: on roast, `--wait` is kept for the execution flag
+# `--wait/--detach` of grind, §7)
+_WAIT = Parameter(show=False, help="Deprecated: use `--lock-wait`")
+_WAIT_ALIAS = {"wait": ("lock_wait", "--lock-wait")}
+
+
+def lock_wait(group) -> float:
+    """
+    Seconds to wait for the run lock (`--lock-wait`, or `--wait`).
+
+    Parameters
+    ----------
+    group : OptionGroup
+        Options of the command (harvest, roast, compost)
+
+    Returns
+    -------
+    float
+        The deprecated `--wait` (logged) if given, else `--lock-wait`
+
+    Raises
+    ------
+    UsageError
+        `--wait` and `--lock-wait` with different values
+    """
+    old = getattr(group, "wait", None)
+    new = getattr(group, "lock_wait", None)
+    if old is None:
+        return float(new or 0)
+    deprecated("--wait", "--lock-wait")
+    if new is not None and float(old) != float(new):
+        raise UsageError(f"--wait {old:g} and --lock-wait {new:g} "
+                         f"contradict each other")
+    return float(old)
 
 
 @option_group("Harvest", 40)
@@ -440,7 +492,10 @@ class HarvestOptions(OptionGroup):
         help="Print what would be downloaded, then exit (nothing is "
         "written)"
     )] = False
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
+    wait: Annotated[float | None, _WAIT] = None
+
+    deprecated = _WAIT_ALIAS
 
     @classmethod
     def defaults(cls, dataset, command):
@@ -469,23 +524,68 @@ class HarvestOptions(OptionGroup):
 
 @option_group("Roast", 40)
 class RoastOptions(OptionGroup):
-    """Options of a roast."""
+    """
+    Options of a roast.
 
-    json: Annotated[Literal["yes", "no", "only"] | bool, Parameter(
-        help="Whether to write (only) sidecar JSON files"
-    )] = "yes"
+    `--sidecars yes|no|only` replaces `--json [yes|no|only]` (a `Literal |
+    bool` field, an option of zero or one value, which cyclopts only
+    parses from 5.1); `--json VALUE` and `--no-json` (`--sidecars no`) are
+    hidden deprecated aliases. `sidecar_policy` is the value the roasters
+    take.
+    """
+
+    sidecars: Annotated[Literal["yes", "no", "only"] | None, Parameter(
+        help="Sidecars: \"yes\" writes them; \"no\" skips the JSON "
+        "sidecars (bval/bvec and tables are still written); \"only\" "
+        "writes the sidecars and metadata only, not the images. Default: "
+        "\"yes\""
+    )] = None
+    json: Annotated[Literal["yes", "no", "only"] | None, Parameter(
+        show=False, help="Deprecated: use `--sidecars`"
+    )] = None
+    no_json: Annotated[bool, Parameter(
+        name="--no-json", negative="", show=False,
+        help="Deprecated: use `--sidecars no`"
+    )] = False
     if_exists: Annotated[IfExists.Choice, Parameter(
         help="Behaviour when a file already exists"
     )] = "skip"
     jobs: Annotated[int, Parameter(help="Number of processes")] = 1
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
 
-    @property
-    def json_policy(self) -> str:
-        """`json` as "yes", "no" or "only"."""
-        if isinstance(self.json, bool):
-            return "yes" if self.json else "no"
-        return str(self.json).lower()
+    deprecated = {
+        "json": ("sidecars", "--sidecars"),
+        "no_json": ("sidecars", "--sidecars no"),
+    }
+
+    @functools.cached_property
+    def sidecar_policy(self) -> str:
+        """
+        The sidecar policy of the roasters: "yes", "no" or "only".
+
+        `--sidecars` (default "yes"), else the deprecated `--json VALUE`
+        or `--no-json` ("no"), logged once.
+
+        Raises
+        ------
+        UsageError
+            Two of them with different values
+        """
+        given = []
+        if self.sidecars is not None:
+            given.append(("--sidecars", str(self.sidecars)))
+        if self.json is not None:
+            deprecated("--json", "--sidecars")
+            given.append(("--json", str(self.json)))
+        if self.no_json:
+            deprecated("--no-json", "--sidecars no")
+            given.append(("--no-json", "no"))
+        values = {value for _, value in given}
+        if len(values) > 1:
+            raise UsageError(" and ".join(
+                f"{flag} {value}" if flag != "--no-json" else flag
+                for flag, value in given) + " contradict each other")
+        return values.pop() if values else "yes"
 
 
 @option_group("Compost", 40)
@@ -529,12 +629,17 @@ class CompostOptions(OptionGroup):
     list: Annotated[bool, Parameter(
         help="Print the files to delete before asking for confirmation"
     )] = False
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
+    wait: Annotated[float | None, _WAIT] = None
+
+    deprecated = _WAIT_ALIAS
 
 
 @option_group("Dataset", 60)
 class LayoutOptions(OptionGroup):
     """`--layout` (and the deprecated `--site-layout`)."""
+
+    deprecated = {"site_layout": ("layout", "--layout sites:<layout>")}
 
     layout: Annotated[Literal["study", "flat"] | None, Parameter(
         help="Layout of the dataset: \"study\" (raw dataset in "

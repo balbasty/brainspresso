@@ -3,8 +3,8 @@ Kinds of the files of a BIDS dataset, from their names.
 
 The action core (`actions.Action`) carries an opaque `kind`; the roast
 layer (`roast.policy`) computes it with `default_kind` when an action does
-not set one, and the JSON policy (`--json yes|no|only`) is defined on
-these kinds.
+not set one, and the JSON policy (`--sidecars yes|no|only`) is defined
+on these kinds.
 
 ```python
 default_kind("sub-01/anat/sub-01_T1w.nii.gz")    # "data"
@@ -26,7 +26,7 @@ Kind = Literal["data", "sidecar", "meta", "table"]
 KINDS: tuple[str, ...] = ("data", "sidecar", "meta", "table")
 
 # Dataset-level JSON files that describe tables or the dataset, not data
-# files (kind "table", so that `--json no` does not drop them)
+# files (kind "table", so that `--sidecars no` does not drop them)
 _TABLE_JSON_SUFFIXES = ("participants", "sessions", "scans", "samples")
 _DATASET_JSON = ("dataset_description.json", "genetic_info.json")
 _DATASET_FILES = (
@@ -45,7 +45,7 @@ def default_kind(path: str | os.PathLike) -> Kind:
       `dataset_description.json`): "table";
     * other `*.json`: "sidecar";
     * `*.bval`, `*.bvec`: "meta" (metadata that is not JSON: written
-      under every `--json` policy, as `bids.select` treats them as
+      under every sidecar policy, as `bids.select` treats them as
       metadata of the DWI series);
     * anything else (images, surfaces...): "data".
 

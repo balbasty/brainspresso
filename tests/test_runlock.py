@@ -239,7 +239,7 @@ def test_parent_before_child(two_sites):
     try:
         assert proc.stdout.readline().strip() == "parent"
         try:
-            _compost_site(root, "A", "--wait", "5")
+            _compost_site(root, "A", "--lock-wait", "5")
         except SystemExit as e:
             assert not e.code
         assert proc.stdout.readline().strip() == "child"

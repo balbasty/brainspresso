@@ -7,7 +7,9 @@ itself, and lock files are never deleted by the processes that hold them
 processes "hold" it at once):
 
 * inside a dataset (the nearest ancestor folder that has a
-  `.brainspresso/` state folder), the lock file is
+  `.brainspresso/` state folder, `is_state_folder`: one that holds
+  lock files, a manifest, run records..., not only a config file), the
+  lock file is
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, with `h` the SHA-256 of
   the path of the file relative to `<DS>`. It is on the filesystem of
   the dataset, so it also protects processes on other machines that
@@ -145,6 +147,7 @@ from __future__ import annotations
 
 import ctypes
 import errno
+import functools
 import hashlib
 import os
 import socket
@@ -173,14 +176,24 @@ lg = getLogger(__name__)
 
 __all__ = [
     "DEFAULT_TIMEOUT", "FileLock", "LockError", "LockTimeout",
-    "find_dataset", "forget_datasets", "lock_file", "lock_timeout",
-    "locks_enabled",
+    "find_dataset", "forget_datasets", "is_state_folder", "lock_file",
+    "lock_timeout", "locks_enabled",
 ]
 
 #: State folder of a dataset (`bids.layout.STATE_DIR`)
 STATE_DIR = ".brainspresso"
 #: Folder of the lock files, in the state folder of a dataset
 LOCKS_DIR = "locks"
+#: Entries that make a `.brainspresso/` folder a state folder: lock
+#: files, manifest (`bids.layout.MANIFEST`), run lock and records
+#: (`actions.runlock`), task states, pristine tables. Anything else (a
+#: config file, `config.toml`, with its backup or swap files) does not:
+#: `~/.brainspresso/` and `<root>/.brainspresso/` are config folders
+STATE_ENTRIES = frozenset({LOCKS_DIR, "manifest.json", "run", "runs",
+                           "tasks", "orig"})
+#: Folder of the user config file instead of `~/.brainspresso`
+#: (`brainspresso.config.HOME_ENV`): never a state folder
+CONFIG_HOME_ENV = "BRAINSPRESSO_CONFIG_HOME"
 #: Seconds to wait for a lock before `LockTimeout`
 DEFAULT_TIMEOUT = 600.0
 #: Environment variable that overrides `DEFAULT_TIMEOUT` (seconds)
@@ -293,9 +306,53 @@ def _real(path: str | os.PathLike) -> Path:
     return Path(os.path.realpath(path.parent)) / path.name
 
 
+def is_state_folder(folder: str | os.PathLike) -> bool:
+    """
+    Whether a folder is a dataset: it has a state folder.
+
+    A state folder is a `.brainspresso/` folder that holds one of the
+    `STATE_ENTRIES` (`Layout.ensure_state` creates `locks/` in it), or
+    nothing (one created by an older version, or by hand before a run
+    lock: its lock files must not move once they exist). One that holds
+    other files only (a config file, its backup or swap files,
+    `.DS_Store`: the user's `~`, the root of all datasets) is not, and
+    the user config folder (`~/.brainspresso`, or
+    `$BRAINSPRESSO_CONFIG_HOME`) never is.
+
+    Not cached: a state folder created by another process is seen at
+    once (two processes must never lock one file through two lock
+    files).
+
+    Parameters
+    ----------
+    folder : str | PathLike
+
+    Returns
+    -------
+    bool
+    """
+    state = os.path.join(folder, STATE_DIR)
+    try:
+        names = os.listdir(state)
+    except OSError:                 # (none, or not a folder)
+        return False
+    if names and not any(name in STATE_ENTRIES for name in names):
+        return False
+    return os.path.realpath(state) != _config_home(
+        os.environ.get(CONFIG_HOME_ENV, ""), os.path.expanduser("~"))
+
+
+@functools.lru_cache(maxsize=8)
+def _config_home(env: str, home: str) -> str:
+    """Resolve the user config folder (for one value of its variable)."""
+    folder = os.path.expanduser(env) if env else os.path.join(
+        home, STATE_DIR)
+    return os.path.realpath(folder)
+
+
 def _is_state_dir(folder: Path) -> bool:
-    """Whether a folder has a state folder (one `stat`)."""
-    return os.path.isdir(os.path.join(folder, STATE_DIR))
+    """Whether a folder has a state folder (`is_state_folder`)."""
+    return is_state_folder(folder)
 
 
 # Dataset of each (resolved) folder that holds locked files. Only hits
@@ -311,10 +368,15 @@ _datasets: "OrderedDict[Path, Path]" = OrderedDict()
 _datasets_lock = threading.Lock()
 
 
+_generation = 0
+
+
 def forget_datasets() -> None:
     """Forget the cached dataset of every folder (`find_dataset`)."""
+    global _generation
     with _datasets_lock:
         _datasets.clear()
+        _generation += 1
 
 
 def _dataset_of(folder: Path) -> Path | None:
@@ -324,6 +386,7 @@ def _dataset_of(folder: Path) -> Path | None:
         if found is not None:
             _datasets.move_to_end(folder)
             return found
+        generation = _generation
     for parent in (folder, *folder.parents):
         if _is_state_dir(parent):
             found = parent
@@ -331,10 +394,13 @@ def _dataset_of(folder: Path) -> Path | None:
     else:
         return None
     with _datasets_lock:
-        _datasets[folder] = found
-        _datasets.move_to_end(folder)
-        while len(_datasets) > _DATASET_CACHE_SIZE:
-            _datasets.popitem(last=False)
+        # (not if `forget_datasets` ran meanwhile: a nearer state folder
+        # may have appeared)
+        if generation == _generation:
+            _datasets[folder] = found
+            _datasets.move_to_end(folder)
+            while len(_datasets) > _DATASET_CACHE_SIZE:
+                _datasets.popitem(last=False)
     return found
 
 

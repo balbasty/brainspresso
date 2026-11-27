@@ -34,17 +34,19 @@ This module does not use `from __future__ import annotations` (the
 import contextlib
 import copy
 import dataclasses
+import functools
 import logging
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, ClassVar, Iterable, Literal, Mapping
 
+from brainspresso.actions.locks import is_state_folder
 from brainspresso.actions.runlock import run_lock
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import (
     STATE_DIR,
-    Layout,
     SitesLayout,
+    is_sites_parent,
     parse_layout,
     resolve_layout,
 )
@@ -388,12 +390,12 @@ class Args:
         return any(getattr(g, "dry_run", False) is True
                    for g in self.extras.values())
 
-    @property
-    def wait(self) -> float:
-        """Seconds to wait for the run lock."""
+    @functools.cached_property
+    def lock_wait(self) -> float:
+        """Seconds to wait for the run lock (`--lock-wait`; logged once)."""
         group = {"harvest": self.harvest, "roast": self.roast,
                  "compost": self.compost}.get(self.command)
-        return float(getattr(group, "wait", 0) or 0)
+        return opt.lock_wait(group) if group is not None else 0.0
 
 
 class Dataset:
@@ -997,7 +999,8 @@ class Dataset:
         """
         Check the options of a command before anything is written.
 
-        Keys (against the key hierarchy), sites and subjects.
+        Keys (against the key hierarchy), sites, subjects, the sidecar
+        flags of roast and `--lock-wait`.
 
         Parameters
         ----------
@@ -1012,6 +1015,9 @@ class Dataset:
         spec = self.keys_for(command)
         if spec is not None and command in ("harvest", "roast"):
             spec.check(args.keys.keys, args.keys.exclude_keys)
+        if command == "roast":
+            args.roast.sidecar_policy      # sidecar flags that conflict
+        args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
         subjects = self.numbers if command == "roast" and \
             self.legacy_subjects else self.labels
@@ -1047,12 +1053,11 @@ class Dataset:
         parents = []
         if not isinstance(layout, SitesLayout):
             parent = Path(layout.root).parent
-            if (parent / STATE_DIR).is_dir() and isinstance(
-                    Layout.detect(parent), SitesLayout):
+            if is_sites_parent(parent):
                 parents.append(parent / STATE_DIR)
         targets = [Path(layout.state)]
         targets += [Path(d.state) for d in layout.datasets()
-                    if d is not layout and Path(d.state).is_dir()]
+                    if d is not layout and is_state_folder(d.root)]
         return parents, targets
 
     def run(self, command: str, layout=None, args: Args | None = None):
@@ -1089,13 +1094,13 @@ class Dataset:
                                      if command == "roast" else ""))
         layout.ensure_state()
         parents, targets = self.lock_states(layout)
+        wait = args.lock_wait
         with contextlib.ExitStack() as stack:
             if parents:
-                stack.enter_context(run_lock(parents, command,
-                                             wait=args.wait))
+                stack.enter_context(run_lock(parents, command, wait=wait))
             stack.enter_context(run_lock(
                 targets, command, exclusive=mode == "exclusive",
-                wait=args.wait, force=args.compost.ignore_runs))
+                wait=wait, force=args.compost.ignore_runs))
             return body(layout, args)
 
     # ------------------------------------------------------------------
@@ -1164,7 +1169,7 @@ class Dataset:
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
         ctx = make_context(
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
-            json=args.roast.json_policy, ifexists=args.roast.if_exists,
+            json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
             templates=self.template_dir,
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),

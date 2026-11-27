@@ -27,7 +27,7 @@ composted site by site (`--sites`: only these sites).
 
 The files to delete are always listed (`--dry-run`) or confirmed first
 (`--yes` to skip the confirmation). Compost fails while a harvest or
-roast of the dataset runs (`--wait`).
+roast of the dataset runs (`--lock-wait`).
 """
 
 EXAMPLES = """

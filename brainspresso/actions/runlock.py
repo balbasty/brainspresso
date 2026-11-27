@@ -48,6 +48,7 @@ from brainspresso.actions.locks import (
     FileLock,
     LockError,
     LockTimeout,
+    is_state_folder,
     locks_enabled,
 )
 
@@ -241,7 +242,7 @@ def _locked_message(state: Path, command: str, exclusive: bool) -> str:
         f"  (no run record: a {what} of an older version, or one that "
         f"is starting)")
     return (f"Cannot {command} {state.parent}: the dataset is in use\n"
-            f"{lines}\nWait for it to finish, or use --wait SECONDS.")
+            f"{lines}\nWait for it to finish, or use --lock-wait SECONDS.")
 
 
 @contextlib.contextmanager
@@ -295,7 +296,9 @@ def run_lock(
     locks, records, counted = [], [], []
     try:
         for state in states:
-            if not state.is_dir():
+            if not is_state_folder(state.parent):
+                # (a `.brainspresso/` that is not a state folder would
+                # become one with the run records: lock files would move)
                 raise LockError(f"No state folder {state}: cannot lock it")
             lock = FileLock(state / RUN_FILE, exclusive=exclusive,
                             timeout=wait)

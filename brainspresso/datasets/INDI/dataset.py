@@ -110,7 +110,7 @@ class INDIDataset(Dataset):
         return self.project.template_dir
 
     def fill_templates(self):
-        """Fill-in sidecar templates of the project (`fill.toml`)."""
+        """Fill-in sidecar templates of the project (`_fill.json`)."""
         return self.project.fill_templates()
 
     def hosted_datasets(self, layout, args=None):

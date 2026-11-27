@@ -45,6 +45,9 @@ Rules (`docs/design/architecture.md`, §4):
   are small; a new pristine copy or fill-in template must reach the
   dataset); "overwrite" rewrites, "error" refuses an existing file,
   "refresh" compares mtimes with the pristine copy.
+* Edits: the manifest records the SHA-256 of every file a roast wrote;
+  under "skip", a file that no longer has it (edited by hand) is kept,
+  with a warning ("different" or "overwrite" replaces it).
 * Re-runs: one shard per subject (`roast/hosted/sub-<label>`), whose
   input signature is its pristine copies, fill-in templates and the
   files of the subject on disk (images: `IntendedFor`), skipped under
@@ -56,6 +59,7 @@ Rules (`docs/design/architecture.md`, §4):
 from __future__ import annotations
 
 import functools
+import hashlib
 import os
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -111,6 +115,11 @@ TAG = "hosted"
 # ----------------------------------------------------------------------
 #   Harvest
 # ----------------------------------------------------------------------
+
+def sha256(data: bytes) -> str:
+    """SHA-256 of bytes (hex)."""
+    return hashlib.sha256(data).hexdigest()
+
 
 def _rel(layout: Layout, path: Path) -> str:
     return Path(path).relative_to(layout.root).as_posix()
@@ -221,6 +230,13 @@ def harvest_hosted(
         raise ValueError(f"{layout.root} holds one dataset per site: "
                          f"harvest each site")
     layout.ensure_state()
+    # SHA-256 of the files the earlier roasts wrote (an edited file is
+    # kept, see `_actions`)
+    known = {
+        k: v["sha256"] for k, v in
+        ((read_manifest(layout.state) or {}).get("files") or {}).items()
+        if isinstance(v, dict) and v.get("sha256")
+    }
     files: dict[str, dict] = {}
     placed: set[str] = set()
     downloads: dict[Path, Downloader] = {}
@@ -256,6 +272,11 @@ def harvest_hosted(
                               "source": _rel(layout, base),
                               **({"trim": False} if not trim else {}),
                               **extra}
+                # earlier versions of a template, unedited: ours
+                previous = set(getattr(e, "previous", ()) or ())
+                if previous and local.is_file() and \
+                        sha256(local.read_bytes()) in previous:
+                    known[key] = sha256(local.read_bytes())
                 placed.add(key)
             else:
                 nb_generated += write_inline(e, local, if_exists)
@@ -281,6 +302,9 @@ def harvest_hosted(
         else:
             download(e, local)
             files[key] = {**remote, "origin": "direct", **extra}
+    for key in placed:
+        if key in known:
+            files[key]["sha256"] = known[key]
     if nb_generated:
         lg.info(f"Wrote {nb_generated} generated files")
     if downloads:
@@ -448,6 +472,8 @@ def _item(layout, key, target, dataset, rel, entry, files, plan) -> dict:
         "sibling": sibling,
         "fill": plan,
         "subject": _subject(rel),
+        "table": table,
+        "sha256": entry.get("sha256"),
     }
 
 
@@ -511,6 +537,11 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
                    f"missing (harvest again)", name=dst.name, tag=ctx.tag)
         return
     skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
+    if skip and item["sha256"] and not item["table"] and dst.is_file() \
+            and sha256(dst.read_bytes()) != item["sha256"]:
+        lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
+                   f"(--if-exists different or overwrite replaces it)")
+        return
     yield RoastMetadata(item, ifexists="different" if skip else None,
                         tag=ctx.tag)
 
@@ -666,12 +697,21 @@ def roast_hosted(
     roaster.__name__ = "roast_metadata"
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
                        info={"hosted": True, **(info or {})})
-    filled = {}
+    # SHA-256 of what this roast wrote (or found identical), and the
+    # fill-in templates merged into it
+    written = {os.path.normcase(os.path.abspath(p)) for p in report.outputs}
+    recorded = {}
     for item in items:
-        if item["fill"] and Path(item["dst"]).exists():
-            filled[item["key"]] = {"fill": item["fill"].ids}
+        dst = Path(item["dst"])
+        if os.path.normcase(os.path.abspath(dst)) not in written:
+            continue
+        entry = recorded[item["key"]] = {}
+        if not item["table"] and dst.is_file():
+            entry["sha256"] = sha256(dst.read_bytes())
+        if item["fill"]:
+            entry["fill"] = item["fill"].ids
             if item["source"] is None:
-                filled[item["key"]]["origin"] = "generated"
-    if filled:
-        update_files(layout, filled)
+                entry["origin"] = "generated"
+    if recorded:
+        update_files(layout, recorded)
     return report

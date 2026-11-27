@@ -389,9 +389,13 @@ Interactions (decided):
   copy or template must reach the dataset); "overwrite", "error" and
   "refresh" (mtime of the pristine copy) apply as such.
 * Re-runs: a harvest that runs again skips existing downloads and the
-  subject shards whose signature is unchanged; an *edited* roasted file
-  is not an input, so it survives `skip`; `roast --if-exists different`
-  restores it.
+  subject shards whose signature is unchanged. Edits: the manifest
+  records the `sha256` of every file a roast wrote (as #26 does for
+  generated files); under `skip`, a file whose hash differs (edited by
+  hand) is kept with a warning, an unedited one follows its pristine
+  copy or template (a generated file that is a known earlier version,
+  `InlineEntry.previous` of #26, counts as unedited); `--if-exists
+  different|overwrite` replaces it.
 * Pristine copy missing (composted with `--sourcedata`): the roasted
   file is left as it is (its existence then enters the signature); if
   it is missing too, a `Fail` ("harvest again"). Datasets harvested
@@ -407,17 +411,21 @@ Interactions (decided):
 Fill-in sidecars (`bids/hosted.py`): templates of a hosted dataset that
 **add** the keys its hosted (or generated) sidecars lack and **never**
 change one. Found from the dataset package, never a fixed path:
-`<Dataset.template_dir>/fill.toml` (INDI: `Project.template_dir`,
-`templates/<project>/`), listing `[<site>/]<name>.json` files:
+`<Dataset.template_dir>/_fill.json` (INDI: `Project.template_dir`,
+`templates/<project>/`; the marker of the printouts PR #26, written by
+`scripts/make_sidecars.py` and checked by its `--check`), listing
+`[<site>/]<name>.json` files:
 
-```toml
-version = 1
-files = ["T1w.json", "ICBM/T1w.json", "*/task-rest_bold.json"]
+```json
+{"fill": ["T1w.json", "ICBM/T1w.json", "*/task-rest_bold.json"]}
 ```
 
 `<name>` is a sidecar name without `sub-`/`ses-`; `<site>` a site name
 of the dataset; patterns glob one segment at a time and must match;
-listed files and `fill.toml` are never mirrored as plain templates.
+listed files (and `_fill.json`, a `_*` file) are never mirrored as
+plain templates (this replaces the stopgap of #26, where a bucket file
+at a template's path skipped the template whole: the merge is now key
+by key).
 Placement (BIDS inheritance principle, chosen over merging into every
 hosted sidecar: data files without any hosted sidecar get the fill-in
 too, a template is written once per level, and lower levels win, which
@@ -440,7 +448,7 @@ ABIDE-II from S3 (§9) would be an INDI-style `Project` over
 `ABIDE2/RawData/` (site remap `ETHZ` -> `ETH`, runs, the bucket's
 `RawData/sidecards/` as site sidecars) with the ABIDE-II printout
 templates as fill-in templates (`templates/<site>/<sample>/`, a
-`fill.toml`), opt-in until its roast reads the same subjects as NITRC.
+`_fill.json`), opt-in until its roast reads the same subjects as NITRC.
 
 ## 5. Roast: roasters on the action engine
 
@@ -1981,7 +1989,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1370 passed, 2 skipped, 28 xfailed) |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1372 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -2335,5 +2343,6 @@ up as an XPASS failure once fixed (then drop the marker).
   `--sidecars` on hosted harvests is a placement policy; roasted files
   under `skip` are compared, subject shards skipped by signature;
   compost keeps pristine metadata unless `--sourcedata` and re-roasts
-  what is left; fill-in sidecar templates (`<template_dir>/fill.toml`,
-  inherited sidecars, never overriding).
+  what is left; fill-in sidecar templates (`<template_dir>/_fill.json`,
+  the marker of #26; inherited sidecars, never overriding); edited
+  roasted files are kept under `skip` (`sha256` in the manifest).

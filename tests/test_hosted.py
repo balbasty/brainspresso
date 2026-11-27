@@ -157,34 +157,35 @@ def test_read_fill_templates(tmp_path):
     write(tmp_path / "A/T1w.json", '{"EchoTime": 1}')
     write(tmp_path / "B/task-rest_bold.json", '{"RepetitionTime": 2}')
     write(tmp_path / "derivatives/x/dataset_description.json", "{}")
-    write(tmp_path / "fill.toml", 'version = 1\nfiles = ["T1w.json", '
-          '"*/T1w.json", "B/task-rest_bold.json"]\n')
+    write(tmp_path / "_fill.json", '{"fill": ["T1w.json", "*/T1w.json", '
+          '"B/task-rest_bold.json"]}')
     found = read_fill_templates(tmp_path, ["A", "B"])
     assert [(t.site, t.name) for t in found] == [
         (None, "T1w.json"), ("A", "T1w.json"), ("B", "task-rest_bold.json"),
     ]
     assert found[1].content == {"EchoTime": 1}
-    assert fill_files(tmp_path) == {"fill.toml", "T1w.json", "A/T1w.json",
+    assert fill_files(tmp_path) == {"_fill.json", "T1w.json", "A/T1w.json",
                                     "B/task-rest_bold.json"}
     assert fill_files(tmp_path / "A") == set()
 
 
-@pytest.mark.parametrize("toml,files,message", [
-    ('files = ["X/T1w.json"]', {"X/T1w.json": "{}"}, "not a site"),
-    ('files = ["T2w.json"]', {}, "matches no file"),
-    ('files = ["participants.json"]', {"participants.json": "{}"},
+@pytest.mark.parametrize("index,files,message", [
+    ('{"fill": ["X/T1w.json"]}', {"X/T1w.json": "{}"}, "not a site"),
+    ('{"fill": ["T2w.json"]}', {}, "matches no file"),
+    ('{"fill": ["participants.json"]}', {"participants.json": "{}"},
      "not the name of a sidecar"),
-    ('files = ["sub-1_T1w.json"]', {"sub-1_T1w.json": "{}"},
+    ('{"fill": ["sub-1_T1w.json"]}', {"sub-1_T1w.json": "{}"},
      "not a subject"),
-    ('files = ["T1w.json"]', {"T1w.json": "[1]"}, "not a JSON object"),
-    ('version = 2\nfiles = []', {}, "not supported"),
-    ('fill = []', {}, "unknown keys"),
-    ('files = ["A/B/T1w.json"]', {"A/B/T1w.json": "{}"}, "templates are"),
+    ('{"fill": ["T1w.json"]}', {"T1w.json": "[1]"}, "not a JSON object"),
+    ('{"fill": "T1w.json"}', {}, "must be a list"),
+    ('{"files": []}', {}, "unknown keys"),
+    ('["T1w.json"]', {}, "not a JSON object"),
+    ('{"fill": ["A/B/T1w.json"]}', {"A/B/T1w.json": "{}"}, "templates are"),
 ])
-def test_read_fill_templates_errors(tmp_path, toml, files, message):
+def test_read_fill_templates_errors(tmp_path, index, files, message):
     for name, text in files.items():
         write(tmp_path / name, text)
-    write(tmp_path / "fill.toml", toml + "\n")
+    write(tmp_path / "_fill.json", index)
     with pytest.raises(ValueError, match=message):
         read_fill_templates(tmp_path, ["A"])
 
@@ -510,8 +511,8 @@ def templates(tmp_path, indi_url, monkeypatch):
 
 def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
     sald = templates / "sald"
-    write(sald / "fill.toml", 'version = 1\nfiles = ["T1w.json", '
-          '"bold.json", "dwi.json"]\n')
+    write(sald / "_fill.json", '{"fill": ["T1w.json", "bold.json", '
+          '"dwi.json"]}')
     write(sald / "T1w.json", '{"Manufacturer": "Siemens", '
           '"MagneticFieldStrength": 3}')
     write(sald / "bold.json", '{"RepetitionTime": 9, "EchoTime": 0.03}')
@@ -533,7 +534,7 @@ def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
         "Manufacturer": "Siemens", "MagneticFieldStrength": 3}
     assert not (raw / "dwi.json").exists()
     # fill-in templates are not copied as plain templates
-    assert not (raw / "fill.toml").exists()
+    assert not (raw / "_fill.json").exists()
     assert not (raw / "bold.json").exists()
     # curated templates are generated files, repaired tables are trimmed
     assert (raw / "README").exists()
@@ -541,8 +542,9 @@ def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
         "participant_id\tsex\tage", "sub-031274\tF\t19",
         "sub-031275\tM\tn/a"]
     entries = read_manifest(lay.state)["files"]
-    assert entries["rawbids/T1w.json"] == {"origin": "generated",
-                                           "fill": ["T1w.json"]}
+    t1w = entries["rawbids/T1w.json"]
+    assert t1w["origin"] == "generated" and t1w["fill"] == ["T1w.json"]
+    assert len(t1w["sha256"]) == 64
     bold = entries["rawbids/task-rest_bold.json"]
     assert bold["origin"] == "roasted" and bold["repair"] is True
     assert bold["fill"] == ["bold.json"]
@@ -562,8 +564,8 @@ def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
 
 def test_acpi_fill_in_by_site(tmp_path, templates):
     acpi = templates / "acpi"
-    write(acpi / "fill.toml",
-          'version = 1\nfiles = ["du_1/T1w.json", "*/task-rest_bold.json"]\n')
+    write(acpi / "_fill.json",
+          '{"fill": ["du_1/T1w.json", "*/task-rest_bold.json"]}')
     write(acpi / "du_1/T1w.json", '{"MagneticFieldStrength": 1.5, '
           '"EchoTime": 0.005, "Manufacturer": "GE"}')
     write(acpi / "nyu_1/task-rest_bold.json", '{"RepetitionTime": 9, '
@@ -664,8 +666,8 @@ def test_hosted_commands():
 
 
 def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
-    # any hosted dataset: `<template_dir>/fill.toml` (no fixed path)
-    write(tmp_path / "pkg/fill.toml", 'files = ["T1w.json"]\n')
+    # any hosted dataset: `<template_dir>/_fill.json` (no fixed path)
+    write(tmp_path / "pkg/_fill.json", '{"fill": ["T1w.json"]}')
     write(tmp_path / "pkg/T1w.json", '{"A": 1}')
 
     class Hosted(load("openneuro").__class__):
@@ -676,6 +678,23 @@ def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
     # INDI: the project's folder (`Project.template_dir`)
     sald = load("sald")
     assert sald.template_dir == templates / "sald"
-    write(templates / "sald/fill.toml", 'files = ["T1w.json"]\n')
+    write(templates / "sald/_fill.json", '{"fill": ["T1w.json"]}')
     write(templates / "sald/T1w.json", '{"A": 1}')
     assert [t.id for t in sald.fill_templates()] == ["T1w.json"]
+
+
+def test_edited_files_are_kept_under_skip(tmp_path, openneuro, caplog):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    readme, desc = lay.raw / "README", lay.raw / "dataset_description.json"
+    readme.write_text("My notes\n")
+    # new pristine copies (e.g. fetched by a later harvest)
+    pristine = lay.source / "openneuro"
+    (pristine / "README").write_text("New README\n")
+    (pristine / "dataset_description.json").write_text('{"Name": "y"}')
+    on("roast", tmp_path)
+    # an unedited file follows its pristine copy, an edited one is kept
+    assert read_json(desc) == {"Name": "y"}
+    assert readme.read_text() == "My notes\n"
+    assert "was edited since brainspresso wrote it" in caplog.text
+    on("roast", tmp_path, "--if-exists", "overwrite")
+    assert readme.read_text() == "New README\n"

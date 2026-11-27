@@ -1232,14 +1232,14 @@ class Dataset:
         """
         Fill-in sidecar templates of a hosted dataset (`bids.hosted`).
 
-        Read from `<template_dir>/fill.toml` (relative to the package of
+        Read from `<template_dir>/_fill.json` (relative to the package of
         the dataset, never a fixed path), with the site names of the
         dataset (`site_names`).
 
         Returns
         -------
         list[FillTemplate]
-            None if the dataset has no `template_dir` or no `fill.toml`
+            None if the dataset has no `template_dir` or no `_fill.json`
         """
         if self.template_dir is None:
             return []

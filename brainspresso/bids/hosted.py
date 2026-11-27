@@ -27,21 +27,20 @@ sidecars lack (e.g. scan parameters from protocol printouts), and
 **never** change a key that the host (or a generated file) gives. For
 the INDI projects they live in
 `brainspresso/datasets/INDI/templates/<project>/[<site>/]<name>.json`
-and are listed in `fill.toml`, next to them::
+and are listed in `_fill.json`, next to them (written by
+`scripts/make_sidecars.py` from the printouts, checked by its `--check`
+and shipped with the package)::
 
-    # templates/<project>/fill.toml
-    version = 1
-    files = [
-        "T1w.json",               # dataset level: every site
-        "ICBM/T1w.json",          # site level (folder: the site name)
-        "*/task-rest_bold.json",  # globs, one path segment at a time
-    ]
+    {"fill": ["T1w.json",               # dataset level: every site
+              "ICBM/T1w.json",          # site level (folder: site name)
+              "*/task-rest_bold.json"]} # globs, one segment at a time
 
 * `<name>` is `[<key>-<value>_...]<suffix>.json`, a sidecar name
   without `sub-`/`ses-` (`T1w.json`, `task-rest_bold.json`); the
   content is a JSON object. `<site>` is the exact name of a site of the
-  dataset. Every pattern must match a file. Listed files and
-  `fill.toml` are never copied into the dataset as templates.
+  dataset. Every entry must match a file. Listed files (and
+  `_fill.json`, as every `_*` file) are never copied into the dataset
+  as plain templates.
 * Placement (BIDS inheritance principle): a dataset-level template, and
   the template of the site a dataset *is* (a site dataset of `--layout
   sites`), are written as the top-level sidecar `<name>`; a site-level
@@ -91,11 +90,6 @@ from brainspresso.bids.select import (
     applies,
 )
 
-try:
-    import tomllib
-except ModuleNotFoundError:     # Python < 3.11
-    import tomli as tomllib
-
 lg = getLogger(__name__)
 
 __all__ = [
@@ -105,9 +99,8 @@ __all__ = [
 ]
 
 Placement = Literal["direct", "roasted"]
-#: File that lists the fill-in templates of a folder
-FILL_FILE = "fill.toml"
-FILL_VERSION = 1
+#: File that lists the fill-in templates of a folder: `{"fill": [paths]}`
+FILL_FILE = "_fill.json"
 
 
 # ----------------------------------------------------------------------
@@ -262,7 +255,7 @@ def read_fill_templates(
     sites: Iterable[str] | None = None,
 ) -> list[FillTemplate]:
     """
-    Read the fill-in templates listed in `<folder>/fill.toml`.
+    Read the fill-in templates listed in `<folder>/_fill.json`.
 
     See the module docstring for the convention.
 
@@ -277,12 +270,12 @@ def read_fill_templates(
     Returns
     -------
     list[FillTemplate]
-        In the order of `fill.toml` (none if it does not exist)
+        In the order of `_fill.json` (none if it does not exist)
 
     Raises
     ------
     ValueError
-        If `fill.toml` is invalid, a pattern matches no file, a file is
+        If `_fill.json` is invalid, an entry matches no file, a file is
         not a sidecar template, or its folder is not a site
     """
     folder = Path(folder)
@@ -290,19 +283,18 @@ def read_fill_templates(
     if not spec.is_file():
         return []
     try:
-        data = tomllib.loads(spec.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as e:
+        data = json.loads(spec.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
         raise ValueError(f"{spec}: {e}") from e
-    unknown = set(data) - {"version", "files"}
+    if not isinstance(data, dict):
+        raise ValueError(f"{spec}: not a JSON object")
+    unknown = set(data) - {"fill"}
     if unknown:
         raise ValueError(f"{spec}: unknown keys {sorted(unknown)}")
-    if data.get("version", FILL_VERSION) != FILL_VERSION:
-        raise ValueError(f"{spec}: version {data['version']!r} is not "
-                         f"supported (expected {FILL_VERSION})")
-    patterns = data.get("files", [])
+    patterns = data.get("fill", [])
     if not isinstance(patterns, list) or \
             not all(isinstance(p, str) for p in patterns):
-        raise ValueError(f"{spec}: `files` must be a list of paths")
+        raise ValueError(f"{spec}: `fill` must be a list of paths")
     known = None if sites is None else {str(s) for s in sites if s}
     found = sorted(p.relative_to(folder).as_posix()
                    for p in folder.rglob("*.json") if p.is_file())
@@ -339,7 +331,7 @@ def fill_files(folder: str | os.PathLike) -> set[str]:
     """
     Files of a template folder that belong to its fill-in templates.
 
-    `fill.toml` and the files it lists, relative to `folder` (POSIX), so
+    `_fill.json` and the files it lists, relative to `folder` (POSIX), so
     that they are not copied into datasets as plain templates.
 
     Parameters

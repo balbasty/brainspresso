@@ -311,7 +311,7 @@ put in BIDS order; and common metadata defects (numbers stored as text,
 slice timing in milliseconds, invalid JSON, sessions tables without
 `session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
 are repaired when the metadata is roasted (`brainspresso/bids/repair.py`).
-Sidecar templates listed in `templates/<project>/fill.toml` (e.g. scan
+Sidecar templates listed in `templates/<project>/_fill.json` (e.g. scan
 parameters from protocol printouts) add the keys that the bucket's
 sidecars lack, never changing a key the bucket gives.
 Each dataset's `README` lists what was changed.

@@ -12,7 +12,7 @@ them:
 * which files must be generated locally (`InlineEntry`): a merged
   `participants.tsv`, sidecars the bucket lacks, or curated
   `dataset_description.json`/`README` (from `templates/<name>/`);
-* fill-in sidecar templates (`templates/<name>/fill.toml`, see
+* fill-in sidecar templates (`templates/<name>/_fill.json`, see
   `bids.hosted`), which add the keys the bucket's sidecars lack.
 
 The harvest then reuses the generic machinery of hosted datasets
@@ -56,6 +56,7 @@ from typing import Iterable, Iterator
 
 from brainspresso.bids.harvest import InlineEntry
 from brainspresso.bids.hosted import (
+    FILL_FILE,
     FillTemplate,
     fill_files,
     read_fill_templates,
@@ -77,6 +78,10 @@ ENTITIES = (
     "res", "den", "label", "desc",
 )
 TEMPLATES = Path(__file__).parent / "templates"
+# Fill-in templates of `templates/<name>/` (sidecars converted from the
+# scanner printouts, `scripts/make_sidecars.py`): `{"fill": [paths]}`,
+# merged key by key into the bucket's sidecars (`bids.hosted`)
+FILL_INDEX = FILL_FILE
 NA = "n/a"
 
 
@@ -288,7 +293,7 @@ class Project:
         Folder of the templates of the project.
 
         Curated files mirrored into the dataset, and fill-in sidecar
-        templates (`fill.toml`). Default: `templates/<name>/` next to
+        templates (`_fill.json`). Default: `templates/<name>/` next to
         this module; a project defined elsewhere overrides it.
         """
         return TEMPLATES / self.name
@@ -313,7 +318,7 @@ class Project:
 
     def fill_templates(self) -> list[FillTemplate]:
         """
-        Fill-in sidecar templates (`<template_dir>/fill.toml`).
+        Fill-in sidecar templates (`<template_dir>/_fill.json`).
 
         See `bids.hosted` for the convention: `[<site>/]<name>.json`,
         `<site>` a `Site.name` of the project.

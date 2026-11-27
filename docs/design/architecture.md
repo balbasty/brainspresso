@@ -863,7 +863,7 @@ ports of step 5 may rely on. Every name below is a stub of
 options, cluster jobs, `bx percolate`), of `brainspresso/percolate/`
 (interfaces and docstrings, no behaviour).
 Decisions are marked **D** or "decided" (the owner's); the last
-subsection lists them and the one question left. The `wiip-grind` prototype is the reference for configs
+subsection lists them; no question is left open. The `wiip-grind` prototype is the reference for configs
 (pydantic models with documented fields, SPM Segment); its paths
 (`{sub:d}`, no `ses`), its missing execution, state and selection are
 what this contract replaces.
@@ -1399,15 +1399,13 @@ come from the config file and generated options, with no second
 manifest; SPM runs as compiled standalone SPM in a container;
 `--wait`/`--detach` and `--status --watch` as above.
 
-Open:
+The run-lock option becomes `--lock-wait SECONDS` (profile field
+`lock_wait`); `--wait SECONDS` stays as a deprecated alias only on
+commands without execution options (harvest, compost). On roast and
+grind, `--wait`/`--detach` is the execution flag. The rename of the
+option itself is done in the config PR (#24).
 
-1. `--wait` already exists on harvest, roast and compost as `--wait
-   SECONDS` (how long to wait for the run lock, §6). The new boolean
-   `--wait`/`--detach` cannot share the name. **R**: rename the lock
-   option `--lock-wait SECONDS` (profile field `lock_wait`), keeping
-   `--wait SECONDS` as a deprecated alias only on commands that have
-   no execution options (harvest, compost). (`Profile.lock_wait`,
-   `datasets/options.py` in step 7)
+Open: none.
 
 ## 8. Implementation steps
 
@@ -1664,5 +1662,6 @@ up as an XPASS failure once fixed (then drop the marker).
   decisions; plans are written with a `SafeDumper` subclass that
   quotes every string (no writer refusal); `--wait`/`--detach` (wait
   locally, detach on schedulers, profile `detach`, CLI wins);
-  `--status --watch` (read-only); `Profile.lock_wait`. One question
-  left: the name clash with the existing `--wait SECONDS`.
+  `--status --watch` (read-only); the run-lock option becomes
+  `--lock-wait SECONDS` (`Profile.lock_wait`; renamed in PR #24), so
+  no question is left open.

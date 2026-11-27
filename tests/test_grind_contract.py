@@ -633,16 +633,18 @@ def test_task_state_fields():
         "plan", "status", "counts", "failures", "progress"]
 
 
-def test_decisions_leave_one_question():
-    """The owner's decisions are in the text; one question is open."""
+def test_decisions_leave_no_question():
+    """The owner's decisions are in the text; nothing is left open."""
     start = SECTION.index("### Decisions (owner) and open questions")
-    decisions, _, questions = SECTION[start:].partition("\nOpen:\n")
-    assert len(re.findall(r"(?m)^\d+\. ", questions)) == 1
-    assert "--lock-wait" in questions
+    decisions = " ".join(SECTION[start:].split())
+    assert decisions.endswith("Open: none.")
+    assert not re.search(r"(?m)^\d+\. ", SECTION[start:])
     for word in ("--if-stale", "PyYAML is a core", "UUID", "never adopted",
-                 "--wait`/`--detach", "--status --watch"):
-        assert " ".join(word.split()) in " ".join(decisions.split()), word
+                 "--wait`/`--detach", "--status --watch",
+                 "--lock-wait SECONDS", "deprecated alias", "(#24)"):
+        assert word in decisions, word
     assert "sbatch --wait" in SECTION and "--follow" in SECTION
     assert fields(plans.Plan)["if_stale"] == "error"
+    assert "--lock-wait SECONDS" in flat(options.Profile)
     assert "str | Path" not in str(
         inspect.signature(run.grind_dataset).parameters["config"])

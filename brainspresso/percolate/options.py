@@ -161,6 +161,7 @@ class Profile:
         monitoring only: stopping it never affects the jobs
     lock_wait : float
         Seconds a task waits for the locks of its datasets
+        (`--lock-wait SECONDS`; `--wait` is the execution flag)
     paths : tuple[tuple[str, str], ...]
         Ordered path map: `(from, to)` prefixes, the first that matches
         a path is applied

@@ -1,5 +1,6 @@
 """Tests of the Bullitt roast step."""
 import json
+import logging
 import re
 import zlib
 from pathlib import Path
@@ -364,10 +365,16 @@ MISSING_ALL = [     # missing scans and auxiliary files of the fixture
 ]
 
 
-def errors(root, capsys):
-    """Names of the errors of the last `bx` roast (its display)."""
-    out = capsys.readouterr().out
-    return sorted(set(re.findall(r"(sub-\d{3}_\S+)\s+error", out)))
+def errors(caplog):
+    """Names of the errors logged by the engine since the last call (not
+    read from the display: its columns wrap with the width of the
+    terminal)."""
+    names = {record.getMessage().split(": ")[0]
+             for record in caplog.records
+             if record.name == "brainspresso.actions.engine"
+             and record.levelno >= logging.ERROR}
+    caplog.clear()
+    return sorted(n for n in names if re.fullmatch(r"sub-\d{3}_\S+", n))
 
 
 @pytest.mark.parametrize("keys, missing", [
@@ -376,21 +383,21 @@ def errors(root, capsys):
     (list(roaster.ROAST_KEYS), []),     # (the CLI default)
     ([], []),
 ])
-def test_missing_scans_named_by_cli_keys(root, capsys, keys, missing):
+def test_missing_scans_named_by_cli_keys(root, caplog, keys, missing):
     """`--keys` that cover every key name them (only the CLI default,
     or no `--keys`, names nothing)"""
-    capsys.readouterr()
+    caplog.clear()
     roast(root, *(["--keys", *keys] if keys else []))
-    assert errors(root, capsys) == missing
+    assert errors(caplog) == missing
 
 
-def test_named_keys_rerun_shards(root, capsys):
+def test_named_keys_rerun_shards(root, caplog):
     """A run that names more keys does not skip the shards of an earlier
     run (`named` is part of the shard signature)"""
     roast(root, "--exclude-keys", "meta")
-    capsys.readouterr()
+    assert errors(caplog) == []
     roast(root, "--keys", "raw", "derivatives")
-    assert "sub-002_acq-mprage_T1w.nii.gz" in errors(root, capsys)
+    assert "sub-002_acq-mprage_T1w.nii.gz" in errors(caplog)
 
 
 def test_shard_inputs(root):

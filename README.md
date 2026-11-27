@@ -316,3 +316,82 @@ bx openneuro compost ds000224 /data --datatypes anat
 `--derivatives` applies the subject and session filters to
 `derivatives/*/` too. Files to delete are confirmed interactively
 (`--yes` to skip, `--list` to print them first).
+
+## Config files: defaults of the options
+
+Most options can be given defaults in TOML files, so that a command line
+only says what differs. The values come from, later winning:
+
+1. the built-in defaults;
+2. `~/.brainspresso/config.toml` (the user file; `$BRAINSPRESSO_CONFIG_HOME`
+   replaces `~/.brainspresso`);
+3. `<path>/.brainspresso/config.toml` (the root of all datasets: the `path`
+   argument, else a `path` set in the user file, `--config` or the
+   environment, else `$BDP_PATH`, else the current folder);
+4. `<path>/<DATASET>/.brainspresso/config.toml` (the dataset folder, or
+   `--out`);
+5. the files of `bx --config FILE` (before the dataset name, repeatable,
+   applied in order; `.yaml`/`.yml` files too if PyYAML is installed);
+6. `BRAINSPRESSO_OPT_*` environment variables;
+7. the command line.
+
+Sections, the most specific winning within one file: `[defaults]` (every
+command), `[<command>]` (e.g. `[roast]`, for every dataset),
+`[<dataset>]` (every command of one dataset) and `[<dataset>.<command>]`.
+Datasets are named as on the command line (`[abide1.roast]`,
+`[unc-wisconsin]`, case-insensitive); OpenNeuro takes one more level for
+an accession (`[openneuro.ds000224.harvest]`, while `[openneuro.harvest]`
+applies to every accession). Keys are the option names, without `--`
+(`exclude-keys` or `exclude_keys`); `no-<flag> = true` is
+`<flag> = false`.
+
+```toml
+# ~/.brainspresso/config.toml
+[defaults]
+path = "/data/bids"        # root of all datasets
+level = "info"
+
+[harvest]
+jobs = 4
+if-exists = "different"
+
+[roast]
+jobs = 2
+
+[ixi]
+keys = ["T1w", "T2w"]      # harvest and roast of IXI
+
+[abide1.roast]
+exclude-keys = ["rest"]
+
+[adhd200.harvest]
+no-bids = true             # --no-bids
+
+[openneuro.ds000224.harvest]
+tag = "1.0.4"
+datatypes = ["anat"]
+```
+
+The same values as environment variables: `BRAINSPRESSO_OPT_<KEY>`
+(`[defaults]`), `BRAINSPRESSO_OPT_<SECTION>__<KEY>`, with `__` between the
+parts of a section and `_` for `-`, case-insensitive:
+`BRAINSPRESSO_OPT_HARVEST__JOBS=4`,
+`BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"` (several values
+are separated by spaces), `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`.
+
+Some options are never read from a config file: confirmations of
+deletions (`--yes`, compost `--force`, `--ignore-runs`), secrets
+(`--password`, `--token`: use their environment variables or the prompt)
+and `--config`. A root or dataset file cannot set `path` or `out` (they
+locate it), and `out` only goes in the section of one dataset. An unknown
+section or key, or a value of the wrong type, is an error that names the
+file and the section. `[profiles.<name>]` and `grind` tables are reserved
+for the grind stage and ignored for now.
+
+```shell
+bx config show                         # the values of every file
+bx config show ixi harvest --jobs 2    # every option of a command, and
+                                       # where its value comes from
+bx config show openneuro harvest ds000224
+bx config paths ixi                    # the files looked up, and which exist
+```

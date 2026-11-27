@@ -1,0 +1,709 @@
+"""
+Config files (`brainspresso.config`): layers, sections, keys, `bx config`.
+
+Options are checked on the parsed command (`App.parse_args`, through the
+config callable of the root app), so nothing runs.
+"""
+import logging
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+from cyclopts import CycloptsError
+
+from brainspresso import cli, config
+from brainspresso.cli import build_app, global_options, main
+from brainspresso.config import ConfigError, Loader, dataset_names, tree
+from brainspresso.datasets.ADHD200.dataset import ADHD200
+from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
+
+# ----------------------------------------------------------------------
+#   Helpers
+# ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def home(tmp_path, monkeypatch):
+    """The folder of the user file."""
+    folder = tmp_path / "home"
+    folder.mkdir()
+    monkeypatch.setenv(config.HOME_ENV, str(folder))
+    return folder
+
+
+def write(path: Path, text: str) -> Path:
+    """Write a file (and its folders)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return path
+
+
+def user(home, text):
+    return write(home / "config.toml", text)
+
+
+def located(folder, text):
+    return write(config.located_file(folder), text)
+
+
+def parse(*tokens, files=(), environ=None):
+    """Parse a command: (bound arguments, report of the loader)."""
+    loader = Loader(files, environ or {})
+    app = build_app(tokens[0], loader=loader)
+    _, bound, _ = app.parse_args([str(t) for t in tokens],
+                                 exit_on_error=False, print_error=False)
+    return bound.arguments, loader.report
+
+
+def value(arguments, group, field):
+    """A field of a parsed group (None: the group's default)."""
+    group = arguments.get(group)
+    return None if group is None else getattr(group, field)
+
+
+def origin(report, key):
+    return report["origins"][key]
+
+
+def _json_parses():
+    """Whether this cyclopts parses `--json` (a `Literal | bool`)."""
+    try:
+        app = build_app("ixi", loader=Loader((), {}))
+        app.parse_args(["ixi", "roast", "x", "--json", "no"],
+                       exit_on_error=False, print_error=False)
+    except Exception:
+        return False
+    return True
+
+
+JSON = pytest.mark.skipif(
+    not _json_parses(),
+    reason="this cyclopts cannot parse --json (Literal | bool) at all")
+
+
+# ----------------------------------------------------------------------
+#   Names of the dataset sections
+# ----------------------------------------------------------------------
+
+def test_section_names():
+    # sections are named after the command names (one more part per
+    # argument): the one rule, `config.dataset_names`
+    for name in CATALOG:
+        expected = "openneuro.{dataset}" if name == "openneuro" else name
+        assert dataset_names(name) == (expected, ())
+    assert ARGUMENTS == {"openneuro": ("dataset",)}
+
+
+@pytest.mark.parametrize("written,name", [
+    ("abide1", "abide1"), ("ABIDE1", "abide1"), ("Nki-Rs", "nki-rs"),
+    ("unc-wisconsin", "unc-wisconsin"), ("IXI", "ixi"),
+    ("OpenNeuro", "openneuro"), ("fcon1000", "fcon1000"),
+])
+def test_section_names_are_case_insensitive(written, name):
+    _, index = tree()
+    assert index[written.lower()].dataset == name
+
+
+@pytest.mark.parametrize("written", [
+    "ABIDE.I", "ABIDE-1", "INDI.NKIRS", "NKI-RS-x", "nki_rs", "UNCWisconsin",
+])
+def test_no_other_names(home, written):
+    user(home, f"[{written}.harvest]\njobs = 1\n")
+    with pytest.raises(ConfigError, match="unknown section"):
+        parse("ixi", "harvest")
+
+
+def test_section_names_are_unambiguous(monkeypatch):
+    tree()          # builds (no name names two datasets)
+    tree.cache_clear()
+    monkeypatch.setitem(CATALOG, "IXI", ("x:y", "Another IXI"))
+    try:
+        with pytest.raises(ValueError, match="names"):
+            tree()
+    finally:
+        tree.cache_clear()
+
+
+def test_keys_have_no_forbidden_key():
+    for keys in KEYS.values():
+        assert not set(keys) & set(config.FORBIDDEN)
+
+
+# ----------------------------------------------------------------------
+#   Layers
+# ----------------------------------------------------------------------
+
+def test_each_layer(tmp_path, home):
+    root, ds = tmp_path / "root", tmp_path / "root" / "IXI"
+    a, b = tmp_path / "a.toml", tmp_path / "b.toml"
+    steps = [
+        ("user", lambda: user(home, "[defaults]\njobs = 1\n")),
+        ("root", lambda: located(root, "[defaults]\njobs = 2\n")),
+        ("dataset", lambda: located(ds, "[defaults]\njobs = 3\n")),
+        ("file", lambda: write(a, "[defaults]\njobs = 4\n")),
+        ("file", lambda: write(b, "[defaults]\njobs = 5\n")),
+    ]
+    for n, (kind, make) in enumerate(steps, 1):
+        make()
+        args, report = parse("ixi", "harvest", root,
+                             files=[f for f in (a, b) if f.exists()])
+        assert value(args, "harvest", "jobs") == n
+        assert origin(report, "jobs").kind == kind
+    env = {"BRAINSPRESSO_OPT_JOBS": "6"}
+    args, report = parse("ixi", "harvest", root, files=[a, b], environ=env)
+    assert value(args, "harvest", "jobs") == 6
+    assert str(origin(report, "jobs")) == "env $BRAINSPRESSO_OPT_JOBS"
+    args, report = parse("ixi", "harvest", root, "--jobs", "7",
+                         files=[a, b], environ=env)
+    assert value(args, "harvest", "jobs") == 7
+    assert origin(report, "jobs").kind == "CLI"
+
+
+def test_later_layer_beats_specific_section(tmp_path, home):
+    user(home, "[ixi.harvest]\njobs = 2\n")
+    extra = write(tmp_path / "x.toml", "[defaults]\njobs = 3\n")
+    args, _ = parse("ixi", "harvest", tmp_path, files=[extra])
+    assert value(args, "harvest", "jobs") == 3
+
+
+def test_most_specific_section_wins(tmp_path, home):
+    text = """
+[defaults]
+jobs = 1
+wait = 1
+level = "debug"
+log = "a.log"
+[harvest]
+jobs = 2
+wait = 2
+level = "warning"
+[ixi]
+jobs = 3
+wait = 3
+[ixi.harvest]
+jobs = 4
+"""
+    user(home, text)
+    args, report = parse("ixi", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 4
+    assert value(args, "harvest", "wait") == 3
+    assert value(args, "log", "level") == "warning"
+    assert value(args, "log", "log") == "a.log"
+    assert origin(report, "wait").section == "ixi"
+    assert origin(report, "level").section == "harvest"
+    # another dataset: the generic sections only
+    args, _ = parse("cobre", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 2
+
+
+def test_dataset_file_from_parsed_path(tmp_path, home):
+    root = tmp_path / "root"
+    located(root, "[ixi.harvest]\nkeys = ['T1w']\n")
+    located(root / "IXI", "[harvest]\njobs = 3\n")
+    other = tmp_path / "elsewhere"
+    located(other, "[harvest]\njobs = 5\n")
+    args, report = parse("ixi", "harvest", root)
+    assert value(args, "keys", "keys") == ("T1w",)
+    assert value(args, "harvest", "jobs") == 3
+    assert origin(report, "jobs").kind == "dataset"
+    # --out: that dataset folder (the root is still `path`)
+    args, report = parse("ixi", "harvest", root, "--out", other)
+    assert value(args, "harvest", "jobs") == 5
+    assert value(args, "keys", "keys") == ("T1w",)
+    # a root from the user file
+    user(home, f"[defaults]\npath = {str(root)!r}\n")
+    args, report = parse("ixi", "harvest")
+    assert value(args, "harvest", "jobs") == 3
+    assert origin(report, "path").kind == "user"
+    # out from the user file, in the section of the dataset
+    user(home, f"[ixi]\nout = {str(other)!r}\n")
+    args, report = parse("ixi", "harvest", root)
+    assert value(args, "harvest", "jobs") == 5
+    assert args["out"] == str(other)
+
+
+def test_root_from_bdp_path(tmp_path, home, monkeypatch):
+    located(tmp_path, "[harvest]\njobs = 3\n")
+    monkeypatch.setenv("BDP_PATH", str(tmp_path))
+    args, report = parse("ixi", "harvest")
+    assert value(args, "harvest", "jobs") == 3
+    assert origin(report, "jobs").kind == "root"
+
+
+def test_location_not_in_located_files(tmp_path, home):
+    located(tmp_path, "[defaults]\npath = 'x'\n")
+    with pytest.raises(ConfigError, match="'path' cannot be set in a root"):
+        parse("ixi", "harvest", tmp_path)
+    config.located_file(tmp_path).unlink()
+    located(tmp_path / "IXI", "[ixi]\nout = 'x'\n")
+    with pytest.raises(ConfigError, match="dataset file"):
+        parse("ixi", "harvest", tmp_path)
+
+
+# ----------------------------------------------------------------------
+#   Sections
+# ----------------------------------------------------------------------
+
+def test_dataset_sections(tmp_path, home):
+    user(home, """
+[abide1.roast]
+exclude-keys = ["rest"]
+[ABIDE2.roast]
+exclude-keys = ["dti"]
+[abide2]
+jobs = 7
+[nki-rs.harvest]
+jobs = 4
+[fcon1000]
+jobs = 3
+""")
+    args, report = parse("abide1", "roast", tmp_path)
+    assert value(args, "keys", "exclude_keys") == ("rest",)
+    assert origin(report, "exclude-keys").section == "abide1.roast"
+    args, report = parse("abide2", "roast", tmp_path)
+    assert value(args, "keys", "exclude_keys") == ("dti",)
+    assert origin(report, "exclude-keys").section == "ABIDE2.roast"
+    assert report["parts"] == ("abide2",)
+    args, _ = parse("abide2", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 7
+    args, _ = parse("nki-rs", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 4
+    args, _ = parse("fcon1000", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 3
+    args, _ = parse("hbn", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") is None     # built-in
+
+
+def test_openneuro_accession(tmp_path, home):
+    user(home, """
+[openneuro.harvest]
+tag = "1.0.0"
+source = "s3"
+[openneuro.ds000224.harvest]
+tag = "2.0.0"
+[openneuro.ds000224]
+out = "here"
+""")
+    args, report = parse("openneuro", "harvest", "ds000224", tmp_path)
+    assert value(args, "openneuro", "tag") == "2.0.0"
+    assert value(args, "openneuro", "route") == "s3"
+    assert args["out"] == "here"
+    assert report["parts"] == ("openneuro", "ds000224")
+    args, _ = parse("openneuro", "harvest", "ds000001", tmp_path)
+    assert value(args, "openneuro", "tag") == "1.0.0"
+    assert "out" not in args
+
+
+def test_openneuro_dataset_file(tmp_path, home):
+    located(tmp_path / "OpenNeuro" / "ds000224",
+            "[harvest]\ntag = '3.0.0'\n")
+    args, report = parse("openneuro", "harvest", "ds000224", tmp_path)
+    assert value(args, "openneuro", "tag") == "3.0.0"
+    assert origin(report, "tag").kind == "dataset"
+
+
+def test_out_names_one_dataset(home):
+    for text in ("[openneuro]\nout = 'x'\n", "[OpenNeuro]\nout = 'x'\n",
+                 "[harvest]\nout = 'x'\n"):
+        user(home, text)
+        with pytest.raises(ConfigError, match="'out'"):
+            parse("ixi", "harvest")
+
+
+@pytest.mark.parametrize("section", [
+    "abide1.roast", "ABIDE1.roast", "Abide1.roast",
+])
+def test_case_insensitive_sections(tmp_path, home, section):
+    user(home, f"[{section}]\nexclude-keys = ['rest']\n")
+    args, report = parse("abide1", "roast", tmp_path)
+    assert value(args, "keys", "exclude_keys") == ("rest",)
+    assert origin(report, "exclude-keys").section == section
+
+
+def test_same_section_twice(tmp_path, home):
+    user(home, "[ixi.harvest]\njobs = 1\n[IXI.harvest]\njobs = 2\n")
+    with pytest.raises(ConfigError, match="also set"):
+        parse("ixi", "harvest", tmp_path)
+
+
+def test_reserved_sections(tmp_path, home):
+    user(home, """
+[profiles.slurm]
+partition = "x"
+[grind.fs]
+x = 1
+[ixi.grind.freesurfer]
+threads = 2
+[defaults]
+jobs = 2
+""")
+    args, _ = parse("ixi", "harvest", tmp_path)
+    assert value(args, "harvest", "jobs") == 2
+
+
+# ----------------------------------------------------------------------
+#   Keys
+# ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("key,section", [
+    ("yes", "compost"), ("y", "compost"), ("force", "compost"),
+    ("ignore_runs", "compost"), ("ignore-runs", "defaults"),
+    ("password", "harvest"), ("token", "openneuro"), ("config", "defaults"),
+])
+def test_forbidden_keys(home, key, section):
+    path = user(home, f"[{section}]\n{key} = true\n")
+    with pytest.raises(ConfigError) as e:
+        parse("ixi", "harvest")
+    assert str(path) in str(e.value) and repr(key) in str(e.value)
+    assert "cannot be set in a config file" in str(e.value)
+
+
+@pytest.mark.parametrize("text,match", [
+    ("[harvest]\njbos = 2\n", r"\[harvest\]: unknown key 'jbos' "
+     r"\(did you mean 'jobs'\?\)"),
+    ("[ixi.harvst]\njobs = 1\n", r"unknown section \[ixi.harvst\] "
+     r"\(did you mean 'harvest'\?\)"),
+    ("[ixy]\njobs = 1\n", r"unknown section \[ixy\] \(did you mean 'ixi'"),
+    ("[abide3]\njobs = 1\n", r"unknown section \[abide3\] \(did you "
+     r"mean 'abide[12]'"),
+    ("jobs = 1\n", "outside a section"),
+    ("[ixi.compost]\njobs = 1\n", r"\[ixi.compost\]: unknown key 'jobs'"),
+    ("[ixi.harvest]\ntag = 'x'\n", "not an option of harvest"),
+    ("[ixi]\ndiscs = [1]\n", "not an option of this dataset"),
+    ("[ixi.harvest]\njobs = [1, 2]\n", "takes one value, not a list"),
+    ("[ixi.harvest]\nno-jobs = true\n", "no negative flag"),
+    ("[ixi.harvest]\nno-dry-run = 1\n", "takes true or false"),
+    ("[ixi.harvest]\njobs = 1\njobs_ = 2\n", "unknown key"),
+    ("[ixi.harvest]\nexclude_keys = []\nexclude-keys = []\n",
+     "set twice"),
+])
+def test_unknown_or_bad_keys(home, text, match):
+    path = user(home, text)
+    with pytest.raises(ConfigError, match=match) as e:
+        parse("ixi", "harvest")
+    assert str(path) in str(e.value)
+
+
+def test_keys_of_other_datasets_are_ignored(tmp_path, home):
+    # OASIS-I's `discs`, ADHD-200's `bids`: not options of IXI harvest
+    user(home, "[harvest]\ndiscs = [1]\nbids = false\n"
+               "[oasis1.harvest]\ndiscs = [2]\n")
+    args, report = parse("ixi", "harvest", tmp_path)
+    assert "discs" not in report["origins"]
+    args, _ = parse("oasis1", "harvest", tmp_path)
+    assert [int(d) for d in value(args, "discs", "discs")] == [2]
+
+
+def test_type_error_names_file_and_section(home):
+    path = user(home, "[ixi.harvest]\njobs = 'many'\n")
+    with pytest.raises(CycloptsError) as e:
+        parse("ixi", "harvest")
+    message = str(e.value)
+    assert str(path) in message and "[ixi.harvest]" in message
+    assert "many" in message
+
+
+def test_choice_error(home):
+    user(home, "[ixi.harvest]\nkeys = ['nope']\n")
+    with pytest.raises(CycloptsError, match="nope"):
+        parse("ixi", "harvest")
+    user(home, "[harvest]\nif-exists = 'sometimes'\n")
+    with pytest.raises(CycloptsError, match="sometimes"):
+        parse("ixi", "harvest")
+    # per-dataset choices: a key of IXI is not one of COBRE
+    user(home, "[harvest]\nkeys = ['PDw']\n")
+    parse("ixi", "harvest")
+    with pytest.raises(CycloptsError, match="PDw"):
+        parse("cobre", "harvest")
+
+
+def test_lists(tmp_path, home):
+    user(home, """
+[ixi.harvest]
+keys = "T1w"
+exclude_keys = ["dwi", "angio"]
+subs = [2, "sub-012", "3:5"]
+[unc-wisconsin.harvest]
+keys = []
+""")
+    args, _ = parse("ixi", "harvest", tmp_path)
+    assert value(args, "keys", "keys") == ("T1w",)
+    assert value(args, "keys", "exclude_keys") == ("dwi", "angio")
+    assert value(args, "select", "subs") == ("2", "sub-012", "3:5")
+    # an empty list replaces a non-empty default
+    args, _ = parse("unc-wisconsin", "harvest", tmp_path)
+    assert value(args, "keys", "keys") == ()
+    # the command line replaces the list (it does not add to it)
+    args, _ = parse("ixi", "harvest", tmp_path, "--keys", "T2w")
+    assert value(args, "keys", "keys") == ("T2w",)
+    assert value(args, "keys", "exclude_keys") == ("dwi", "angio")
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("bids = false", False), ("no-bids = true", False),
+    ("no_bids = false", True), ("bids = true", True),
+])
+def test_bools(tmp_path, home, text, expected):
+    user(home, f"[adhd200.harvest]\n{text}\n")
+    args, report = parse("adhd200", "harvest", tmp_path)
+    assert value(args, "bids", "bids") is expected
+    assert origin(report, "bids").kind == "user"
+    # the command line wins
+    args, _ = parse("adhd200", "harvest", tmp_path,
+                    "--bids" if not expected else "--no-bids")
+    assert value(args, "bids", "bids") is (not expected)
+
+
+def test_bool_or_none_and_literals(tmp_path, home):
+    user(home, "[openneuro.harvest]\ninsecure = true\ntrim = false\n"
+               "if_exists = 'overwrite'\nsource = 'graphql'\n")
+    args, _ = parse("openneuro", "harvest", "ds1", tmp_path)
+    assert value(args, "harvest", "insecure") is True
+    assert value(args, "hosted", "trim") is False
+    assert value(args, "harvest", "if_exists") == "overwrite"
+    assert value(args, "openneuro", "route") == "graphql"
+
+
+@JSON
+@pytest.mark.parametrize("text,expected", [
+    ("json = 'only'", "only"), ("json = false", False),
+    ("no-json = true", False), ("json = true", True),
+])
+def test_json_literal_or_bool(tmp_path, home, text, expected):
+    user(home, f"[roast]\n{text}\n")
+    args, _ = parse("ixi", "roast", tmp_path)
+    assert value(args, "roast", "json") == expected
+
+
+def test_deprecated_aliases(tmp_path, home, caplog):
+    user(home, "[nki-rs.harvest]\nlayout = 'sites'\nsite_layout = 'flat'\n"
+               "[adhd200.harvest]\nbidsify = false\n")
+    args, _ = parse("nki-rs", "harvest", tmp_path)
+    caplog.set_level(logging.WARNING)
+    assert args["layout"].value(load("nki-rs")) == "sites:flat"
+    assert "--site-layout is deprecated" in caplog.text
+    args, _ = parse("adhd200", "harvest", tmp_path)
+    assert args["bids"].source_options(ADHD200()) == {"bidsify": False}
+    assert "--bidsify/--no-bidsify is deprecated" in caplog.text
+
+
+# ----------------------------------------------------------------------
+#   --config and environment variables
+# ----------------------------------------------------------------------
+
+def test_global_options():
+    assert global_options(["--config", "a.toml", "--config=b.toml", "ixi",
+                           "harvest", "--config", "c"]) == (
+        ["a.toml", "b.toml"], ["ixi", "harvest", "--config", "c"])
+    with pytest.raises(ConfigError, match="needs a file"):
+        global_options(["--config"])
+    with pytest.raises(ConfigError, match="needs a file"):
+        global_options(["--config="])
+
+
+def test_config_repeated(tmp_path, home):
+    a = write(tmp_path / "a.toml", "[defaults]\njobs = 1\nwait = 1\n")
+    b = write(tmp_path / "b.toml", "[defaults]\njobs = 2\n")
+    args, report = parse("ixi", "harvest", tmp_path, files=[a, b])
+    assert value(args, "harvest", "jobs") == 2
+    assert value(args, "harvest", "wait") == 1
+    assert origin(report, "jobs").source == str(b)
+    args, _ = parse("ixi", "harvest", tmp_path, files=[b, a])
+    assert value(args, "harvest", "jobs") == 1
+
+
+def test_config_file_errors(tmp_path, capsys):
+    with pytest.raises(SystemExit) as e:
+        main(["--config", str(tmp_path / "missing.toml"), "ixi", "harvest",
+              str(tmp_path), "--dry-run"])
+    assert e.value.code == 1
+    assert "Config file not found" in capsys.readouterr().err
+    bad = write(tmp_path / "bad.toml", "[defaults\n")
+    with pytest.raises(SystemExit):
+        main(["--config", str(bad), "ixi", "harvest", str(tmp_path)])
+    assert f"Config {bad}: TOMLDecodeError" in capsys.readouterr().err
+    other = write(tmp_path / "x.ini", "")
+    with pytest.raises(SystemExit):
+        main(["--config", str(other), "ixi", "harvest", str(tmp_path)])
+    assert "not a .toml" in capsys.readouterr().err
+
+
+def test_yaml_config(tmp_path):
+    pytest.importorskip("yaml")
+    path = write(tmp_path / "c.yaml", "ixi:\n  harvest:\n    jobs: 3\n"
+                                      "    keys: [T1w]\n")
+    args, report = parse("ixi", "harvest", tmp_path, files=[path])
+    assert value(args, "harvest", "jobs") == 3
+    assert value(args, "keys", "keys") == ("T1w",)
+
+
+def test_env_vars(tmp_path):
+    env = {
+        "BRAINSPRESSO_OPT_LEVEL": "warning",
+        "BRAINSPRESSO_OPT_HARVEST__JOBS": "3",
+        "BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS": "rest anat",
+        "BRAINSPRESSO_OPT_ADHD200__HARVEST__NO_BIDS": "1",
+        "BRAINSPRESSO_OPT_OPENNEURO__DS000224__HARVEST__TAG": "2.0.0",
+        "BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS": "5",
+        # other variables of brainspresso are not options
+        "BRAINSPRESSO_LOCKS": "0", "BRAINSPRESSO_LOCK_TIMEOUT": "3",
+    }
+    args, report = parse("abide1", "roast", tmp_path, environ=env)
+    assert value(args, "keys", "exclude_keys") == ("rest", "anat")
+    assert value(args, "log", "level") == "warning"
+    assert str(origin(report, "exclude-keys")) == \
+        "env $BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS"
+    args, _ = parse("adhd200", "harvest", tmp_path, environ=env)
+    assert value(args, "bids", "bids") is False
+    assert value(args, "harvest", "jobs") == 3
+    args, _ = parse("openneuro", "harvest", "ds000224", tmp_path,
+                    environ=env)
+    assert value(args, "openneuro", "tag") == "2.0.0"
+    args, _ = parse("nki-rs", "harvest", tmp_path, environ=env)
+    assert value(args, "harvest", "jobs") == 5
+
+
+@pytest.mark.parametrize("var,match", [
+    ("BRAINSPRESSO_OPT_NOPE__JOBS", "unknown section 'NOPE'"),
+    ("BRAINSPRESSO_OPT_JBOS", "unknown key 'jbos'"),
+    ("BRAINSPRESSO_OPT_PASSWORD", "cannot be set"),
+    ("BRAINSPRESSO_OPT_IXI____JOBS", "not BRAINSPRESSO_OPT_"),
+])
+def test_bad_env_vars(tmp_path, var, match):
+    with pytest.raises(ConfigError, match=match):
+        parse("ixi", "harvest", tmp_path, environ={var: "1"})
+
+
+def test_real_run(tmp_path, home):
+    # a dry run from the dataset's section: nothing is deleted
+    root = tmp_path / "ds"
+    for sub in ("sub-01", "sub-02"):
+        write(root / sub / "anat" / f"{sub}_T1w.nii.gz", "x")
+    write(root / "dataset_description.json",
+          '{"Name": "x", "BIDSVersion": "1.10.0"}')
+    user(home, f"[openneuro.ds1]\nout = {str(root)!r}\n"
+               "[openneuro.compost]\ndry-run = true\nexclude-subs = ['01']\n")
+    try:
+        main(["openneuro", "compost", "ds1"])
+    except SystemExit as e:
+        assert not e.code
+    assert (root / "sub-01").exists()
+    try:
+        main(["openneuro", "compost", "ds1", "--no-dry-run", "--yes"])
+    except SystemExit as e:
+        assert not e.code
+    assert not (root / "sub-01").exists() and (root / "sub-02").exists()
+
+
+# ----------------------------------------------------------------------
+#   bx config
+# ----------------------------------------------------------------------
+
+def test_config_show(tmp_path, home, capsys, monkeypatch):
+    path = user(home, "[ixi.harvest]\nkeys = ['T1w']\n[defaults]\nwait = 2\n")
+    monkeypatch.setenv("BRAINSPRESSO_OPT_HARVEST__LEVEL", "debug")
+    try:
+        main(["config", "show", "ixi", "harvest", str(tmp_path), "--jobs",
+              "3"])
+    except SystemExit as e:
+        assert not e.code
+    out = capsys.readouterr().out
+    assert "[ixi.harvest]" in out
+    assert "jobs = 3  # CLI" in out
+    assert f'keys = ["T1w"]  # {path} [ixi.harvest]' in out
+    assert f"wait = 2.0  # {path} [defaults]" in out
+    assert "if-exists = \"skip\"  # built-in" in out
+    assert 'level = "debug"  # env $BRAINSPRESSO_OPT_HARVEST__LEVEL' in out
+    assert "yes" not in out             # (not an option of harvest)
+
+
+def test_config_show_every_command(tmp_path, home, capsys):
+    user(home, "[openneuro.ds1.compost]\nkeep = ['*.tsv']\n")
+    try:
+        main(["config", "show", "openneuro", "ds1"])
+    except SystemExit as e:
+        assert not e.code
+    out = capsys.readouterr().out
+    for command in ("harvest", "compost", "info"):
+        assert f"[openneuro.ds1.{command}]" in out
+    assert 'keep = ["*.tsv"]' in out
+    assert "yes = false  # built-in" in out
+
+
+def test_config_show_sections(tmp_path, home, capsys):
+    path = user(home, "[ABIDE1.roast]\njobs = 2\n[defaults]\nwait = 1\n")
+    extra = write(tmp_path / "x.toml", "[defaults]\nwait = 3\n")
+    try:
+        main(["--config", str(extra), "config", "show"])
+    except SystemExit as e:
+        assert not e.code
+    out = capsys.readouterr().out
+    assert f"[defaults]\nwait = 3  # {extra} [defaults]" in out
+    assert f"[abide1.roast]\njobs = 2  # {path} [ABIDE1.roast]" in out
+
+
+def test_config_show_errors(capsys):
+    for tokens in (["nope"], ["openneuro", "roast"]):
+        with pytest.raises(SystemExit) as e:
+            main(["config", "show", *tokens])
+        assert e.value.code == 1
+    assert "has no command 'roast'" in capsys.readouterr().err
+
+
+def test_config_paths(tmp_path, home, capsys, monkeypatch):
+    located(tmp_path, "")
+    extra = write(tmp_path / "x.toml", "")
+    monkeypatch.setenv("BRAINSPRESSO_OPT_JOBS", "2")
+    try:
+        main(["--config", str(extra), "config", "paths", "openneuro",
+              "ds1", "--path", str(tmp_path)])
+    except SystemExit as e:
+        assert not e.code
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].split() == ["user", "missing",
+                                str(home / "config.toml")]
+    assert lines[1].split() == ["root", "found",
+                                str(config.located_file(tmp_path))]
+    assert lines[2].split() == ["dataset", "missing", str(
+        config.located_file(tmp_path / "OpenNeuro" / "ds1"))]
+    assert lines[3].split() == ["--config", "found", str(extra)]
+    assert lines[4].split() == ["env", "set", "$BRAINSPRESSO_OPT_JOBS"]
+
+
+# ----------------------------------------------------------------------
+#   Start-up: no dataset imported
+# ----------------------------------------------------------------------
+
+def run_python(code):
+    return subprocess.run([sys.executable, "-c", code], capture_output=True,
+                          text=True, cwd=Path(__file__).parents[1])
+
+
+IMPORTED = (
+    "import sys\n"
+    "from brainspresso.cli import main\n"
+    "try:\n    main({tokens!r})\n"
+    "except SystemExit:\n    pass\n"
+    "mods = sorted({{m.split('.')[2] for m in sys.modules if m.startswith("
+    "'brainspresso.datasets.') and m.count('.') >= 3}})\n"
+    "print('DATASETS', mods)\n"
+)
+
+
+@pytest.mark.parametrize("tokens,datasets", [
+    (["--help"], []),
+    (["config", "--help"], []),
+    (["config", "show"], []),
+    (["config", "paths"], []),
+    (["config", "show", "ixi", "info"], ["IXI"]),
+])
+def test_config_commands_import_no_dataset(tokens, datasets):
+    out = run_python(IMPORTED.format(tokens=tokens))
+    assert out.returncode == 0, out.stderr
+    assert f"DATASETS {datasets}" in out.stdout, out.stdout
+
+
+def test_module_app_has_a_loader():
+    assert isinstance(cli.app.config[0] if isinstance(
+        cli.app.config, tuple) else cli.app.config, Loader)

@@ -697,9 +697,11 @@ roasters get numbers (`Dataset.numbers`).
   theirs. Tracebacks always go to the file log, and are printed with
   `--level debug`.
 * `datasets/catalog.py` imports no dataset: `CATALOG = {name: (import
-  path, summary)}` and `load(name) -> Dataset`. `scripts/make_catalog.py`
-  regenerates it; a test checks that each summary is the first line of
-  `help`.
+  path, summary)}` and `load(name) -> Dataset`, plus two tables for the
+  config file: `ARGUMENTS` (arguments of the entries that take some)
+  and `KEYS` (config keys of each command over every dataset).
+  `scripts/make_catalog.py` regenerates it; a test checks that each
+  summary is the first line of `help` and that it is up to date.
 * `cli.main(tokens)` registers only the dataset named by the first token
   (a stub printing the error if it fails to import), and one placeholder
   `App(name, help=summary)` per other entry, so `bx --help` imports no
@@ -719,6 +721,121 @@ roasters get numbers (`Dataset.numbers`).
   3.18, 3.24, 4.0 and 5.5 pass. A CI job runs at the floor.
 * Later: an entry-point group for third-party datasets, merged into the
   catalog.
+
+### Config file (`brainspresso/config.py`)
+
+Defaults of the options of the dataset commands, from TOML files and
+environment variables. Layers, later wins (`Loader.layers`):
+
+1. built-in defaults (option groups, `for_dataset`, `option_defaults`);
+2. the user file, `~/.brainspresso/config.toml`
+   (`$BRAINSPRESSO_CONFIG_HOME` replaces the folder; the tests point it
+   at an empty folder, `tests/conftest.py`);
+3. the root file, `<root>/.brainspresso/config.toml`: `<root>` is the
+   `path` argument, else a `path` from the user file, `--config` or the
+   environment, else `$BDP_PATH`, else the current folder (as for the
+   dataset folder, also with `--out`);
+4. the dataset file, `<DS>/.brainspresso/config.toml` (`--out`, else
+   `<root>/<folder>`, with the bound arguments; a site dataset `--out
+   <DS>/<site>` reads its own, not its parent's);
+5. the files of `bx --config FILE`: a global option, before the dataset
+   name, repeatable, applied in order (`cli.global_options`; TOML, or
+   YAML if PyYAML is importable);
+6. `BRAINSPRESSO_OPT_*` variables;
+7. the command line.
+
+A later layer wins over any section of an earlier one (an env variable
+for `[defaults]` beats `[ixi.harvest]` in a file). Within one layer,
+the most specific section wins (`Entry.rank`): `[defaults]` <
+`[<command>]` < `[<dataset>]` < `[<dataset>.<command>]`, with one more
+level per argument (`[openneuro]` < `[openneuro.harvest]` <
+`[openneuro.ds000224]` < `[openneuro.ds000224.harvest]`; command names
+are a fixed set, so accessions and commands do not clash). Datasets are
+named by their command name, case-insensitively (`[abide1]`,
+`[ABIDE1]`, `[unc-wisconsin]`, `[fcon1000]`); `config.dataset_names` is
+the one naming rule, and the catalog's generated `ARGUMENTS` table
+(`{"openneuro": ("dataset",)}`) gives the extra levels without
+importing a dataset. The same section written twice in one file
+(`[ixi.harvest]` and `[IXI.harvest]`) with the same key is an error.
+
+Keys are the long flags without `--` (`exclude-keys`, or
+`exclude_keys`; OpenNeuro's `--source` is `source`, whatever the field
+name), `no-<flag> = true` for a boolean flag (`no-bids`, `no-json`).
+Lists are TOML arrays (a scalar is a list of one, `[]` the empty list,
+which replaces a non-empty default); values become cyclopts tokens
+(`config.tokens`), so lists, `Literal` choices (per dataset, from
+`for_dataset`), `int | str`, `bool | None` and the deprecated aliases
+(`site-layout`, `bidsify`: logged when used, as on the command line)
+convert and fail as on the command line, and the error names the file
+and the section (`Invalid value for --jobs from <file> [ixi.harvest]`).
+
+Never read from a file or variable (an error naming the key and the
+file): `yes`/`y`, compost `force` and `ignore-runs`, `password`,
+`token`, `config`. A root or dataset file cannot set `path` or `out`
+(they locate it), and `out` only goes in the section of one dataset
+(not `[defaults]`, `[harvest]`, nor `[openneuro]` without an
+accession). The positional arguments of a dataset (the accession) are
+not keys.
+
+Checks: every file is checked when it is read (`config.parse`):
+sections (unknown ones with a did-you-mean), forbidden and location
+keys, and keys against the generated `catalog.KEYS` (the config keys of
+each command over every dataset, so that `[harvest] discs = ...`, an
+OASIS-I option, is accepted and ignored by IXI). The sections of the
+running dataset are also checked against its own options
+(`config.resolve`): `[ixi.harvest] tag` is not an option of IXI's
+harvest, `[ixi] discs` of no IXI command. `[profiles.<name>]` and
+`grind` tables (`[grind]`, `[<dataset>.grind.<pipeline>]`) are reserved
+for the execution profiles and pipelines of §7 and ignored
+(`TODO(§7)` in `config.py`).
+
+Environment: `BRAINSPRESSO_OPT_[<SECTION>__...]<KEY>`, `__` between
+the parts, case-insensitive, `_` for `-` in dataset names and keys
+(`BRAINSPRESSO_OPT_JOBS`: `[defaults]`; `..._HARVEST__JOBS`;
+`..._ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`, split on spaces;
+`..._NKI_RS__HARVEST__JOBS`; `..._OPENNEURO__DS000224__HARVEST__TAG`;
+`..._ADHD200__HARVEST__NO_BIDS=1`). The dedicated prefix keeps them
+apart from `BRAINSPRESSO_LOCKS`, `BRAINSPRESSO_LOCK_TIMEOUT`,
+`BRAINSPRESSO_LOCK_DIR`, `BRAINSPRESSO_CONFIG_HOME`, `BDP_PATH` and the
+credential variables, which keep their meaning.
+
+Mechanism: `config.Loader` is the cyclopts config callable of the root
+app (`App(config=loader)`, cyclopts >= 3.17; its first argument is a
+list of apps in cyclopts 3 and the app in >= 4, and is not used). It
+runs after the command line is parsed: it reads the parsed `path`,
+`--out` and arguments, finds the files, resolves the values of the
+command's options (`register.config_options`: one `OptionInfo` per
+long flag of the flattened groups) and appends tokens only to the
+arguments that have none. `cli.dataset_app` records the dataset in the
+loader. `bx config show [DATASET [COMMAND [ARGS...]]]` parses the
+command with `App.parse_args` (nothing runs) and prints every option,
+its effective value and its origin (`built-in`, `<file> [<section>]`,
+`env $VAR`, `CLI`); without a dataset, the merged sections of every
+layer. `bx config paths [DATASET [ARGS]] [--path] [--out]` lists the
+files looked up, whether they exist, and the variables set. `config.py`
+imports neither datasets nor option groups (`bx --help` imports it;
+measured about 5 ms), and `bx config` imports only the dataset it
+shows. Example:
+
+```toml
+[defaults]
+path = "/data/bids"
+[harvest]
+jobs = 4
+[ixi]
+keys = ["T1w", "T2w"]
+[abide1.roast]
+exclude-keys = ["rest"]
+[openneuro.ds000224.harvest]
+tag = "1.0.4"
+```
+
+Limitations: on cyclopts 3.17 to 4.0 (measured: 3.17, 3.18, 3.24, 4.0)
+`--json` cannot be parsed at all, from the command line or a file
+(`Cannot Union types that consume different numbers of tokens` for the
+`Literal | bool` field); it works on 5.5, and its tests are skipped
+below. A null value (YAML) is refused: TOML has none and "unset" is the
+absence of the key.
 
 ### Layouts
 
@@ -817,6 +934,8 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   `--packet` on hosted harvests, `--exclude-sites`, `--json` on
   UNC-Wisconsin roast, compost `--sites` (sites layouts).
 * `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
+* Added: `bx config show|paths`, the global `--config FILE`, and config
+  files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
 
 ### Tests
 
@@ -832,6 +951,13 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * Run lock: held by another process -> fail fast, `--wait`, records,
   stale records, `--ignore-runs`; dry runs create nothing;
   `BRAINSPRESSO_LOCKS=0`.
+* Config file (`tests/test_config.py`): every layer in order, the
+  most specific section, root and dataset files from the parsed path
+  (`--out`, a configured `path`, `$BDP_PATH`), dataset names and
+  OpenNeuro accessions, forbidden, unknown and location keys, type and
+  choice errors, lists, bools, `Literal`s, deprecated aliases, repeated
+  `--config`, environment variables, `bx config show|paths`, and `bx
+  --help` / `bx config` importing no dataset.
 
 ### Risks
 
@@ -1126,3 +1252,11 @@ up as an XPASS failure once fixed (then drop the marker).
   below them (`fs` stays `fs`); deprecated flags are logged warnings;
   `--subs` names a file before a range (`C:\subs.txt`); ABIDE-I XNAT and
   NITRC roast bugs listed for step 5.
+* r15: config file (§6, "Config file"). Layered defaults of the options
+  (user, root, dataset, `--config`, `BRAINSPRESSO_OPT_*`, command line)
+  read by a cyclopts config callable after parsing; sections
+  `[defaults]`, `[<command>]`, `[<dataset>]`, `[<dataset>.<command>]`
+  named by the command names (owner decision, over module paths and
+  folder names; one naming function), an accession level for OpenNeuro;
+  confirmations, secrets and `--config` never configurable; `bx config
+  show|paths`; catalog tables `ARGUMENTS` and `KEYS`.

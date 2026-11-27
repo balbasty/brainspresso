@@ -181,7 +181,7 @@ class OptionGroup:
         })
         if not types and not defaults and not helps:
             return cls
-        hints = _hints(cls)
+        hints = field_hints(cls)
         fields = []
         for f in dataclasses.fields(cls):
             if f.name not in types and f.name not in defaults and \
@@ -207,8 +207,20 @@ class OptionGroup:
                          group=Group(title, sort_key=sort_key))(new)
 
 
-def _hints(cls) -> dict[str, Any]:
-    """Annotations of the fields of a dataclass (with `Annotated`)."""
+def field_hints(cls) -> dict[str, Any]:
+    """
+    Annotations of the fields of a dataclass (with `Annotated`).
+
+    Parameters
+    ----------
+    cls : type
+        An option group
+
+    Returns
+    -------
+    dict[str, Any]
+        Field -> annotation (of the class that defines it last)
+    """
     out = {}
     for klass in reversed(cls.__mro__):
         out.update(getattr(klass, "__annotations__", {}))

@@ -1190,28 +1190,40 @@ def test_forgotten_unfetched_files_re_trim_field_maps(tmp_path, openneuro):
         "anat/sub-01_T1w.nii.gz"]
 
 
-def test_directly_placed_generated_files_refresh_unless_edited(
+def test_directly_placed_generated_files_under_skip_and_different(
     tmp_path, caplog
 ):
+    """Pure skip: a generated file placed directly is left alone once it
+    exists; `--if-exists different` replaces it (edits included)"""
     root = tmp_path / "ds"
     selection = Selection(folders=["sourcedata"])
 
-    def harvest(text):
+    def harvest(text, if_exists="skip"):
         harvest_hosted([InlineEntry("sourcedata/notes.txt", text)], root,
-                       selection, folder="x", display=False)
+                       selection, folder="x", display=False,
+                       if_exists=if_exists)
 
     harvest("v1")
     lay = Layout.detect(root)
     notes = lay.source / "notes.txt"
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v1")
-    harvest("v2")                       # unedited: refreshed
+    caplog.clear()
+    harvest("v2")                       # skip: left alone, silently
+    assert notes.read_text() == "v1"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v1")
+    assert "refreshed" not in caplog.text and "edited?" not in caplog.text
+    harvest("v2", "different")          # unedited: replaced
     assert notes.read_text() == "v2"
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
     notes.write_text("mine")
-    harvest("v3")                       # edited: kept
+    caplog.clear()
+    harvest("v3")                       # edited, skip: left alone
     assert notes.read_text() == "mine"
-    assert "edited?" in caplog.text
+    assert "WARNING" not in caplog.text
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
+    harvest("v3", "different")          # edited: replaced too
+    assert notes.read_text() == "v3"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v3")
 
 
 def test_read_manifest_that_is_not_utf8(tmp_path, caplog):
@@ -1772,3 +1784,25 @@ def test_compost_roast_runs_as_update(tmp_path, openneuro, monkeypatch):
     on("compost", tmp_path, "--exclude-subs", "03", "--yes")
     assert seen == ["update"]
     assert table_rows(lay.raw / "participants.tsv") == ["sub-01", "sub-02"]
+
+
+def test_harvest_under_skip_refreshes_bases_only(tmp_path, templates,
+                                                 caplog):
+    """A second harvest after a template change: the generated base in
+    `<state>/generated/` follows, the visible file is left alone (pure
+    skip), `roast --if-exists update` renders it"""
+    out = tmp_path / "data"
+    bx("sald", "harvest", out)
+    lay = Layout.detect(out / "SALD")
+    readme = lay.raw / "README"
+    base = lay.generated(readme)
+    old = readme.read_bytes()
+    write(templates / "sald/README", "A new README\n")
+    caplog.clear()
+    bx("sald", "harvest", out)
+    assert base.read_text() == "A new README\n"
+    assert readme.read_bytes() == old
+    assert not [r for r in caplog.records if r.levelname == "WARNING"
+                and "README" in r.getMessage()]
+    bx("sald", "roast", out, "--if-exists", "update")
+    assert readme.read_text() == "A new README\n"

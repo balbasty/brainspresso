@@ -475,8 +475,24 @@ Interactions (decided):
   under "skip": a removal touches an existing file). Under "skip" a
   file left alone is yielded as a skipped action, so that it is an
   output of its shard and deleting it runs the shard again; its
-  existence is no part of the shard config. Directly placed generated
-  files: see §4 "Harvest" (pure skip, r43).
+  existence is no part of the shard config.
+* Harvest under "skip" is pure too (r43): a generated file placed
+  directly (`write_inline`: fill-in templates and other `InlineEntry`
+  files written to their final path, #26) is left alone once it exists
+  (not read, no warning, no "refreshed"); "different", "overwrite" and
+  "refresh" write it when its content differs (edits included), "error"
+  refuses it. A generated file whose path is now in the remote dataset
+  (`replace_generated`) is left alone under "skip" (the remote file is
+  not downloaded); other modes as before (removed if unedited, so that
+  the remote file is downloaded). Unchanged in every mode: the pristine
+  copies in `sourcedata/<folder>/`, the generated bases in
+  `<state>/generated/` and the merged tables of a sites parent
+  (`datasets/indi/harvest.py`, written with "overwrite": a derived
+  table, like the trimmed ones). The manifest `sha256` of a generated
+  file is recorded when the harvest writes it. Harvest has no
+  "update": #26's edit-aware refresh of directly placed files is no
+  longer reachable at harvest (it would be `write_inline`'s old "skip"
+  branch under a new value).
 * `--repair/--no-repair`: applies to the files a roast writes (under
   "skip": absent files, tables and field maps). `bx <ds> roast
   --if-exists update` with the default repairs, so it undoes a
@@ -525,7 +541,7 @@ authoritative copy first):
 | Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: when absent, and by every metadata roast under `update` (tables and field maps: also under `skip`; rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
 | Generated metadata (templates, merged tables, generated sidecars) | base `<state>/generated/<path>`; visible (`generated`, `source`) | base: every harvest; visible: as hosted metadata | as hosted metadata (the base stays) |
 | New fill-in sidecars | templates in the package; visible (`generated`, `fill`, no `source`) | metadata roasts, where a template applies | when no template applies any more, if unedited (and the roast handles it) |
-| Directly placed generated files | visible only (`generated`, `sha256`) | harvest, if unedited (#26) | compost filters |
+| Directly placed generated files | visible only (`generated`, `sha256`) | harvest, when absent; under `different`/`overwrite`/`refresh` when it differs (r43: no edit test at harvest) | compost filters |
 
 * A missing base freezes its file: left as it is (one info line); a
   `Fail` only if the visible file is missing too.
@@ -3105,3 +3121,11 @@ up as an XPASS failure once fixed (then drop the marker).
   (an output, so that deleting it runs the shard again). The roast that
   a compost runs passes `update`; `bx <ds> roast` keeps the user's
   value (default `skip`). The hosted default stays `skip`.
+  Harvest (§4): `skip` is pure for the generated files placed directly
+  (`write_inline` leaves an existing file alone, its `generated`
+  argument is gone; `replace_generated` leaves a file now in the
+  remote dataset alone); pristine copies, generated bases and the
+  merged tables of a sites parent are still refreshed by every harvest.
+  Harvest gets no `update`: the edit-aware refresh of #26 is now
+  `roast --if-exists update` for roasted files only; `harvest
+  --if-exists different` replaces generated files, edits included.

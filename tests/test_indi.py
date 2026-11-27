@@ -18,7 +18,12 @@ import pytest
 from aiohttp import web
 
 from brainspresso.actions.runlock import held_states
-from brainspresso.bids.harvest import InlineEntry, sha256, write_inline
+from brainspresso.bids.harvest import (
+    InlineEntry,
+    replace_generated,
+    sha256,
+    write_inline,
+)
 from brainspresso.bids.layout import Layout, SitesLayout
 from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
@@ -380,6 +385,21 @@ def test_fcon1000_layout_sites_labels(tmp_path):
     assert not (raw(root, "Atlanta") / "sub-06870").exists()
 
 
+def test_merged_table_of_a_sites_parent_follows_every_harvest(tmp_path):
+    # (like a trimmed table: rewritten under the default `skip`)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta", "--subs", "00448")
+    root = tmp_path / "FCON1000"
+    rows = table(root / "participants.tsv")
+    assert sorted(r[0] for r in rows[1:]) == [
+        "sub-Atlanta00448", "sub-ICBM00448"]
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
+    rows = table(root / "participants.tsv")
+    assert sorted(r[0] for r in rows[1:]) == [
+        "sub-Atlanta00448", "sub-ICBM00448", "sub-ICBM11111"]
+
+
 def test_fcon1000_layout_sites_skipped(tmp_path):
     # a site without selected files is not recorded as a site
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
@@ -667,20 +687,50 @@ def test_generated_file_now_in_the_bucket(
         assert record["sha256"] == sha256(path.read_bytes())
 
 
-def test_write_inline_refresh(tmp_path, caplog):
+def test_write_inline_refresh(tmp_path, caplog, monkeypatch):
     dst = tmp_path / "x.json"
     entry = InlineEntry("x.json", b"new", previous=(sha256(b"old"),))
+    # skip: an existing file is left alone, not even read
     dst.write_bytes(b"old")
-    assert write_inline(entry, dst, "skip")             # known version
-    assert dst.read_bytes() == b"new"
-    dst.write_bytes(b"generated")
-    assert write_inline(entry, dst, "skip", sha256(b"generated"))
-    assert dst.read_bytes() == b"new"
+    real = Path.read_bytes
+
+    def read_bytes(self):
+        assert self != dst, "skip reads the file"
+        return real(self)
+
+    with monkeypatch.context() as m:
+        m.setattr(Path, "read_bytes", read_bytes)
+        assert not write_inline(entry, dst, "skip")
+    assert dst.read_bytes() == b"old" and "WARNING" not in caplog.text
+    # (absent: written)
+    absent = tmp_path / "y.json"
+    assert write_inline(entry, absent, "skip")
+    assert absent.read_bytes() == b"new"
+    # other modes: written if the content differs
+    for mode in ("different", "overwrite", "refresh"):
+        dst.write_bytes(b"edited")
+        assert write_inline(entry, dst, mode)
+        assert dst.read_bytes() == b"new"
+        assert not write_inline(entry, dst, mode)
     dst.write_bytes(b"edited")
-    assert not write_inline(entry, dst, "skip", sha256(b"generated"))
-    assert dst.read_bytes() == b"edited"
-    assert "edited?" in caplog.text
-    assert not write_inline(InlineEntry("x.json", b"edited"), dst, "skip")
+    with pytest.raises(FileExistsError):
+        write_inline(entry, dst, "error")
+    assert not write_inline(InlineEntry("x.json", b"edited"), dst, "error")
+
+
+def test_replace_generated_under_skip(tmp_path, caplog):
+    dst = tmp_path / "x.json"
+    dst.write_bytes(b"generated")
+    # skip: left alone (not downloaded), silently
+    assert not replace_generated(dst, sha256(b"generated"), "skip")
+    assert dst.exists() and "WARNING" not in caplog.text
+    # other modes: removed if unedited, so that the remote one is fetched
+    assert replace_generated(dst, sha256(b"generated"), "different")
+    assert not dst.exists()
+    dst.write_bytes(b"edited")
+    assert not replace_generated(dst, sha256(b"generated"), "different")
+    assert dst.exists() and "edited" in caplog.text
+    assert replace_generated(dst, sha256(b"generated"), "overwrite")
 
 
 def test_slim_sessions_trimmed(tmp_path):

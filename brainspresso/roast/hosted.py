@@ -207,8 +207,10 @@ def harvest_hosted(
         Trim tables and `IntendedFor` to what is present (recorded per
         file: a later roast keeps the choice)
     if_exists : {"skip", "overwrite", "different", "refresh", "error"}
-        Downloads of data files, and the visible files of the roast;
-        pristine copies are always refreshed against the listing
+        Downloads of data files, generated files placed directly (left
+        alone under "skip" once they exist) and the visible files of the
+        roast (`roast_hosted`); pristine copies and generated bases are
+        always refreshed against the listing
     jobs : int
         Concurrent downloads
     dry_run, listing : bool
@@ -268,7 +270,6 @@ def harvest_hosted(
         raise ValueError(f"{layout.root} holds one dataset per site: "
                          f"harvest each site")
     layout.ensure_state()
-    before = manifest_files(layout)
     # entries are merged into the manifest (None clears a field); only
     # the roast writes the hashes of roasted files (`_record`)
     files: dict[str, dict] = {}
@@ -331,9 +332,8 @@ def harvest_hosted(
                               **extra}
                 placed.add(key)
             else:
-                # placed directly: refreshed if unedited (#26)
-                old = before.get(key, {}).get("sha256")
-                nb_generated += write_inline(e, local, if_exists, old)
+                # placed directly: left alone under `skip` once it exists
+                nb_generated += write_inline(e, local, if_exists)
                 files[key] = {"origin": "generated", "size": e.size,
                               **extra}
                 if local.is_file() and local.read_bytes() == e.content:

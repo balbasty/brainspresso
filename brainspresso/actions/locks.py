@@ -22,11 +22,21 @@ processes "hold" it at once):
   resolved absolute path. It protects the processes of one user on one
   machine only (other users and other machines use other folders).
 
-On Windows and macOS, whose filesystems ignore case by default, the
-path is lowercased (and NFC-normalised) before it is hashed, so that two
-spellings of one file share its lock (two files whose names differ only
-by case, on a case-sensitive volume, share one too: they exclude each
-other needlessly, which is safe).
+The path is NFC-normalised and casefolded before it is hashed, on every
+platform: Windows and macOS filesystems ignore case (and macOS Unicode
+normalisation) by default, so two spellings of one file must share its
+lock, and Linux, macOS and Windows clients of one shared dataset must
+agree on it. Two files whose names differ only by case, on a
+case-sensitive filesystem, share one lock file too: they exclude each
+other needlessly, which is safe. (Lock files of earlier versions were
+named from the path as given: during an upgrade, runs of an older and
+a newer version do not exclude each other.)
+
+In a process, the lock files are told apart by identity (the device
+and inode of the state folder, or of the local lock folder, and the
+name of the lock file), not by path: a dataset reached through two
+spellings of its folder (another case, on macOS or Windows) has one
+open lock file per lock, as below.
 
 Nothing is ever created next to the file: a source may be shared or
 read-only.
@@ -130,7 +140,6 @@ import errno
 import hashlib
 import os
 import socket
-import sys
 import tempfile
 import threading
 import time
@@ -181,9 +190,6 @@ _MAX_DELAY = 0.25
 FASTENERS_REQUIREMENT = "fasteners >= 0.18, < 0.21"
 
 _WINDOWS = os.name == "nt"
-# Filesystems that ignore case (and, on macOS, Unicode normalisation) by
-# default: lock keys are normalised (see the module docstring)
-_CASELESS = sys.platform in ("win32", "darwin")
 
 
 class LockError(RuntimeError):
@@ -370,6 +376,27 @@ def _private(folder: Path) -> None:
             )
 
 
+def _normalise(key: str) -> str:
+    """
+    Lock key of a path: NFC-normalised and casefolded.
+
+    On every platform, so that the clients of one shared dataset (Linux,
+    macOS and Windows machines on NFS or SMB) agree on its lock files;
+    files whose names differ only by case share one (safe).
+
+    Parameters
+    ----------
+    key : str
+        Path (relative to the dataset, or absolute)
+
+    Returns
+    -------
+    str
+        Its key
+    """
+    return unicodedata.normalize("NFC", key).casefold()
+
+
 def lock_file(path: str | os.PathLike) -> tuple[Path, Path | None]:
     """
     Lock file of a file.
@@ -395,10 +422,38 @@ def lock_file(path: str | os.PathLike) -> tuple[Path, Path | None]:
     else:
         key = str(real)
         folder = _local_dir()
-    if _CASELESS:
-        key = unicodedata.normalize("NFC", key).lower()
-    digest = hashlib.sha256(key.encode()).hexdigest()
+    digest = hashlib.sha256(_normalise(key).encode()).hexdigest()
     return folder / digest[:2] / f"{digest}.lock", dataset
+
+
+def _registry_key(lockfile: Path, dataset: Path | None) -> tuple:
+    """
+    Identity of a lock file in this process (`_registry`).
+
+    The device and inode of the folder that holds the lock tree (the
+    state folder of the dataset, or the local lock folder) and the name
+    of the lock file: one key for every spelling of that folder, and
+    distinct keys for distinct folders whose names differ by case on a
+    case-sensitive filesystem.
+
+    Parameters
+    ----------
+    lockfile : Path
+        Lock file (`lock_file`)
+    dataset : Path | None
+        Its dataset (None: a local lock)
+
+    Returns
+    -------
+    tuple
+        The key
+    """
+    base = dataset / STATE_DIR if dataset is not None else _local_dir()
+    try:
+        st = os.stat(base)
+    except OSError:                 # (then the open fails as it should)
+        return ("path", str(lockfile))
+    return ("inode", st.st_dev, st.st_ino, lockfile.name)
 
 
 # ----------------------------------------------------------------------
@@ -544,8 +599,9 @@ class _Entry:
     while a writer does; `busy` while a thread waits for the OS lock.
     """
 
-    def __init__(self, lockfile: Path):
+    def __init__(self, lockfile: Path, key: tuple):
         self.lockfile = lockfile
+        self.key = key                      # in `_registry`
         self.cond = threading.Condition()
         self.handle: _OSLock | None = None  # the open lock file
         self.mode: str | None = None        # None | "shared" | "exclusive"
@@ -571,7 +627,11 @@ class _Entry:
         return "another thread of this process, waiting for it"
 
 
-_registry: dict[Path, _Entry] = {}
+# Entries by lock file *identity* (`_registry_key`): two spellings of one
+# lock file (a dataset folder named in another case on macOS or Windows)
+# must share one entry, as a second descriptor would drop the POSIX locks
+# of the first when closed (and conflict with it on Windows)
+_registry: dict[tuple, _Entry] = {}
 _registry_lock = threading.Lock()
 
 
@@ -673,10 +733,11 @@ class FileLock:
             except OSError as e:
                 return self._unlocked(f"no local lock folder ({e})")
         self.lockfile = lockfile
+        key = _registry_key(lockfile, dataset)
         with _registry_lock:
-            entry = _registry.get(lockfile)
+            entry = _registry.get(key)
             if entry is None:
-                entry = _registry[lockfile] = _Entry(lockfile)
+                entry = _registry[key] = _Entry(lockfile, key)
             entry.users += 1
         try:
             took = self._take(entry, deadline, timeout)
@@ -812,35 +873,39 @@ class FileLock:
         if entry is None:
             return
         self.locked = False
-        with entry.cond:
-            if self.exclusive:
-                entry.writer = None
-            else:
-                entry.readers[self._thread] -= 1
-                entry.readers = +entry.readers
-            try:
-                if entry.writer is None:
-                    if +entry.readers:
-                        if entry.mode == "exclusive":
-                            entry.handle.downgrade()
-                            entry.mode = "shared"
-                    else:
-                        try:
-                            entry.handle.unlock()
-                        finally:
-                            entry.mode = None
-                            self._close(entry)
-            finally:
-                entry.cond.notify_all()
-        self._leave(entry)
+        try:
+            with entry.cond:
+                if self.exclusive:
+                    entry.writer = None
+                else:
+                    entry.readers[self._thread] -= 1
+                    entry.readers = +entry.readers
+                try:
+                    if entry.writer is None:
+                        if +entry.readers:
+                            if entry.mode == "exclusive":
+                                entry.handle.downgrade()
+                                entry.mode = "shared"
+                        else:
+                            try:
+                                entry.handle.unlock()
+                            finally:
+                                entry.mode = None
+                                self._close(entry)
+                finally:
+                    entry.cond.notify_all()
+        finally:
+            # (also if the OS lock could not be downgraded or released:
+            # the entry must not leak)
+            self._leave(entry)
 
     @staticmethod
     def _leave(entry: _Entry) -> None:
         """Forget an entry that has no holders and no waiters."""
         with _registry_lock:
             entry.users -= 1
-            if entry.users <= 0 and _registry.get(entry.lockfile) is entry:
-                del _registry[entry.lockfile]
+            if entry.users <= 0 and _registry.get(entry.key) is entry:
+                del _registry[entry.key]
 
     def __enter__(self) -> "FileLock":
         """Take the lock (`acquire`)."""

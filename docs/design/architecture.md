@@ -419,8 +419,15 @@ layer in 2b-iv):
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, `h` the SHA-256 of the
   dataset-relative path, on the dataset's filesystem (also across
   cluster nodes where the filesystem shares locks, whatever the mount
-  point; the path is lowercased and NFC-normalised first on Windows and
-  macOS, whose filesystems ignore case by default);
+  point; the path is NFC-normalised and casefolded first on every
+  platform, so that two spellings of a file on a caseless filesystem
+  (macOS, Windows) and the Linux, macOS and Windows clients of one
+  shared dataset agree on its lock file, at the price of files that
+  differ only by case sharing one; lock files of earlier versions were
+  named from the path as given, so runs of an older and a newer
+  version do not exclude each other during an upgrade; in a process,
+  entries are keyed by the identity of the lock folder (device, inode)
+  and the lock file name, not by its spelling);
   outside datasets (package templates, other source folders) in a
   private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
@@ -1000,7 +1007,12 @@ Each step lands as commits on the refactor branch with its tests green.
   with `os.replace` (`os.rename` fails onto an existing file on
   Windows, and a folder in the way raises `PermissionError` there, not
   `IsADirectoryError`); path keys (lock files, task ids) are POSIX
-  strings (`as_posix()`), never `os.sep`-joined. A test is skipped on
+  strings (`as_posix()`), never `os.sep`-joined, and archive members
+  are `PurePosixPath`s; text files are read and written as UTF-8, and
+  written with "\n" line endings (`File` does so by default, except
+  for update modes, `+`, which keep universal newlines for their reads;
+  TSV rows end with "\n", not the "\r\n" of `csv`), so outputs are
+  byte-identical on every platform. A test is skipped on
   Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
   feature the platform lacks (POSIX permissions, symbolic links
   without privileges), never to hide a bug.

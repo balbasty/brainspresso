@@ -35,8 +35,6 @@ from brainspresso.actions.locks import (
 from brainspresso.bids.layout import STATE_DIR as LAYOUT_STATE_DIR
 
 SPAWN = multiprocessing.get_context("spawn")
-# platforms whose lock keys ignore case (`locks._CASELESS`)
-CASELESS = sys.platform in ("win32", "darwin")
 # generous bound for things that must happen (slow CI machines)
 SOON = 60
 
@@ -73,8 +71,7 @@ def test_lock_file_inside_a_dataset(tmp_path):
     lockfile, found = lock_file(path)
     assert found == ds
     key = "rawbids/sub-01/anat/sub-01_T1w.nii.gz"
-    if CASELESS:                        # (lock keys ignore case there)
-        key = key.lower()
+    key = key.casefold()                # (lock keys ignore case)
     digest = hashlib.sha256(key.encode()).hexdigest()
     assert lockfile == ds / STATE_DIR / "locks" / digest[:2] / \
         f"{digest}.lock"
@@ -772,9 +769,11 @@ def test_writer_downgraded_to_its_reader(tmp_path):
         assert acquired.wait(SOON)
         release.set()
         finish(proc)
-        proc, acquired, _ = holder(path, True, timeout=0.3, failed=failed)
+        proc, acquired, release = holder(path, True, timeout=0.3,
+                                         failed=failed)
         message = failed.get(timeout=SOON)
         finish(proc)
+        assert not acquired.is_set()
         assert message.startswith("LockTimeout")
         assert "held by readers" in message
     finally:
@@ -852,8 +851,122 @@ def test_no_backend_raises_unless_locks_are_disabled(tmp_path, monkeypatch):
         assert f.safename.read_text() == "x"
 
 
-def test_lock_keys_ignore_case_where_filesystems_do(tmp_path):
+def test_lock_keys_ignore_case_on_every_platform(tmp_path):
+    """Clients of a shared dataset on Linux, macOS and Windows agree."""
     ds = dataset(tmp_path / "DS")
     upper, lower = lock_file(ds / "Sub-01_T1w.nii")[0], \
         lock_file(ds / "sub-01_t1w.nii")[0]
-    assert (upper == lower) == CASELESS
+    assert upper == lower
+    # NFC: a decomposed name (as macOS may give it) is the composed one
+    assert lock_file(ds / "e\u0301.json")[0] == lock_file(ds / "\xe9.json")[0]
+
+
+def test_two_spellings_of_a_dataset_share_one_lock_file(tmp_path, monkeypatch):
+    """
+    One open lock file per lock, whatever the spelling of the dataset.
+
+    On a caseless filesystem (macOS, Windows), `/x/DS` and `/x/ds` are one
+    folder; simulated here by a symbolic link that `_real` does not
+    resolve.
+    """
+    import brainspresso.actions.locks as locks
+    ds = dataset(tmp_path / "DS")
+    other = tmp_path / "ds-spelling"
+    other.symlink_to(ds, target_is_directory=True)
+    monkeypatch.setattr(locks, "_real",
+                        lambda p: Path(os.path.abspath(p)))
+    forget_datasets()
+    a, b = FileLock(ds / "x.nii"), FileLock(other / "x.nii")
+    assert a.acquire().lockfile != b.acquire().lockfile
+    try:
+        assert a._entry is b._entry             # (one descriptor)
+        # a writer (thread) of this process sees the readers of both
+        errors = []
+        writer = FileLock(other / "x.nii", exclusive=True, timeout=0.2)
+        thread = threading.Thread(
+            target=lambda: errors.append(_catch(writer.acquire)))
+        thread.start()
+        thread.join(SOON)
+        assert isinstance(errors[0], LockTimeout)
+        assert "readers in this process" in str(errors[0])
+        # releasing one spelling keeps the OS lock of the other
+        b.release()
+        failed = SPAWN.Queue()
+        # (keep the events: the child unpickles them)
+        proc, acquired, release = holder(ds / "x.nii", True, timeout=0.3,
+                                         failed=failed)
+        message = failed.get(timeout=SOON)
+        finish(proc)
+        assert not acquired.is_set()
+        assert message.startswith("LockTimeout") and "readers" in message
+    finally:
+        a.release()
+        b.release()
+    assert not locks._registry
+    forget_datasets()
+
+
+def test_failed_release_does_not_leak_the_entry(tmp_path, monkeypatch):
+    import brainspresso.actions.locks as locks
+    path = tmp_path / "x.txt"
+
+    def fail(self):
+        raise OSError("injected")
+
+    # an OS unlock that fails: the file is closed (which drops the lock)
+    lock = FileLock(path, exclusive=True).acquire()
+    with monkeypatch.context() as m:
+        m.setattr(locks._OSLock, "unlock", fail)
+        with pytest.raises(OSError, match="injected"):
+            lock.release()
+    assert not locks._registry and not lock.locked
+    proc, acquired, release = holder(path, True)
+    assert acquired.wait(SOON)
+    release.set()
+    finish(proc)
+    # a downgrade that fails: the entry of the remaining reader stays
+    writer = FileLock(path, exclusive=True).acquire()
+    reader = FileLock(path).acquire()
+    with monkeypatch.context() as m:
+        m.setattr(locks._OSLock, "downgrade", fail)
+        with pytest.raises(OSError, match="injected"):
+            writer.release()
+    entry = reader._entry
+    assert entry.users == 1 and list(locks._registry.values()) == [entry]
+    reader.release()
+    assert not locks._registry
+    with FileLock(path, exclusive=True, timeout=0):
+        pass
+
+
+def test_text_files_are_utf8_with_lf_and_updates_read_universally(tmp_path):
+    path = tmp_path / "x.tsv"
+    with File(path, "w") as f:
+        with f.open() as fobj:
+            fobj.write("a\tbé\nc\td\n")
+    assert path.read_bytes() == "a\tbé\nc\td\n".encode("utf-8")
+    # update modes keep universal newlines when they read
+    path.write_bytes(b"a\r\nb\r\n")
+    for mode in ("r+", "a+"):
+        with File(path, mode) as f:
+            with f.open() as fobj:
+                fobj.seek(0)
+                assert fobj.read() == "a\nb\n"
+    # plain readers too, and options given win
+    with File(path, "r") as f:
+        with f.open() as fobj:
+            assert fobj.read() == "a\nb\n"
+        with f.open("r", newline="") as fobj:
+            assert fobj.read() == "a\r\nb\r\n"
+
+
+def test_tsv_rows_end_with_lf(tmp_path):
+    """`csv` ends rows with CRLF by default; BIDS tables use LF."""
+    from brainspresso.actions.writers import WriteTSV
+    from brainspresso.utils.io import write_tsv
+    write_tsv([["a", "b"], ["1", "é"]], tmp_path / "x.tsv")
+    assert (tmp_path / "x.tsv").read_bytes() == \
+        "a\tb\n1\té\n".encode("utf-8")
+    statuses = list(WriteTSV([["a", "b"], ["1", "2"]], tmp_path / "y.tsv"))
+    assert {"status": "done"} in statuses, statuses
+    assert (tmp_path / "y.tsv").read_bytes() == b"a\tb\n1\t2\n"

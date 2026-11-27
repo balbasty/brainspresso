@@ -21,7 +21,6 @@
     "SpoilingState": true,
     "SpoilingType": "COMBINED",
     "EchoTime": 0.00292,
-    "RepetitionTime": 5.0,
     "RepetitionTimePreparation": 5.0,
     "Modality": "MR",
     "ProtocolName": "mp2rage_p3_602B",

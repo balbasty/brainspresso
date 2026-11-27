@@ -53,9 +53,16 @@ A `fill = true` entry (any kind) is a fill-in template: at roast time its
 keys only fill those missing from the sidecars hosted with the data, and
 never override them (INDI projects, whose bucket sidecars are often
 incomplete). The flag does not change the conversion; it is recorded in
-the lock (`"fill": true`). Its table and lock names are `FILL_KEY` and
-`LOCK_FILL_KEY`, to follow the convention of the roast hook that applies
-these templates.
+the lock (`"fill": true`) and in `_fill.json` next to the templates
+(`{"fill": [<output>, ...]}`, shipped with the package: what the INDI
+engine reads, as the lock is not shipped). Its names are `FILL_KEY`,
+`LOCK_FILL_KEY` and `FILL_INDEX`, to follow the convention of the roast
+hook that applies these templates.
+
+An entry may set `drop` (a list of keys) to remove keys from the
+converted sidecar (after `defaults` and `assigns`), e.g. keys that
+`bids.repair` renames and an inherited template would bring back; it is
+recorded in the lock.
 """
 import argparse
 import fnmatch
@@ -90,9 +97,10 @@ NON_SIDECARS = ('dataset_description.json', 'participants.json',
 # fill-in templates)
 FILL_KEY = 'fill'
 LOCK_FILL_KEY = 'fill'
+FILL_INDEX = '_fill.json'   # in the templates folder (shipped)
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
               'fill_from', 'fill_select', 'manual', 'common', 'note',
-              'previous', FILL_KEY}
+              'previous', 'drop', FILL_KEY}
 # keys that drive a conversion (meaningless, hence rejected, if manual
 # or common)
 CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'common', 'note',
@@ -117,6 +125,7 @@ def template_sidecars(dataset, root=ROOT):
     return sorted(
         p.relative_to(tpl).as_posix() for p in tpl.rglob('*.json')
         if p.name not in NON_SIDECARS and 'phenotype' not in p.parts
+        and not p.name.startswith('_')
     )
 
 
@@ -163,6 +172,11 @@ def load_table(dataset, root=ROOT):
             if not isinstance(e.get(key, {}), dict):
                 raise TableError(f'{path}: {e["output"]}: {key} must be a '
                                  'table')
+        drop = e.get('drop', [])
+        if not (isinstance(drop, list)
+                and all(isinstance(k, str) for k in drop)):
+            raise TableError(f'{path}: {e["output"]}: drop must be a list '
+                             'of keys')
     converted = {e['output'] for e in entries
                  if not e.get('manual') and 'common' not in e}
     for e in entries:
@@ -447,6 +461,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 continue
             sidecar = {**filled, **e.get('defaults', {}), **sidecar,
                        **e.get('assigns', {})}
+            for key in e.get('drop', []):
+                sidecar.pop(key, None)
             entry = {'printout': e['printout'], 'sha256': sha256(printout)}
             if 'select' in e:
                 entry['select'] = str(e['select'])
@@ -458,6 +474,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 entry['fill_sha256'] = sha256(fill_from)
                 if 'fill_select' in e:
                     entry['fill_select'] = str(e['fill_select'])
+            if 'drop' in e:
+                entry['drop'] = list(e['drop'])
             write(e, sidecar, entry, version)
 
     for e in entries:
@@ -489,6 +507,15 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
 
+    # fill-in index, next to the templates (from the whole table)
+    index_path = tpl / FILL_INDEX
+    fills = sorted(e['output'] for e in entries if e.get(FILL_KEY))
+    index_text = dumps({FILL_KEY: fills}) if fills else None
+    old_index = (index_path.read_text(encoding="utf-8")
+                 if index_path.exists() else None)
+    if old_index != index_text:
+        dirty.append(FILL_INDEX)
+
     md = render_report(dataset, [
         (e['output'], *report[e['output']]) for e in entries], baseline)
     print(md, file=out)
@@ -498,6 +525,10 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         return 1 if (dirty or failures) else 0
     lock_path.write_text(lock_text, encoding="utf-8", newline="\n")
     report_path.write_text(md, encoding="utf-8", newline="\n")
+    if index_text is not None:
+        index_path.write_text(index_text, encoding="utf-8", newline="\n")
+    elif index_path.exists():
+        index_path.unlink()
     return 1 if failures else 0
 
 

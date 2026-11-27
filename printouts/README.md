@@ -96,8 +96,13 @@ protocol2bids does not read; it links one Siemens printout per scan, which
 are used instead. Its real-time neurofeedback printouts (`enhanced/MPRAGE.pdf`,
 `FieldMap.pdf`, `Mask.pdf`, `r-fMRI.pdf`, `RTfMRI.pdf`, `MSIT.pdf`,
 `MoralDilemma.pdf`) are not stored: those scans are not in
-`RocklandSample/RawDataBIDSLatest`. NKI-RS `T2w`, `FLAIR`, `task-pCASL_bold`
-and the `acq-*RR` reruns have no printout, hence no template. LEMON's
+`RocklandSample/RawDataBIDSLatest`. NKI-RS `T2w`, `FLAIR` and
+`task-pCASL_bold` have no printout, hence no template. The `acq-*RR`
+reruns are all bold scans (`task-*_acq-{645,1400,CAP}RR_bold`, 20 of the
+24756 NIfTI files of the bucket, full listing of 2026-11-27): no template
+applies to them, as their `acq` labels differ from the templates'
+(`T1w.json` and `dwi.json` only apply to T1w and dwi files, none of which
+has an `acq` entity). LEMON's
 `4_MRI_Sequences_Table_LEMON.pdf` is a summary table that protocol2bids does
 not read: it is kept for documentation, unused.
 
@@ -233,14 +238,32 @@ fill = true                       # fill-in template (see below)
 
 `fill = true` marks a fill-in template: at roast time its keys fill those
 missing from the sidecars hosted with the data and never override them.
-It does not change the conversion; `sidecars.lock.json` records it as
-`"fill": true`. The fill-in hook and its final convention (template
-location, flag or naming) belong to the hosted-BIDS placement work
-(step 2b-iii); both names are single constants of `make_sidecars.py`
-(`FILL_KEY`, `LOCK_FILL_KEY`). Until that hook lands, the INDI engine
+It does not change the conversion. `sidecars.lock.json` records it as
+`"fill": true`, and `make_sidecars.py` writes the list of fill-in
+templates to `_fill.json` next to them (`{"fill": ["T1w.json", ...]}`,
+checked by `--check`), which ships with the package (the lock does not):
+this is the **fill marker** the engine reads. The fill-in hook and its
+final convention (template location, flag or naming) belong to the
+hosted-BIDS placement work (step 2b-iii); the names are single constants
+of `make_sidecars.py` (`FILL_KEY`, `LOCK_FILL_KEY`, `FILL_INDEX`) and of
+`INDI/engine.py` (`FILL_INDEX`). Until that hook lands, the INDI engine
 mirrors `templates/<Project.name>/*` at the dataset root, where BIDS
-inheritance already lets the hosted, lower-level sidecars win (no INDI
-project above hosts a top-level sidecar). INDI outputs are named as the
+inheritance lets the hosted, lower-level sidecars win, and a bucket file
+at the same path as a fill-in template is kept (the template is skipped,
+with a warning; non-fill templates still override, as before).
+
+`drop = [...]` removes keys from the converted sidecar (after `defaults`
+and `assigns`; recorded in the lock). It is used for keys that would be
+wrong when inherited: in MPI-LEMON `MP2RAGE.json`, `RepetitionTime`
+(`bids.repair` moves it to `RepetitionTimePreparation` in
+`*_MP2RAGE.json`, which the printout already gives), in
+`acq-GEfmap_phasediff.json` `EchoTime` (the list of both echoes: a
+phasediff has `EchoTime1`/`EchoTime2`; the hosted one has no `EchoTime`,
+and `bids.repair` reads one as the second echo), in
+`acq-mp2rage_{T1w,T1map}.json` `ImageType` (the printout's
+ORIGINAL/PRIMARY; these images are derived by the scanner), and in NKI-RS
+`T1w.json` `SliceEncodingDirection` (see "Voxel axes" below). No other
+template has a key that `bids.repair` renames or removes. INDI outputs are named as the
 local (remapped) BIDS files, without `sub`/`ses`/`run` entities, and bold
 templates get `TaskName` (from the file name) as a `defaults`. Printouts
 byte-identical to another dataset's are used by reference
@@ -341,6 +364,29 @@ or `NKI_2` folder). Headers come from the protocol2bids corpus
 | `NKI-RS/nii/checker_645.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-CHECKERBOARD_acq-645_bold.nii.gz` |
 | `NKI-RS/nii/checker_1400.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-CHECKERBOARD_acq-1400_bold.nii.gz` |
 | `NKI-RS/nii/breathhold_1400.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-BREATHHOLD_acq-1400_bold.nii.gz` |
+
+## Voxel axes of the INDI templates
+
+`PhaseEncodingDirection`, `SliceEncodingDirection` and the order of
+`SliceTiming` refer to voxel axes, mapped by protocol2bids from ONE NIfTI
+header, while a top-level template applies to every subject and session.
+For each INDI template with such keys, the headers of 10 files of the
+bucket (evenly spaced in the sorted listing, so across subjects and
+sessions; first 64 KiB, `fetch_nii_headers.fetch_header`) were compared
+with the reference header (qform/sform axis codes, nibabel), on
+2026-11-27:
+
+| template | files in the bucket | sessions sampled | axis codes | result |
+|---|---|---|---|---|
+| SLIM `T1w`, `dwi`, `task-rest_bold` | 1048, 1029, 1044 | ses-1, 2, 3 | LAS (q and s), 10/10 | kept |
+| SALD `T1w` | 494 | - | RAS (sform; no qform), 10/10 | kept |
+| SALD `task-rest_bold` | 493 | - | LAS, 10/10 | kept |
+| NKI-RS `dwi`, `task-rest_acq-{645,1400,CAP}_bold`, `task-CHECKERBOARD_acq-{645,1400}_bold`, `task-BREATHHOLD_acq-1400_bold` | 2352 to 2487 each | 3 to 5 of BAS1-3, FLU1-3, TRT | LAS, 10/10 each | kept |
+| NKI-RS `T1w` | 2455 | BAS1, BAS2, FLU1, FLU2, TRT | LAS 9/10, RAS 1/10 (`sub-A00089407/ses-FLU1`) | `SliceEncodingDirection` dropped |
+
+MPI-LEMON templates have none of these keys (summary printouts). A sample
+does not prove that every file agrees; a disagreeing hosted sidecar
+still wins (fill-in).
 
 ## Regenerating
 

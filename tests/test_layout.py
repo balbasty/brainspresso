@@ -1,4 +1,5 @@
 """Dataset layouts (`bids.layout`) and the state they record."""
+import hashlib
 import json
 from pathlib import Path
 
@@ -515,8 +516,10 @@ def test_harvest_places_files(tmp_path, kind):
     manifest = read_manifest(lay.state)
     assert manifest["layout"] == kind
     raw = "" if kind == "flat" else "rawbids/"
+    # generated files: hash of the file as written (refreshed if unedited)
     assert manifest["files"][f"{raw}sub-01/anat/sub-01_T1w.json"] == {
         "origin": "generated", "size": 2,
+        "sha256": hashlib.sha256(b"{}").hexdigest(),
     }
     assert "sourcedata/notes.txt" in manifest["files"]
     assert "derivatives/fs/sub-01/anat/sub-01_dseg.json" in manifest["files"]

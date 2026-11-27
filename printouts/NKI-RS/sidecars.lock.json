@@ -9,6 +9,9 @@
             "sha256": "d45f725cded2df561265dded9386299518ca9e7a401ae54a442bc0988d157307",
             "nii": "nii/T1w.nii",
             "nii_sha256": "1f7aa7673dc9920e299973a922f99c617ed18b91039913f7ca4b45bbdd09f235",
+            "drop": [
+                "SliceEncodingDirection"
+            ],
             "protocol2bids": {
                 "version": "0.0.0",
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"

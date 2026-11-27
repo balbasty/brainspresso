@@ -10,6 +10,7 @@
 #             map anatomical directions to voxel axes
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
+#   drop      (optional) list of keys removed from the converted sidecar
 #   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
 #             roast only fills the keys they lack with this template and
 #             never overrides theirs (see printouts/README.md)
@@ -48,7 +49,11 @@ output = "acq-GEfmap_phasediff.json"
 printout = "1_LEMON_resting_130904.pdf"
 select = "gre_field_mapping"
 nii = "nii/phasediff.nii"
+drop = ["EchoTime"]
 fill = true
+note = """EchoTime (a list of both echoes) dropped: a phasediff sidecar has
+EchoTime1/EchoTime2 (the hosted one has no EchoTime, so the list would
+be filled in; bids.repair reads a phasediff EchoTime as the second echo)"""
 
 [[sidecar]]
 output = "acq-SEfmapBOLDpre_dir-AP_epi.json"
@@ -87,24 +92,32 @@ output = "MP2RAGE.json"
 printout = "2_LEMON_anat_130904.pdf"
 select = "mp2rage_p3_602B"
 nii = "nii/inv-1_MP2RAGE.nii"
+drop = ["RepetitionTime"]
 fill = true
-note = "inv-1 and inv-2 (the bucket's inv-*_mp2rage.json)"
+note = """inv-1 and inv-2 (the bucket's inv-*_mp2rage.json). RepetitionTime
+dropped: bids.repair moves it to RepetitionTimePreparation in
+*_MP2RAGE.json, which the printout already gives (5 s)"""
 
 [[sidecar]]
 output = "acq-mp2rage_T1w.json"
 printout = "2_LEMON_anat_130904.pdf"
 select = "mp2rage_p3_602B"
 nii = "nii/mp2rage_T1w.nii"
+drop = ["ImageType"]
 fill = true
-note = "UNI image of the MP2RAGE (no sidecar in the bucket)"
+note = """UNI image of the MP2RAGE (no sidecar in the bucket). ImageType
+dropped: the printout's ORIGINAL/PRIMARY is that of the inversions, the
+UNI image is derived by the scanner"""
 
 [[sidecar]]
 output = "acq-mp2rage_T1map.json"
 printout = "2_LEMON_anat_130904.pdf"
 select = "mp2rage_p3_602B"
 nii = "nii/mp2rage_T1map.nii"
+drop = ["ImageType"]
 fill = true
-note = "T1 map of the MP2RAGE (no sidecar in the bucket)"
+note = """T1 map of the MP2RAGE (no sidecar in the bucket). ImageType
+dropped: the T1 map is derived by the scanner"""
 
 [[sidecar]]
 output = "T2w.json"

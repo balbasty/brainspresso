@@ -12,7 +12,7 @@ unchanged
 
 protocol2bids 0.0.0 (commit 1987062); baseline `HEAD`
 
-unchanged
+- removed `EchoTime`: [0.00519, 0.0076500000000000005]
 
 ## acq-SEfmapBOLDpre_dir-AP_epi.json
 
@@ -42,19 +42,19 @@ unchanged
 
 protocol2bids 0.0.0 (commit 1987062); baseline `HEAD`
 
-unchanged
+- removed `RepetitionTime`: 5.0
 
 ## acq-mp2rage_T1w.json
 
 protocol2bids 0.0.0 (commit 1987062); baseline `HEAD`
 
-unchanged
+- removed `ImageType`: ["ORIGINAL", "PRIMARY"]
 
 ## acq-mp2rage_T1map.json
 
 protocol2bids 0.0.0 (commit 1987062); baseline `HEAD`
 
-unchanged
+- removed `ImageType`: ["ORIGINAL", "PRIMARY"]
 
 ## T2w.json
 

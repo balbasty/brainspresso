@@ -10,6 +10,7 @@
 #             map anatomical directions to voxel axes
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
+#   drop      (optional) list of keys removed from the converted sidecar
 #   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
 #             roast only fills the keys they lack with this template and
 #             never overrides theirs (see printouts/README.md)
@@ -26,12 +27,14 @@ output = "T1w.json"
 printout = "anat.pdf"
 nii = "nii/T1w.nii"
 fill = true
+note = "axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"
 
 [[sidecar]]
 output = "dwi.json"
 printout = "dti.pdf"
 nii = "nii/dwi.nii"
 fill = true
+note = "axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"
 
 [[sidecar]]
 output = "task-rest_bold.json"
@@ -39,4 +42,5 @@ printout = "rest.pdf"
 nii = "nii/bold.nii"
 defaults = { TaskName = "rest" }
 fill = true
-note = "TaskName from the BIDS file name (not in the printout)"
+note = """TaskName from the BIDS file name (not in the printout).
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""

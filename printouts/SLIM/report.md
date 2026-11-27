@@ -18,46 +18,4 @@ unchanged
 
 protocol2bids 0.0.0 (commit 1987062); baseline `HEAD`
 
-- added `Manufacturer`: "Siemens"
-- added `ManufacturersModelName`: "TrioTim"
-- added `SoftwareVersions`: "syngo MR B17"
-- added `MagneticFieldStrength`: 3.0
-- added `ReceiveCoilActiveElements`: "HEA;HEP"
-- added `MatrixCoilMode`: "Triple"
-- added `CoilCombinationMethod`: "rSOS"
-- added `PulseSequenceType`: "Gradient Echo EPI"
-- added `ScanningSequence`: ["EP"]
-- added `SequenceVariant`: ["SK"]
-- added `ScanOptions`: ["FS"]
-- added `SequenceName`: "ep2d_pace"
-- added `PulseSequenceDetails`: "%SiemensSeq%\\ep2d_pace"
-- added `MRAcquisitionType`: "2D"
-- added `MTState`: false
-- added `B0ShimmingTechnique`: "Standard"
-- added `NumberShots`: 1
-- added `PhaseEncodingDirection`: "j-"
-- added `EffectiveEchoSpacing`: 0.00051
-- added `TotalReadoutTime`: 0.032130000000000006
-- added `EchoTime`: 0.03
-- added `SliceTiming`: [1.0, 0.0, 1.0625, 0.0625, 1.125, 0.125, 1.1875, 0.1875, 1.25, 0.25, 1.3125, 0.3125, 1.375, 0.375, 1.4375, 0.4375, 1.5, 0.5, 1.5625, 0.5625, 1.625, 0.625, 1.6875, 0.6875, 1.75, 0.75, 1.8125, 0.8125, 1.875, 0.875, 1.9375, 0.9375]
-- added `SliceEncodingDirection`: "k-"
-- added `DwellTime`: 3.5000000000000004e-06
-- added `FlipAngle`: 90.0
-- added `Modality`: "MR"
-- added `ProtocolName`: "rest"
-- added `SeriesDescription`: "rest"
-- added `ImageType`: ["ORIGINAL", "PRIMARY"]
-- added `BaseResolution`: 64
-- added `AcquisitionMatrixPE`: 64
-- added `ReconMatrixPE`: 64
-- added `PercentPhaseFOV`: 100.0
-- added `PercentSampling`: 100.0
-- added `PhaseResolution`: 1.0
-- added `PhaseEncodingSteps`: 64
-- added `EchoTrainLength`: 64
-- added `PixelBandwidth`: 2232.0
-- added `BandwidthPerPixelPhaseEncode`: 30.637254901960784
-- added `DerivedVendorReportedEchoSpacing`: 0.00051
-- added `SliceThickness`: 3.0
-- added `SpacingBetweenSlices`: 3.99
-- added `NumberOfAverages`: 1
+unchanged

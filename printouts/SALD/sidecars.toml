@@ -10,6 +10,7 @@
 #             map anatomical directions to voxel axes
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
+#   drop      (optional) list of keys removed from the converted sidecar
 #   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
 #             roast only fills the keys they lack with this template and
 #             never overrides theirs (see printouts/README.md)
@@ -27,7 +28,8 @@ output = "T1w.json"
 printout = "../SLIM/anat.pdf"
 nii = "nii/T1w.nii"
 fill = true
-note = "NITRC retro/SALD/swu_slim_scan_params_anat.pdf == SLIM anat.pdf"
+note = """NITRC retro/SALD/swu_slim_scan_params_anat.pdf == SLIM anat.pdf.
+axes: 10 sampled headers (across subjects and sessions) agree, sform RAS (no qform) (see printouts/README.md)"""
 
 [[sidecar]]
 output = "task-rest_bold.json"
@@ -35,4 +37,5 @@ printout = "../SLIM/rest.pdf"
 nii = "nii/bold.nii"
 defaults = { TaskName = "rest" }
 fill = true
-note = "NITRC retro/SALD/swu_slim_scan_params_rest.pdf == SLIM rest.pdf"
+note = """NITRC retro/SALD/swu_slim_scan_params_rest.pdf == SLIM rest.pdf.
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""

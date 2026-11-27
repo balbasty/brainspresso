@@ -25,9 +25,5 @@
     "RepetitionTimePreparation": 5.0,
     "Modality": "MR",
     "ProtocolName": "mp2rage_p3_602B",
-    "SeriesDescription": "mp2rage_p3_602B",
-    "ImageType": [
-        "ORIGINAL",
-        "PRIMARY"
-    ]
+    "SeriesDescription": "mp2rage_p3_602B"
 }

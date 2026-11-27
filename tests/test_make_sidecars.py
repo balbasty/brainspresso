@@ -493,7 +493,16 @@ def test_fill_flag(tmp_path, monkeypatch):
     assert lock["sidecars"]["S/T1w.json"][ms.LOCK_FILL_KEY] is True
     assert lock["sidecars"]["S/bold.json"] == {
         "manual": True, ms.LOCK_FILL_KEY: True}
+    # the fill marker shipped next to the templates
+    index = root / ms.TEMPLATES["ABIDE1"] / ms.FILL_INDEX
+    assert json.loads(index.read_text()) == {
+        ms.FILL_KEY: ["S/T1w.json", "S/bold.json"]}
+    assert ms.uncovered("ABIDE1", ms.load_table("ABIDE1", root=root),
+                        root=root) == []
     assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 0
+    index.write_text("{}")
+    assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 1
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
 
     # the lock follows the table, even for entries outside --only
     toml.write_text(plain)
@@ -501,11 +510,68 @@ def test_fill_flag(tmp_path, monkeypatch):
                   only="S/bold*") == 0
     lock = json.loads((pdir / "sidecars.lock.json").read_text())
     assert ms.LOCK_FILL_KEY not in lock["sidecars"]["S/T1w.json"]
+    assert not index.exists()       # no fill-in template left
 
     toml.write_text(plain.replace('select = "1"\n',
                                   'select = "1"\nfill = "yes"\n'))
     with pytest.raises(ms.TableError, match=ms.FILL_KEY):
         ms.load_table("ABIDE1", root=root)
+
+
+def test_drop(tmp_path, monkeypatch):
+    """`drop` removes keys from the converted sidecar (also `assigns`),
+    and is recorded in the lock; manual entries take none."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    toml = pdir / "sidecars.toml"
+    plain = toml.read_text()
+    toml.write_text(plain.replace(
+        'select = "1"\n',
+        'select = "1"\ndrop = ["RepetitionTime", "Manufacturer", "X"]\n'))
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002,
+                                         "RepetitionTime": 5.0}})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    got = json.loads(
+        (root / ms.TEMPLATES["ABIDE1"] / "S/T1w.json").read_text())
+    assert got == {"MagneticFieldStrength": 3, "EchoTime": 0.002}
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["S/T1w.json"]["drop"] == [
+        "RepetitionTime", "Manufacturer", "X"]
+    for bad in ('"RepetitionTime"', "[1]"):
+        toml.write_text(plain.replace('select = "1"\n',
+                                      f'select = "1"\ndrop = {bad}\n'))
+        with pytest.raises(ms.TableError, match="drop"):
+            ms.load_table("ABIDE1", root=root)
+    toml.write_text(plain.replace('manual = true\n',
+                                  'manual = true\ndrop = ["A"]\n'))
+    with pytest.raises(ms.TableError, match="drop"):
+        ms.load_table("ABIDE1", root=root)
+
+
+def test_lemon_mp2rage_keeps_preparation_only():
+    """`bids.repair` moves `RepetitionTime` to `RepetitionTimePreparation`
+    in `*_MP2RAGE.json`: the inherited template must not bring it back."""
+    tpl = ms.template_dir("MPI-LEMON")
+    mp2rage = json.loads((tpl / "MP2RAGE.json").read_text(encoding="utf-8"))
+    assert "RepetitionTime" not in mp2rage
+    assert mp2rage["RepetitionTimePreparation"] == 5.0
+    phasediff = json.loads((tpl / "acq-GEfmap_phasediff.json")
+                           .read_text(encoding="utf-8"))
+    assert "EchoTime" not in phasediff and "EchoTime2" in phasediff
+    for name in ("acq-mp2rage_T1w.json", "acq-mp2rage_T1map.json"):
+        assert "ImageType" not in json.loads(
+            (tpl / name).read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("dataset", INDI)
+def test_fill_index_matches_table(dataset):
+    """The fill marker the INDI engine reads (it ships; the lock does not)."""
+    from brainspresso.datasets.INDI import engine  # noqa: PLC0415  test only
+    assert engine.FILL_INDEX == ms.FILL_INDEX
+    index = ms.template_dir(dataset) / ms.FILL_INDEX
+    assert json.loads(index.read_text(encoding="utf-8")) == {
+        ms.FILL_KEY: sorted(e["output"] for e in ms.load_table(dataset)
+                            if e.get(ms.FILL_KEY))}
 
 
 def test_diff():

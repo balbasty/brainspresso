@@ -22,6 +22,9 @@
             "select": "gre_field_mapping",
             "nii": "nii/phasediff.nii",
             "nii_sha256": "419244f541adb7b38877b42018b75ce3d0c3e2d0b4d80d91b0f1392b9f74b998",
+            "drop": [
+                "EchoTime"
+            ],
             "protocol2bids": {
                 "version": "0.0.0",
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
@@ -82,6 +85,9 @@
             "select": "mp2rage_p3_602B",
             "nii": "nii/inv-1_MP2RAGE.nii",
             "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "RepetitionTime"
+            ],
             "protocol2bids": {
                 "version": "0.0.0",
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
@@ -94,6 +100,9 @@
             "select": "mp2rage_p3_602B",
             "nii": "nii/mp2rage_T1w.nii",
             "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "ImageType"
+            ],
             "protocol2bids": {
                 "version": "0.0.0",
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
@@ -106,6 +115,9 @@
             "select": "mp2rage_p3_602B",
             "nii": "nii/mp2rage_T1map.nii",
             "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "ImageType"
+            ],
             "protocol2bids": {
                 "version": "0.0.0",
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"

@@ -462,7 +462,7 @@ def test_shared_table_changes(tmp_path, caplog):
     src = root / "sourcedata"
     src.mkdir(parents=True)
     (src / "phenotypic_SBL.csv").write_bytes(
-        "SUB_ID,SITE_ID,FIQ,MEDICATION_NAME\n51556,SBL,-9999.00,Caf\xe9\n"
+        "SUB_ID,SITE_ID,FIQ,MEDICATION_NAME\n51556,SBL,-9999.00,Fran\xe7ais\n"
         .encode("cp1252"))
     with caplog.at_level(logging.INFO):
         report = roast(root, keys={"meta"}, display=False)
@@ -470,5 +470,5 @@ def test_shared_table_changes(tmp_path, caplog):
     rows = [line.split("\t") for line in
             original(root).read_text(encoding="utf-8").splitlines()]
     row = dict(zip(rows[0], rows[1]))
-    assert (row["fiq"], row["med_name"]) == ("n/a", "Caf\xe9")
+    assert (row["fiq"], row["med_name"]) == ("n/a", "Fran\xe7ais")
     assert "not UTF-8, read as cp1252" in caplog.text

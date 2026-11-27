@@ -234,9 +234,19 @@ class KeySpec:
         Returns
         -------
         set[str]
-            The names themselves without a nested-dict hierarchy
+            Through a nested-dict or `KeyAliases` hierarchy (names that
+            are not keys of a `KeyAliases` are kept); the names
+            themselves without a hierarchy
         """
         names = _names(names)
+        if hasattr(self.tree, "expand"):
+            out = set()
+            for name in names:
+                try:
+                    out |= self.tree.expand([name])
+                except UsageError:
+                    out.add(name)
+            return out
         if not isinstance(self.tree, Mapping):
             return set(names)
         every = get_leaves(self.tree)

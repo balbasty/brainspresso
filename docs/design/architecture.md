@@ -612,6 +612,11 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   OASIS-II parts are read the same way (one shard per part, task id
   `roast/parts/part<N>`, inputs: the part and the `T1w.json` template;
   2 decompressions per part).
+* Subjects that are folders of small files (UNC-Wisconsin, Bullitt)
+  are read by one shard per subject (`subject_shards`, task id
+  `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
+  subject that its actions read for the wanted keys, and the sidecar
+  templates they copy; `config`: the keys named by `--keys`).
 * Several gz archives (ABIDE-I and ABIDE-II, step 5): one shard per gz
   archive (NITRC `<Site>.tgz`, `ABIDEII-<SITE>_<n>.tar.gz`, id
   `roast/raw/<name>`), or per folder that stands for
@@ -619,7 +624,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   `inputs`), or per subject where each subject's scans are small
   archives of their own (XNAT `<label>/<scan>.tar.gz`); members are
   read lazily in archive order and each selected one is extracted when
-  it is reached. An action that must read a member twice (the NIfTI
+  it is reached (ABIDE-II, whose names depend on the other scans of a
+  session, spools the selected images of the session being read and
+  moves them into place once it ends: still one decompression). An action that must read a member twice (the NIfTI
   header of a bold image whose template lacks `RepetitionTime`) comes
   after the extraction and reads the written file, or the member it is
   on when the image is not written (`--sidecars only`): a backward seek
@@ -1384,7 +1391,7 @@ units take the run lock (§7, "What the ports must and must not assume").
 | COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
 | OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
 | OASIS-II | declared (`parts` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--parts`); sessions |
-| Bullitt | declared | override, legacy code; own `keys_for("roast")` | |
+| Bullitt | declared (token) | declared (source roaster, step 5) | width 3; `roast_options` (scans named by `--keys`); own `keys_for("roast")` (roast keys without `dwi`, `phantoms`) |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
@@ -2189,7 +2196,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with OASIS-II: 1940 passed, 2 skipped, no xfail left) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2067 passed, 2 skipped, no xfail left) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2211,9 +2218,10 @@ Each step lands as commits on the refactor branch with its tests green.
   one negated `per-file-ignores` pattern in `pyproject.toml`
   (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
   and the ported modules and datasets, `datasets/indi/cobre/**`,
-  `datasets/oasis/i/**`, `datasets/oasis/ii/**` and
-  `datasets/indi/abide/**` (ABIDE-I, ABIDE-II and their shared helpers)
-  in step 5; two negated patterns would exempt every file). Extend it as datasets and
+  `datasets/oasis/i/**`, `datasets/oasis/ii/**`, `datasets/bullitt/**`
+  and `datasets/indi/abide/**` (ABIDE-I, ABIDE-II and their shared
+  helpers) in step 5; two negated patterns would exempt every file).
+  Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
   collection, with the modules shared by every dataset (`base.py`,
@@ -2311,7 +2319,7 @@ up as an XPASS failure once fixed (then drop the marker).
   xfails removed), which reads `ABIDEII-<SITE>_<n>.csv`, else
   `ABIDEII_Composite_Phenotypic.csv`. Also fixed there: every scan of a
   kind (`anat_1`, `anat_2`...) was written to one name (later ones lost:
-  now `run-<n>`); members of another depth, or of `U_MIA` (three `_`
+  now `run-<n>` on every one of them, decision below); members of another depth, or of `U_MIA` (three `_`
   parts), raised and the `except` of `make_raw` dropped the rest of the
   tarball; the archive was listed (`getmembers`) before being read, a
   second decompression; KKI had no `T1w.json`/`bold.json` template
@@ -2325,7 +2333,26 @@ up as an XPASS failure once fixed (then drop the marker).
   file without one of the columns raised (`list.index`), and each CSV
   file wrote its header row again in the middle of the table; `-9999`
   only, not `-9999.0`, was `n/a`, and a cell with a line break made
-  the table fail.
+  the table fail. Review round 1 of #37: SU and U_MIA have no
+  templates (no protocol printout): every image of theirs was a `Fail`,
+  so a full roast was always "partial" and both tarballs were read
+  again on every run; now their images are written without sidecars,
+  with one warning per shard (`sites.NO_TEMPLATES`; a missing template
+  of another site stays a `Fail`). Also fixed in that round (shared
+  with ABIDE-I): a `"` in a cell failed the whole table
+  (`_csv.Error: need to escape`; `utils.io.write_tsv` and
+  `bids.tables.read_tsv`/`write_tsv` now agree: BIDS tables are not
+  quoted, a `"` is part of its field); an unreadable or invalid
+  template override was reported as an unreadable tarball, or escaped
+  the shard, now a `Fail` of its sidecar.
+* Decision (owner, review of #37): ABIDE-II runs are written only when
+  needed. Per subject and session, several scans of a kind (`rest_1`,
+  `rest_2`) all carry `run-<n>` (`<n>` the number of the scan folder);
+  a single scan of a kind has no run entity. The names are known once
+  a session has been read, so its selected images are spooled
+  (`.brainspresso/tmp/`) until the next session starts, then moved
+  into place (no second decompression). Sessions whose folders come
+  apart in a tarball: the later folders are skipped with a warning.
 * ~~ABIDE-I nitrc: phenotype glob misses `phenotypic_MAX_MUN.csv`.~~
   (fixed in its port, step 5)
 * ~~`participant_id` without `sub-` prefix: ABIDE-I, ABIDE-II,
@@ -2367,6 +2394,18 @@ up as an XPASS failure once fixed (then drop the marker).
   roast of its part; participants were read from visit 1 only (now the
   first visit); `sessions.json`: `Unit` for `Units`, `delay` described
   as the time *to* the first visit.
+* ~~Bullitt (`bidsifier.py`, no characterization test before step
+  5): `--sidecars only` wrote the derivative images
+  (`desc-brain_T1w.nii.gz`, `.tre`) and `--sidecars no` the sidecar of
+  the skull-stripped image; the derivative dataset files (`README`,
+  `dataset_description.json`, `.bidsignore`) were only written with
+  the `meta` key, so `--keys skullstripped vessels` wrote a derivative
+  dataset without a description; a missing `sourcedata/` was a
+  warning; `participants.tsv` was copied whole (109 rows) whatever was
+  roasted; the per-modality error counters of `fixstatus` were one
+  global count shown under each modality.~~ Fixed in the port of
+  Bullitt (step 5, `datasets/bullitt/roaster.py`; strict xfails of
+  the characterization tests removed).
 * ~~ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
   `OAS3{id:05d}_MR_*`, so `fs`/`fs-all` roasts find nothing; `fixstatus`
@@ -2818,7 +2857,35 @@ up as an XPASS failure once fixed (then drop the marker).
   of another subject skipped, the visit used (with a warning) when the
   MRI ID cannot be parsed; a missing openpyxl is an error with the
   install hint; `--sessions` for roast (`Dataset.sessions`).
-* r41: step 5, ABIDE-II ported to the roast engine
+* r41: step 5, Bullitt on the roast engine. Characterization tests of
+  the legacy roaster first (`tests/test_roast_bullitt.py`, a synthetic
+  Girder download, both layouts; its bugs as strict xfails, §8), then
+  the port: `datasets/bullitt/roaster.py` declared on the Girder
+  source (`bidsifier.py` deleted, no `roast` override), one shard per
+  subject folder, a Python `roast()` (subjects through
+  `subject_labels`, `keys` a name or a list). Roast keys are a
+  `KeyAliases` tree (groups `raw`, `anat`, `T1w`, `derivatives`;
+  `--keys` default unchanged, the seven leaves), `KeySpec.leaves`
+  expands `KeyAliases` trees so that such a default still means all.
+  Missing scans are errors only when `--keys` names their key or a
+  group above it (`Dataset.roast_options`: the source distributes
+  scans incompletely, e.g. no MPRAGE for many subjects); no subject
+  folder is an error; a missing sidecar template only when sidecars
+  are written. `participants.tsv` (the template) goes through
+  `.brainspresso/orig/` and trim (bad rows skipped with a warning,
+  empty cells `n/a`); the derivative dataset files are written with
+  any derivative key. DTI is still not converted (no gradient table).
+  Review round 1 of #36: the keys named by `--keys` are read from
+  `--keys` as given (`KeySpec.effective` turns keys that cover every
+  choice into "all"; only no `--keys` or its CLI default name nothing)
+  and are the `config` of the subject shards, so that a run naming
+  more keys does not skip them; shard inputs are the files the actions
+  read for the wanted keys (not DTI); an empty, headless or non-UTF-8
+  `participants.tsv` is an error, read as `utf-8-sig`, header cells
+  stripped. `KeySpec.leaves` checked against every dataset whose roast
+  keys are a `KeyAliases` (ABIDE-I, Bullitt, COBRE, OASIS-I, OASIS-II,
+  UNC-Wisconsin): `effective` is unchanged except for Bullitt.
+* r42: step 5, ABIDE-II ported to the roast engine
   (`datasets/indi/abide/ii/roaster.py`: `roast_nitrc`, the roaster of
   the nitrc and s3 sources, both of which put NITRC tarballs in
   `sourcedata/`; `sites.py`, `tables.py`). What ABIDE-I and ABIDE-II
@@ -2826,22 +2893,36 @@ up as an XPASS failure once fixed (then drop the marker).
   name without case or whitespace, alternative names, CSV files in
   UTF-8 or Windows-1252, cells with line breaks collapsed) and
   `datasets/indi/abide/scans.py` (`TemplateError`, `ARCHIVE_ERRORS`,
-  `member_parts`, `template_config`, `scan_actions`, `HeaderSidecar`,
-  `roast_meta`); ABIDE-I imports them (no behaviour change there). The
+  `member_parts`, `template_config`, `scan_actions`, `read_template`,
+  `HeaderSidecar`, `roast_meta`); ABIDE-I imports them. Small changes
+  for ABIDE-I: `-9999.00` is `n/a` too; a CSV file that is not UTF-8 is
+  read as Windows-1252 (logged), not refused; of two columns with the
+  same name the first one is read; row numbers in warnings count rows,
+  not physical lines (a cell with a line break); a subject listed more
+  than once is one warning per file; a mapped column that no file has
+  is warned about once; quotes are kept in cells. The
   legacy `Bidsifier`, the `roast` override and ABIDE-II's
   `legacy_subjects`/`legacy_keys`/`numbers` are gone: subjects are
-  labels of width 5, no dataset uses `legacy_subjects` any more (the
-  CLI tests of #31 that used ABIDE-II for them were dropped, the
-  `legacy_keys` one moved to Bullitt). One shard per tarball, members
+  labels of width 5; after this port and Bullitt's (#36) no dataset
+  uses `legacy_subjects`, `numbers` or `legacy_keys` (their CLI tests,
+  moved here by #31, are dropped; the methods are left for a later
+  clean-up). One shard per tarball, members
   read lazily in archive order (no listing), the templates of the
   tarball's site and sample in `Shard.config`, a corrupt tarball a
   `Fail` of its shard; member names normalised (`./`, `/`, leading
   folders; `..` skipped), the site from the member's folder, else from
   the tarball. Scans: `anat_<n>`, `rest_<n>`, `dti_<n>` (and `dwi_<n>`)
-  of `session_<s>` are `ses-<ss>` and, for n > 1, `run-<n>` (UCLA
-  `anat_<n>` with n > 1, maybe the bucket's `acq-hires`, has no
-  template and is skipped with a warning); gradient tables `.bval(s)`,
-  `.bvec(s)`; other folders skipped with one warning per tarball.
+  of `session_<s>` are `ses-<ss>`, with `run-<n>` only when a session
+  has several scans of a kind (decision, §8; a session's images are
+  spooled until its names are known); UCLA `anat_<n>` with n > 1,
+  maybe the bucket's `acq-hires`, has no template and is skipped with
+  a warning; gradient tables `.bval(s)`, `.bvec(s)` (any case); in a
+  scan folder, hidden files (`._*`) are skipped and the image named as
+  the folder's kind is used (else the only one; several: a warning);
+  other folders skipped with one warning per tarball. A tarball whose
+  name gives no site has the templates of every site in its
+  `Shard.config`. SU and U_MIA (no templates) are written without
+  sidecars, with one warning per shard.
   Templates `<SITE>/<sample>/`; KKI's `T1w.json`/`bold.json` are the
   `common` keys of its 8- and 32-channel templates (the tarballs do
   not tell the coil); bold templates without `RepetitionTime` (UCLA/2,
@@ -2850,9 +2931,19 @@ up as an XPASS failure once fixed (then drop the marker).
   `.brainspresso/orig/` and trim (`bids.tables.is_phenotype`:
   `trim_originals`, `trim_tables` and compost's `retrim_tables` trim
   phenotype tables that have a pristine copy, by `participant_id`;
-  ABIDE-I's, written directly, and hosted ones are left as they are);
-  `site`/`sample` from `SITE_ID` in any of its spellings
-  (`ABIDEII-NYU_2`, `ABIDE-II_NYU_2`, `ABIDE-I_PITT`); 20 empty
+  ABIDE-I's, written directly, are left as they are; the table of a
+  hosted harvest named `phenotype/<name>_sessions.tsv`, which
+  `trim_tables` used to empty, by session folders under `phenotype/`,
+  is trimmed by `participant_id`; the metadata roast of hosted datasets
+  is unchanged); `site`/`sample` from `SITE_ID` in any of its spellings
+  (`ABIDEII-NYU_2`, `ABIDE-II_NYU_2`, `ABIDE-I_PITT`; `OILH` is ONRC;
+  an unknown one warned once); the `SITE_ID`s of ABIDE-I are the
+  baselines of the longitudinal samples (sample `UCLALong`,
+  `UPSMLong`), so that ABIDE-II's own UCLA_1 is the only `UCLA1`; of
+  the rows of a subject listed twice in a file (`*_Long.csv`: baseline
+  and follow-up), that of the lowest `AGE_AT_SCAN` is kept (session
+  phenotypes not done); numeric `HANDEDNESS_CATEGORY` codes are `n/a`
+  (warned once: the legend of the legacy roaster gives none); 20 empty
   phenotype data dictionaries filled (column names only), README
   replaced (it was CoRR's). Known bugs fixed (§8) and the others found
   while porting. Not confirmed on the real data (NITRC login): the

@@ -40,7 +40,6 @@ from brainspresso.datasets.oasis.iii.dataset import OASIS3
 from brainspresso.datasets.openneuro.dataset import OpenNeuroDataset
 from brainspresso.datasets.options import (
     HarvestOptions,
-    KeyOptions,
     OptionGroup,
     option_group,
 )
@@ -520,22 +519,6 @@ def test_group_defaults_cover_all():
     assert bullitt.effective(bullitt.default) == (bullitt.default, ())
     assert bullitt.leaves(["raw"]) == {"flash", "mprage", "T2w", "angio",
                                        "dwi"}
-    # legacy roasts (Bullitt) get leaves, exclusions removed
-    args = Args.of(Bullitt(), "roast", keys=KeyOptions(
-        exclude_keys=("vessels", "angio")))
-    assert Bullitt().legacy_keys("roast", args) == {
-        "meta", "flash", "mprage", "T2w", "skullstripped"}
-
-    class Legacy(Dataset):
-        name = "legacy"
-        keys = KeySpec({"all": {"meta": {"pheno"},
-                                "raw": {"anat": {"T1w"}, "dwi": {"dti"},
-                                        "func": {"rest"}}}})
-
-    args = Args.of(Legacy(), "roast", keys=KeyOptions(
-        exclude_keys=("dti", "rest")))
-    assert Legacy().legacy_keys("roast", args) == {
-        "T1w", "anat", "pheno", "meta"}
 
 
 def test_abide1_fs_keys_are_siblings():

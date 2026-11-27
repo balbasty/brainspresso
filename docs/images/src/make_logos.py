@@ -251,63 +251,72 @@ def brainspresso_latte(themed=True, wobble=16, soft=1.0):
 
 
 # ------------------------------------------------------------------ site icons
-# Favicon versions: tight framing, heavier lines, fewer details, so that
-# they still read at 16-32 px.
-def brainspresso_icon(themed=True):
-    cx, top, bot, hw = 224, 168, 470, 178
-    body = (f'M{cx-hw} {top} H{cx+hw} V{top+70} '
-            f'C{cx+hw} {bot-50} {cx+118} {bot} {cx} {bot} '
-            f'C{cx-118} {bot} {cx-hw} {bot-50} {cx-hw} {top+70} Z')
-    steam = ''.join(
-        f'<path class="ink-s" stroke-width="30" stroke-linecap="round" '
-        f'd="M{x} 136 c-26 -26 26 -42 0 -70 c-12 -13 -6 -26 2 -34"/>'
-        for x in (cx - 62, cx + 62))
+# Glyph-style icons (one colour, solid shapes, a few knock-outs, as in
+# Font Awesome) that read at 16-32 px. Shapes are drawn white in a mask
+# and knock-outs black, so that gaps show whatever is behind the icon.
+def _glyph_svg(title, shapes, themed):
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
-  <title id="title">brainspresso</title>
-  {ATTR}
+  <title id="title">{title}</title>
   {style(themed=themed)}
-  {steam}
-  <circle class="ink-s" cx="{cx+hw+20}" cy="{top+108}" r="66" stroke-width="42"/>
-  <path class="ink" d="{body}"/>
-  <ellipse class="ink" cx="{cx}" cy="{top}" rx="{hw}" ry="34"/>
-  <ellipse class="crema" cx="{cx}" cy="{top+2}" rx="{hw-26}" ry="19"/>
-  {mark(cx - 6, top + 162, 196, "cream")}
+  <defs>
+    <mask id="glyph" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      {shapes}
+    </mask>
+  </defs>
+  <rect class="ink" width="512" height="512" mask="url(#glyph)"/>
 </svg>
 '''
+
+
+def brainspresso_icon(themed=True):
+    """A cappuccino cup seen from above, on its saucer."""
+    cx, cy = 236, 178           # centre of the rim
+    rx, ry = 196, 98
+    bot = cy + 214
+    bowl = (f'M{cx-rx} {cy} C{cx-rx} {cy+138} {cx-118} {bot} {cx} {bot} '
+            f'C{cx+118} {bot} {cx+rx} {cy+138} {cx+rx} {cy} Z')
+    hx, hy = cx + rx + 6, cy + 74
+    W, K = 'fill="#fff"', 'fill="#000"'
+    shapes = f'''<ellipse cx="{cx+10}" cy="{bot-38}" rx="236" ry="80" {W}/>
+      <path d="{bowl}" {K} stroke="#000" stroke-width="40" stroke-linejoin="round"/>
+      <ellipse cx="{hx}" cy="{hy}" rx="50" ry="40" fill="none" stroke="#000" stroke-width="72"/>
+      <ellipse cx="{hx}" cy="{hy}" rx="50" ry="40" fill="none" stroke="#fff" stroke-width="34"/>
+      <path d="{bowl}" {W}/>
+      <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" {W}/>
+      <ellipse cx="{cx}" cy="{cy+4}" rx="{rx-34}" ry="{ry-30}" {K}/>
+      <ellipse cx="{cx}" cy="{cy+8}" rx="{rx-66}" ry="{ry-52}" {W}/>'''
+    return _glyph_svg('brainspresso', shapes, themed)
 
 
 def brainfilter_icon(themed=True):
-    cx, rim_y, base_y, rt, bt = 236, 120, 402, 214, 58
+    """A pour-over dripper: paper filter, cone, handle, base, one drop."""
+    cx, rim_y, base_y, rt, bt = 232, 140, 346, 206, 60
     cone = (f'M{cx-rt} {rim_y} L{cx+rt} {rim_y} L{cx+bt} {base_y} '
             f'L{cx-bt} {base_y} Z')
-    pw, n = rt - 16, 8
-    pts = [f'{cx - pw + 2 * pw * i / n:.1f} {56 if i % 2 == 0 else 80}'
+    pw, n = rt - 26, 8           # pinked edge of the paper, above the rim
+    pts = [f'{cx - pw + 2 * pw * i / n:.1f} {40 if i % 2 == 0 else 66}'
            for i in range(n + 1)]
-    paper = f'M{cx-pw+8} {rim_y} L' + ' L'.join(pts) + f' L{cx+pw-8} {rim_y} Z'
+    paper = f'M{cx-pw+10} 92 L' + ' L'.join(pts) + f' L{cx+pw-10} 92 Z'
 
     def wall(y):
         return cx + rt - (rt - bt) * (y - rim_y) / (base_y - rim_y)
-    y1, y2 = rim_y + 44, rim_y + 156
-    handle = (f'M{wall(y1)-8:.1f} {y1} C{wall(y1)+84:.1f} {y1-8} '
-              f'{wall(y1)+90:.1f} {y2-10} {wall(y2)-6:.1f} {y2}')
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
-  <title id="title">brainfilter</title>
-  {ATTR}
-  {style(themed=themed)}
-  <g stroke-linejoin="round">
-    <path class="ink-s" stroke-width="34" stroke-linecap="round" d="{handle}"/>
-    <path class="paper" d="{cone}"/>
-    <path class="paper" d="{paper}"/>
-    <path class="ink-s" stroke-width="16" d="{paper}"/>
-    <path class="ink-s" stroke-width="24" d="{cone}"/>
-    <rect class="ink" x="{cx-rt-18}" y="{rim_y-17}" width="{2*rt+36}" height="34" rx="17"/>
-    <rect class="ink" x="{cx-bt-50}" y="{base_y-8}" width="{2*bt+100}" height="30" rx="15"/>
-    {mark(cx, rim_y + 112, 150, "fixed-ink")}
-    {drop(cx, 474, 52, "crema")}
-  </g>
-</svg>
-'''
-
+    y1, y2 = rim_y + 38, rim_y + 136
+    handle = (f'M{wall(y1)-10:.1f} {y1} C{wall(y1)+96:.1f} {y1-10} '
+              f'{wall(y1)+102:.1f} {y2-12} {wall(y2)-8:.1f} {y2}')
+    W, K = 'fill="#fff"', 'fill="#000"'
+    r, h = 26, 70                # the drop
+    dy = 494 - h / 2
+    drop = (f'M{cx} {dy-h/2} C{cx+r*.35} {dy-h/2+h*.28} {cx+r} {dy+h/2-1.55*r} '
+            f'{cx+r} {dy+h/2-r} A{r} {r} 0 0 1 {cx-r} {dy+h/2-r} '
+            f'C{cx-r} {dy+h/2-1.55*r} {cx-r*.35} {dy-h/2+h*.28} {cx} {dy-h/2}Z')
+    shapes = f'''<path d="{paper}" {W} stroke="#fff" stroke-width="16" stroke-linejoin="round"/>
+      <path d="{handle}" fill="none" stroke="#fff" stroke-width="44" stroke-linecap="round"/>
+      <path d="{cone}" {K} stroke="#000" stroke-width="60" stroke-linejoin="round"/>
+      <path d="{cone}" {W} stroke="#fff" stroke-width="20" stroke-linejoin="round"/>
+      <rect x="{cx-rt-30}" y="{rim_y-26}" width="{2*rt+60}" height="44" rx="22" {W}/>
+      <rect x="{cx-bt-58}" y="{base_y+18}" width="{2*bt+116}" height="36" rx="18" {W}/>
+      <path d="{drop}" {W}/>'''
+    return _glyph_svg('brainfilter', shapes, themed)
 
 if __name__ == '__main__':
   open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso())

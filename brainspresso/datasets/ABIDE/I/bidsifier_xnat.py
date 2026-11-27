@@ -1,6 +1,6 @@
 import tarfile
 from logging import getLogger
-from pathlib import PosixPath
+from pathlib import PurePosixPath
 
 from brainspresso.actions import Action, Fail, WriteBytes
 from brainspresso.datasets.ABIDE.I.bidsifier import (
@@ -95,7 +95,7 @@ class Bidsifier(BidsifierBase):
 
     def _make_raw_scan(self, tar):
         member = tar.getmembers()[0]
-        memberpath = PosixPath(member.name)
+        memberpath = PurePosixPath(member.name)
         site, id = memberpath.parts[0].rsplit('_', 1)
         id = int(id)
         if memberpath.name.split('.')[0] in ('anat', 'mprage'):
@@ -152,7 +152,7 @@ class Bidsifier(BidsifierBase):
             # under "derivatives/oasis-freesurfer/sourcedata/sub-{04d}/ses-{}"
             with tarfile.open(str(path), 'r:gz') as tar:
                 for member in tar.getmembers():
-                    tarpath = PosixPath(member.name)
+                    tarpath = PurePosixPath(member.name)
                     if 'fs-all' not in self.keys:
                         if not str(tarpath).endswith(fs.bidsifiable_outputs):
                             continue

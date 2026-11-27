@@ -44,7 +44,7 @@ With `--layout flat`, the content of `rawbids/` is in `ABIDE-2/` itself
 import csv
 import tarfile
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator, Literal
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, IfExists
@@ -223,7 +223,7 @@ class Bidsifier:
 
     def _make_raw(self, tar, keys):
         for member in tar.getmembers():
-            memberpath = PosixPath(member.name)
+            memberpath = PurePosixPath(member.name)
             if not memberpath.name.endswith(('.nii.gz', '.bval', '.bvec')):
                 return
             site, id, ses, mod, fname = memberpath.parts

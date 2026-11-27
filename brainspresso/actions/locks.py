@@ -32,11 +32,19 @@ other needlessly, which is safe. (Lock files of earlier versions were
 named from the path as given: during an upgrade, runs of an older and
 a newer version do not exclude each other.)
 
-In a process, the lock files are told apart by identity (the device
-and inode of the state folder, or of the local lock folder, and the
-name of the lock file), not by path: a dataset reached through two
-spellings of its folder (another case, on macOS or Windows) has one
-open lock file per lock, as below.
+In a process, lock files are told apart by the identity of the file
+itself (device and inode; the exact resolved path where the filesystem
+gives no inode), not by path: a dataset reached through two spellings
+of its folder (another case, on macOS or Windows) has one open lock
+file per lock, as below. A missing lock file is created under the lock
+of the registry of the process, so that concurrent threads share it.
+
+Unsupported: deleting or replacing lock files, or the state folder,
+while locks are held, which splits the exclusion (between processes as
+it always did, and now in a process too); and two mounts of one NFS or
+SMB export at different mount points in one process, whose lock files
+have two identities (two descriptors: closing one may drop the POSIX
+locks of the other).
 
 Nothing is ever created next to the file: a source may be shared or
 read-only.
@@ -426,34 +434,30 @@ def lock_file(path: str | os.PathLike) -> tuple[Path, Path | None]:
     return folder / digest[:2] / f"{digest}.lock", dataset
 
 
-def _registry_key(lockfile: Path, dataset: Path | None) -> tuple:
+def _file_key(st: os.stat_result, lockfile: Path) -> tuple:
     """
     Identity of a lock file in this process (`_registry`).
 
-    The device and inode of the folder that holds the lock tree (the
-    state folder of the dataset, or the local lock folder) and the name
-    of the lock file: one key for every spelling of that folder, and
-    distinct keys for distinct folders whose names differ by case on a
-    case-sensitive filesystem.
+    The device and inode of the lock file itself: one key for every
+    spelling of its path (a dataset folder named in another case on
+    macOS or Windows), distinct keys for distinct files. Where the
+    filesystem gives no inode (`st_ino` 0), the exact resolved path.
 
     Parameters
     ----------
+    st : os.stat_result
+        Its `stat` (or `fstat`)
     lockfile : Path
-        Lock file (`lock_file`)
-    dataset : Path | None
-        Its dataset (None: a local lock)
+        Its path
 
     Returns
     -------
     tuple
         The key
     """
-    base = dataset / STATE_DIR if dataset is not None else _local_dir()
-    try:
-        st = os.stat(base)
-    except OSError:                 # (then the open fails as it should)
-        return ("path", str(lockfile))
-    return ("inode", st.st_dev, st.st_ino, lockfile.name)
+    if st.st_ino:
+        return ("inode", st.st_dev, st.st_ino)
+    return ("path", os.path.realpath(lockfile))
 
 
 # ----------------------------------------------------------------------
@@ -484,10 +488,12 @@ class _OSLock:
     Parameters
     ----------
     path : Path
-        Lock file (created if `writable`)
+        Lock file
     writable : bool
-        Open (and create) it for reading and writing, else read-only
-        (enough for a shared lock)
+        Open it for reading and writing, else read-only (enough for a
+        shared lock)
+    create : bool
+        Create it if it does not exist (`writable` only)
 
     Raises
     ------
@@ -499,8 +505,10 @@ class _OSLock:
     # Windows, where it cannot be read while it is locked exclusively
     _SIGNATURE_AT = 1 if _WINDOWS else 0
 
-    def __init__(self, path: Path, writable: bool):
-        flags = os.O_RDWR | os.O_CREAT if writable else os.O_RDONLY
+    def __init__(self, path: Path, writable: bool, create: bool = False):
+        flags = os.O_RDWR if writable else os.O_RDONLY
+        if writable and create:
+            flags |= os.O_CREAT
         fd = os.open(path, flags | getattr(os, "O_BINARY", 0), 0o666)
         try:
             self.file = os.fdopen(fd, "r+b" if writable else "rb",
@@ -627,10 +635,11 @@ class _Entry:
         return "another thread of this process, waiting for it"
 
 
-# Entries by lock file *identity* (`_registry_key`): two spellings of one
-# lock file (a dataset folder named in another case on macOS or Windows)
-# must share one entry, as a second descriptor would drop the POSIX locks
-# of the first when closed (and conflict with it on Windows)
+# Entries by lock file *identity* (`_file_key`): two spellings of one lock
+# file (a dataset folder named in another case on macOS or Windows) must
+# share one entry, as a second descriptor would drop the POSIX locks of
+# the first when closed (and conflict with it on Windows). Looked up, and
+# a missing lock file created, under `_registry_lock` (`FileLock._enter`)
 _registry: dict[tuple, _Entry] = {}
 _registry_lock = threading.Lock()
 
@@ -733,12 +742,9 @@ class FileLock:
             except OSError as e:
                 return self._unlocked(f"no local lock folder ({e})")
         self.lockfile = lockfile
-        key = _registry_key(lockfile, dataset)
-        with _registry_lock:
-            entry = _registry.get(key)
-            if entry is None:
-                entry = _registry[key] = _Entry(lockfile, key)
-            entry.users += 1
+        entry = self._enter(lockfile)
+        if entry is None:
+            return self._unlocked(f"cannot create {lockfile}")
         try:
             took = self._take(entry, deadline, timeout)
         except BaseException:
@@ -749,6 +755,66 @@ class FileLock:
             return self._unlocked(f"cannot open {lockfile}")
         self._entry, self.locked = entry, True
         return self
+
+    def _enter(self, lockfile: Path) -> _Entry | None:
+        """
+        Find (or make) the entry of a lock file, and count this holder.
+
+        Under `_registry_lock`: an existing lock file is looked up by its
+        identity (`_file_key`), and opened later only if this process has
+        no entry for it (it never opens, then closes, a second descriptor
+        of a lock file that it holds: that would drop its POSIX locks).
+        A missing one is created at once, so that concurrent threads find
+        it; no entry can refer to it (lock files are never deleted while
+        held).
+
+        Parameters
+        ----------
+        lockfile : Path
+            Lock file
+
+        Returns
+        -------
+        _Entry | None
+            None if the lock file is missing and cannot be created (a
+            reader then goes on unlocked)
+
+        Raises
+        ------
+        LockError
+            If it is missing and cannot be created, for a writer
+        """
+        with _registry_lock:
+            try:
+                st = os.stat(lockfile)
+            except OSError:
+                st = None
+            handle = None
+            if st is None:
+                try:
+                    lockfile.parent.mkdir(parents=True, exist_ok=True)
+                    handle = _OSLock(lockfile, writable=True, create=True)
+                    st = os.fstat(handle.file.fileno())
+                except OSError as e:
+                    if handle is not None:
+                        handle.close()
+                    if self.exclusive:
+                        raise LockError(
+                            f"Cannot lock {self.path} for writing: cannot "
+                            f"create {lockfile} ({e})") from e
+                    return None
+            key = _file_key(st, lockfile)
+            entry = _registry.get(key)
+            if entry is None:
+                entry = _registry[key] = _Entry(lockfile, key)
+                entry.handle = handle
+            elif handle is not None:
+                # (an entry of a deleted file whose inode was reused, or
+                # of the same path without inodes: this process holds no
+                # lock on the new file)
+                handle.close()
+            entry.users += 1
+            return entry
 
     def _unlocked(self, why: str) -> "FileLock":
         """Go on without a lock (a reader), or raise (a writer)."""
@@ -801,14 +867,15 @@ class FileLock:
                 raise LockError(f"Cannot lock {self.path} for writing: "
                                 f"{entry.lockfile} is read-only")
             return True
+        # (it exists: `_enter` created it otherwise; it is not created
+        # again here, which would split the lock if it were deleted)
         try:
-            entry.lockfile.parent.mkdir(parents=True, exist_ok=True)
             entry.handle = _OSLock(entry.lockfile, writable=True)
             return True
         except OSError as e:
             if self.exclusive:
                 raise LockError(f"Cannot lock {self.path} for writing: "
-                                f"cannot create {entry.lockfile} ({e})")
+                                f"cannot open {entry.lockfile} ({e})")
         try:
             entry.handle = _OSLock(entry.lockfile, writable=False)
             return True
@@ -901,11 +968,17 @@ class FileLock:
 
     @staticmethod
     def _leave(entry: _Entry) -> None:
-        """Forget an entry that has no holders and no waiters."""
+        """Forget (and close) an entry that has no holders and waiters."""
         with _registry_lock:
             entry.users -= 1
             if entry.users <= 0 and _registry.get(entry.key) is entry:
                 del _registry[entry.key]
+                if entry.handle is not None and entry.mode is None:
+                    try:
+                        entry.handle.close()
+                    except OSError:
+                        pass
+                    entry.handle = None
 
     def __enter__(self) -> "FileLock":
         """Take the lock (`acquire`)."""

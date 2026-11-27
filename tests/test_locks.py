@@ -939,19 +939,30 @@ def test_failed_release_does_not_leak_the_entry(tmp_path, monkeypatch):
         pass
 
 
-def test_text_files_are_utf8_with_lf_and_updates_read_universally(tmp_path):
+def test_text_files_are_utf8_with_lf_on_every_platform(tmp_path):
     path = tmp_path / "x.tsv"
     with File(path, "w") as f:
         with f.open() as fobj:
             fobj.write("a\tbé\nc\td\n")
     assert path.read_bytes() == "a\tbé\nc\td\n".encode("utf-8")
-    # update modes keep universal newlines when they read
+    # update modes translate nothing: reads return the line endings as
+    # stored, writes stay LF (on every platform)
     path.write_bytes(b"a\r\nb\r\n")
     for mode in ("r+", "a+"):
         with File(path, mode) as f:
             with f.open() as fobj:
                 fobj.seek(0)
-                assert fobj.read() == "a\nb\n"
+                assert fobj.read() == "a\r\nb\r\n"
+                fobj.write("c\n")
+        assert path.read_bytes() == b"a\r\nb\r\nc\n"
+        path.write_bytes(b"a\r\nb\r\n")
+    with File(path, "w+") as f:
+        with f.open() as fobj:
+            fobj.write("x\ny\n")
+            fobj.seek(0)
+            assert fobj.read() == "x\ny\n"
+    assert path.read_bytes() == b"x\ny\n"
+    path.write_bytes(b"a\r\nb\r\n")
     # plain readers too, and options given win
     with File(path, "r") as f:
         with f.open() as fobj:
@@ -970,3 +981,85 @@ def test_tsv_rows_end_with_lf(tmp_path):
     statuses = list(WriteTSV([["a", "b"], ["1", "2"]], tmp_path / "y.tsv"))
     assert {"status": "done"} in statuses, statuses
     assert (tmp_path / "y.tsv").read_bytes() == b"a\tb\n1\t2\n"
+
+
+@pytest.mark.parametrize("brk", ["\r", "\n", "\r\n"])
+def test_tsv_fields_with_line_breaks_are_refused(tmp_path, brk):
+    """The same on every Python version (3.10 and 3.11 wrote "\\r" raw)."""
+    from brainspresso.actions.writers import WriteTSV
+    from brainspresso.utils.io import write_tsv
+    path = tmp_path / "x.tsv"
+    rows = [["participant_id", "note"], ["sub-1", f"a{brk}b"]]
+    with pytest.raises(ValueError, match="row 2, column 'note'"):
+        write_tsv(rows, path)
+    assert not path.exists()                    # nothing written
+    statuses = list(WriteTSV(rows, path))
+    assert statuses[-1]["status"] == "error", statuses
+    assert "line break" in statuses[-1]["message"]
+    assert not path.exists()
+
+
+def test_concurrent_threads_creating_a_lock_file_share_one_entry(tmp_path):
+    """The lock folder and file are missing: created once, one entry."""
+    import brainspresso.actions.locks as locks
+    ds = dataset(tmp_path / "DS")
+    path = ds / "sub-01" / "x.nii"
+    assert not (ds / STATE_DIR / "locks").exists()
+    barrier = threading.Barrier(8)
+    held, errors = [], []
+
+    def read():
+        try:
+            barrier.wait(SOON)
+            held.append(FileLock(path).acquire())
+        except Exception as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=read) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(SOON)
+    try:
+        assert not errors and len(held) == 8
+        assert all(lock.locked for lock in held)
+        assert len({id(lock._entry) for lock in held}) == 1
+        assert len(locks._registry) == 1
+    finally:
+        for lock in held:
+            lock.release()
+    assert not locks._registry
+
+
+@pytest.mark.parametrize("inodes", [True, False])
+def test_datasets_with_the_same_relative_path_have_two_entries(
+    tmp_path, monkeypatch, inodes,
+):
+    """Same lock file name, two files: never one entry for both."""
+    import types
+
+    import brainspresso.actions.locks as locks
+    if not inodes:                  # (a filesystem without inodes)
+        file_key = locks._file_key
+        monkeypatch.setattr(locks, "_file_key", lambda st, path: file_key(
+            types.SimpleNamespace(st_dev=st.st_dev, st_ino=0), path))
+    a, b = dataset(tmp_path / "A"), dataset(tmp_path / "B")
+    la, lb = FileLock(a / "x.nii").acquire(), FileLock(b / "x.nii").acquire()
+    try:
+        assert la.lockfile.name == lb.lockfile.name
+        assert la._entry is not lb._entry
+        assert len(locks._registry) == 2
+        kinds = {key[0] for key in locks._registry}
+        assert kinds == ({"inode"} if inodes else {"path"})
+        # each one excludes its own writers only
+        failed = SPAWN.Queue()
+        proc, acquired, release = holder(a / "x.nii", True, timeout=0.3,
+                                         failed=failed)
+        assert failed.get(timeout=SOON).startswith("LockTimeout")
+        finish(proc)
+    finally:
+        la.release()
+        lb.release()
+    assert not locks._registry
+    with FileLock(b / "x.nii", exclusive=True, timeout=0):
+        pass

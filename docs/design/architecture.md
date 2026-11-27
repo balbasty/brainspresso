@@ -426,8 +426,12 @@ layer in 2b-iv):
   differ only by case sharing one; lock files of earlier versions were
   named from the path as given, so runs of an older and a newer
   version do not exclude each other during an upgrade; in a process,
-  entries are keyed by the identity of the lock folder (device, inode)
-  and the lock file name, not by its spelling);
+  entries are keyed by the identity of the lock file itself (device and
+  inode, else its exact resolved path), not by its spelling, and a
+  missing lock file is created under the registry lock; deleting or
+  replacing lock files or the state folder while locks are held is
+  unsupported (it splits the exclusion), as are two mounts of one
+  NFS/SMB export at different mount points in one process);
   outside datasets (package templates, other source folders) in a
   private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
@@ -1009,9 +1013,10 @@ Each step lands as commits on the refactor branch with its tests green.
   `IsADirectoryError`); path keys (lock files, task ids) are POSIX
   strings (`as_posix()`), never `os.sep`-joined, and archive members
   are `PurePosixPath`s; text files are read and written as UTF-8, and
-  written with "\n" line endings (`File` does so by default, except
-  for update modes, `+`, which keep universal newlines for their reads;
-  TSV rows end with "\n", not the "\r\n" of `csv`), so outputs are
+  written with "\n" line endings (`File` does so by default; update
+  modes, `+`, translate no line ending either way; TSV rows end with
+  "\n", not the "\r\n" of `csv`, and a field with a line break is
+  refused), so outputs are
   byte-identical on every platform. A test is skipped on
   Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
   feature the platform lacks (POSIX permissions, symbolic links

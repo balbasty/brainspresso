@@ -7,6 +7,7 @@ adapted from the BIDS logo
 
 Usage: python make_logos.py [OUTDIR]   (default: docs/images)
 """
+import re
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ INK, CREMA, CREAM = '#2b1b13', '#c98b4e', '#f6ecdd'
 PAPER, PAPER_DARK = '#f1e2cb', '#cfb28c'   # unbleached filter paper
 GLASS, GLASS_DARK = '#e6eceb', '#2a3438'   # coffee server
 COFFEE = '#6b3e26'
+FOAM, LATTE = '#fbf5ec', '#b7783f'   # milk foam / latte surface
 ATTR = ('<!-- BIDS mark, file and folder glyphs adapted from the BIDS logo '
         '(github.com/bids-standard/bids-specification, CC BY 4.0). -->')
 
@@ -34,6 +36,23 @@ def mark(cx, cy, h, cls):
     x, y = cx - MARK_W * s / 2, cy - h / 2
     return (f'<g class="{cls}" transform="translate({x:.2f} {y:.2f}) '
             f'scale({s:.4f})">{MARK}</g>')
+
+def foam_mark(cx, cy, h, cls):
+    """
+    The BIDS mark as latte art: the gyri of the brain are filled with
+    foam, so that its outline and sulci are drawn by the coffee.
+    """
+    lines = MARK.splitlines()
+    d = re.search(r'd="([^"]+)"', lines[0]).group(1)
+    gyri = ''.join(re.findall(r'M[^M]+', d)[1:])   # the holes of the outline
+    branches = ''.join(f'<rect x="88" y="{y}" width="59.27" height="12.21"/>'
+                       for y in (85.94, 126, 168.39))
+    s = h / MARK_H
+    x, y = cx - MARK_W * s / 2, cy - h / 2
+    return (f'<g class="{cls}" transform="translate({x:.2f} {y:.2f}) '
+            f'scale({s:.4f})"><path fill-rule="evenodd" d="{gyri}"/>'
+            f'{branches}{"".join(lines[1:])}</g>')
+
 
 def glyph(kind, cx, cy, w, cls, rot=0):
     body, gw, gh = (FILE, FILE_W, FILE_H) if kind == 'file' else (FOLDER, FOLDER_W, FOLDER_H)
@@ -58,7 +77,7 @@ def style(extra='', themed=True):
     return f'''<style>
     .ink{{fill:{INK}}} .ink-s{{fill:none;stroke:{INK}}}
     .cream{{fill:{CREAM}}} .paper{{fill:{PAPER}}} .crema{{fill:{CREMA}}} .fixed-ink{{fill:{INK}}}
-    .glass{{fill:{GLASS}}} .coffee{{fill:{COFFEE}}}
+    .glass{{fill:{GLASS}}} .coffee{{fill:{COFFEE}}} .foam{{fill:{FOAM}}}
     {DARK if themed else ''}{extra}
   </style>'''
 
@@ -96,7 +115,7 @@ def brainspresso(themed=True):
     <ellipse class="ink" cx="{cx}" cy="{top}" rx="{hw}" ry="24"/>
     <ellipse class="crema" cx="{cx}" cy="{top+1}" rx="{hw-18}" ry="13"/>
     <!-- BIDS mark -->
-    {mark(cx - 4, top + 108, 124, "cream")}
+    {mark(cx - 4, top + 126, 124, "cream")}
   </g>
 </svg>
 '''
@@ -164,7 +183,49 @@ def brainfilter(themed=True):
     <rect class="ink" x="{cx-rt-12}" y="{rim_y-10}" width="{2*rt+24}" height="20" rx="10"/>
     <rect class="ink" x="{cx-bt-34}" y="{base_y-4}" width="{2*bt+68}" height="18" rx="9"/>
     <!-- BIDS mark, printed on the filter -->
-    {mark(cx, rim_y + 66, 96, "fixed-ink")}
+    {mark(cx, rim_y + 76, 96, "fixed-ink")}
+  </g>
+</svg>
+'''
+
+
+# ---------------------------------------------------------- brainspresso (latte)
+def brainspresso_latte(themed=True):
+    """A cappuccino seen from above, the BIDS mark drawn in the foam."""
+    cx, cy = 240, 206           # centre of the rim
+    rx, ry = 172, 96            # rim (a circle seen at an angle)
+    tilt = ry / rx
+    bot = cy + 196              # bottom of the bowl
+    body = (f'M{cx-rx} {cy} C{cx-rx} {cy+120} {cx-104} {bot} {cx} {bot} '
+            f'C{cx+104} {bot} {cx+rx} {cy+120} {cx+rx} {cy} Z')
+    hx, hy = cx + rx + 18, cy + 62
+    art = (f'<g transform="translate({cx} {cy+8}) scale(1 {tilt:.3f}) '
+           f'translate({-cx} {-(cy+8)})">'
+           f'{foam_mark(cx - 6, cy + 8, 192, "foam")}</g>')
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">brainspresso</title>
+  {ATTR}
+  {style(themed=themed)}
+  <defs>
+    <mask id="saucer-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <path d="{body}" fill="#000" stroke="#000" stroke-width="22" stroke-linejoin="round"/>
+      <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="#000" stroke="#000" stroke-width="22"/>
+      <ellipse cx="{hx}" cy="{hy}" rx="40" ry="30" fill="none" stroke="#000" stroke-width="42"/>
+    </mask>
+  </defs>
+  <g>
+    <!-- saucer -->
+    <ellipse class="ink" cx="{cx+6}" cy="{bot-34}" rx="226" ry="76" mask="url(#saucer-gap)"/>
+    <!-- handle -->
+    <ellipse class="ink-s" cx="{hx}" cy="{hy}" rx="40" ry="30" stroke-width="22"/>
+    <!-- cup: bowl, rim, latte surface -->
+    <path class="ink" d="{body}"/>
+    <ellipse class="ink" cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}"/>
+    <ellipse class="coffee" cx="{cx}" cy="{cy+3}" rx="{rx-16}" ry="{ry-12}"/>
+    <ellipse class="crema" cx="{cx}" cy="{cy+4}" rx="{rx-28}" ry="{ry-21}"/>
+    <!-- latte art: the BIDS mark in milk foam -->
+    {art}
   </g>
 </svg>
 '''
@@ -173,3 +234,4 @@ def brainfilter(themed=True):
 if __name__ == '__main__':
   open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso())
   open(f'{OUT}/brainfilter-logo.svg', 'w').write(brainfilter())
+  open(f'{OUT}/brainspresso-logo-latte.svg', 'w').write(brainspresso_latte())

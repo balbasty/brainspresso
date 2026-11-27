@@ -82,9 +82,13 @@ class OptionGroup:
     ----------
     panel : tuple[str, int]
         Title and position of the help panel
+    deprecated : dict[str, tuple[str, str]]
+        Deprecated alias fields: field -> (the field it stands for, what
+        to use instead). Config files refuse them (`brainspresso.config`)
     """
 
     panel: ClassVar[tuple[str, int]] = ("Options", 50)
+    deprecated: ClassVar[Mapping[str, tuple[str, str]]] = {}
 
     def source_options(self, dataset) -> dict[str, Any]:
         """
@@ -547,6 +551,8 @@ class CompostOptions(OptionGroup):
 @option_group("Dataset", 60)
 class LayoutOptions(OptionGroup):
     """`--layout` (and the deprecated `--site-layout`)."""
+
+    deprecated = {"site_layout": ("layout", "--layout sites:<layout>")}
 
     layout: Annotated[Literal["study", "flat"] | None, Parameter(
         help="Layout of the dataset: \"study\" (raw dataset in "

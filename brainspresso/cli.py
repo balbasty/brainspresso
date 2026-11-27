@@ -20,7 +20,7 @@ import sys
 from typing import Annotated
 
 import cyclopts
-from cyclopts import Parameter
+from cyclopts import CycloptsError, MissingArgumentError, Parameter
 
 from brainspresso import config
 from brainspresso.config import ConfigError, Loader, Origin
@@ -174,11 +174,9 @@ def show_sections(loader: Loader) -> None:
             name = ".".join((*entry.parts, *(
                 [entry.command] if entry.command else []))) or "defaults"
             table = merged.setdefault((entry.rank, name), {})
-            for key, (value, _, negated) in entry.values.items():
-                value = (not value) if negated and isinstance(value, bool) \
-                    else value
-                table[key] = (value, Origin(layer.kind, entry.source,
-                                            entry.section))
+            for key in entry.values:
+                table[key] = (config.plain_value(entry, key), Origin(
+                    layer.kind, entry.source, entry.section))
     if not merged:
         print("No config values (`bx config paths` lists the files)")
     for (_, name), table in sorted(merged.items()):
@@ -215,7 +213,18 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
                           f"({', '.join(commands)})")
     for command in commands:
         loader.report = None
-        _, bound, _ = app.parse_args([name, command, *tokens])
+        try:
+            _, bound, _ = app.parse_args([name, command, *tokens],
+                                         exit_on_error=False,
+                                         print_error=False)
+        except MissingArgumentError:
+            if not dataset.arguments:
+                raise
+            show_unbound(loader, dataset, command)
+            continue
+        except CycloptsError:
+            app.parse_args([name, command, *tokens])    # prints, exits
+            raise
         report = loader.report or {}
         origins = report.get("origins", {})
         section = ".".join((*report.get("parts", (name,)), command))
@@ -232,6 +241,40 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
         print()
 
 
+def show_unbound(loader: Loader, dataset, command: str) -> None:
+    """
+    Print the options of a dataset whose arguments are not given.
+
+    Only the built-in values and the sections that apply to every value
+    of the arguments (`[openneuro.harvest]`, not
+    `[openneuro.ds000224.harvest]`), without the dataset file.
+
+    Parameters
+    ----------
+    loader : config.Loader
+    dataset : Dataset
+    command : str
+    """
+    from brainspresso.datasets.register import (  # noqa: PLC0415
+        config_options,  # lazy: startup time (`bx --help`)
+    )
+    options = config_options(dataset, command)
+    parts, own = config.dataset_parts(dataset)
+    root, _ = loader.locate(parts, command)
+    found = config.resolve(loader.layers(root), parts, command, options,
+                           own=own, everywhere=lambda: loader.everywhere(
+                               dataset))
+    names = " ".join(a.name.upper() for a in dataset.arguments)
+    print(f"[{'.'.join((*parts, command))}]")
+    print(f"# without {names}: `bx config show {dataset.name} {command} "
+          f"{names}` also reads [{dataset.name}.<{names}>] sections and "
+          f"the dataset file")
+    for key, option in options.items():
+        value, origin = found.get(key, (option.default, Origin("built-in")))
+        print(f"{key} = {_toml(value)}  # {origin}")
+    print()
+
+
 def show_paths(loader: Loader, name: str | None = None, arguments=(),
                path: str | None = None, out: str | None = None) -> None:
     """
@@ -243,11 +286,15 @@ def show_paths(loader: Loader, name: str | None = None, arguments=(),
     name : str, optional
         Dataset (command name): also its dataset file
     arguments : list[str]
-        Its arguments
+        A command (default: harvest; the location is that of its
+        sections), then the arguments of the dataset
     path, out : str, optional
         Root of all datasets, dataset folder
     """
-    parts, folder = (), None
+    parts, folder, arguments = (), None, list(arguments)
+    command = "harvest"
+    if arguments and arguments[0] in config.COMMANDS:
+        command = arguments.pop(0)
     if name is not None:
         _, dataset = _registered(loader, name)
         dataset = dataset.bind(**dict(zip(
@@ -256,12 +303,14 @@ def show_paths(loader: Loader, name: str | None = None, arguments=(),
         if len(arguments) >= len(dataset.arguments):
             folder = dataset.folder_name
     try:
-        root, folder = loader.locate(parts, "harvest", path=path, out=out,
+        root, folder = loader.locate(parts, command, path=path, out=out,
                                      folder=folder)
     except ConfigError as e:
         print(f"({e})")
         root = get_tree_path(path)
         folder = out or (root / folder if folder is not None else None)
+    print(f"{'command':9} {command:8} (the sections that locate the "
+          f"files)")
     rows = [("user", config.user_dir() / config.FILENAME),
             ("root", config.located_file(root))]
     if folder is not None:
@@ -327,12 +376,16 @@ def config_app(loader: Loader) -> cyclopts.App:
         """
         List the config files that are looked up, and which exist.
 
+        `bx config paths openneuro compost ds000224 --path /data`
+
         Parameters
         ----------
         dataset
             Dataset (its command name): also its dataset file
         arguments
-            Arguments of the dataset (OpenNeuro: the accession)
+            COMMAND (default: harvest: its sections give a configured
+            `path` or `out`), then the arguments of the dataset
+            (OpenNeuro: the accession)
         path
             Root of all datasets (default: a configured path, else
             $BDP_PATH, else the current folder)

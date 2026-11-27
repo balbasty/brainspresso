@@ -377,21 +377,28 @@ The same values as environment variables: `BRAINSPRESSO_OPT_<KEY>`
 parts of a section and `_` for `-`, case-insensitive:
 `BRAINSPRESSO_OPT_HARVEST__JOBS=4`,
 `BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"` (several values
-are separated by spaces), `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`.
+are split as a shell does: `BRAINSPRESSO_OPT_COMPOST__WHERE='"age >= 60"
+sex==F'`), `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`.
 
 Some options are never read from a config file: confirmations of
 deletions (`--yes`, compost `--force`, `--ignore-runs`), secrets
 (`--password`, `--token`: use their environment variables or the prompt)
-and `--config`. A root or dataset file cannot set `path` or `out` (they
-locate it), and `out` only goes in the section of one dataset. An unknown
-section or key, or a value of the wrong type, is an error that names the
-file and the section. `[profiles.<name>]` and `grind` tables are reserved
-for the grind stage and ignored for now.
+and `--config`, nor the deprecated `--site-layout` and `--bidsify` (use
+`layout` and `bids`). `path` and `out` go together: when the command line
+gives either, neither comes from a config file. A root or dataset file
+cannot set them (they locate it), and `out` only goes in the section of
+one dataset. An unknown section or key, or a value of the wrong type, is
+an error that names the file and the section; a value of `[defaults]` or
+`[<command>]` that is not a choice of a dataset (`layout = "sites"` for
+IXI) is ignored for that dataset. `[profiles.<name>]` and `grind` tables
+are reserved for the grind stage and ignored for now.
 
 ```shell
 bx config show                         # the values of every file
 bx config show ixi harvest --jobs 2    # every option of a command, and
                                        # where its value comes from
 bx config show openneuro harvest ds000224
+bx config show openneuro               # the values for every accession
 bx config paths ixi                    # the files looked up, and which exist
+bx config paths openneuro compost ds000224 --path /data
 ```

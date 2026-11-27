@@ -11,7 +11,8 @@ dataset.py` is an entry (summary: the first line of its help), and so
 is every curated INDI project (`INDI.dataset.project_dataset`). The
 config file reads two more tables: `ARGUMENTS` (the arguments of the
 entries that take some: OpenNeuro's accession) and `KEYS` (the config
-keys of each command, over every dataset).
+keys of each command, over every dataset), and `DEPRECATED` (the
+deprecated aliases, which config files refuse).
 """
 import importlib
 import inspect
@@ -76,8 +77,20 @@ def keys() -> dict[str, tuple[str, ...]]:
     for _, ds in datasets().values():
         for command in command_names(ds):
             out.setdefault(command, set()).update(
-                k for k in config_options(ds, command) if k not in FORBIDDEN)
+                k for k, o in config_options(ds, command).items()
+                if k not in FORBIDDEN and o.deprecated is None)
     return {c: tuple(sorted(v)) for c, v in sorted(out.items())}
+
+
+def deprecated() -> dict[str, tuple[str]]:
+    """`key: (what to use instead,)` of the deprecated aliases."""
+    out = {}
+    for _, ds in datasets().values():
+        for command in command_names(ds):
+            for key, o in config_options(ds, command).items():
+                if o.deprecated is not None:
+                    out[key] = (o.deprecated,)
+    return dict(sorted(out.items()))
 
 
 def _line(name: str, values: tuple, indent: int = 4) -> str:
@@ -139,6 +152,7 @@ def main(check: bool = False) -> int:
     new = _replace(text, "CATALOG", render(entries()))
     new = _replace(new, "ARGUMENTS", render_table(arguments()))
     new = _replace(new, "KEYS", render_table(keys()))
+    new = _replace(new, "DEPRECATED", render_table(deprecated()))
     if check:
         if new != text:
             print(f"{CATALOG} is out of date: run {__file__}")

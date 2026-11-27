@@ -177,18 +177,36 @@ def config_options(dataset: Dataset, command: str
     out = {} if command == "info" else {"path": PATH, "out": OUT}
     for name, group in command_groups(dataset, command).items():
         hints = opt.field_hints(group)
+        fields = {}
         for f in dataclasses.fields(group):
             hint = hints[f.name]
             base = hint.__origin__ if hasattr(hint, "__metadata__") \
                 else hint
-            flags = _flag_names(hint) or (f.name.replace("_", "-"),)
+            fields[f.name] = (_flag_names(hint) or (
+                f.name.replace("_", "-"),))[0]
             args = typing.get_args(base)
-            out[flags[0]] = OptionInfo(
-                flags[0], f.name, name, f.default,
-                is_list=typing.get_origin(base) in (tuple, list),
+            is_list = typing.get_origin(base) in (tuple, list)
+            fields[f.name] = OptionInfo(
+                fields[f.name], f.name, name, f.default, is_list=is_list,
                 is_bool=base is bool or bool in args,
+                choices=_choices(args[0] if is_list and args else base),
             )
+        for old, (new, instead) in group.deprecated.items():
+            fields[old] = dataclasses.replace(
+                fields[old], deprecated=instead, aliases=(fields[new].key,))
+            fields[new] = dataclasses.replace(
+                fields[new], aliases=(fields[old].key,))
+        out.update({o.key: o for o in fields.values()})
     return out
+
+
+def _choices(hint) -> tuple[str, ...] | None:
+    """Values of a `Literal` (in a union too), else None."""
+    if typing.get_origin(hint) is typing.Literal:
+        return tuple(str(v) for v in typing.get_args(hint))
+    values = [_choices(a) for a in typing.get_args(hint)
+              if typing.get_origin(a) is typing.Literal]
+    return tuple(v for vs in values for v in vs) if values else None
 
 
 def build_command(dataset: Dataset, command: str) -> Callable:

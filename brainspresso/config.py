@@ -38,21 +38,20 @@ command, and `bx --help` imports it.
 import dataclasses
 import difflib
 import functools
+import logging
 import os
-import sys
+import shlex
+import tomllib
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from cyclopts import Token
 
-from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS
+from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, DEPRECATED, KEYS
 from brainspresso.errors import UsageError
 from brainspresso.utils.path import get_tree_path
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:                                           # pragma: no cover
-    import tomli as tomllib
+lg = logging.getLogger(__name__)
 
 #: Name of the config files
 FILENAME = "config.toml"
@@ -221,7 +220,7 @@ def dataset_parts(dataset) -> tuple[tuple[str, ...], int]:
             value = dataset.bound.get(p[1:-1])
             if value is None:
                 break
-            parts.append(str(value))
+            parts.append(str(value).lower())
     return tuple(parts), own
 
 
@@ -248,6 +247,14 @@ class OptionInfo:
         Takes several values
     is_bool : bool
         Has a negative flag (`no-<key> = true`)
+    choices : tuple[str] | None
+        Values of a `Literal` (of the dataset)
+    aliases : tuple[str]
+        Keys of the same option (a deprecated alias and its option): one
+        given on the command line, the others are not read from config
+    deprecated : str | None
+        What to use instead of a deprecated alias (never read from
+        config)
     """
 
     key: str
@@ -256,6 +263,17 @@ class OptionInfo:
     default: Any = None
     is_list: bool = False
     is_bool: bool = False
+    choices: tuple | None = None
+    aliases: tuple = ()
+    deprecated: str | None = None
+
+    def fits(self, value) -> bool:
+        """Whether a value (or each value of a list) is a choice."""
+        if self.choices is None:
+            return True
+        values = value if isinstance(value, list) else [value]
+        return all((isinstance(v, bool) and self.is_bool)
+                   or str(v) in self.choices for v in values)
 
 
 #: `path` and `out` of the commands that take them
@@ -384,13 +402,17 @@ def _entry(table: Mapping, parts: tuple, command: str | None,
                         f"unknown section [{section}.{raw}]"
                         + _did_you_mean(raw, COMMANDS))
         key, negated = str(raw).replace("_", "-"), False
-        if key not in known and key.startswith("no-") and \
-                key[3:] in known:
+        if key not in known and key.startswith("no-") and (
+                key[3:] in known or key[3:] in DEPRECATED):
             key, negated = key[3:], True
         if key in FORBIDDEN:
             raise _fail(source, section,
                         f"{raw!r} cannot be set in a config file "
                         f"({FORBIDDEN[key]}): give it on the command line")
+        if key in DEPRECATED:
+            raise _fail(source, section,
+                        f"{raw!r} is a deprecated alias, not read from "
+                        f"config files: use {DEPRECATED[key][0]}")
         if key not in known:
             raise _fail(source, section, f"unknown key {raw!r}"
                         + _did_you_mean(key, known))
@@ -459,7 +481,8 @@ def parse(data: Mapping, source: str, kind: str = "file") -> list[Entry]:
             elif key in node.children and not bound:
                 walk(node.children[key], value, (*written, key), ())
             elif len(bound) < len(node.arguments):
-                walk(node, value, (*written, key), (*bound, key))
+                # (arguments compare case-insensitively, as names do)
+                walk(node, value, (*written, key), (*bound, str(key).lower()))
             else:
                 choices = [*COMMANDS] if bound or node.arguments else [
                     *COMMANDS, *node.children]
@@ -552,7 +575,8 @@ def env_data(environ: Mapping[str, str]) -> list[tuple[str, dict]]:
     `BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS`:
     `[abide1.roast] exclude-keys`; `_` stands for `-` in dataset names
     and keys, `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS`). Values of
-    options that take several values are split on spaces.
+    options that take several values are split as a shell does
+    (`shlex.split`: `"age >= 60" "sex == F"`).
 
     Parameters
     ----------
@@ -611,6 +635,30 @@ _TRUE = ("1", "true", "yes", "on")
 _FALSE = ("0", "false", "no", "off")
 
 
+def plain_value(entry: Entry, key: str):
+    """
+    Value of a key as written, negative flags applied (`bx config show`).
+
+    Parameters
+    ----------
+    entry : Entry
+    key : str
+
+    Returns
+    -------
+    Any
+    """
+    value, raw, negated = entry.values[key]
+    if not negated:
+        return value
+    if isinstance(value, EnvValue):
+        if value.lower() not in (*_TRUE, *_FALSE):
+            raise _fail(entry.source, entry.section,
+                        f"{raw!r} takes true or false")
+        value = value.lower() in _TRUE
+    return not value
+
+
 def _value(option: OptionInfo, entry: Entry, key: str):
     """Value of a key for an option (lists, negative flags)."""
     value, raw, negated = entry.values[key]
@@ -618,14 +666,12 @@ def _value(option: OptionInfo, entry: Entry, key: str):
         if not option.is_bool:
             raise _fail(entry.source, entry.section,
                         f"{raw!r}: --{option.key} has no negative flag")
-        if isinstance(value, EnvValue):
-            if value.lower() not in (*_TRUE, *_FALSE):
-                raise _fail(entry.source, entry.section,
-                            f"{raw!r} takes true or false")
-            value = value.lower() in _TRUE
-        return not value
+        return plain_value(entry, key)
     if isinstance(value, EnvValue) and option.is_list:
-        return value.split()
+        try:
+            return shlex.split(value)
+        except ValueError as e:
+            raise _fail(entry.source, entry.section, f"{raw!r}: {e}") from e
     if isinstance(value, list) and not option.is_list:
         raise _fail(entry.source, entry.section,
                     f"{raw!r} takes one value, not a list")
@@ -692,8 +738,15 @@ def resolve(layers: Iterable[Layer], parts: tuple, command: str,
                     raise _fail(entry.source, entry.section,
                                 f"{entry.values[key][1]!r} is also set in "
                                 f"[{previous[1]}]")
+                value = _value(option, entry, key)
+                if not entry.parts and not option.fits(value):
+                    # a shared section: not a choice of this dataset
+                    lg.debug(f"Config {entry.source} [{entry.section}]: "
+                             f"{key} = {value!r} is not a choice here "
+                             f"({', '.join(option.choices)}): ignored")
+                    continue
                 ranks[key] = (entry.rank, entry.section)
-                out[key] = (_value(option, entry, key),
+                out[key] = (value,
                             Origin(layer.kind, entry.source, entry.section))
     return out
 
@@ -728,6 +781,11 @@ def tokens(key: str, value, origin: Origin) -> list[Token]:
 # ----------------------------------------------------------------------
 #   The cyclopts config callable
 # ----------------------------------------------------------------------
+
+def _resolved(path) -> Path:
+    """Absolute path, symbolic links resolved (where it exists)."""
+    return Path(path).expanduser().resolve()
+
 
 def _given(arguments, key: str):
     """Tokens of an option given on the command line (None: unknown)."""
@@ -795,10 +853,28 @@ class Loader:
         return self._cache[key]
 
     def env_layer(self) -> Layer:
-        """Read the `BRAINSPRESSO_OPT_*` variables as a layer."""
-        entries = []
+        """
+        Read the `BRAINSPRESSO_OPT_*` variables as a layer.
+
+        Returns
+        -------
+        Layer
+
+        Raises
+        ------
+        ConfigError
+            Two variables for one key of one section
+        """
+        entries, seen = [], {}
         for var, data in env_data(self.environ):
-            entries += parse(data, f"${var}", "env")
+            for entry in parse(data, f"${var}", "env"):
+                for key in entry.values:
+                    where = (entry.parts, entry.command, key)
+                    if where in seen:
+                        raise ConfigError(f"${seen[where]} and ${var} set "
+                                          f"the same option")
+                    seen[where] = var
+                entries.append(entry)
         return Layer("env", None, bool(entries), entries)
 
     def layers(self, root=None, folder=None) -> list[Layer]:
@@ -816,11 +892,16 @@ class Loader:
         -------
         list[Layer]
         """
-        out = [self.layer("user", user_dir() / FILENAME)]
-        if root is not None:
-            out.append(self.layer("root", located_file(root)))
-        if folder is not None:
-            out.append(self.layer("dataset", located_file(folder)))
+        user = user_dir() / FILENAME
+        out = [self.layer("user", user)]
+        # (a root or dataset file that is the user file or a `--config`
+        # file is read once, as that: running from `~`)
+        named = {_resolved(f) for f in (user, *self.files)}
+        for kind, folder in (("root", root), ("dataset", folder)):
+            if folder is not None and \
+                    _resolved(located_file(folder)) not in named:
+                out.append(self.layer(kind, located_file(folder)))
+                named.add(_resolved(located_file(folder)))
         out += [self.layer("file", f) for f in self.files]
         out.append(self.env_layer())
         return out
@@ -836,7 +917,8 @@ class Loader:
             Dataset parts
         command : str
         path, out : str, optional
-            Given on the command line
+            Given on the command line: `path` and `out` are one location,
+            so that if either is given, neither is read from config
         folder : str, optional
             Folder of the dataset under the root (None: unknown)
 
@@ -845,10 +927,12 @@ class Loader:
         root : Path
         folder : Path | None
         """
-        early = self.layers()
-        found = resolve(early, parts, command, {"path": PATH, "out": OUT})
-        path = path or found.get("path", (None,))[0]
-        out = out or found.get("out", (None,))[0]
+        if not (path or out):
+            early = self.layers()
+            found = resolve(early, parts, command,
+                            {"path": PATH, "out": OUT})
+            path = found.get("path", (None,))[0]
+            out = found.get("out", (None,))[0]
         root = get_tree_path(path)
         if out:
             return root, Path(out)
@@ -898,9 +982,12 @@ class Loader:
         found = resolve(layers, parts, command, options, own=own,
                         everywhere=lambda: self.everywhere(dataset))
         origins = {}
-        for key in options:
-            if key in cli:
-                origins[key] = Origin("CLI")
+        for key, option in options.items():
+            if key in cli or any(a in cli for a in option.aliases):
+                # (a deprecated alias and its option are one option)
+                origins[key] = Origin("CLI" if key in cli else "built-in")
+            elif key in LOCATION and (path or out):
+                origins[key] = Origin("built-in")   # (one location)
             elif key in found:
                 argument, _ = _given(arguments, key)
                 if argument is None:

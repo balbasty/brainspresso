@@ -715,10 +715,18 @@ roasters get numbers (`Dataset.numbers`).
   `brainspresso.cli`, while `-m` ran a second copy as `__main__`. Now
   datasets never import `brainspresso.cli`, `__init__` imports none, and
   `brainspresso/__main__.py` exists.
-* cyclopts floor `>= 3.17`, measured (CLI tests and snapshot in
-  throwaway venvs): 3.16 drops `--no-json` of a `Literal | bool` field of
-  a flattened group, 3.1 cannot decorate classes with `Parameter`; 3.17,
-  3.18, 3.24, 4.0 and 5.5 pass. A CI job runs at the floor.
+* cyclopts floor `>= 5.1` (Python `>= 3.11`), measured in throwaway
+  environments (r16): roast `--json` is a `Literal["yes", "no", "only"]
+  | bool` field, an option that takes zero or one value (`--json`,
+  `--json only`, `--no-json`). Cyclopts 3.17 to 4.25 refuse the union
+  (token counts 1 and 0) on any `--json`, 5.0 refuses a bare `--json`
+  and `--no-json`; 5.1.0 is the first that parses all of them. No
+  field type of cyclopts 3.17 takes zero or one value, so keeping the
+  command line meant raising the floor (the earlier floor, 3.17, was
+  measured on flag names and tests that never parsed `--json`). 5.1
+  needs Python 3.11, which became the oldest Python (and `tomllib`
+  needs no backport). A CI job runs at the floor (Python 3.11, cyclopts
+  5.1.0), and `tests/test_cli.py` parses every form of `--json`.
 * Later: an entry-point group for third-party datasets, merged into the
   catalog.
 
@@ -738,6 +746,13 @@ environment variables. Layers, later wins (`Loader.layers`):
 4. the dataset file, `<DS>/.brainspresso/config.toml` (`--out`, else
    `<root>/<folder>`, with the bound arguments; a site dataset `--out
    <DS>/<site>` reads its own, not its parent's);
+
+   `path` and `out` are one location: if the command line gives either,
+   neither is read from config, for the values and to find these files
+   (a configured `out` never overrides a `path` given). A root or
+   dataset file that is the user file or a `--config` file (running from
+   `~`: `~/.brainspresso/config.toml`; paths compared resolved) is only
+   read as that;
 5. the files of `bx --config FILE`: a global option, before the dataset
    name, repeatable, applied in order (`cli.global_options`; TOML, or
    YAML if PyYAML is importable);
@@ -750,7 +765,8 @@ the most specific section wins (`Entry.rank`): `[defaults]` <
 `[<command>]` < `[<dataset>]` < `[<dataset>.<command>]`, with one more
 level per argument (`[openneuro]` < `[openneuro.harvest]` <
 `[openneuro.ds000224]` < `[openneuro.ds000224.harvest]`; command names
-are a fixed set, so accessions and commands do not clash). Datasets are
+are a fixed set, so accessions and commands do not clash; accessions
+compare case-insensitively, as names do). Datasets are
 named by their command name, case-insensitively (`[abide1]`,
 `[ABIDE1]`, `[unc-wisconsin]`, `[fcon1000]`); `config.dataset_names` is
 the one naming rule, and the catalog's generated `ARGUMENTS` table
@@ -764,10 +780,22 @@ name), `no-<flag> = true` for a boolean flag (`no-bids`, `no-json`).
 Lists are TOML arrays (a scalar is a list of one, `[]` the empty list,
 which replaces a non-empty default); values become cyclopts tokens
 (`config.tokens`), so lists, `Literal` choices (per dataset, from
-`for_dataset`), `int | str`, `bool | None` and the deprecated aliases
-(`site-layout`, `bidsify`: logged when used, as on the command line)
-convert and fail as on the command line, and the error names the file
-and the section (`Invalid value for --jobs from <file> [ixi.harvest]`).
+`for_dataset`), `int | str`, `bool | None` and `Literal | bool`
+(`json`) convert and fail as on the command line, and the error names
+the file and the section (`Invalid value for --jobs from <file>
+[ixi.harvest]`). A value of a shared section (`[defaults]`,
+`[<command>]`) that is not one of a dataset's choices (`[harvest]
+layout = "sites"` for IXI, `keys` of another dataset) is ignored for
+that dataset (a debug log; a lower value, or the built-in, applies);
+in a section of the dataset it is an error.
+
+Deprecated aliases (`site-layout`, `bidsify`: `OptionGroup.deprecated`,
+the generated `catalog.DEPRECATED`) are refused in config ("use
+`--layout sites:<layout>`", "use `--bids/--no-bids`"): an alias from a
+file would beat, or break, the current flag given on the command line.
+An alias and its option are one option (`OptionInfo.aliases`): when the
+command line gives either (`--no-bidsify`, `--site-layout`), the other
+is not read from config either.
 
 Never read from a file or variable (an error naming the key and the
 file): `yes`/`y`, compost `force` and `ignore-runs`, `password`,
@@ -792,16 +820,19 @@ for the execution profiles and pipelines of §7 and ignored
 Environment: `BRAINSPRESSO_OPT_[<SECTION>__...]<KEY>`, `__` between
 the parts, case-insensitive, `_` for `-` in dataset names and keys
 (`BRAINSPRESSO_OPT_JOBS`: `[defaults]`; `..._HARVEST__JOBS`;
-`..._ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`, split on spaces;
+`..._ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`, lists split as a shell
+does, `shlex.split`: `..._COMPOST__WHERE='"age >= 60" sex==F'`;
 `..._NKI_RS__HARVEST__JOBS`; `..._OPENNEURO__DS000224__HARVEST__TAG`;
-`..._ADHD200__HARVEST__NO_BIDS=1`). The dedicated prefix keeps them
+`..._ADHD200__HARVEST__NO_BIDS=1`). Two variables for one key of one
+section (`..._JOBS` and `..._DEFAULTS__JOBS`, case variants, `BIDS` and
+`NO_BIDS`) are an error naming both. The dedicated prefix keeps them
 apart from `BRAINSPRESSO_LOCKS`, `BRAINSPRESSO_LOCK_TIMEOUT`,
 `BRAINSPRESSO_LOCK_DIR`, `BRAINSPRESSO_CONFIG_HOME`, `BDP_PATH` and the
 credential variables, which keep their meaning.
 
 Mechanism: `config.Loader` is the cyclopts config callable of the root
-app (`App(config=loader)`, cyclopts >= 3.17; its first argument is a
-list of apps in cyclopts 3 and the app in >= 4, and is not used). It
+app (`App(config=loader)`; its first argument, a list of apps in
+cyclopts 3 and the app in >= 4, is not used). It
 runs after the command line is parsed: it reads the parsed `path`,
 `--out` and arguments, finds the files, resolves the values of the
 command's options (`register.config_options`: one `OptionInfo` per
@@ -811,8 +842,12 @@ loader. `bx config show [DATASET [COMMAND [ARGS...]]]` parses the
 command with `App.parse_args` (nothing runs) and prints every option,
 its effective value and its origin (`built-in`, `<file> [<section>]`,
 `env $VAR`, `CLI`); without a dataset, the merged sections of every
-layer. `bx config paths [DATASET [ARGS]] [--path] [--out]` lists the
-files looked up, whether they exist, and the variables set. `config.py`
+layer; without the arguments of a dataset (`bx config show
+openneuro`), the built-in and config values that apply to every
+accession, without parsing, and which arguments narrow it.
+`bx config paths [DATASET [COMMAND] [ARGS]] [--path] [--out]` lists the
+files looked up for COMMAND (default `harvest`, printed: its sections
+may set `path`), whether they exist, and the variables set. `config.py`
 imports neither datasets nor option groups (`bx --help` imports it;
 measured about 5 ms), and `bx config` imports only the dataset it
 shows. Example:
@@ -830,12 +865,9 @@ exclude-keys = ["rest"]
 tag = "1.0.4"
 ```
 
-Limitations: on cyclopts 3.17 to 4.0 (measured: 3.17, 3.18, 3.24, 4.0)
-`--json` cannot be parsed at all, from the command line or a file
-(`Cannot Union types that consume different numbers of tokens` for the
-`Literal | bool` field); it works on 5.5, and its tests are skipped
-below. A null value (YAML) is refused: TOML has none and "unset" is the
-absence of the key.
+A null value (YAML) is refused: TOML has none and "unset" is the
+absence of the key. `--json`, from the command line or a file, needs
+cyclopts 5.1 (the floor, `register`, the catalog and `cli.main`).
 
 ### Layouts
 
@@ -1260,3 +1292,15 @@ up as an XPASS failure once fixed (then drop the marker).
   folder names; one naming function), an accession level for OpenNeuro;
   confirmations, secrets and `--config` never configurable; `bx config
   show|paths`; catalog tables `ARGUMENTS` and `KEYS`.
+* r16: review of PR #24. Deprecated aliases are refused in config files
+  (they beat or broke the current flag of the command line), and an
+  alias given on the command line keeps its option out of config;
+  `path` and `out` are one location; a root or dataset file that is the
+  user file or a `--config` file is read once; shared-section values
+  outside a dataset's choices are ignored there; duplicate environment
+  variables are errors, their lists are split with `shlex`; accessions
+  compare case-insensitively; `bx config show` without arguments, `bx
+  config paths` with a command. Roast `--json` never parsed on cyclopts
+  3.17 to 5.0 (no test parsed it): the floor becomes cyclopts 5.1, the
+  first that parses `--json`, `--json only` and `--no-json`, so Python
+  3.11 (tomllib, no backport).

@@ -15,7 +15,7 @@ from typing import Annotated
 
 import pytest
 from cli_utils import bx
-from cyclopts import Parameter
+from cyclopts import CycloptsError, Parameter
 
 from brainspresso import cli
 from brainspresso.bids.harvest import record_run
@@ -570,3 +570,37 @@ def test_subject_file_with_colon(tmp_path):
     subs = tmp_path / "a:b.txt"
     subs.write_text("2\n12\n")
     assert IXI().labels([str(subs)]) == {"002", "012"}
+
+
+# ----------------------------------------------------------------------
+#   Roast --json: an option of zero or one value (the cyclopts floor)
+# ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("tokens,expected,policy", [
+    ([], "yes", "yes"),
+    (["--json"], True, "yes"),
+    (["--json", "--jobs", "2"], True, "yes"),
+    (["--json", "only"], "only", "only"),
+    (["--json", "no"], "no", "no"),
+    (["--json", "yes"], "yes", "yes"),
+    (["--json", "false"], False, "no"),
+    (["--no-json"], False, "no"),
+])
+def test_json_flag(tmp_path, tokens, expected, policy):
+    app = register(IXI())
+    _, bound, _ = app.parse_args(["roast", str(tmp_path), *tokens],
+                                 exit_on_error=False, print_error=False)
+    group = bound.arguments.get("roast")
+    value = group.json if group is not None else "yes"
+    assert value == expected
+    if group is not None:
+        assert group.json_policy == policy
+    if "--jobs" in tokens:
+        assert group.jobs == 2
+
+
+def test_json_bad_value(tmp_path):
+    app = register(IXI())
+    with pytest.raises(CycloptsError):
+        app.parse_args(["roast", str(tmp_path), "--json", "sometimes"],
+                       exit_on_error=False, print_error=False)

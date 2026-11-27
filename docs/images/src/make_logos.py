@@ -250,7 +250,68 @@ def brainspresso_latte(themed=True, wobble=16, soft=1.0):
 '''
 
 
+# ------------------------------------------------------------------ site icons
+# Favicon versions: tight framing, heavier lines, fewer details, so that
+# they still read at 16-32 px.
+def brainspresso_icon(themed=True):
+    cx, top, bot, hw = 224, 168, 470, 178
+    body = (f'M{cx-hw} {top} H{cx+hw} V{top+70} '
+            f'C{cx+hw} {bot-50} {cx+118} {bot} {cx} {bot} '
+            f'C{cx-118} {bot} {cx-hw} {bot-50} {cx-hw} {top+70} Z')
+    steam = ''.join(
+        f'<path class="ink-s" stroke-width="30" stroke-linecap="round" '
+        f'd="M{x} 136 c-26 -26 26 -42 0 -70 c-12 -13 -6 -26 2 -34"/>'
+        for x in (cx - 62, cx + 62))
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">brainspresso</title>
+  {ATTR}
+  {style(themed=themed)}
+  {steam}
+  <circle class="ink-s" cx="{cx+hw+20}" cy="{top+108}" r="66" stroke-width="42"/>
+  <path class="ink" d="{body}"/>
+  <ellipse class="ink" cx="{cx}" cy="{top}" rx="{hw}" ry="34"/>
+  <ellipse class="crema" cx="{cx}" cy="{top+2}" rx="{hw-26}" ry="19"/>
+  {mark(cx - 6, top + 162, 196, "cream")}
+</svg>
+'''
+
+
+def brainfilter_icon(themed=True):
+    cx, rim_y, base_y, rt, bt = 236, 120, 402, 214, 58
+    cone = (f'M{cx-rt} {rim_y} L{cx+rt} {rim_y} L{cx+bt} {base_y} '
+            f'L{cx-bt} {base_y} Z')
+    pw, n = rt - 16, 8
+    pts = [f'{cx - pw + 2 * pw * i / n:.1f} {56 if i % 2 == 0 else 80}'
+           for i in range(n + 1)]
+    paper = f'M{cx-pw+8} {rim_y} L' + ' L'.join(pts) + f' L{cx+pw-8} {rim_y} Z'
+
+    def wall(y):
+        return cx + rt - (rt - bt) * (y - rim_y) / (base_y - rim_y)
+    y1, y2 = rim_y + 44, rim_y + 156
+    handle = (f'M{wall(y1)-8:.1f} {y1} C{wall(y1)+84:.1f} {y1-8} '
+              f'{wall(y1)+90:.1f} {y2-10} {wall(y2)-6:.1f} {y2}')
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">brainfilter</title>
+  {ATTR}
+  {style(themed=themed)}
+  <g stroke-linejoin="round">
+    <path class="ink-s" stroke-width="34" stroke-linecap="round" d="{handle}"/>
+    <path class="paper" d="{cone}"/>
+    <path class="paper" d="{paper}"/>
+    <path class="ink-s" stroke-width="16" d="{paper}"/>
+    <path class="ink-s" stroke-width="24" d="{cone}"/>
+    <rect class="ink" x="{cx-rt-18}" y="{rim_y-17}" width="{2*rt+36}" height="34" rx="17"/>
+    <rect class="ink" x="{cx-bt-50}" y="{base_y-8}" width="{2*bt+100}" height="30" rx="15"/>
+    {mark(cx, rim_y + 112, 150, "fixed-ink")}
+    {drop(cx, 474, 52, "crema")}
+  </g>
+</svg>
+'''
+
+
 if __name__ == '__main__':
   open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso())
   open(f'{OUT}/brainfilter-logo.svg', 'w').write(brainfilter())
   open(f'{OUT}/brainspresso-logo-latte.svg', 'w').write(brainspresso_latte())
+  open(f'{OUT}/brainspresso-icon.svg', 'w').write(brainspresso_icon())
+  open(f'{OUT}/brainfilter-icon.svg', 'w').write(brainfilter_icon())

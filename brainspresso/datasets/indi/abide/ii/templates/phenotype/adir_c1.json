@@ -1,0 +1,14 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item C1"
+    },
+    "unusual_preoccupations": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C1_UNUSUAL_PREOCCUPATIONS"
+    },
+    "circumscribed_interests": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C1_CIRCUMSCRIBED_INTERESTS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C1_TOTAL"
+    }
+}

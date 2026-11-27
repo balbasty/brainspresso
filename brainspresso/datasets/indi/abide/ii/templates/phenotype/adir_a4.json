@@ -1,0 +1,23 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item A4"
+    },
+    "use_others_body": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_USE_OTHERS_BODY"
+    },
+    "offering_comfort": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_OFFERING_COMFORT"
+    },
+    "quality_social_overtures": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_QUALITY_SOCIAL_OVERTURES"
+    },
+    "inappropriate_facial_expressions": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_INAPPROPRIATE_FACIAL_EXPRESSIONS"
+    },
+    "appropriate_social_responses": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_APPROPRIATE_SOCIAL_RESPONSES"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A4_Total"
+    }
+}

@@ -1,0 +1,53 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Conners' Parent Rating Scale (CPRS)"
+    },
+    "opp": {
+        "Description": "ABIDE-II phenotypic column CPRS_OPP"
+    },
+    "cog_inatt": {
+        "Description": "ABIDE-II phenotypic column CPRS_COG-INATT"
+    },
+    "hyperact": {
+        "Description": "ABIDE-II phenotypic column CPRS_HYPERACT"
+    },
+    "anx_shy": {
+        "Description": "ABIDE-II phenotypic column CPRS_ANX_SHY"
+    },
+    "perfect": {
+        "Description": "ABIDE-II phenotypic column CPRS_PERFECT"
+    },
+    "social_prob": {
+        "Description": "ABIDE-II phenotypic column CPRS_SOCIAL_PROB"
+    },
+    "psycho_somatic": {
+        "Description": "ABIDE-II phenotypic column CPRS_PSYCHO_SOMATIC"
+    },
+    "conn_adhd": {
+        "Description": "ABIDE-II phenotypic column CPRS_CONN_ADHD"
+    },
+    "rest_impul": {
+        "Description": "ABIDE-II phenotypic column CPRS_REST_IMPULS"
+    },
+    "emot_lability": {
+        "Description": "ABIDE-II phenotypic column CPRS_EMOT_LABILITY"
+    },
+    "conn_gi_total": {
+        "Description": "ABIDE-II phenotypic column CPRS_CONN_GI_TOTAL"
+    },
+    "dsm_iv_inatt": {
+        "Description": "ABIDE-II phenotypic column CPRS_DSM_IV_INATT"
+    },
+    "dsm_iv_hyper_impul": {
+        "Description": "ABIDE-II phenotypic column CPRS_DSM_IV_HYPER_IMPUL"
+    },
+    "dsm_iv_total": {
+        "Description": "ABIDE-II phenotypic column CPRS_DSM_IV_TOTAL"
+    },
+    "inatt_symptoms": {
+        "Description": "ABIDE-II phenotypic column CPRS_INATT_SYMPTOMS"
+    },
+    "hyper_impul_symptoms": {
+        "Description": "ABIDE-II phenotypic column CPRS_HYPER_IMPUL_SYMPTOMS"
+    }
+}

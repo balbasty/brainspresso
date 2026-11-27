@@ -32,9 +32,6 @@ from brainspresso.datasets.base import Args, Dataset, KeySpec
 from brainspresso.datasets.bullitt.dataset import Bullitt
 from brainspresso.datasets.catalog import CATALOG, load
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
-from brainspresso.datasets.indi.abide.ii.bidsifier import (
-    Bidsifier as BidsifierII,
-)
 from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
 from brainspresso.datasets.indi.adhd200.dataset import ADHD200
 from brainspresso.datasets.indi.cobre.dataset import COBRE
@@ -43,9 +40,7 @@ from brainspresso.datasets.oasis.iii.dataset import OASIS3
 from brainspresso.datasets.openneuro.dataset import OpenNeuroDataset
 from brainspresso.datasets.options import (
     HarvestOptions,
-    KeyOptions,
     OptionGroup,
-    SelectionOptions,
     option_group,
 )
 from brainspresso.datasets.register import command_names, register
@@ -441,24 +436,13 @@ def test_ignore_runs_is_not_force(tmp_path, capsys):
     assert not (root / "sub-0005").exists()
 
 
-def test_legacy_subjects_files_and_ranges(tmp_path):
-    subs = tmp_path / "subs.txt"
-    subs.write_text("40000\nsub-40001\n")
-    abide = ABIDE2()
-    assert abide.numbers([str(subs), "3:5", "sub-7"]) == [3, 4, 7, 40000,
-                                                          40001]
-    abide.check("roast", Args.of(abide, "roast", select=SelectionOptions(
-        subs=(str(subs), "1:3"))))
-    with pytest.raises(UsageError):
-        abide.numbers(["abc"])
-
-
-def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
-    # an invalid subject
+def test_roast_bad_options_create_nothing(tmp_path, capsys):
+    # an invalid subject range (no dataset takes subject numbers any
+    # more: `legacy_subjects` went with the ABIDE-II port)
     (tmp_path / "ABIDE-2").mkdir()
     with pytest.raises(SystemExit):
-        main(["abide2", "roast", str(tmp_path), "--subs", "abc"])
-    assert "Subjects are numbers" in capsys.readouterr().err
+        main(["abide2", "roast", str(tmp_path), "--subs", "a:b"])
+    assert "not numbers" in capsys.readouterr().err
     assert not any((tmp_path / "ABIDE-2").iterdir())
     # a missing dataset
     with pytest.raises(SystemExit):
@@ -535,11 +519,6 @@ def test_group_defaults_cover_all():
     assert bullitt.effective(bullitt.default) == (bullitt.default, ())
     assert bullitt.leaves(["raw"]) == {"flash", "mprage", "T2w", "angio",
                                        "dwi"}
-    # legacy roasts get leaves, exclusions removed
-    args = Args.of(ABIDE2(), "roast", keys=KeyOptions(
-        exclude_keys=("dti", "rest")))
-    assert ABIDE2().legacy_keys("roast", args) == {
-        "T1w", "anat", "pheno", "meta"}
 
 
 def test_abide1_fs_keys_are_siblings():
@@ -576,17 +555,18 @@ def test_bad_subject_range(tmp_path, capsys):
 
 
 def test_abide_two_exclude_keys(tmp_path):
-    assert BidsifierII(tmp_path / "A2", exclude_keys={"dti", "rest"}
-                       ).exclude_keys == {"dti", "rest"}
-    # ABIDE-I (engine): two excluded keys select the rest
-    selection = ABIDE1().keys_for("roast").resolve().selection(
-        exclude_keys=["T1w", "rest"])
-    assert not selection.wants("T1w") and not selection.wants("rest")
-    assert selection.wants("meta")
+    # (engine) two excluded keys select the rest
+    for dataset, excluded, kept in ((ABIDE1, ["T1w", "rest"], "meta"),
+                                    (ABIDE2, ["dti", "rest"], "T1w")):
+        selection = dataset().keys_for("roast").resolve().selection(
+            exclude_keys=excluded)
+        assert not any(selection.wants(k) for k in excluded)
+        assert selection.wants(kept) and selection.wants("pheno")
 
 
 def test_abide_roast_help_notes(capsys):
-    for ds, note in (("abide1", "--source xnat"), ("abide2", "step 5")):
+    for ds, note in (("abide1", "--source xnat"),
+                     ("abide2", "is not roasted")):
         try:
             main([ds, "roast", "--help"])
         except SystemExit:

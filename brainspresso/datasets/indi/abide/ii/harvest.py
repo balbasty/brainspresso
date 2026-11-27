@@ -6,16 +6,19 @@ Sources:
 * **nitrc** (default): NITRC tarballs
   (`ABIDEII-<SITE>_<sample>[_<part>].tar.gz`) and phenotypes
   (`ABIDEII-<SITE>_<sample>.csv`), login required. This is what
-  `roast` reads.
+  `roast` reads (`roaster.roast_nitrc`).
 * **s3** (`--source s3`, raw data only): the public INDI bucket
   (`s3://fcp-indi/data/Projects/ABIDE2/RawData/`), no login, mirrored in
   `sourcedata/RawData/`. The bucket holds a re-curated, BIDS-like copy
   of the images (one dataset per site, runs and acquisitions, sidecars
   in `RawData/sidecards/`), not the tarballs: `roast` does not read it
-  yet. Sites that the bucket lacks (SU, U_MIA) come from NITRC.
+  (architecture §9). Sites that the bucket lacks (SU, U_MIA) come from
+  NITRC as tarballs, which `roast` reads (the same roaster).
 """
 import re
 
+from brainspresso.datasets.indi.abide.ii.roaster import roast_nitrc
+from brainspresso.datasets.indi.abide.ii.sites import SITES
 from brainspresso.sources.base import (
     CompositeSource,
     numeric_labels,
@@ -23,10 +26,6 @@ from brainspresso.sources.base import (
 from brainspresso.sources.fcp import FCP
 from brainspresso.sources.nitrc import NITRC
 
-SITES = (
-    'BNI', 'EMC', 'ETH', 'GU', 'IU', 'IP', 'KUL', 'KKI', 'NYU', 'ONRC',
-    'OHSU', 'TCD', 'SDSU', 'SU', 'UCD', 'UCLA', 'U_MIA', 'USM', 'UPSM'
-)
 KEYS = ("raw", "meta")
 
 
@@ -61,14 +60,17 @@ NOT_ON_S3 = frozenset({'SU', 'U_MIA'})
 
 
 class SitesOption:
+    """Per-run option `sites` (names of `--sites`; empty: all)."""
+
     sites: frozenset = frozenset()
 
     def keeps_site(self, site: str) -> bool:
+        """Whether a site is selected."""
         return not self.sites or site in self.sites
 
 
 class NITRCTarballs(SitesOption, NITRC):
-    """ABIDE-II tarballs and phenotypes from NITRC (login)"""
+    """ABIDE-II tarballs and phenotypes from NITRC (login)."""
 
     provides = frozenset({"raw", "meta"})
     urls = {
@@ -78,27 +80,29 @@ class NITRCTarballs(SitesOption, NITRC):
     }
 
     def keep(self, entry, selection, wants) -> bool:
+        """Whether to fetch an entry (its site is selected)."""
         return self.keeps_site(entry.meta["site"])
 
 
 class NITRCMissingFromS3(NITRCTarballs):
-    """Tarballs of the sites that the bucket lacks"""
+    """Tarballs of the sites that the bucket lacks."""
 
     provides = frozenset({"raw"})
 
     def keep(self, entry, selection, wants) -> bool:
+        """Whether to fetch an entry (a selected site the bucket lacks)."""
         return entry.meta["site"] in NOT_ON_S3 and \
             super().keep(entry, selection, wants)
 
 
 def s3_site(folder: str) -> str:
-    """'ABIDEII-ETHZ_1' -> 'ETH', 'ABIDEII-UCLA_Long' -> 'UCLA'"""
+    """Site of a bucket folder (`ABIDEII-ETHZ_1` -> `ETH`)."""
     name = folder[len("ABIDEII-"):].rsplit("_", 1)[0]
     return S3_SITES.get(name, name)
 
 
 def sidecar_site(parts) -> str | None:
-    """Site of a sidecar path below `sidecards/` (None if unknown)"""
+    """Site of a sidecar path below `sidecards/` (None if unknown)."""
     for part in parts:
         m = re.match(r"^(ABIDEII-[^.]*?)(?:_[a-z]+-.*|\.[^/]*)?$", part)
         if m:
@@ -107,7 +111,7 @@ def sidecar_site(parts) -> str | None:
 
 
 class S3(SitesOption, FCP):
-    """ABIDE-II images from s3://fcp-indi (BIDS-like copy, no login)"""
+    """ABIDE-II images from s3://fcp-indi (BIDS-like copy, no login)."""
 
     name = "s3"
     provides = frozenset({"raw"})
@@ -117,6 +121,7 @@ class S3(SitesOption, FCP):
         super().__init__("ABIDE2/RawData", **kwargs)
 
     def keep(self, entry, selection, wants) -> bool:
+        """Whether to fetch a file of the bucket (site and subject)."""
         parts = entry.relpath.parts
         if len(parts) < 2 or "derivatives" in parts:
             return False
@@ -133,14 +138,16 @@ class S3(SitesOption, FCP):
         return sub is None or self.keeps_subject(selection, sub)
 
     def local_path(self, entry) -> str:
+        """Path of a file in `sourcedata/` (`RawData/<path>`)."""
         return f"RawData/{entry.path}"
 
 
 def sources() -> dict:
-    """Sources of ABIDE-II"""
+    """Return the sources of ABIDE-II (one roaster: the NITRC tarballs)."""
     return {
-        "nitrc": NITRCTarballs(),
-        "s3": CompositeSource(S3(), NITRCMissingFromS3(), name="s3"),
+        "nitrc": NITRCTarballs(roaster=roast_nitrc),
+        "s3": CompositeSource(S3(), NITRCMissingFromS3(), name="s3",
+                              roaster=roast_nitrc),
     }
 
 

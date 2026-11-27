@@ -40,6 +40,7 @@ from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
 from brainspresso.bids.tables import (
+    is_phenotype,
     is_trimmable,
     query_participants,
     trim_tables,
@@ -769,7 +770,8 @@ def trim_originals(layout: Layout) -> list[str]:
     """
     Derive the visible tables of a roasted dataset from pristine copies.
 
-    The participants/sessions/scans tables are derived from their
+    The participants/sessions/scans tables, and the phenotype tables
+    (`phenotype/<name>.tsv`, by `participant_id`), are derived from their
     pristine copies (`<state>/orig/<path>`, written complete by
     roasters), keeping the rows that refer to something on
     disk. A sessions or scans table whose folder does not exist (subject
@@ -784,11 +786,11 @@ def trim_originals(layout: Layout) -> list[str]:
     originals = {}
     for path in orig.rglob("*.tsv"):
         relpath = path.relative_to(orig).as_posix()
-        if not is_trimmable(relpath) and \
-                not relpath.endswith("/participants.tsv"):
+        whole = Path(relpath).name == "participants.tsv" or \
+            is_phenotype(relpath)
+        if not is_trimmable(relpath) and not whole:
             continue
-        if Path(relpath).name != "participants.tsv" and \
-                not (Path(layout.root) / relpath).parent.is_dir():
+        if not whole and not (Path(layout.root) / relpath).parent.is_dir():
             continue
         originals[relpath] = path
     written = trim_tables(layout.root, originals)

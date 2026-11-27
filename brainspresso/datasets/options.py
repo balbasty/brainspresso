@@ -837,8 +837,9 @@ class CompostOptions(OptionGroup):
         help="Apply subject and session filters to `derivatives/*/` too"
     )] = False
     trim: Annotated[bool, Parameter(
-        help="Rewrite participants/sessions/scans tables so that they only "
-        "list what is left"
+        help="Rewrite participants/sessions/scans tables, and the phenotype "
+        "tables that a roast wrote (pristine copy in `.brainspresso/orig/`), "
+        "so that they only list what is left"
     )] = True
     force: Annotated[bool, Parameter(
         help="Delete source data even if no BIDS subject is found (the "

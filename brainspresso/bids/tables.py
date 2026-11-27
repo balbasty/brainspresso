@@ -11,7 +11,7 @@ import csv
 import io
 import operator
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 _OPS = {
@@ -129,6 +129,10 @@ def trim_tables(
             base = Path(subjects) if subjects is not None else folder
             rows = [r for r in rows
                     if (base / r.get("participant_id", "")).is_dir()]
+        elif is_phenotype(relpath):
+            base = Path(subjects) if subjects is not None else folder.parent
+            rows = [r for r in rows
+                    if (base / r.get("participant_id", "")).is_dir()]
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
                     if (folder / r.get("session_id", "")).is_dir()]
@@ -141,6 +145,35 @@ def trim_tables(
         write_tsv(root / relpath, header, rows)
         written.append(relpath)
     return written
+
+
+def is_phenotype(relpath: str) -> bool:
+    """
+    Whether a table is a phenotype table (`[<raw>/]phenotype/<name>.tsv`).
+
+    `trim_tables` trims its rows to the subjects on disk, by
+    `participant_id`, as those of the participants table. Which tables
+    reach it: those a roaster writes a pristine copy of
+    (`.brainspresso/orig/`: `trim_originals`, compost's
+    `retrim_tables`), and those a hosted harvest trims
+    (`is_trimmable`): a harvested `phenotype/<name>_sessions.tsv` is
+    trimmed by `participant_id` too (it was trimmed by `session_id`
+    against `phenotype/ses-*`, which dropped every row). Other
+    phenotype tables of hosted harvests are not trimmed; the metadata
+    roast of hosted datasets does not use this function
+    (`bids.hosted.trim_rows`, by file name, unchanged).
+
+    Parameters
+    ----------
+    relpath : str
+        Path of the table (POSIX), relative to a dataset
+
+    Returns
+    -------
+    bool
+    """
+    path = PurePosixPath(relpath)
+    return path.suffix == ".tsv" and path.parent.name == "phenotype"
 
 
 def is_trimmable(relpath: str) -> bool:

@@ -8,6 +8,9 @@
   "verbal": {
     "Description": "Abnormalities in Comunication Subscore (B) total for Autism Diagnostic Interview-Revised {0..26}"
   },
+  "nonverbal": {
+    "Description": "Abnormalities in Communication Subscore (B) total, nonverbal, for Autism Diagnostic Interview-Revised (ADI_R_NONVERBAL_TOTAL_BV)"
+  },
   "rrb": {
     "Description": "Restricted, Repetitive, and Stereotyped Patterns of Behavior Subscore (C) total for Autism Diagnostic Interview-Revised {0..12}"
   },

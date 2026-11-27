@@ -1,0 +1,92 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Child and Adolescent Symptom Inventory (CASI)"
+    },
+    "adhd_i_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ADHD-I_CUTOFF"
+    },
+    "adhd_h_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ADHD-H_CUTOFF"
+    },
+    "adhd_c_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ADHD-C_CUTOFF"
+    },
+    "odd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ODD_CUTOFF"
+    },
+    "cd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_CD_CUTOFF"
+    },
+    "gad_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_GAD_CUTOFF"
+    },
+    "specific_phobia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SPECIFIC_PHOBIA_CUTOFF"
+    },
+    "obsessions_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_OBSESSIONS_CUTOFF"
+    },
+    "compulsions_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_COMPULSIONS_CUTOFF"
+    },
+    "ptsd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_PTSD_CUTOFF"
+    },
+    "motor_tics_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_MOTOR_TICS_CUTOFF"
+    },
+    "vocal_tics_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_VOCAL_TICS_CUTOFF"
+    },
+    "social_phobia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SOCIAL_PHOBIA_CUTOFF"
+    },
+    "separation_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SEPARATION_CUTOFF"
+    },
+    "schizophrenia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SCHIZOPHRENIA_CUTOFF"
+    },
+    "nocturnal_enuresis_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_NOCTURNAL_ENURESIS_CUTOFF"
+    },
+    "enuresis_encopresis_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ENURESIS_ENCOPRESIS_CUTOFF"
+    },
+    "mde_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_MDE_CUTOFF"
+    },
+    "dysthymic_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_DYSTHYMIC_CUTOFF"
+    },
+    "autistic_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_AUTISTIC_CUTOFF"
+    },
+    "asperger_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ASPERGER_CUTOFF"
+    },
+    "aspd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ASPD_CUTOFF"
+    },
+    "panic_attacks_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_PANIC_ATTACKS_CUTOFF"
+    },
+    "somatization_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SOMATIZATION_CUTOFF"
+    },
+    "schizoid_personality_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SCHIZOID_PERSONALITY_CUTOFF"
+    },
+    "manic_episode_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_MANIC_EPISODE_CUTOFF"
+    },
+    "anorexia_nervosa_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_ANOREXIA_NERVOSA_CUTOFF"
+    },
+    "bulimia_nervosa_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_BULIMIA_NERVOSA_CUTOFF"
+    },
+    "substance_use_cutoff": {
+        "Description": "ABIDE-II phenotypic column CASI_SUBSTANCE_USE_CUTOFF"
+    }
+}

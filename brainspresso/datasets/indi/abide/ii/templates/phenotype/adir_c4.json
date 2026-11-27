@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item C4"
+    },
+    "repetitive_use_objects": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C4_REPETITIVE_USE_OBJECTS"
+    },
+    "higher": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C4_HIGHER"
+    },
+    "unusual_sensory_interests": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C4_UNUSUAL_SENSORY_INTERESTS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C4_TOTAL"
+    }
+}

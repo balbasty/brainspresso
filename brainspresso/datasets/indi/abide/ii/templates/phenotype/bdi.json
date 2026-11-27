@@ -1,0 +1,11 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Beck Depression Inventory (BDI)"
+    },
+    "edition": {
+        "Description": "ABIDE-II phenotypic column BDI_EDITION"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column BDI_TOTAL"
+    }
+}

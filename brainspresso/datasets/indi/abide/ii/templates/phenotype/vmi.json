@@ -1,0 +1,11 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Beery-Buktenica Developmental Test of Visual-Motor Integration (VMI)"
+    },
+    "edition": {
+        "Description": "ABIDE-II phenotypic column VMI_EDITION"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column VMI_VMI_S"
+    }
+}

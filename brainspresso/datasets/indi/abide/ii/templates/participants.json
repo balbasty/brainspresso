@@ -24,11 +24,17 @@
       }
   },
   "sample": {
-    "Description": "different samples within same site",
+    "Description": "different samples within same site (the site itself for sites with one sample)",
     "Levels": {
-      "UCLA1": "",
-      "UCLA2": "",
-      "UCLALong": ""
+      "NYU1": "NYU, sample 1",
+      "NYU2": "NYU, sample 2",
+      "ONRC1": "ONRC, sample 1",
+      "ONRC2": "ONRC, sample 2",
+      "SU1": "SU, sample 1",
+      "SU2": "SU, sample 2",
+      "UCLA1": "UCLA, sample 1",
+      "UCLALong": "UCLA, longitudinal sample (baseline: ABIDE-I UCLA_1 or UCLA_2)",
+      "UPSMLong": "UPSM, longitudinal sample (baseline: ABIDE-I Pitt)"
     }
   },
   "ndar_guid": {

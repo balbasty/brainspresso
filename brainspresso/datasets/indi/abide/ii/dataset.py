@@ -1,8 +1,8 @@
 """`bx abide2`: ABIDE-II (autism spectrum disorders)."""
 from brainspresso.datasets.base import Dataset, KeySpec
-from brainspresso.datasets.indi.abide.ii.bidsifier import Bidsifier
 from brainspresso.datasets.indi.abide.ii.harvest import DEFAULTS, sources
-from brainspresso.datasets.indi.abide.ii.keys import allkeys
+from brainspresso.datasets.indi.abide.ii.roaster import ROAST_SPEC
+from brainspresso.datasets.indi.abide.ii.sites import SITES, TEMPLATES
 
 HELP = """
 ABIDE-II dataset (autism spectrum disorders)
@@ -17,10 +17,6 @@ ABIDE-II dataset (autism spectrum disorders)
 """  # noqa: E501
 
 KEYS = ("raw", "meta")
-SITES = (
-    'BNI', 'EMC', 'ETH', 'GU', 'IU', 'IP', 'KUL', 'KKI', 'NYU', 'ONRC',
-    'OHSU', 'TCD', 'SDSU', 'SU', 'UCD', 'UCLA', 'U_MIA', 'USM', 'UPSM'
-)
 
 
 class ABIDE2(Dataset):
@@ -31,17 +27,18 @@ class ABIDE2(Dataset):
     indi_category = "retro"
     title = "ABIDE-II"
     help = HELP
-    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
+    subject_width = 5
     harvest_subjects = False
     site_names = SITES
     credentials = "login"
     harvest_jobs = 1
+    template_dir = TEMPLATES
 
     def keys_for(self, command):
-        """Roast keys: the key hierarchy of the legacy roaster."""
+        """Roast keys: those of the roaster (`roaster.KEYS`)."""
         if command == "roast":
-            return KeySpec(allkeys)
+            return ROAST_SPEC
         return self.keys
 
     @property
@@ -54,23 +51,21 @@ class ABIDE2(Dataset):
         return sources()
 
     def describe(self, command):
-        """Roast: what the legacy roaster filters."""
+        """Roast: what the roaster converts."""
         if command == "roast":
             return (
-                "Convert the source data of ABIDE-II to BIDS (legacy "
-                "roaster, `Bidsifier` class, rewritten in step 5).\n\n"
-                "`--keys` and `--exclude-keys` do not filter raw data yet "
-                "(every raw scan is converted): that comes with step 5."
+                "Convert the source data of ABIDE-II to BIDS.\n\n"
+                "The NITRC tarballs (`--source nitrc`, and those that "
+                "`--source s3` fetches for the sites the bucket lacks: "
+                "SU, U_MIA): T1w, rest and DWI (`dti`) of every session "
+                "(`ses-01`, `ses-02`), with `run-<n>` on every scan of a "
+                "kind when a session has several; the phenotypes. SU and "
+                "U_MIA have no sidecar templates (no protocol printout): "
+                "their images are written without sidecars, with a "
+                "warning. The bucket copy of `--source "
+                "s3` (`sourcedata/RawData/`, BIDS-like) is not roasted. "
+                "`participants.tsv` and the phenotype tables list the "
+                "subjects whose folder is on disk (all of them are in the "
+                "pristine copies, `.brainspresso/orig/`)."
             )
         return super().describe(command)
-
-    def roast(self, layout, args):
-        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
-        Bidsifier(
-            layout.root, keys=self.legacy_keys("roast", args),
-            exclude_keys=set(args.keys.exclude_keys),
-            subs=self.numbers(args.select.subs),
-            exclude_subs=self.numbers(args.select.exclude_subs),
-            json=args.roast.sidecar_policy, layout=layout.kind,
-            ifexists=args.roast.if_exists,
-        ).run()

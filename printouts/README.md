@@ -281,7 +281,7 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   `datasets/convert_ABIDE1.sh`: sites with samples get one template folder
   per sample (`CMU_a/`, `CMU_b/`, `Leuven_1/`, `Leuven_2/`, `MaxMun_a/`..
   `MaxMun_d/`, `UCLA_1/`, `UCLA_2/`, `UM_1/`, `UM_2/`), declared in
-  `BidsifierBase.SAMPLES`. The roast parses the site name of the data in
+  `sites.SAMPLES` (`datasets/indi/abide/i/sites.py`). The roast parses the site name of the data in
   any source spelling (S3 `RawData/MaxMun_a/`, NITRC `Leuven_1.tgz`, XNAT
   `UCLA1`/`Leuven-1`, phenotypic `MAX_MUN`) and uses
   `templates/<Site>_<sample>/<suffix>.json`, else
@@ -295,9 +295,11 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   first sample (only where all samples share one protocol, which the
   tests check). Sites without samples accept only a tarball part as
   suffix (`NYU_a`). An unknown site, sample or suffix, or a missing
-  template, is an error naming both, counted by the roast. `UCLA_{1,2}/acq-hires_T1w.json` is
+  template, is an error naming both, counted by the roast. `UCLA_{1,2}/acq-hires_T2w.json` is
   the high-resolution anatomical (`anat_hires`, protocol 1 of `anat.pdf`),
-  not read by the roast yet.
+  the sidecar of UCLA `anat_2` (`sub-<label>_acq-hires_T2w`, key `T2w`):
+  a "Matched Bandwidth HiRes" 2D spin-echo EPI, hence T2w, not T1w (owner
+  decision, step 5).
 - ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
   exports (`*.txt`) are kept over the scantable for BNI_1, ETH_1, KUL_3 and
   TCD_1 (more keys: parallel imaging, readout, slice timing). New templates

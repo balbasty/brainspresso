@@ -297,8 +297,10 @@ Implemented (step 3):
   (`LocalSource`); ABIDE-II: nitrc, `--source s3` opt-in; OASIS-III:
   xnat; UNC-Wisconsin, Bullitt: girder; COBRE: nitrc; GSP: dataverse;
   OASIS-I/II: static URLs; ADNI: user URLs or `local`). Roasters that are
-  runner roasters are declared (IXI, UNC-Wisconsin, OASIS-III; imported
-  on use); the others stay None until step 5.
+  runner roasters are declared (IXI, UNC-Wisconsin, OASIS-III, imported
+  on use; COBRE and ABIDE-I in step 5, where ABIDE-I's s3 and nitrc
+  share `roast_nitrc` and xnat has `roast_xnat`); the others stay None
+  until step 5.
 * Not done: ABIDE-II from S3 by default. The bucket holds a re-curated
   BIDS-like copy (one dataset per site, runs, acquisitions, ETHZ for
   ETH, no SU/U_MIA, sidecars in `RawData/sidecards/`), not the tarballs
@@ -605,6 +607,28 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   2 decompressions per image disc, 1 per FreeSurfer disc (plus a
   listing of the image disc of the same number if a tree lacks the
   `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
+* Several gz archives (ABIDE-I, step 5): one shard per gz archive (NITRC
+  `<Site>.tgz`, id `roast/raw/<name>`), or per folder that stands for
+  one (a site folder of a bucket copy, `RawData/<Site>/`, its files as
+  `inputs`), or per subject where each subject's scans are small
+  archives of their own (XNAT `<label>/<scan>.tar.gz`); members are
+  read lazily in archive order and each selected one is extracted when
+  it is reached. An action that must read a member twice (the NIfTI
+  header of a bold image whose template lacks `RepetitionTime`) comes
+  after the extraction and reads the written file, or the member it is
+  on when the image is not written (`--sidecars only`): a backward seek
+  in a gz stream decompresses from the start again. The templates a
+  shard may use (path, sha256) are its `Shard.config`; a corrupt
+  archive is a `Fail` of its own shard (the others run). FreeSurfer
+  trees packed under any number of wrapper folders are rooted just
+  before the deepest FreeSurfer folder of each member (`mri`, `surf`,
+  `label`, `stats`, `scripts`, `touch`), not by a fixed number of
+  leading parts; the first root seen is the subject's, other trees
+  (`fsaverage/`), absolute paths and `..` are skipped with a warning.
+  Work that a shard would hand to a child shard (FreeSurfer conversion
+  after unpacking) is yielded as a sibling shard by the roaster, or as
+  actions after the unpacking: a shard that yields shards is never
+  skipped by signature.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
@@ -935,14 +959,17 @@ after `record_run` (without `defaults`: the first source, or the one of
 unchanged. The default `roast` builds the context from `keys_for("roast")`
 and `template_dir`, then runs the roaster of `select_roaster` with
 `ctx.source` set to its source folder; `roast --source` only exists when
-sources have different roasters (and for ABIDE-I's legacy roasters).
+sources have different roasters (ABIDE-I: nitrc/s3 and xnat).
 `--dry-run` creates nothing and takes no lock. `KeySpec(tree, choices,
 default, off).effective(keys, exclude)`: `--keys` that covers every
 choice, or the default `--keys` of a spec whose default is "all but
 `off`" (groups expanded to their leaves, `KeySpec.leaves`: `all`),
 counts as no `--keys` (so `--exclude-keys` alone means "all but" and,
 in a roast, keeps the files of no key), and the default
-excludes `off` (IXI roast: `trace` only when named in `--keys`); a
+excludes `off` (IXI roast: `trace` only when named in `--keys`);
+`implies=((add_on, key),)` makes an add-on follow its key (ABIDE-I
+`fs-all`: `--keys fs-all` also selects `fs`, `--exclude-keys fs` also
+excludes `fs-all`, in harvest and roast); a
 default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
@@ -1344,7 +1371,8 @@ units take the run lock (§7, "What the ports must and must not assume").
 |---------|---------|-------|-------|
 | IXI | declared (login) | declared (source roasters) | `requires` roast xlrd, width 3 |
 | UNC-Wisconsin, OASIS-III | declared (token / login) | declared | UNC sessions |
-| ABIDE-I, ABIDE-II, CoRR | declared (sites, login) | ABIDE: override, legacy code (step 5) | ABIDE-I `download-nitrc/xnat` dropped |
+| ABIDE-I | declared (sites, login) | declared (source roasters, step 5: `roast_nitrc` for s3 and nitrc, `roast_xnat`) | width 5; `download-nitrc/xnat` dropped; roast `--source` (default s3) |
+| ABIDE-II, CoRR | declared (sites, login) | ABIDE-II: override, legacy code (step 5) | |
 | COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
 | OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
 | Bullitt, OASIS-II | declared (OASIS: `parts` group) | override, legacy code; own `keys_for("roast")` | |
@@ -2152,7 +2180,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2173,8 +2201,8 @@ Each step lands as commits on the refactor branch with its tests green.
   `brainspresso/percolate/` (step 4g); other packages are exempt through
   one negated `per-file-ignores` pattern in `pyproject.toml`
   (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
-  and the ported modules and datasets, `datasets/indi/cobre/**` and
-  `datasets/oasis/i/**` in step 5; two
+  and the ported modules and datasets, `datasets/indi/cobre/**`,
+  `datasets/oasis/i/**` and `datasets/indi/abide/i/**` in step 5; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2205,6 +2233,24 @@ Each step lands as commits on the refactor branch with its tests green.
   (`fcon_1000.projects.nitrc.org/indi/{retro,pro,enhanced}/`) is
   metadata (`Dataset.indi_category`, `Project.category`, shown by
   `info`), not a folder.
+* Ports (step 5, COBRE and ABIDE-I): the roaster is declared on each
+  source (`Source(roaster=)`); sources whose files share one layout
+  share one roaster (ABIDE-I s3 and nitrc), so that `roast --source`
+  exists only where the layouts differ. The module has a `roast(root,
+  *, subs=, exclude_subs=, **options)` Python API whose subjects go
+  through `subject_labels(values, width)`, as on the command line (no
+  `legacy_subjects`, `legacy_keys` or `numbers`). Keys a roaster must
+  tell apart are sibling leaves of a `KeyAliases`, never a group and its
+  only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
+  missing input that the selection needs is a counted `Fail` (one per
+  missing file, not one per output it would feed; for optional inputs
+  such as derivatives, only when `--keys` names them, as OASIS-I discs
+  and ABIDE-I FreeSurfer archives; otherwise an info line); a missing
+  sidecar
+  template is one only when sidecars are written; tables are written
+  complete to `<state>/orig/` (participants) with `n/a` for missing
+  values, `participant_id` with its `sub-` prefix, blank rows skipped and
+  bad rows skipped with a warning.
 * Imports are at the top level of modules (ruff `PLC0415`, step 4). A
   local import is kept only for an optional dependency, a genuine
   import cycle that moving code cannot break, or the start-up time of
@@ -2243,13 +2289,17 @@ up as an XPASS failure once fixed (then drop the marker).
 
 * ABIDE-II `_make_raw`: `return` instead of `continue` in the member loop.
 * ABIDE-II `_run`: `rawkeys` built from `allleaves`, ignoring `keys`
-  (same pattern, untested, in `indi/abide/i/bidsifier_xnat.py`).
+  (~~same pattern in `indi/abide/i/bidsifier_xnat.py`~~: there the
+  derivative leaves were removed with `lower_keys` of the generic tree,
+  so `proc-min`, `qa-man` and `qa-pcp` each converted the rest scans
+  again; gone with the port, step 5, which selects by output).
 * ABIDE-II participants mapper: stray backtick in `CURRENT_MED_STATUS`.
 * ABIDE-II `make_participants` reads ABIDE-I's `Phenotypic_V1_0b.csv`
   (suspected, no xfail).
-* ABIDE-I nitrc: phenotype glob misses `phenotypic_MAX_MUN.csv`.
-* `participant_id` without `sub-` prefix: ABIDE-I, ABIDE-II, ~~COBRE~~
-  (COBRE fixed in its port, step 5).
+* ~~ABIDE-I nitrc: phenotype glob misses `phenotypic_MAX_MUN.csv`.~~
+  (fixed in its port, step 5)
+* `participant_id` without `sub-` prefix: ~~ABIDE-I~~, ABIDE-II,
+  ~~COBRE~~ (COBRE and ABIDE-I fixed in their ports, step 5).
 * ~~OASIS-I: missing comma in `PARTICIPANTS_HEADER` (`'handednessage'`);
   `do_tal` looks up members without `.img` (Talairach never written);
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
@@ -2273,13 +2323,20 @@ up as an XPASS failure once fixed (then drop the marker).
   tree (now its `mri/orig/` volumes, else the runs of its image disc),
   and wrote `"Manual": "False"` (a string) in the FSL `dseg` sidecar.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
-* ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
+* ~~ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
   `OAS3{id:05d}_MR_*`, so `fs`/`fs-all` roasts find nothing; `fixstatus`
   is called without `mod` and with int counters;
   `int(label.split('_')[1])` fails on sample labels; `glob(site + '_*')`
-  misses `UCLA1_...`; the `*_{id:05d}` glob misses 7-digit labels.
-* ABIDE-I NITRC: `acq-hires_T1w.json` (UCLA `anat_2`) is never used.
+  misses `UCLA1_...`; the `*_{id:05d}` glob misses 7-digit labels.~~
+  (all fixed in the port, step 5)
+* ~~ABIDE-I NITRC: `acq-hires_T1w.json` (UCLA `anat_2`) is never
+  used.~~ (step 5: `sub-<label>_acq-hires_T2w`). Decision (owner, review
+  of #33): the template describes a "Matched Bandwidth HiRes" 2D
+  spin-echo EPI (`ep_seg_se`, `SliceTiming`, `PhaseEncodingDirection`),
+  not a T1w: it is named `acq-hires_T2w` (templates
+  `UCLA_{1,2}/acq-hires_T2w.json`, key `T2w` under `anat`, in harvest
+  and roast).
 * ~~`set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II~~ (fixed in OASIS-III, step 2b-ii, with its
   sessions table name; in ABIDE-I/II in step 4, where `--exclude-keys`
@@ -2646,3 +2703,50 @@ up as an XPASS failure once fixed (then drop the marker).
   and to the command panels, `path`/`--out` to "Dataset". `--keys`
   choices in the order of the hierarchy. No change of names, defaults
   or parsing.
+* r39: step 5, ABIDE-I ported to the roast engine
+  (`datasets/indi/abide/i/roaster.py`: `roast_nitrc`, the roaster of the
+  s3 and nitrc sources, and `roast_xnat`; `sites.py` for site names and
+  per-sample templates, `tables.py` for the participants and phenotype
+  tables). The legacy `Bidsifier` classes, the `roast` and `groups`
+  overrides and ABIDE-I's `legacy_subjects`/`legacy_keys`/`numbers` are
+  gone: subjects are labels of width 5; `roast --source` (default s3)
+  stays. One shard per NITRC tarball or `RawData/<Site>/` folder, one
+  per XNAT subject, members extracted lazily in archive order, the
+  templates of the site in `Shard.config`, a corrupt archive a `Fail`
+  of its shard (§5). Keys: `fs` and `fs-all` are siblings (they were a
+  group and its leaf, which `KeyAliases` cannot tell apart); `meta` is
+  also the category of the dataset files (`--keys pheno`: phenotypes
+  only). Fixed: `participant_id` with `sub-`, `phenotypic_MAX_MUN.csv`
+  read, UCLA `anat_2` written as `acq-hires_T2w` with its template, and
+  every XNAT bug of §8 (FreeSurfer archives found by name, sample and
+  `UCLA1_` labels, ids of 5 or 7 digits, keys selecting by output instead
+  of `rawkeys`); the harvest fetches FreeSurfer assessors with `fs` or
+  `fs-all` (`assessor_keys`) and `anat_2`-like scans with `anat`
+  (`scan_key`). Site and sample of `participants.tsv` come from
+  `parse_site` (`OLIN` is now `Olin`). The NITRC-IR labels of FreeSurfer
+  assessors and the members of the server-built archives are not
+  confirmed (login needed): names with `freesurfer`, `-fs` or type
+  `fs:*` are accepted, FreeSurfer trees found under any wrapper folders.
+  Review round 1 of #33: `fs-all` is off by default (only when it or
+  a group above it is named;
+  `--sidecars only` never unpacks) and an add-on of `fs` (`KeySpec(
+  implies=)`: `--exclude-keys fs` excludes both, `--keys fs-all` implies
+  `fs`, harvest and roast); a missing FreeSurfer archive is an error
+  only when `--keys` names `fs`/`fs-all` or a group above them
+  (`Dataset.roast_options`),
+  looked for in the selected subjects only; one FreeSurfer predicate
+  for harvest and roast (`roaster.is_freesurfer`; an assessor known by
+  its type only is saved as `<label>-freesurfer.tar.gz`); FreeSurfer
+  trees rooted at the deepest FreeSurfer folder, other trees and `..`
+  skipped; subject folders need an ABIDE-I site and an id of 5 or 7
+  digits (others warned); FreeSurfer work is one sibling shard per
+  subject (`roast/fs/sub-<label>`), so re-runs skip it. Decision
+  (owner): UCLA `anat_2` is `acq-hires_T2w` (a spin-echo EPI, not a
+  T1w; key `T2w`, templates renamed).
+  Review round 2 of #33: key names matched through the hierarchy, in
+  any case (`KeySpec.selects`: the add-on rule, `fs_named`), so
+  `--keys FS-ALL` implies `fs` and `--keys all`/`derivatives`/`proc`
+  name FreeSurfer; `roast(keys="fs")` is one key; `fs-all` unpacks
+  every member under the subject's root (`tmp/`, `bem/`, root files),
+  once the root is known (members before it are skipped: one pass); a
+  root that does not name the subject's id is warned about.

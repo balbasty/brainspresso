@@ -164,12 +164,17 @@ class KeySpec:
     off : tuple[str]
         Keys only selected when asked for (`--keys` names them): with the
         default `--keys`, they are excluded (IXI roast: `trace`)
+    implies : tuple[tuple[str, str]]
+        `(add_on, key)` pairs: an add-on implies its key (`--keys add_on`
+        also selects `key`) and goes with it (`--exclude-keys key` also
+        excludes `add_on`). ABIDE-I: `("fs-all", "fs")`.
     """
 
     tree: Any = None
     choices: tuple | None = None
     default: tuple = ()
     off: tuple = ()
+    implies: tuple = ()
 
     def resolve(self) -> Any:
         """Return the key hierarchy (calls `tree` if it is a function)."""
@@ -257,7 +262,7 @@ class KeySpec:
         spec whose default is "all but `off`", counts as no `--keys`, so
         that `--exclude-keys` alone means "all but" (and, in a roast,
         keeps the files that match no key). With the default `--keys`,
-        the `off` keys are excluded.
+        the `off` keys are excluded. Add-ons follow their key (`implies`).
 
         Parameters
         ----------
@@ -269,7 +274,48 @@ class KeySpec:
             Empty: all keys
         exclude : tuple[str]
         """
-        keys, exclude = _names(keys), _names(exclude)
+        keys, exclude = self._effective(*_names(keys), exclude=exclude)
+        for add_on, key in self.implies:
+            if self.selects(keys, add_on) and not self.selects(keys, key):
+                keys += (key,)
+            if self.selects(exclude, key) and \
+                    not self.selects(exclude, add_on):
+                exclude += (add_on,)
+        return keys, exclude
+
+    def selects(self, names: Iterable[str], leaf: str) -> bool:
+        """
+        Whether keys select a leaf, through the hierarchy.
+
+        Names are matched case-insensitively (`--keys FS-ALL`), and a
+        group selects the leaves below it (`--keys derivatives`).
+
+        Parameters
+        ----------
+        names : list[str]
+            Keys (`--keys`, `--exclude-keys`)
+        leaf : str
+            A key of the hierarchy
+
+        Returns
+        -------
+        bool
+        """
+        names = _names(names)
+        if not names:
+            return False
+        tree = self.resolve()
+        if hasattr(tree, "expand"):
+            return leaf in tree.expand(names)
+        if isinstance(tree, Mapping):
+            known = {k.lower(): k for k in tree_keys(tree)}
+            names = [known.get(n.lower(), n) for n in names]
+        return leaf in self.leaves(names) or leaf in names
+
+    def _effective(self, *keys: str, exclude: Iterable[str] = ()
+                   ) -> tuple[tuple, tuple]:
+        """Return `effective` before the add-ons (`implies`)."""
+        keys, exclude = tuple(keys), _names(exclude)
         choices = self.all_choices()
         if not keys or set(keys) == set(self.default):
             covers = choices is None or not self.default or (

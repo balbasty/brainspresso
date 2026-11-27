@@ -371,7 +371,7 @@
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
             }
         },
-        "UCLA_1/acq-hires_T1w.json": {
+        "UCLA_1/acq-hires_T2w.json": {
             "printout": "UCLA_1/anat.pdf",
             "sha256": "1349bc9c2af218e7a582fc8e63a8cf87a43aebe9d60beac1686753cc04e68eb3",
             "select": "1",
@@ -403,7 +403,7 @@
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
             }
         },
-        "UCLA_2/acq-hires_T1w.json": {
+        "UCLA_2/acq-hires_T2w.json": {
             "printout": "UCLA_2/anat.pdf",
             "sha256": "1349bc9c2af218e7a582fc8e63a8cf87a43aebe9d60beac1686753cc04e68eb3",
             "select": "1",

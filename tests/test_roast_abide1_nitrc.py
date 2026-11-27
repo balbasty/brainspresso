@@ -1,11 +1,15 @@
-"""Characterization tests for the ABIDE-I roast from NITRC tarballs."""
+"""ABIDE-I roast of the NITRC tarballs and of the bucket copy (engine)."""
 import json
+import logging
+import tarfile
 
 import nibabel as nib
 import pytest
+from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
     init_layout,
+    layout_of,
     make_tar,
     nii_bytes,
     raw_file,
@@ -13,26 +17,28 @@ from roast_utils import (
     read_tsv,
 )
 
-from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import Bidsifier
+from brainspresso.bids.layout import Layout
+from brainspresso.datasets.indi.abide.i import roaster, tables
+from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
+from brainspresso.datasets.indi.abide.i.roaster import roast
+from brainspresso.datasets.indi.abide.i.sites import TEMPLATES
 
-PHENOS = Bidsifier.PHENOTYPES
+PHENOS = tables.PHENOTYPES
 COLS = list(dict.fromkeys(
-    c for m in [Bidsifier.ParticipantsMapper, *PHENOS.values()]
-    for c in m.header.values()))
+    c for t in [tables.PARTICIPANTS, *PHENOS.values()]
+    for c in t.columns.values()))
 
 
-def write_csv(path, rows):
+def write_csv(path, rows, cols=COLS):
     path.write_text("\n".join(
-        ",".join(r.get(c, "") for c in COLS) for r in [
-            {c: c for c in COLS}, *rows]) + "\n")
+        ",".join(r.get(c, "") for c in cols) for r in [
+            {c: c for c in cols}, *rows]) + "\n")
 
 
-@pytest.fixture(params=LAYOUTS)
-def root(tmp_path, request):
-    root = tmp_path / "ABIDE-1"
-    init_layout(root, request.param)
+def make_source(root):
+    """Write the harvested NITRC files of ABIDE-I in `<root>/sourcedata/`."""
     src = root / "sourcedata"
-    src.mkdir(parents=True)
+    src.mkdir(parents=True, exist_ok=True)
     make_tar(src / "Caltech.tgz", {
         "Caltech/0051456/session_1/anat_1/mprage.nii.gz": nii_bytes(),
         "Caltech/0051456/session_1/rest_1/rest.nii.gz":
@@ -57,6 +63,13 @@ def root(tmp_path, request):
     return root
 
 
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
+    root = tmp_path / "ABIDE-1"
+    init_layout(root, request.param)
+    return make_source(root)
+
+
 RAW = {
     "sub-51456/anat/sub-51456_T1w.nii.gz",
     "sub-51456/anat/sub-51456_T1w.json",
@@ -72,15 +85,28 @@ META = {"README", "dataset_description.json",
 PHENO = {f"phenotype/{p}.{e}" for p in PHENOS for e in ("tsv", "json")}
 
 
+def original(root, name="participants.tsv"):
+    """Pristine copy of a table (all subjects, before trimming)."""
+    return layout_of(root).original(raw_file(root, name))
+
+
+def tpl(path):
+    return json.loads((TEMPLATES / path).read_text())
+
+
+def sidecar(root, path):
+    return json.loads(raw_file(root, path).read_text())
+
+
 def test_roast_raw(root):
-    Bidsifier(root, keys={"T1w", "rest"}).run()
+    report = roast(root, keys={"T1w", "rest"}, display=False)
+    assert not report.errors
     assert raw_tree(root) == RAW
     img = nib.load(raw_file(root,
                             "sub-51456/func/sub-51456_task-rest_bold.nii.gz"))
     assert img.shape == (2, 2, 2, 3)
-    tpl = json.loads((Bidsifier.TPLDIR / "MaxMun_a/T1w.json").read_text())
-    assert json.loads(raw_file(
-        root, "sub-51330/anat/sub-51330_T1w.json").read_text()) == tpl
+    assert sidecar(root, "sub-51330/anat/sub-51330_T1w.json") \
+        == tpl("MaxMun_a/T1w.json")
 
 
 def test_roast_sample_template(root):
@@ -93,67 +119,337 @@ def test_roast_sample_template(root):
     make_tar(src / "CMU_a.tgz", {
         "CMU_a/0050642/session_1/anat_1/mprage.nii.gz": nii_bytes(),
     })
-    Bidsifier(root, keys={"T1w", "rest"}).run()
-
-    def sidecar(path):
-        return json.loads(raw_file(root, path).read_text())
-
-    def tpl(path):
-        return json.loads((Bidsifier.TPLDIR / path).read_text())
-
+    roast(root, keys={"T1w", "rest"}, display=False)
     assert tpl("MaxMun_b/bold.json") != tpl("MaxMun_a/bold.json")
-    assert sidecar("sub-51340/func/sub-51340_task-rest_bold.json") \
+    assert sidecar(root, "sub-51340/func/sub-51340_task-rest_bold.json") \
         == tpl("MaxMun_b/bold.json")
     # CMU_a has no anatomical template: fall back to the site template
-    assert not (Bidsifier.TPLDIR / "CMU_a/T1w.json").exists()
-    assert sidecar("sub-50642/anat/sub-50642_T1w.json") == tpl("CMU/T1w.json")
+    assert not (TEMPLATES / "CMU_a/T1w.json").exists()
+    assert sidecar(root, "sub-50642/anat/sub-50642_T1w.json") \
+        == tpl("CMU/T1w.json")
 
 
 def test_roast_filters(root):
-    Bidsifier(root, keys={"T1w"}, exclude_subs={51457}, json="no").run()
+    roast(root, keys={"T1w"}, exclude_subs={51457}, json="no",
+          display=False)
     assert raw_tree(root) == {"sub-51456/anat/sub-51456_T1w.nii.gz",
                               "sub-51330/anat/sub-51330_T1w.nii.gz"}
-    Bidsifier(root, keys={"rest"}, subs={51456}, json="only").run()
+    roast(root, keys={"rest"}, subs={51456}, json="only", display=False)
     assert "sub-51456/func/sub-51456_task-rest_bold.json" in raw_tree(root)
     assert "sub-51456/func/sub-51456_task-rest_bold.nii.gz" \
         not in raw_tree(root)
 
 
 def test_roast_all(root):
-    Bidsifier(root).run()
+    report = roast(root, display=False)
+    assert not report.errors
     assert raw_tree(root) == RAW | META | PHENO
 
 
 def test_meta(root):
-    Bidsifier(root, keys={"meta"}).run()
+    roast(root, keys={"meta"}, display=False)
     assert raw_tree(root) == META | PHENO
-    rows = read_tsv(raw_file(root, "participants.tsv"))
-    assert rows[0] == list(Bidsifier.ParticipantsMapper.header)
-    assert [r[0] for r in rows[1:3]] == ["51456", "51457"]
+    rows = read_tsv(original(root))
+    assert rows[0] == list(tables.PARTICIPANTS.columns)
     row = dict(zip(rows[0], rows[1]))
     assert {k: row[k] for k in ("site", "sample", "sex", "age", "group",
                                 "fiq", "fiq_type")} == {
         "site": "Caltech", "sample": "Caltech", "sex": "M", "age": "55.4",
         "group": "A", "fiq": "n/a", "fiq_type": "WAIS-III"}
+    # trimmed to the subjects on disk (none yet)
+    assert read_tsv(raw_file(root, "participants.tsv")) == [rows[0]]
 
     adir = read_tsv(raw_file(root, "phenotype/adir.tsv"))
-    assert adir[0] == list(PHENOS["adir"].header)
-    assert dict(zip(adir[0], adir[1]))["social"] == "20"
-    assert dict(zip(adir[0], adir[1]))["reliable"] == "Y"
+    assert adir[0] == list(PHENOS["adir"].columns)
+    first = dict(zip(adir[0], adir[1]))
+    assert first["participant_id"] == "sub-51456"
+    assert (first["social"], first["reliable"]) == ("20", "Y")
     assert json.loads(raw_file(root, "phenotype/adir.json").read_text()) \
-        == json.loads((Bidsifier.TPLDIR / "phenotype/adir.json").read_text())
+        == tpl("phenotype/adir.json")
 
 
-@pytest.mark.xfail(strict=True, reason="participant_id lacks 'sub-' prefix")
+def test_pheno_only(root):
+    """`--keys pheno`: phenotypes, without the dataset files"""
+    roast(root, keys={"pheno"}, display=False)
+    assert raw_tree(root) == PHENO
+
+
 def test_participants_sub_prefix(root):
-    Bidsifier(root, keys={"meta"}).run()
-    ids = [r[0] for r in read_tsv(raw_file(root, "participants.tsv"))[1:]]
+    roast(root, keys={"meta"}, display=False)
+    ids = [r[0] for r in read_tsv(original(root))[1:]]
     assert ids == ["sub-51456", "sub-51457", "sub-51330"]
 
 
-@pytest.mark.xfail(strict=True, reason="_phenotype_paths globs "
-                   "phenotypic_MAXMUN*.csv, missing phenotypic_MAX_MUN.csv")
 def test_participants_maxmun(root):
-    Bidsifier(root, keys={"meta"}).run()
+    """`phenotypic_MAX_MUN.csv` is read (the legacy glob missed it)"""
+    roast(root, display=False)
     rows = read_tsv(raw_file(root, "participants.tsv"))
-    assert [r[0] for r in rows[1:]] == ["51456", "51457", "51330"]
+    assert [r[0] for r in rows[1:]] == ["sub-51456", "sub-51457",
+                                        "sub-51330"]
+    row = dict(zip(rows[0], rows[3]))
+    assert (row["site"], row["sample"]) == ("MaxMun", "MaxMun")
+
+
+def test_participants_trimmed(root):
+    roast(root, keys={"meta", "T1w"}, subs=[51330], display=False)
+    rows = read_tsv(raw_file(root, "participants.tsv"))
+    assert [r[0] for r in rows[1:]] == ["sub-51330"]
+    assert len(read_tsv(original(root))) == 4
+
+
+def test_participants_missing_values(root):
+    roast(root, keys={"meta"}, display=False)
+    rows = read_tsv(original(root))
+    assert "" not in {cell for row in rows for cell in row}
+    row = dict(zip(rows[0], rows[3]))
+    assert row["age"] == "n/a" and row["fiq"] == "n/a"
+
+
+def test_participants_samples_and_sites(tmp_path):
+    root = tmp_path / "ABIDE-1"
+    src = root / "sourcedata"
+    src.mkdir(parents=True)
+    write_csv(src / "phenotypic_UCLA_1.csv", [
+        {"SUB_ID": "51201", "SITE_ID": "UCLA_1"}])
+    write_csv(src / "phenotypic_OLIN.csv", [
+        {"SUB_ID": "0050102", "SITE_ID": "OLIN"}])
+    roast(root, keys={"meta"}, display=False)
+    rows = read_tsv(original(root))
+    got = {r[0]: (r[1], r[2]) for r in rows[1:]}
+    assert got == {"sub-50102": ("Olin", "Olin"),
+                   "sub-51201": ("UCLA", "UCLA1")}
+
+
+def test_participants_bad_rows(root, caplog):
+    """Blank rows are skipped, rows without a subject (or listed twice)
+    are skipped with a warning; files may order columns differently"""
+    csv = root / "sourcedata" / "phenotypic_CALTECH.csv"
+    csv.write_text(csv.read_text() + "\n" + "," * (len(COLS) - 1) + "\n"
+                   + ",".join("CALTECH" if c == "SITE_ID" else ""
+                              for c in COLS) + "\n"
+                   + ",".join("51456" if c == "SUB_ID" else ""
+                              for c in COLS) + "\n")
+    write_csv(root / "sourcedata" / "phenotypic_SBL.csv",
+              [{"SUB_ID": "51556", "SEX": "2"}],
+              cols=["SEX", "SUB_ID", "SITE_ID"])
+    with caplog.at_level(logging.WARNING):
+        report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = read_tsv(original(root))
+    assert [r[0] for r in rows[1:]] == ["sub-51456", "sub-51457",
+                                        "sub-51330", "sub-51556"]
+    assert dict(zip(rows[0], rows[4]))["sex"] == "F"
+    assert dict(zip(rows[0], rows[4]))["age"] == "n/a"
+    assert caplog.text.count("row skipped") == 2
+
+
+def test_missing_phenotypes(root):
+    for path in (root / "sourcedata").glob("phenotypic_*.csv"):
+        path.unlink()
+    report = roast(root, keys={"meta"}, display=False)
+    assert raw_tree(root) == (META - {"participants.tsv"}) | {
+        p for p in PHENO if p.endswith(".json")}
+    assert len(report.errors) == 2           # participants, phenotypes
+
+
+def test_missing_archives(tmp_path):
+    root = tmp_path / "ABIDE-1"
+    (root / "sourcedata").mkdir(parents=True)
+    report = roast(root, keys={"T1w"}, display=False)
+    assert raw_tree(root) == set()
+    assert len(report.errors) == 1
+    assert "tarball" in report.errors[0][2]
+
+
+def test_corrupt_archive_fails_its_shard_only(root):
+    src = root / "sourcedata"
+    (src / "Pitt.tgz").write_bytes(b"not a tarball")
+    data = (src / "Caltech.tgz").read_bytes()
+    (src / "Caltech.tgz").write_bytes(data[:len(data) // 2])
+    report = roast(root, keys={"T1w", "rest"}, display=False)
+    assert {"sub-51330/anat/sub-51330_T1w.nii.gz",
+            "sub-51330/anat/sub-51330_T1w.json"} <= raw_tree(root)
+    assert len(report.errors) == 2, report.errors
+    assert any("Pitt.tgz" in str(e) for e in report.errors)
+    assert any("Caltech.tgz" in str(e) for e in report.errors)
+
+
+def test_hires_anatomical(root):
+    """UCLA `anat_2` is the high-resolution anatomical: a spin-echo EPI,
+    `acq-hires_T2w` (owner decision), key `T2w`"""
+    make_tar(root / "sourcedata" / "UCLA_1.tgz", {
+        "UCLA_1/0051201/session_1/anat_1/mprage.nii.gz": nii_bytes(),
+        "UCLA_1/0051201/session_1/anat_2/mprage.nii.gz":
+            nii_bytes(value=2),
+        "UCLA_1/0051201/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3)),
+    })
+    report = roast(root, keys={"T2w"}, subs=[51201], display=False)
+    assert not report.errors
+    assert raw_tree(root) == {
+        "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.json"}
+    report = roast(root, keys={"anat"}, subs=[51201], display=False)
+    assert not report.errors
+    assert raw_tree(root) == {
+        "sub-51201/anat/sub-51201_T1w.nii.gz",
+        "sub-51201/anat/sub-51201_T1w.json",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.json",
+    }
+    assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T2w.json") \
+        == tpl("UCLA_1/acq-hires_T2w.json")
+    img = nib.load(raw_file(root,
+                            "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz"))
+    assert img.get_fdata().max() == 2
+
+
+def test_unknown_scans_skipped(root, caplog):
+    """Scans without a BIDS name (another session, a second rest) are
+    skipped with a warning, never written over the first one"""
+    make_tar(root / "sourcedata" / "Pitt.tgz", {
+        "Pitt/0050003/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "Pitt/0050003/session_1/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 4)),
+        "Pitt/0050003/session_2/anat_1/mprage.nii.gz": nii_bytes(),
+        "Pitt/0050003/session_1/anat_2/mprage.nii.gz": nii_bytes(),
+    })
+    with caplog.at_level(logging.WARNING):
+        roast(root, keys={"T1w", "rest"}, subs=[50003], display=False)
+    assert raw_tree(root) == {
+        "sub-50003/func/sub-50003_task-rest_bold.nii.gz",
+        "sub-50003/func/sub-50003_task-rest_bold.json"}
+    assert caplog.text.count("skipped") == 3
+
+
+def test_unpadded_ids(root):
+    """Tarball ids of 5 or 7 digits are the same subjects"""
+    make_tar(root / "sourcedata" / "SDSU.tgz", {
+        "SDSU/50182/session_1/anat_1/mprage.nii.gz": nii_bytes()})
+    roast(root, keys={"T1w"}, subs=["0050182"], json="no", display=False)
+    assert raw_tree(root) == {"sub-50182/anat/sub-50182_T1w.nii.gz"}
+
+
+def test_missing_sidecar_template(root, monkeypatch):
+    """A missing sidecar template is an error only if sidecars are
+    written"""
+    monkeypatch.setattr(roaster.RoastContext, "resource",
+                        lambda self, name: None)
+    report = roast(root, keys={"T1w"}, json="no", display=False)
+    assert not report.errors
+    report = roast(root, keys={"T1w"}, ifexists="overwrite", display=False)
+    assert len(report.errors) == 3
+
+
+def test_tarball_read_once(root, monkeypatch):
+    """Members are read lazily (no listing first: one decompression)"""
+    def listing(self):
+        raise AssertionError("the tarball is listed")
+
+    monkeypatch.setattr(roaster.TarArchive, "getmembers", listing)
+    monkeypatch.setattr(roaster.TarArchive, "getnames", listing)
+    report = roast(root, display=False)
+    assert not report.errors
+    assert raw_tree(root) == RAW | META | PHENO
+
+
+def test_one_shard_per_tarball(root, monkeypatch):
+    opened = []
+    real = roaster.TarArchive
+
+    def opener(path):
+        opened.append(path.name)
+        return real(path)
+
+    monkeypatch.setattr(roaster, "TarArchive", opener)
+    roast(root, keys={"T1w", "rest"}, display=False)
+    assert sorted(opened) == ["Caltech.tgz", "MaxMun_a.tgz"]
+    # unchanged inputs and options: skipped by signature
+    roast(root, keys={"T1w", "rest"}, display=False)
+    assert len(opened) == 2
+    # a new template of a site re-runs the shards of that site only
+    (root / "sourcedata" / "Caltech").mkdir()
+    (root / "sourcedata" / "Caltech" / "T1w.json").write_text(
+        '{"EchoTime": 1}')
+    roast(root, keys={"T1w", "rest"}, display=False)
+    assert sorted(opened) == ["Caltech.tgz", "Caltech.tgz", "MaxMun_a.tgz"]
+    roast(root, keys={"T1w", "rest"}, ifexists="overwrite", display=False)
+    assert sidecar(root, "sub-51456/anat/sub-51456_T1w.json") == \
+        {"EchoTime": 1}
+
+
+def test_subjects_pruned_before_extraction(root, monkeypatch):
+    extracted = []
+    real = roaster.ExtractMember
+
+    def spy(archive, member, dst, **kwargs):
+        extracted.append(member.name)
+        return real(archive, member, dst, **kwargs)
+
+    monkeypatch.setattr(roaster, "ExtractMember", spy)
+    roast(root, keys={"T1w", "rest"}, subs=[51457], display=False)
+    assert extracted == ["Caltech/0051457/session_1/anat_1/mprage.nii.gz"]
+
+
+def test_jobs(root):
+    report = roast(root, jobs=2, display=False)
+    assert not report.errors
+    assert raw_tree(root) == RAW | META | PHENO
+
+
+def test_bucket_copy(tmp_path):
+    """`RawData/<Site>/` (s3) reads as the tarballs, one shard per site"""
+    root = tmp_path / "tgz"
+    make_source(root)
+    roast(root, keys={"T1w", "rest"}, display=False)
+    rawdata = tmp_path / "s3" / "sourcedata" / "RawData"
+    for tarball in sorted((root / "sourcedata").glob("*.tgz")):
+        with tarfile.open(tarball) as tar:
+            for member in tar:
+                if member.isfile():
+                    path = rawdata / member.name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(tar.extractfile(member).read())
+    report = roast(tmp_path / "s3", keys={"T1w", "rest"}, display=False)
+    assert not report.errors
+    assert raw_tree(tmp_path / "s3") == RAW
+    for path in RAW:
+        assert raw_file(tmp_path / "s3", path).read_bytes() == \
+            raw_file(root, path).read_bytes()
+
+
+# ----------------------------------------------------------------------
+#   Command line
+# ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_cli_layout(tmp_path, layout):
+    root = make_source(tmp_path / "ABIDE-1")
+    bx("abide1", "roast", "--out", root, "--layout", layout)
+    assert Layout.detect(root).kind == layout
+    assert raw_tree(root) == RAW | META | PHENO
+
+
+@pytest.mark.parametrize("source", ["s3", "nitrc"])
+def test_cli_keys_subjects_sidecars(tmp_path, source):
+    root = make_source(tmp_path / "ABIDE-1")
+    bx("abide1", "roast", "--out", root, "--source", source, "--keys",
+       "T1w", "--subs", "51456", "0051330", "--sidecars", "no")
+    assert raw_tree(root) == {"sub-51456/anat/sub-51456_T1w.nii.gz",
+                              "sub-51330/anat/sub-51330_T1w.nii.gz"}
+    bx("abide1", "roast", "--out", root, "--exclude-keys", "rest", "meta",
+       "--exclude-subs", "sub-51456", "--sidecars", "only")
+    assert "sub-51457/anat/sub-51457_T1w.json" in raw_tree(root)
+    assert "sub-51457/anat/sub-51457_T1w.nii.gz" not in raw_tree(root)
+    assert "participants.tsv" not in raw_tree(root)
+
+
+def test_dataset_declares_the_roasters():
+    abide = ABIDE1()
+    assert not abide.legacy_roast() and not abide.legacy_subjects
+    sources = abide.sources()
+    assert sources["s3"].roaster is roaster.roast_nitrc
+    assert sources["nitrc"].roaster is roaster.roast_nitrc
+    assert sources["xnat"].roaster is roaster.roast_xnat
+    assert "source" in abide.groups("roast")
+    assert abide.labels(["51456", "sub-0051457", "51456:51459"]) == {
+        "51456", "51457", "51458"}

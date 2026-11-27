@@ -125,10 +125,34 @@ class GrindPlanner:
         ------
         PlanError
             If the pipeline has another version, the image another
-            registry digest than the plan records (a digest that the
-            plan does not hold is written in the task record, never in
-            the plan), or the task another signature than the plan
-            says
+            registry digest than the plan or its images file records
+            (`percolate.plan.read_images`: one image per plan), or the
+            task another signature than the plan says
+        """
+        raise NotImplementedError
+
+    def prepare(self, plan: Plan, profile: Profile) -> dict[str, str]:
+        """
+        Pull the images of a plan, once, and return their digests.
+
+        Parameters
+        ----------
+        plan : Plan
+            The plan
+        profile : Profile
+            Container runtime, image cache
+
+        Returns
+        -------
+        dict[str, str]
+            `{pipeline: registry digest}`, which percolate records
+            next to the plan for every task
+
+        Raises
+        ------
+        PlanError
+            If a digest differs from one that the plan, or an earlier
+            run of it, recorded
         """
         raise NotImplementedError
 

@@ -16,15 +16,23 @@ Dependencies. A job waits for the **end** of the jobs it depends on,
 not for their success: tasks check their requirements when they start,
 and a must-succeed dependency on an array would leave every dependent
 queued forever after one failed element. A must-succeed dependency
-(`Job.after`) is only used when each task of the job requires every
-task of the upstream job. What schedulers get:
+(`Job.after`) is only used in two cases: on a whole job, when each task
+of this job requires every task of that job; element-wise on an aligned
+array (`Job.pairwise`), when element `n` requires element `n`. The four
+kinds reach `Scheduler.submit_command` apart:
 
-* SLURM: `afterany`; must succeed: `afterok` with
-  `--kill-on-invalid-dep=yes`; aligned arrays: `aftercorr`;
-* SGE: `-hold_jid` for both (it has no must-succeed form: the task
-  checks); aligned arrays: `-hold_jid_ad`;
-* PBS: `depend=afterany`; must succeed: `depend=afterok` between
-  single jobs only (arrays: `afterany`); no element-wise form.
+* "any" (wait for the end): SLURM `afterany`, SGE `-hold_jid`, PBS
+  `depend=afterany`;
+* "ok" (must succeed): SLURM `afterok` with
+  `--kill-on-invalid-dep=yes`; SGE `-hold_jid` (it has no must-succeed
+  form: the task checks); PBS `depend=afterok` between single jobs,
+  `afterany` for arrays;
+* "pairwise_any" (element `n` waits for the end of element `n`): SGE
+  `-hold_jid_ad`; SLURM and PBS have no such form: whole array,
+  `afterany`;
+* "pairwise_ok" (element `n` needs element `n` to succeed): SLURM
+  `aftercorr` with `--kill-on-invalid-dep=yes`; SGE `-hold_jid_ad`
+  (the task checks); PBS whole array, `afterany`.
 
 `write_jobs` writes, in one folder: one script per job, `manifest.json`
 (jobs, their tasks and dependencies) and `submit.sh`, which submits
@@ -70,14 +78,16 @@ class Job:
     resources : Resources
         Resources of each task (`resolve_resources`)
     after : tuple[str, ...]
-        Names of jobs that must succeed first: only jobs of which
-        every task is required by every task of this one
+        Names of jobs that must succeed first: jobs of which every
+        task is required by every task of this one, or aligned arrays
+        (in `pairwise`) whose element `n` element `n` requires
     after_any : tuple[str, ...]
         Names of jobs that must be over first: the default for a
         dependency between jobs
     pairwise : tuple[str, ...]
         Names of jobs in `after` or `after_any` that this array is
-        aligned with: element `n` only waits for their element `n`
+        aligned with: element `n` only waits for their element `n`.
+        In `after`: "pairwise_ok"; in `after_any`: "pairwise_any"
     """
 
     name: str
@@ -150,9 +160,13 @@ class Scheduler(Protocol):
         script : str
             Path of the script
         after : Mapping[str, Sequence[str]] | None
-            Scheduler job ids per condition: "any" (wait for the end),
-            "ok" (must succeed), "pairwise"; a condition the scheduler
-            lacks is mapped to "any"
+            Scheduler job ids per kind: "any" (wait for the end), "ok"
+            (must succeed), "pairwise_any", "pairwise_ok". A kind the
+            scheduler lacks is mapped to the nearest that never waits
+            for success wrongly: "pairwise_any" to a whole-array "any"
+            (never to an element-wise must-succeed form), "ok" and
+            "pairwise_ok" to "any" where there is no must-succeed
+            form
 
         Returns
         -------
@@ -230,7 +244,8 @@ def make_jobs(plan: Plan, profile: Profile,
     element `n` depends on element `n` and on no other; equal lengths
     are not enough. Any other dependency is on the whole job, and waits
     for its end (`Job.after_any`) unless every task of the job requires
-    every task of the other (`Job.after`).
+    every task of the other, or element `n` requires element `n` of
+    an aligned array (`Job.after`).
 
     Parameters
     ----------
@@ -241,7 +256,7 @@ def make_jobs(plan: Plan, profile: Profile,
     options : ExecutionOptions | None
         Options of the command line
     tasks : Sequence[str] | None
-        Ids of the tasks to run (default: `plan.todo()`)
+        Keys of the tasks to run (default: those of `plan.todo()`)
 
     Returns
     -------

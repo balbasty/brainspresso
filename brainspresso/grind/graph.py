@@ -27,8 +27,8 @@ from brainspresso.percolate.plan import Plan
 
 __all__ = [
     "GRIND_FIELDS", "VERDICTS", "DatasetScope", "IfStale",
-    "Scope", "Verdict", "derivative_name", "enumerate_units", "plan",
-    "signature", "task_id",
+    "Scope", "Verdict", "canonical_key", "derivative_name",
+    "enumerate_units", "plan", "signature", "task_id",
 ]
 
 #: Fields that grind adds to task records (`actions.state`):
@@ -44,7 +44,8 @@ GRIND_FIELDS = ("pipeline_stage", "variant", "dataset", "requires",
                 "scratch")
 #: What the plan says of a task
 Verdict = Literal["todo", "done", "queued", "stale", "blocked"]
-#: The verdicts: "todo" (no record, failed or skipped before), "done"
+#: The verdicts: "todo" (no record; failed, skipped or waiting before:
+#: a "waiting" record holds no job, whatever plan wrote it), "done"
 #: (same signature, outputs exist), "queued" (recorded pending or
 #: running, by another plan or an earlier run of this one), "stale"
 #: (done with another signature), "blocked" (a
@@ -133,6 +134,35 @@ def derivative_name(pipeline: str, variant: str | None = None) -> str:
     raise NotImplementedError
 
 
+def canonical_key(task_id: str, dataset: str | None,
+                  seen_from: str | None) -> str:
+    """
+    Return the key of an upstream task for signatures and `requires`.
+
+    Unlike `PlanTask.key`, it does not depend on how a dataset
+    reference was typed, nor on which dataset is the home of the run,
+    so a task has the same signature in `bx <ds> grind` and in a
+    cross-dataset run.
+
+    Parameters
+    ----------
+    task_id : str
+        Id of the upstream task
+    dataset : str | None
+        Reference of its dataset (None: the home of the run)
+    seen_from : str | None
+        Reference of the dataset of the task that requires it
+
+    Returns
+    -------
+    str
+        The bare id when both are in the same dataset; else
+        `<canonical reference>:<id>` (`str(DatasetRef.parse(...))`),
+        or `@home:<id>` for a task of the home
+    """
+    raise NotImplementedError
+
+
 def task_id(pipeline: str, stage: str, unit: Unit,
             variant: str | None = None) -> str:
     """
@@ -203,8 +233,8 @@ def signature(
     stage: Stage,
     config: Config | None,
     *,
+    root: Path,
     inputs: Sequence[Path] = (),
-    root: Path | None = None,
     upstream: Mapping[str, str | None] | None = None,
     container: str | None = None,
 ) -> str:
@@ -214,12 +244,14 @@ def signature(
     SHA-256 of: the name and version of the pipeline, the name of the
     stage, `stage.fingerprint(config)`, the image reference, the raw
     inputs (path relative to `root`, size, modification time) and the
-    id and signature of each upstream task. A change therefore
+    canonical key and signature of each upstream task. A change
+    therefore
     propagates to everything downstream, and the member list of a
     fan-in and the variants of required pipelines are part of it.
 
     The image digest is not: it is only known once the image is local.
-    It is recorded and compared apart (`plan`).
+    It is recorded and compared apart (`plan`). An image declared as a
+    file enters as `file:<SHA-256 of the file>`, never as its path.
 
     Parameters
     ----------
@@ -229,17 +261,18 @@ def signature(
         The stage
     config : Config | None
         Effective configuration
-    inputs : Sequence[Path]
-        Raw input files
-    root : Path | None
+    root : Path
         Dataset folder that input paths are made relative to: a
         signature never holds an absolute path, so it is the same on
         translated roots
+    inputs : Sequence[Path]
+        Raw input files, all inside `root`
     upstream : Mapping[str, str | None] | None
-        `{upstream task key: its signature}` (`PlanTask.key`: an
-        upstream task may be in another dataset)
+        `{canonical key of an upstream task: its signature}`
+        (`canonical_key`), as in the `requires` of the record
     container : str | None
-        Image reference (`Container.image`), without digest
+        Image reference as declared, without digest; for an image
+        file, `file:<SHA-256>`
 
     Returns
     -------
@@ -279,7 +312,9 @@ def plan(
     Images are pulled when the plan is run; a task then refuses a
     digest that differs from the plan's.
 
-    A task recorded "pending" or "running" is "queued": it is not run
+    A task recorded "waiting" is "todo": no job holds it, whatever plan
+    wrote the record. A task recorded "pending" or "running" is
+    "queued": it is not run
     by this plan, whose tasks that depend on it check its record when
     they start (`bx percolate PLAN --status` of the plan named in the
     record tells whether its job is still alive, and `--cancel` frees

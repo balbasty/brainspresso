@@ -12,7 +12,8 @@ docstrings give them.
   `format_output`, the pipeline registry;
 * `overrides`: `GrindOverrides`, what a dataset declares for grind;
 * `containers`: `Container`, `Mount`, `ContainerRuntime`;
-* `graph`: `Scope`, `task_id`, `derivative_name`, `enumerate_units`,
+* `graph`: `Scope`, `task_id`, `canonical_key`, `derivative_name`,
+  `enumerate_units`,
   `signature`, `plan` (which returns a `percolate.plan.Plan`);
 * `context`: `GrindContext`, `GrindPolicy` (the grind layer of the
   action engine);
@@ -50,6 +51,7 @@ from brainspresso.grind.graph import (
     VERDICTS,
     DatasetScope,
     Scope,
+    canonical_key,
     derivative_name,
     enumerate_units,
     plan,
@@ -104,11 +106,12 @@ __all__ = [
     "BidsAppStage", "CommandStage", "Config", "Container",
     "ContainerRuntime", "DatasetRef", "DatasetScope", "FunctionStage",
     "GrindContext", "GrindOverrides", "GrindPlanner", "GrindPolicy",
-    "GrindReport", "Mount", "Output", "Pipeline", "Query", "Requirement",
-    "Resources", "Scope", "Stage", "Unit", "Where", "Work", "build_index",
-    "derivative_name", "describe_derivative", "enumerate_units",
-    "format_output", "generated_by", "get_pipeline", "get_runtime",
-    "grind_collection", "grind_dataset", "grind_status", "parse_where",
-    "plan", "register_pipeline", "resolve_datasets", "signature",
+    "GrindReport", "Mount", "Output", "Pipeline", "Query",
+    "Requirement", "Resources", "Scope", "Stage", "Unit", "Where",
+    "Work", "build_index", "canonical_key", "derivative_name",
+    "describe_derivative", "enumerate_units", "format_output",
+    "generated_by", "get_pipeline", "get_runtime", "grind_collection",
+    "grind_dataset", "grind_status", "parse_where", "plan",
+    "register_pipeline", "resolve_datasets", "signature",
     "source_datasets", "stage_in", "stage_out", "task_id",
 ]

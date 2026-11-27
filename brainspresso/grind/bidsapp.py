@@ -15,14 +15,21 @@ the derivative dataset: concurrent apps would race on
 overwrite the provenance that grind writes. What an app writes cannot
 be listed beforehand: each task is one action that claims its output
 paths (`BidsAppPipeline.claims`). Once the app has exited, the claim
-yields one action per file found under the claimed paths of `out_dir`,
-which commits it to the derivative through `actions.file.File`; these
-are the outputs of the task record, and a claim that commits nothing
-is an error. The rest of `out_dir`, by kind:
+yields one `CommitTree` action per claimed path found in `out_dir`
+(step 7, `actions/`): under an exclusive lock on the path, one rename
+of the folder when `out_dir` is on the filesystem of the derivative,
+else a copy of the tree into a temporary sibling that is renamed into
+place. Symbolic links are recreated as links (never followed; one that
+leaves the folder is kept and reported) and empty folders are kept:
+FreeSurfer subjects need both. The claimed paths are the outputs of
+the task record, and a claim that commits nothing is an error. The
+rest of `out_dir`, by kind:
 
-* `dataset_description.json`: not committed. The `finalize` task
-  writes the description after the apps (`grind.provenance`), keeping
-  the fields that the app's copy adds;
+* `dataset_description.json`: not committed to the derivative, but
+  saved as `<state>/grind/<derivative name>/descriptions/<unit
+  label>.json`. The `finalize` task reads these copies after the apps
+  to write the description (`grind.provenance`): `GeneratedBy` from
+  grind, plus the fields that the app's copies add;
 * `logs/`: committed to `logs/<unit label>/`;
 * `BidsAppPipeline.shared` paths (reference data that every
   participant writes alike): committed once, under an exclusive lock,
@@ -125,7 +132,8 @@ class BidsAppStage(Stage):
         Action
             One action, with a claim on the output paths of the unit;
             it runs the app in the task's own `out_dir` and yields the
-            actions that commit what it claimed
+            `CommitTree` actions that commit what it claimed, and the
+            copy of the app's description for `finalize`
         """
         raise NotImplementedError
 

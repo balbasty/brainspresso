@@ -19,9 +19,12 @@ Inside the task:
    gets the staged folders bound in place of the originals, at the
    same paths inside it;
 4. **stage out** (`stage_out`, "all"): what a command wrote under
-   scratch is committed to the dataset by actions (`File` writers under
-   exclusive locks, renamed into place), one per file, never by a raw
-   copy: locks and the outputs of the task record stay correct;
+   scratch is committed to the dataset by actions, never by a raw
+   copy: declared files through `File` writers (exclusive locks,
+   renamed into place), claimed folders through `CommitTree` (the tree
+   is copied next to its place and renamed; symbolic links and empty
+   folders are kept). Locks and the outputs of the task record stay
+   correct;
 5. scratch is removed, unless the task failed and
    `keep_scratch_on_failure` is set.
 
@@ -86,8 +89,9 @@ def stage_out(ctx: GrindContext, stage: Stage, work: Work
     Yields
     ------
     Action
-        One copy per file found under the staged output folder, to its
-        path in `work.root`; files outside the declared outputs and
-        claims are an error
+        One per declared file and one `CommitTree` per claimed folder
+        found under the staged output folder, to their paths in
+        `work.root`; what is outside the declared outputs and claims
+        is an error
     """
     raise NotImplementedError

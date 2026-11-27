@@ -7,7 +7,9 @@ A plan is a YAML file, `<state>/plans/<timestamp>-<hash>.yaml` (the
 state folder of the dataset; `<root>/.brainspresso/plans/` for a
 cross-dataset run), or the path given to `--plan`. It is written once
 and never changed: the state of its tasks is in their task records
-(JSON, `actions.state`), which name the plan.
+(JSON, `actions.state`), which name the plan. The digests of the images
+that the plan runs with, resolved when it is first run, go to a file
+next to it (`<plan>.images.json`, `write_images`), not into the plan.
 
 ```yaml
 schema: 1
@@ -78,8 +80,8 @@ from typing import Any, Literal, Mapping, Sequence
 __all__ = [
     "PLANS_DIR", "PLAN_SCHEMA", "YAML_PITFALLS", "Plan", "PlanDataset",
     "PlanError", "PlanTask", "Resources", "TaskScope", "check_strings",
-    "plan_dumper", "plan_path", "read_plan", "resolve_roots",
-    "write_plan",
+    "plan_dumper", "plan_path", "read_images", "read_plan",
+    "resolve_roots", "write_images", "write_plan",
 ]
 
 #: Folder of the plans, in the state folder
@@ -293,7 +295,8 @@ class Plan:
         Grind: what was decided for stale tasks
     images : Mapping[str, Mapping[str, str | None]]
         `{pipeline: {"image": ..., "digest": ...}}`; a digest is None
-        when the image was not local at plan time
+        when the image was not local at plan time: it is then resolved
+        once when the plan is first run (`read_images`)
     options : Mapping[str, Any]
         Snapshot of the command options (selection, layout...)
     command : tuple[str, ...]
@@ -502,5 +505,57 @@ def read_plan(path: str | Path) -> Plan:
     ------
     PlanError
         If the schema is unknown, or if `check_strings` refuses it
+    """
+    raise NotImplementedError
+
+
+def write_images(plan: Plan, digests: Mapping[str, str]) -> Path | None:
+    """
+    Record the image digests that a plan runs with, once.
+
+    Written by `percolate` under the lock of the plan, the first time
+    it runs it, next to the plan (`<plan file>.images.json`). The file
+    is never changed afterwards: a later run that resolves another
+    digest is refused. A plan in memory keeps them with the plan
+    object that the local workers receive.
+
+    Parameters
+    ----------
+    plan : Plan
+        The plan
+    digests : Mapping[str, str]
+        `{pipeline: registry digest}` (`StagePlanner.prepare`)
+
+    Returns
+    -------
+    Path | None
+        The file (None for a plan in memory)
+
+    Raises
+    ------
+    PlanError
+        If a digest differs from one already recorded, here or in the
+        plan
+    """
+    raise NotImplementedError
+
+
+def read_images(plan: Plan) -> dict[str, str]:
+    """
+    Return the image digests that the tasks of a plan must run with.
+
+    Those of the plan, completed by its images file. A task refuses to
+    run an image with another digest, and records the one it ran.
+
+    Parameters
+    ----------
+    plan : Plan
+        The plan
+
+    Returns
+    -------
+    dict[str, str]
+        `{pipeline: registry digest}`; a pipeline is missing while its
+        image has not been resolved (a plan that was never run)
     """
     raise NotImplementedError

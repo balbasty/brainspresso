@@ -94,6 +94,37 @@ class StagePlanner(Protocol):
 
     stage: str
 
+    def prepare(self, plan: Plan, profile: Profile) -> dict[str, str]:
+        """
+        Get a plan ready to run, once, before its first task.
+
+        Called by `percolate` under the lock of the plan. Grind pulls
+        the images of the plan and returns their registry digests,
+        which percolate saves next to the plan
+        (`percolate.plan.write_images`) for every task to read: one
+        image per plan, even if a tag moves while jobs are queued.
+        Roast has nothing to prepare.
+
+        Parameters
+        ----------
+        plan : Plan
+            The plan
+        profile : Profile
+            Container runtime, image cache
+
+        Returns
+        -------
+        dict[str, str]
+            `{pipeline: digest}` of the images to run
+
+        Raises
+        ------
+        PlanError
+            If a digest differs from one that the plan, or an earlier
+            run of it, recorded
+        """
+        ...
+
     def run(self, plan: Plan, task: PlanTask, profile: Profile) -> str:
         """
         Run one task of a plan, in this process.
@@ -123,7 +154,8 @@ class StagePlanner(Protocol):
         ------
         PlanError
             If a root is missing here or holds another dataset, or if
-            the plan no longer matches: a pipeline of another
+            the plan no longer matches: an image whose digest differs
+            from that of the plan's images file, a pipeline of another
             version, another image digest, a signature that differs
             from the plan's
         """
@@ -264,7 +296,7 @@ def percolate(
 def run_task(plan: Plan | str | Path, task: str, *,
              options: ExecutionOptions | None = None) -> str:
     """
-    Run one task: the body of `bx percolate PLAN --task ID`.
+    Run one task: the body of `bx percolate PLAN --task KEY`.
 
     Also of `--array JOB --index N`, once the task key is read from the
     job manifest. Takes no plan lock.
@@ -299,12 +331,17 @@ def plan_status(plan: Plan | str | Path, *,
         Ask the scheduler about recorded jobs and settle the records
         (needs the lock of the plan; skipped, read-only, when it is
         held): a "pending" or "running" task whose job ended without
-        finishing it becomes "failed" ("skipped" if the scheduler
-        dropped the job because a required upstream failed); a
+        finishing it becomes "failed", or "skipped" if it never
+        started and the record of a task it requires is "failed" or
+        "skipped" (the upstream records decide: a scheduler reports a
+        job dropped for its dependency like a cancelled one); a
         "waiting" task is never failed for its job, and becomes
         "skipped" only when its requirements can no longer be met;
-        run records of the grind lock left by jobs that are over are
-        removed
+        run records of the grind lock are removed when their job is
+        over (scheduler, or pid on this host), or when the task record
+        names the same job and is final; never on a final task record
+        alone, which a job that runs the task again has not updated
+        yet
 
     Returns
     -------

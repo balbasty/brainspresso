@@ -30,13 +30,15 @@ class Container:
     ----------
     image : str
         Image reference (`nipreps/fmriprep:23.2.1`), or the path of an
-        Apptainer image file
+        Apptainer image file. A reference enters task signatures as
+        it is declared; a file enters them as `file:<SHA-256 of the
+        file>`, never as its path (which the path map may translate)
     digest : str | None
         Registry manifest digest of the image (`sha256:...`), the same
         whatever runtime runs it (for a local image file: the SHA-256
         of the file). It is recorded in task records and `GeneratedBy`
-        and compared when known, apart from the task signature, which
-        holds `image` as declared, never a local path; found by
+        and compared when known, apart from the task signature; found
+        by
         `ContainerRuntime.inspect` or `pull` when None
     env : Mapping[str, str]
         Environment variables set in the container
@@ -123,8 +125,9 @@ class ContainerRuntime(Protocol):
 
         Docker pulls it; Apptainer builds an image file in the cache.
         Done once, when tasks are about to run, never by a dry run or
-        when planning. The plan is not changed: a digest that it does
-        not hold is written by each task in its record.
+        when planning. The plan is not changed: percolate records the
+        digests once next to it (`percolate.plan.write_images`), and
+        every task runs that image or refuses.
 
         Parameters
         ----------

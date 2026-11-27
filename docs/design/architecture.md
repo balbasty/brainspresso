@@ -973,9 +973,17 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
 
 * `config_hash` is the task **signature** (`signature`): SHA-256 of the
   pipeline name and version, `stage.fingerprint(effective config)`, the
-  image reference, the raw inputs (path relative to the dataset, size,
-  mtime) and the `config_hash` of each upstream task (so a change
-  propagates downstream), plus the member list of a fan-in.
+  image reference, the raw inputs (path relative to the dataset root,
+  size, mtime) and the canonical key and `config_hash` of each
+  upstream task (so a change propagates downstream), plus the member
+  list of a fan-in. The **canonical key** of an upstream task
+  (`canonical_key`) does not depend on how a reference was typed or on
+  where the run's home is: the bare id for a task of the same dataset,
+  else `<canonical reference>:<id>` (`str(DatasetRef)`: lower case,
+  arguments and site as the catalog spells them), `@home:<id>` for a
+  task of the home. `requires` uses the same keys. Grind inputs are
+  always inside their dataset, so `root` is required and a signature
+  holds no absolute path.
 * The image **digest** is not in the signature: it is recorded
   (`container`) and compared apart. `plan(..., runtime=)` asks
   `ContainerRuntime.inspect` (local store, image cache; never a pull)
@@ -986,13 +994,25 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
   it next to the image file it converts; for a local image file, the
   SHA-256 of the file), so records made under Docker and Apptainer
   compare. The signature holds the image reference as declared, never
-  a local path. Images are pulled only when a plan is run. The plan is
-  never rewritten: a digest unknown at plan time is written by the
-  task in its record (`container`); a task refuses a digest that
-  differs from one the plan does record.
+  a local path: an image declared as a file (`Container.image` a path
+  to an Apptainer image) enters it as `file:<SHA-256 of the file>`,
+  which `inspect` computes (and caches by size and mtime); the plan
+  refuses a file that is missing. Images are pulled only when a plan
+  is run, and the plan is never rewritten. **One image per plan**:
+  when percolate first runs a plan it pulls its images once, under the
+  plan lock (`StagePlanner.prepare`), and writes the resolved digests
+  in a sidecar next to the plan (`<plan>.images.json`,
+  `write_images`; kept with the plan in memory for a local run without
+  a file). Later runs of the plan reuse the sidecar; every task reads
+  it (`read_images`), records the digest (`container`) and refuses to
+  run an image whose digest differs from the sidecar or from one the
+  plan records, so a tag that moves between jobs cannot give two
+  builds in one plan.
 * Plan verdicts (`PlanTask.verdict`): **done** (record `done`, same
   signature, recorded outputs exist: not run); **todo** (no record, or
-  `failed`/`skipped`); **queued** (recorded `pending`/`running`, by
+  `failed`/`skipped`/`waiting`: a waiting record holds no job, whatever
+  plan wrote it, so a new plan runs the task and never counts it as
+  queued); **queued** (recorded `pending`/`running`, by
   another plan or an earlier run: not run by this plan, whose
   dependents check its record when they start); **stale** (`done`
   with another signature); **blocked**. `--redo [STAGE]` forces a
@@ -1122,8 +1142,11 @@ Owner decisions; roast and grind share all of this.
   `skipped` tasks; `--status` prints a snapshot of the tasks from
   their records, reconciled with the scheduler (`plan_status`: a
   `pending`/`running` record whose job is gone becomes `failed`, or
-  `skipped` if the scheduler dropped the job because a required
-  upstream failed; `waiting` records are left; stale run records of
+  `skipped` if it never started and the record of a task it requires
+  (`after`) is `failed` or `skipped`: the upstream records decide,
+  not the scheduler, which reports the same state for a job it drops
+  for its dependency and for one a user cancels; `waiting` records are
+  left; stale run records of
   jobs that are over are removed; a local run on another host cannot
   be checked and is listed as unknown); `--status --watch` refreshes it until the plan finishes
   (`watch_plan`: read-only, it writes no record and takes no lock;
@@ -1176,20 +1199,24 @@ Owner decisions; roast and grind share all of this.
   success** (`Job.after_any`): tasks re-check their requirements when
   they start, and a "must succeed" dependency on an array would leave
   every dependent queued forever after one failed element. A job only
-  gets a must-succeed dependency (`Job.after`) when each of its tasks
-  requires every task of the upstream job (`need="all"`, or a required
-  unit-to-unit input between two single tasks or two aligned arrays).
-  What each scheduler gets:
+  gets a must-succeed dependency (`Job.after`) in two cases: on a
+  whole job, when each of its tasks requires **every** task of that
+  job (`need="all"`; a required input between two single tasks); or
+  element-wise on an aligned array, when element `n` requires element
+  `n` (a required unit-to-unit input). A dependency of either shape
+  that does not have to succeed is `Job.after_any`. What each
+  scheduler gets (`submit_command` receives the four kinds apart:
+  `any`, `ok`, `pairwise_any`, `pairwise_ok`):
 
-  | | wait for the end | must succeed | element-wise (aligned arrays) |
-  |---|---|---|---|
-  | SLURM | `afterany` | `afterok`, with `--kill-on-invalid-dep=yes` | `aftercorr` (must succeed) |
-  | SGE | `-hold_jid` | none: `-hold_jid`, the task checks | `-hold_jid_ad` (end only) |
-  | PBS | `depend=afterany` | `depend=afterok` for single jobs; arrays: `afterany` | none: whole array, `afterany` |
+  | | `any` | `ok` | `pairwise_any` | `pairwise_ok` |
+  |---|---|---|---|---|
+  | SLURM | `afterany` | `afterok`, with `--kill-on-invalid-dep=yes` | whole array, `afterany` (SLURM has no element-wise form that ignores failure) | `aftercorr`, with `--kill-on-invalid-dep=yes` |
+  | SGE | `-hold_jid` | `-hold_jid`, the task checks | `-hold_jid_ad` | `-hold_jid_ad`, the task checks |
+  | PBS | `depend=afterany` | `depend=afterok` between single jobs; arrays: `afterany` | whole array, `afterany` | whole array, `afterany` |
 
   A job that the scheduler drops because its dependency can no longer
-  be met leaves a `pending` record, which reconciliation records as
-  `skipped`.
+  be met leaves a `pending` record, which reconciliation settles from
+  the upstream records (above).
 * **No submitit**: its value is pickling callables and fetching their
   results; jobs here are command lines and results are task records.
   It also only covers SLURM well. Dask and Ray are not backends.
@@ -1230,9 +1257,10 @@ Owner decisions; roast and grind share all of this.
   scratch that mirrors dataset-relative paths, holding read locks only
   while copying, and gives the tool the scratch paths. With `all`,
   commands also write under scratch and `stage_out` commits what they
-  wrote through the action layer (`File` under exclusive locks,
-  renamed into place; one action per file, never a raw copy), so locks
-  and recorded outputs stay correct; actions that already write through
+  wrote through the action layer (declared files through `File` under
+  exclusive locks, renamed into place; claimed folders through
+  `CommitTree`, below; never a raw copy), so locks and recorded
+  outputs stay correct; actions that already write through
   `File` write to the dataset directly. Scratch (`--scratch`, else
   `$SLURM_TMPDIR`, `$TMPDIR`, `$TMP`) is removed afterwards, unless
   the task failed and `--keep-scratch-on-failure` is set. Containers
@@ -1242,10 +1270,18 @@ Owner decisions; roast and grind share all of this.
   which becomes its `bids_dir`.
 * Engine changes of step 7, all additive and stage-agnostic
   (`actions/` imports neither `percolate/`, `grind/` nor `roast/`): a
-  signature given by the shard; input signatures hashed on paths
-  relative to the dataset root (`_signature` hashes `str(path)` today:
-  on translated roots no roast shard would ever be skipped; grind
-  signatures are dataset-relative too); extra record fields merged
+  signature given by the shard; input signatures hashed on relative
+  paths (`_signature` hashes `str(path)` today: on translated roots no
+  roast shard would ever be skipped). An input is hashed relative to
+  the first root that contains it, with the name of that root: the
+  dataset (`ctx.root`), the source folder (`ctx.source`, which a
+  `LocalSource` or `--source` may put outside the dataset), the sites
+  parent; an input under none of them keeps its absolute path, and
+  its shard is then only skipped where that path is the same. This
+  changes every signature: `_SIGNATURE_VERSION` is bumped, so every
+  roast shard runs once more after the upgrade (its inputs are read
+  again; outputs that exist are kept by `IfExists`). Also: a
+  `CommitTree` action (below); extra record fields merged
   into the existing record (`Shard(record=)`, `update_task_state`);
   the `waiting` status; a scope filter on top-level shards (roast
   tasks); an `Adopt` action (below); named run locks with their own
@@ -1286,11 +1322,20 @@ Owner decisions; roast and grind share all of this.
   would block compost until `--ignore-runs`. Grind records carry the
   plan, the task key and the job id, and the record check of an
   exclusive lock takes a liveness hook (`run_lock(..., alive=)`, step
-  7; `actions/` imports no scheduler): a record whose task record is
-  final (`done`, `failed`, `skipped`), or whose job the scheduler says
-  is over, is stale and removed. `plan_status` reconciliation removes
-  them too. Where the scheduler cannot be asked, the message names
-  `bx percolate <plan> --status`.
+  7; `actions/` imports no scheduler). A record is stale, and removed,
+  only when the scheduler says its job is over (same host: when its
+  process is dead), or when the task record names the **same** job id
+  and is final. A final task record alone proves nothing: a job that
+  runs a task again (`--redo`, `--retry`) writes its run record before
+  it sets the task `running`, while the task record still shows the
+  job before it; and a record whose job id differs from the task
+  record's may be that new job, so it is left to the scheduler check.
+  A local percolate (and each of its pool workers) writes one record
+  per process, with the plan and no task or job: it covers every task
+  the process runs, and is live while its pid is, on its host; from
+  another host it cannot be checked and is kept. `plan_status`
+  reconciliation removes stale records too. Where nothing can be
+  asked, the message names `bx percolate <plan> --status`.
 * **`Dataset.run`**: `LOCKS` (`datasets/base.py`) maps a command to a
   lock name and mode: `"grind": ("grind", "shared")`; the other
   commands keep the `run` lock. `Dataset.run` passes the name to
@@ -1343,13 +1388,22 @@ templates
 does not use every entity of the level of its stage: session tasks
 would overwrite each other's `sub-{sub}/`. An app that writes
 per-subject files whatever the session runs at the subject level.
-Once the app has exited, the claim yields one action per file found
-under the claimed paths of its `out_dir`, which commits it to the
-derivative through `File`; a claim that commits nothing is an error
-(the engine alone would count it "empty"). What else the app wrote is
-handled by kind: `dataset_description.json` is not committed (the
-`finalize` task writes the description after the apps, with
-`GeneratedBy`, keeping the fields that the app's own copy adds);
+Once the app has exited, the claim yields one `CommitTree` action per
+claimed path found in its `out_dir` (step 7, `actions/`), which
+commits it to the derivative under an exclusive lock on that path:
+one rename of the folder when `out_dir` is on the filesystem of the
+derivative (`<state>/work/`), else a copy of the tree into a
+temporary sibling, renamed into place. Either way symbolic links are
+recreated as links (never followed; a link that leaves the folder is
+kept and reported) and empty folders are kept, which per-file writes
+would lose and FreeSurfer subjects need. The claimed path is the
+recorded output; a claim that commits nothing is an error (the engine
+alone would count it "empty"). What else the app wrote is handled by
+kind: `dataset_description.json` is not committed to the derivative
+but saved as `<state>/grind/<derivative name>/descriptions/<unit
+label>.json` (through `File`), where the `finalize` task reads the
+copies after the apps to write the description: `GeneratedBy` from
+grind, plus the fields that the app's copies add;
 `logs/` goes to `logs/<unit label>/`; paths listed in
 `BidsAppPipeline.shared` (reference data that every participant
 writes alike, e.g. `sourcedata/freesurfer/fsaverage/`) are committed
@@ -1517,7 +1571,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
-| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1045 passed, 2 skipped, 28 xfailed) |
+| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
@@ -1768,3 +1822,14 @@ up as an XPASS failure once fixed (then drop the marker).
   BIDS-App tasks get their own `out_dir` and commit claimed paths;
   stale grind run records reconciled; a local plan whose task needs
   more CPUs than `--jobs` is refused.
+* r20: second round of the final review. Pairwise dependencies split
+  into `pairwise_ok` (`aftercorr`) and `pairwise_any` (whole-array
+  `afterany` on SLURM); a `waiting` record is a `todo` verdict;
+  canonical upstream keys in signatures and `requires`; one image per
+  plan (digest sidecar, `StagePlanner.prepare`); reconciliation
+  decides `skipped` from upstream records; BIDS-App descriptions kept
+  for `finalize`; `CommitTree` keeps links and empty folders; run
+  records stale only by scheduler, pid or the same final job; input
+  signatures relative to the dataset, source or sites-parent root
+  (`_SIGNATURE_VERSION` bumped); image files enter signatures by
+  content.

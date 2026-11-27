@@ -321,7 +321,7 @@ def test_bids_app():
     assert app.shared == ()
     doc = flat(grind.bidsapp)
     assert "its own `out_dir`" in doc and "never the derivative" in doc
-    assert "`finalize` task writes the description" in doc
+    assert "`finalize` task reads these copies" in doc
     assert list(fields(grind.BidsAppConfig)) == [
         "args", "bids_filter", "skip_bids_validation", "files"]
     assert params(grind.BidsAppStage.command) == ["self", "ctx", "work"]
@@ -504,8 +504,13 @@ SIGNATURES = {
     graph.derivative_name: ["pipeline", "variant"],
     graph.enumerate_units: ["layout", "level", "selection", "overrides",
                             "dataset"],
-    graph.signature: ["pipeline", "stage", "config", "inputs", "root",
+    graph.signature: ["pipeline", "stage", "config", "root", "inputs",
                       "upstream", "container"],
+    graph.canonical_key: ["task_id", "dataset", "seen_from"],
+    plans.write_images: ["plan", "digests"],
+    plans.read_images: ["plan"],
+    prun.StagePlanner.prepare: ["self", "plan", "profile"],
+    run.GrindPlanner.prepare: ["self", "plan", "profile"],
     graph.plan: ["pipeline", "scope", "configs", "redo", "if_stale",
                  "runtime", "command", "options"],
     containers.get_runtime: ["name"],
@@ -594,7 +599,11 @@ def test_nothing_is_implemented(tmp_path):
         lambda: graph.task_id("p", "s", unit, "hires"),
         lambda: graph.derivative_name("p", "hires"),
         lambda: graph.enumerate_units(layout, "subject"),
-        lambda: graph.signature(pipeline, None, None),
+        lambda: graph.signature(pipeline, None, None, root=tmp_path),
+        lambda: graph.canonical_key("grind/p/s/sub-01", "ixi", "ixi"),
+        lambda: plans.write_images(plan, {"p": "sha256:0"}),
+        lambda: plans.read_images(plan),
+        lambda: run.planner.prepare(plan, profile),
         lambda: graph.plan(pipeline, graph.Scope((), layout)),
         lambda: containers.get_runtime("docker"),
         lambda: context.GrindContext(layout, pipeline),
@@ -674,17 +683,60 @@ def test_final_review():
     section = " ".join(SECTION.split())
     for word in (
         "`CollectionLayout`", "never guessed from the tree",
-        "relative to the dataset root", "registry manifest digest",
-        "The plan is never rewritten", "`run_lock(..., alive=)`",
+        "hashed on relative paths", "registry manifest digest",
+        "the plan is never rewritten", "`run_lock(..., alive=)`",
         "roast --wait <number>", "names `--lock-wait`",
         "`<state>/work/`", "`BidsAppPipeline.shared`",
         "refuses the plan before anything runs",
     ):
         assert word in section, word
     doc = flat(containers.Container)
-    assert "Registry manifest digest" in doc and "never a local path" in doc
+    assert "Registry manifest digest" in doc and "never as its path" in doc
     assert "`image` is unchanged" in flat(containers.ContainerRuntime.pull)
     assert "plan again" not in section
+
+
+def test_final_review_round_2():
+    """What the second round of the final review settled."""
+    section = " ".join(SECTION.split())
+    doc = flat(jobs)
+    # 1. pairwise-any never becomes a must-succeed form
+    for kind in ("any", "ok", "pairwise_any", "pairwise_ok"):
+        assert f'"{kind}"' in doc and f"`{kind}`" in section, kind
+    assert "never to an element-wise must-succeed form" in flat(
+        jobs.Scheduler.submit_command)
+    assert "SLURM has no element-wise form that ignores failure" in section
+    # 2. a waiting record is a todo verdict
+    assert "`failed`/`skipped`/`waiting`" in section
+    assert 'recorded "waiting" is "todo"' in flat(graph.plan)
+    # 3. canonical keys in signatures and `requires`
+    assert "`canonical_key`" in section
+    assert "canonical key and signature" in flat(graph.signature)
+    # 4. one image per plan
+    assert "One image per plan" in section and "`read_images`" in section
+    assert "one image per plan" in flat(prun.StagePlanner.prepare)
+    # 5. the upstream records decide, not the scheduler
+    assert "the upstream records decide" in section
+    assert "the upstream records decide" in flat(prun.plan_status)
+    # 6, 7. descriptions kept for finalize; links and empty folders
+    doc = flat(grind.bidsapp)
+    assert "descriptions/<unit label>.json" in doc and "`CommitTree`" in doc
+    assert "empty folders are kept" in doc
+    assert "`CommitTree`" in section and "`CommitTree`" in flat(staging)
+    # 8. run records: never stale on a final task record alone
+    assert "A final task record alone proves nothing" in section
+    assert "one record per process" in section
+    # 9. signatures on relative paths, version bumped
+    assert "`_SIGNATURE_VERSION` is bumped" in section
+    assert "keeps its absolute path" in section
+    signature = inspect.signature(graph.signature).parameters["root"]
+    assert signature.default is inspect.Parameter.empty
+    # image files enter signatures by content
+    assert "file:<SHA-256 of the file>" in section
+    assert "file:<SHA-256 of the file>" in flat(containers.Container)
+    # id -> key
+    assert "--task KEY" in flat(prun.run_task)
+    assert "Keys of the tasks to run" in flat(jobs.make_jobs)
 
 
 def test_decisions_leave_no_question():

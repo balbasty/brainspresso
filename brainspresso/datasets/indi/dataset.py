@@ -30,12 +30,12 @@ from brainspresso.datasets.indi.harvest import (
     harvest_sites,
     site_selection,
 )
-from brainspresso.datasets.options import OptionGroup, option_group
+from brainspresso.datasets.options import OptionGroup, Panel, option_group
 from brainspresso.errors import UsageError
 from brainspresso.roast.hosted import harvest_hosted
 
 
-@option_group("Info", 50)
+@option_group("INDI", Panel.COLLECTION)
 class InfoOptions(OptionGroup):
     """`bx <project> info --derivatives`."""
 

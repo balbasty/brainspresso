@@ -1,0 +1,12 @@
+{
+    "fill": [
+        "T1w.json",
+        "dwi.json",
+        "task-BREATHHOLD_acq-1400_bold.json",
+        "task-CHECKERBOARD_acq-1400_bold.json",
+        "task-CHECKERBOARD_acq-645_bold.json",
+        "task-rest_acq-1400_bold.json",
+        "task-rest_acq-645_bold.json",
+        "task-rest_acq-CAP_bold.json"
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+    },
+    "sidecars": {
+        "T1w.json": {
+            "printout": "anat.pdf",
+            "sha256": "95f508159b30cabf83db91d7025225d2fc62109e077fc32946bcb179ce96037c",
+            "nii": "nii/T1w.nii",
+            "nii_sha256": "f7a582ad1fd9e8f6f2d7eb342c1487529469156b425c4dff41bd48e04319b059",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "dwi.json": {
+            "printout": "dti.pdf",
+            "sha256": "207e593c43e4dcbce2a1878371ac3ab1239c5515c3168b4c1ef35dfc91b0b041",
+            "nii": "nii/dwi.nii",
+            "nii_sha256": "764f3ea8206c6eff5257245cfc4e2469881d3d98901a22d131c8f90657a6c030",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-rest_bold.json": {
+            "printout": "rest.pdf",
+            "sha256": "945f2ca34cb6164961fecd6296b87ec86e642423f886710bb847349562ef172c",
+            "nii": "nii/bold.nii",
+            "nii_sha256": "a0dd28f857fe340d2da5163ddf654db5047097d8f28ad24d0a8a0ac4244049e2",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        }
+    }
+}

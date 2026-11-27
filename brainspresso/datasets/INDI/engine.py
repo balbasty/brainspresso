@@ -67,6 +67,21 @@ ENTITIES = (
     "res", "den", "label", "desc",
 )
 TEMPLATES = Path(__file__).parent / "templates"
+# Fill-in templates of `templates/<name>/` (sidecars converted from the
+# scanner printouts, `scripts/make_sidecars.py`): `{"fill": [paths]}`.
+# They only fill in what the bucket lacks: a bucket file at the same path
+# is kept (see `Project.entries`).
+FILL_INDEX = "_fill.json"
+# SHA-256 of earlier versions of templates (`<name>/<path>`): a harvest
+# refreshes a local copy that is still such a version (see
+# `bids.harvest.write_inline`; later versions are recognised from the
+# manifest)
+PREVIOUS_TEMPLATES = {
+    # hand-written {TaskName, RepetitionTime}, before printouts/SLIM
+    "slim/task-rest_bold.json": (
+        "518c8fbc5ae23d9cb5a9fccf4420a3c2119823d3bf360fd211c7dc8fccc00269",
+    ),
+}
 NA = "n/a"
 
 
@@ -272,6 +287,15 @@ class Project:
         )))
         return out
 
+    def fill_templates(self) -> frozenset[str]:
+        """Paths of the fill-in templates (`templates/<name>/_fill.json`)"""
+        path = TEMPLATES / self.name / FILL_INDEX
+        if not path.is_file():
+            return frozenset()
+        return frozenset(
+            json.loads(path.read_text(encoding="utf-8")).get("fill", ())
+        )
+
     def _templates(self) -> list[InlineEntry]:
         root = TEMPLATES / self.name
         if not root.is_dir():
@@ -282,10 +306,16 @@ class Project:
             return p.name == ".bidsignore" or \
                 not p.name.startswith((".", "_"))
 
-        return [
-            InlineEntry(p.relative_to(root).as_posix(), p.read_bytes())
-            for p in sorted(root.rglob("*")) if keep(p)
-        ]
+        out = []
+        for p in sorted(root.rglob("*")):
+            if not keep(p):
+                continue
+            rel = p.relative_to(root).as_posix()
+            out.append(InlineEntry(
+                rel, p.read_bytes(),
+                previous=PREVIOUS_TEMPLATES.get(f"{self.name}/{rel}", ()),
+            ))
+        return out
 
     # ------------------------------------------------------------------
     #   Layout "sites": one BIDS dataset per site
@@ -357,8 +387,23 @@ class Project:
                 site_of if self.multisite else None,
             )
             inline.append(InlineEntry("participants.tsv", participants))
-        inline += self.templates()
+        fill = self.fill_templates()
+        templates = self.templates()
         for entry in inline:        # generated files override the bucket's
+            out[entry.path] = entry
+        site = getattr(self, "site", None)
+        where = f" (site {site.name})" if site is not None and site.name \
+            else ""
+        for entry in templates:
+            if entry.path in fill and entry.path in out:
+                # fill-in templates never replace a file of the bucket
+                # (nor a generated one). Until the placement hook merges
+                # keys, the whole template is skipped.
+                lg.warning(
+                    f"{self.name}{where}: fill-in template {entry.path} "
+                    f"not used (the dataset has its own)"
+                )
+                continue
             out[entry.path] = entry
         return [out[k] for k in sorted(out)]
 

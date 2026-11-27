@@ -1,0 +1,28 @@
+{
+    "TaskName": "rest",
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Multiband Gradient Echo EPI",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SS"
+    ],
+    "ScanOptions": [],
+    "SequenceName": "cmrr_mbep2d_bold",
+    "PulseSequenceDetails": "%CustomerSeq%\\cmrr_mbep2d_bold",
+    "EchoTime": 0.03,
+    "MultibandAccelerationFactor": 4,
+    "RepetitionTime": 1.4000000000000001,
+    "Modality": "MR",
+    "ProtocolName": "cmrr_mbep2d_resting",
+    "SeriesDescription": "cmrr_mbep2d_resting",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ]
+}

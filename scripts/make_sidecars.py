@@ -10,7 +10,7 @@ Usage
     python scripts/make_sidecars.py DATASET [--check] [--only PATTERN]
                                     [--baseline REF]
 
-DATASET is one of ABIDE1, ABIDE2, CoRR
+DATASET is one of ABIDE1, ABIDE2, CoRR, MPI-LEMON, NKI-RS, SALD, SLIM
 (see `printouts/<DATASET>/sidecars.toml`).
 
 For each entry of the conversion table, the printout is converted with
@@ -48,6 +48,25 @@ a site template used when the data does not name the sample).
 A `manual = true` entry (no printout) is kept as is and takes no conversion
 key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
 `fill_select`).
+
+A `fill = true` entry (any kind) is a fill-in template, for the sidecars
+hosted with the data (INDI projects, whose bucket sidecars are often
+incomplete): it never replaces one. Until the placement hook (branch
+`claude/feat/hosted-bids-placement`) merges keys, the INDI engine skips
+a fill-in template whole when the bucket hosts a file at its path, and
+otherwise writes it at the dataset root (BIDS inheritance lets the
+hosted, lower-level sidecars win). The flag does not change the
+conversion; it is recorded in the lock (`"fill": true`) and in
+`_fill.json` next to the templates
+(`{"fill": [<output>, ...]}`, shipped with the package: what the INDI
+engine reads, as the lock is not shipped). Its names are `FILL_KEY`,
+`LOCK_FILL_KEY` and `FILL_INDEX`, to follow the convention of the roast
+hook that applies these templates.
+
+An entry may set `drop` (a list of keys) to remove keys from the
+converted sidecar (after `defaults` and `assigns`), e.g. keys that
+`bids.repair` renames and an inherited template would bring back; it is
+recorded in the lock.
 """
 import argparse
 import fnmatch
@@ -68,16 +87,28 @@ TEMPLATES = {
     'ABIDE1': 'brainspresso/datasets/ABIDE/I/templates',
     'ABIDE2': 'brainspresso/datasets/ABIDE/II/templates',
     'CoRR': 'brainspresso/datasets/CoRR/templates',
+    # INDI projects: brainspresso/datasets/INDI/templates/<Project.name>
+    'MPI-LEMON': 'brainspresso/datasets/INDI/templates/mpi-lemon',
+    'NKI-RS': 'brainspresso/datasets/INDI/templates/nki-rs',
+    'SALD': 'brainspresso/datasets/INDI/templates/sald',
+    'SLIM': 'brainspresso/datasets/INDI/templates/slim',
 }
 # template JSON files that are not acquisition sidecars
-NON_SIDECARS = ('dataset_description.json', 'participants.json')
+NON_SIDECARS = ('dataset_description.json', 'participants.json',
+                'sessions.json')
+# fill-in flag: name in sidecars.toml and in sidecars.lock.json (kept in
+# one place, to follow the convention of the roast hook that applies the
+# fill-in templates)
+FILL_KEY = 'fill'
+LOCK_FILL_KEY = 'fill'
+FILL_INDEX = '_fill.json'   # in the templates folder (shipped)
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
               'fill_from', 'fill_select', 'manual', 'common', 'note',
-              'previous'}
+              'previous', 'drop', FILL_KEY}
 # keys that drive a conversion (meaningless, hence rejected, if manual
 # or common)
 CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'common', 'note',
-                                'previous'}
+                                'previous', FILL_KEY}
 
 
 class TableError(ValueError):
@@ -98,6 +129,7 @@ def template_sidecars(dataset, root=ROOT):
     return sorted(
         p.relative_to(tpl).as_posix() for p in tpl.rglob('*.json')
         if p.name not in NON_SIDECARS and 'phenotype' not in p.parts
+        and not p.name.startswith('_')
     )
 
 
@@ -117,6 +149,9 @@ def load_table(dataset, root=ROOT):
         if e['output'] in seen:
             raise TableError(f'{path}: duplicate output {e["output"]}')
         seen.add(e['output'])
+        if not isinstance(e.get(FILL_KEY, False), bool):
+            raise TableError(f'{path}: {e["output"]}: {FILL_KEY} must be '
+                             'true or false')
         if e.get('manual') and 'common' in e:
             raise TableError(f'{path}: {e["output"]}: manual and common')
         if e.get('manual') or 'common' in e:
@@ -141,6 +176,11 @@ def load_table(dataset, root=ROOT):
             if not isinstance(e.get(key, {}), dict):
                 raise TableError(f'{path}: {e["output"]}: {key} must be a '
                                  'table')
+        drop = e.get('drop', [])
+        if not (isinstance(drop, list)
+                and all(isinstance(k, str) for k in drop)):
+            raise TableError(f'{path}: {e["output"]}: drop must be a list '
+                             'of keys')
     converted = {e['output'] for e in entries
                  if not e.get('manual') and 'common' not in e}
     for e in entries:
@@ -425,6 +465,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 continue
             sidecar = {**filled, **e.get('defaults', {}), **sidecar,
                        **e.get('assigns', {})}
+            for key in e.get('drop', []):
+                sidecar.pop(key, None)
             entry = {'printout': e['printout'], 'sha256': sha256(printout)}
             if 'select' in e:
                 entry['select'] = str(e['select'])
@@ -436,6 +478,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                 entry['fill_sha256'] = sha256(fill_from)
                 if 'fill_select' in e:
                     entry['fill_select'] = str(e['fill_select'])
+            if 'drop' in e:
+                entry['drop'] = list(e['drop'])
             write(e, sidecar, entry, version)
 
     for e in entries:
@@ -459,13 +503,22 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         write(e, common_keys(sources), {'common': list(e['common'])}, prov)
 
     lock = {'protocol2bids': lock_version(locked), 'sidecars': {
-        e['output']: locked[e['output']] for e in entries
+        e['output']: flagged(e, locked[e['output']]) for e in entries
         if e['output'] in locked}}
     lock_text = dumps(lock)
     old_lock_text = (lock_path.read_text(encoding="utf-8")
                      if lock_path.exists() else None)
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
+
+    # fill-in index, next to the templates (from the whole table)
+    index_path = tpl / FILL_INDEX
+    fills = sorted(e['output'] for e in entries if e.get(FILL_KEY))
+    index_text = dumps({FILL_KEY: fills}) if fills else None
+    old_index = (index_path.read_text(encoding="utf-8")
+                 if index_path.exists() else None)
+    if old_index != index_text:
+        dirty.append(FILL_INDEX)
 
     md = render_report(dataset, [
         (e['output'], *report[e['output']]) for e in entries], baseline)
@@ -476,7 +529,20 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         return 1 if (dirty or failures) else 0
     lock_path.write_text(lock_text, encoding="utf-8", newline="\n")
     report_path.write_text(md, encoding="utf-8", newline="\n")
+    if index_text is not None:
+        index_path.write_text(index_text, encoding="utf-8", newline="\n")
+    elif index_path.exists():
+        index_path.unlink()
     return 1 if failures else 0
+
+
+def flagged(e, rec):
+    """Lock entry with the fill-in flag of its table entry (also for an
+    entry kept from the old lock, so the lock always follows the table)."""
+    rec = {k: v for k, v in rec.items() if k != LOCK_FILL_KEY}
+    if e.get(FILL_KEY):
+        rec[LOCK_FILL_KEY] = True
+    return rec
 
 
 def lock_version(locked):

@@ -1,0 +1,26 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Fast Spin Echo",
+    "ScanningSequence": [
+        "SE"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP"
+    ],
+    "ScanOptions": [],
+    "SequenceName": "tse_vfl",
+    "PulseSequenceDetails": "%SiemensSeq%\\tse_vfl",
+    "EchoTime": 0.40900000000000003,
+    "RepetitionTime": 3.2,
+    "Modality": "MR",
+    "ProtocolName": "t2_spc_sag_p2_iso_1.0",
+    "SeriesDescription": "t2_spc_sag_p2_iso_1.0",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ]
+}

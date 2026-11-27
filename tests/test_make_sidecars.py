@@ -11,7 +11,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-DATASETS = ("ABIDE1", "ABIDE2", "CoRR")
+DATASETS = ("ABIDE1", "ABIDE2", "CoRR", "MPI-LEMON", "NKI-RS", "SALD",
+            "SLIM")
+# INDI projects: bucket-hosted sidecars, fill-in templates
+INDI = ("MPI-LEMON", "NKI-RS", "SALD", "SLIM")
 
 
 # make_sidecars reads TOML with tomllib (3.11+), else tomli
@@ -72,6 +75,33 @@ def test_known_paths():
                for e in ms.load_table("ABIDE1"))
     assert any(e["output"] == "BMB/1/T1w.json"
                for e in ms.load_table("CoRR"))
+    assert any(e["output"] == "task-rest_bold.json"
+               and e["printout"] == "rest.pdf"
+               for e in ms.load_table("SLIM"))
+    # SALD uses SLIM's (byte-identical) printouts by reference
+    assert any(e["printout"] == "../SLIM/anat.pdf"
+               for e in ms.load_table("SALD"))
+    assert ms.template_dir("NKI-RS").as_posix().endswith(
+        "brainspresso/datasets/INDI/templates/nki-rs")
+
+
+@pytest.mark.parametrize("dataset", INDI)
+def test_indi_entries_are_fill_in(dataset):
+    """INDI templates fill the bucket's sidecars in (flag in table and
+    lock), and are named after BIDS files (no sub/ses/run entity)."""
+    entries = ms.load_table(dataset)
+    lock = _lock(dataset)
+    for e in entries:
+        assert e.get(ms.FILL_KEY) is True, e["output"]
+        assert lock["sidecars"][e["output"]][ms.LOCK_FILL_KEY] is True
+        name = e["output"].rsplit("/", 1)[-1]
+        assert not any(name.startswith(x) or f"_{x}" in name
+                       for x in ("sub-", "ses-", "run-")), name
+        if name.endswith("_bold.json"):
+            task = name.split("task-", 1)[1].split("_", 1)[0]
+            tpl = json.loads((ms.template_dir(dataset) / e["output"])
+                             .read_text(encoding="utf-8"))
+            assert tpl["TaskName"] == task
 
 
 def test_table_validation(tmp_path):
@@ -441,6 +471,109 @@ def test_uncovered_sidecar_is_an_error(tmp_path, monkeypatch):
         ms.run("ABIDE1", root=root, out=io.StringIO())
 
 
+def test_fill_flag(tmp_path, monkeypatch):
+    """`fill` marks fill-in templates: recorded in the lock (also for
+    manual entries and for entries kept by `--only`), conversion unchanged."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    toml = pdir / "sidecars.toml"
+    plain = toml.read_text()
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002}})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    tpl = root / ms.TEMPLATES["ABIDE1"] / "S/T1w.json"
+    before = tpl.read_text()
+
+    toml.write_text(plain.replace(
+        'select = "1"\n', 'select = "1"\nfill = true\n').replace(
+        'manual = true\n', 'manual = true\nfill = true\n'))
+    assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 1
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    assert tpl.read_text() == before
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["S/T1w.json"][ms.LOCK_FILL_KEY] is True
+    assert lock["sidecars"]["S/bold.json"] == {
+        "manual": True, ms.LOCK_FILL_KEY: True}
+    # the fill marker shipped next to the templates
+    index = root / ms.TEMPLATES["ABIDE1"] / ms.FILL_INDEX
+    assert json.loads(index.read_text()) == {
+        ms.FILL_KEY: ["S/T1w.json", "S/bold.json"]}
+    assert ms.uncovered("ABIDE1", ms.load_table("ABIDE1", root=root),
+                        root=root) == []
+    assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 0
+    index.write_text("{}")
+    assert ms.run("ABIDE1", check=True, root=root, out=io.StringIO()) == 1
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+
+    # the lock follows the table, even for entries outside --only
+    toml.write_text(plain)
+    assert ms.run("ABIDE1", root=root, out=io.StringIO(),
+                  only="S/bold*") == 0
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert ms.LOCK_FILL_KEY not in lock["sidecars"]["S/T1w.json"]
+    assert not index.exists()       # no fill-in template left
+
+    toml.write_text(plain.replace('select = "1"\n',
+                                  'select = "1"\nfill = "yes"\n'))
+    with pytest.raises(ms.TableError, match=ms.FILL_KEY):
+        ms.load_table("ABIDE1", root=root)
+
+
+def test_drop(tmp_path, monkeypatch):
+    """`drop` removes keys from the converted sidecar (also `assigns`),
+    and is recorded in the lock; manual entries take none."""
+    root = _synthetic_tree(tmp_path)
+    pdir = root / "printouts" / "ABIDE1"
+    toml = pdir / "sidecars.toml"
+    plain = toml.read_text()
+    toml.write_text(plain.replace(
+        'select = "1"\n',
+        'select = "1"\ndrop = ["RepetitionTime", "Manufacturer", "X"]\n'))
+    _fake_p2b(monkeypatch, {"anat.pdf": {"EchoTime": 0.002,
+                                         "RepetitionTime": 5.0}})
+    assert ms.run("ABIDE1", root=root, out=io.StringIO()) == 0
+    got = json.loads(
+        (root / ms.TEMPLATES["ABIDE1"] / "S/T1w.json").read_text())
+    assert got == {"MagneticFieldStrength": 3, "EchoTime": 0.002}
+    lock = json.loads((pdir / "sidecars.lock.json").read_text())
+    assert lock["sidecars"]["S/T1w.json"]["drop"] == [
+        "RepetitionTime", "Manufacturer", "X"]
+    for bad in ('"RepetitionTime"', "[1]"):
+        toml.write_text(plain.replace('select = "1"\n',
+                                      f'select = "1"\ndrop = {bad}\n'))
+        with pytest.raises(ms.TableError, match="drop"):
+            ms.load_table("ABIDE1", root=root)
+    toml.write_text(plain.replace('manual = true\n',
+                                  'manual = true\ndrop = ["A"]\n'))
+    with pytest.raises(ms.TableError, match="drop"):
+        ms.load_table("ABIDE1", root=root)
+
+
+def test_lemon_mp2rage_keeps_preparation_only():
+    """`bids.repair` moves `RepetitionTime` to `RepetitionTimePreparation`
+    in `*_MP2RAGE.json`: the inherited template must not bring it back."""
+    tpl = ms.template_dir("MPI-LEMON")
+    mp2rage = json.loads((tpl / "MP2RAGE.json").read_text(encoding="utf-8"))
+    assert "RepetitionTime" not in mp2rage
+    assert mp2rage["RepetitionTimePreparation"] == 5.0
+    phasediff = json.loads((tpl / "acq-GEfmap_phasediff.json")
+                           .read_text(encoding="utf-8"))
+    assert "EchoTime" not in phasediff and "EchoTime2" in phasediff
+    for name in ("acq-mp2rage_T1w.json", "acq-mp2rage_T1map.json"):
+        assert "ImageType" not in json.loads(
+            (tpl / name).read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("dataset", INDI)
+def test_fill_index_matches_table(dataset):
+    """The fill marker the INDI engine reads (it ships; the lock does not)."""
+    from brainspresso.datasets.INDI import engine  # noqa: PLC0415  test only
+    assert engine.FILL_INDEX == ms.FILL_INDEX
+    index = ms.template_dir(dataset) / ms.FILL_INDEX
+    assert json.loads(index.read_text(encoding="utf-8")) == {
+        ms.FILL_KEY: sorted(e["output"] for e in ms.load_table(dataset)
+                            if e.get(ms.FILL_KEY))}
+
+
 def test_diff():
     added, removed, changed = ms.diff({"a": 1, "b": 2}, {"b": 3, "c": 4})
     assert added == {"c": 4}
@@ -548,3 +681,4 @@ def test_no_printouts_tracked_in_package():
         pytest.skip("not a git checkout")
     files = res.stdout.splitlines()
     assert not [f for f in files if "/PDFs/" in f]
+    assert not [f for f in files if f.endswith((".pdf", ".nii"))]

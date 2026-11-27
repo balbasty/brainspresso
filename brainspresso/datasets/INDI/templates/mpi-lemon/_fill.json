@@ -1,0 +1,20 @@
+{
+    "fill": [
+        "MP2RAGE.json",
+        "T2starw.json",
+        "T2w.json",
+        "acq-GEfmap_phasediff.json",
+        "acq-SEfmapBOLDpost_dir-AP_epi.json",
+        "acq-SEfmapBOLDpost_dir-PA_epi.json",
+        "acq-SEfmapBOLDpre_dir-AP_epi.json",
+        "acq-SEfmapBOLDpre_dir-PA_epi.json",
+        "acq-SEfmapDWI_dir-AP_epi.json",
+        "acq-SEfmapDWI_dir-PA_epi.json",
+        "acq-highres_FLAIR.json",
+        "acq-lowres_FLAIR.json",
+        "acq-mp2rage_T1map.json",
+        "acq-mp2rage_T1w.json",
+        "dwi.json",
+        "task-rest_acq-AP_bold.json"
+    ]
+}

@@ -633,9 +633,11 @@ def test_harvest_creates_the_state_folder_before_locks(
     harvest_module.harvest(entries, root, Selection(), layout=kind,
                            trim=False)
     # the two files, plus (since fasteners was dropped) the lock of each
-    # partial download: all in the dataset
+    # partial download, plus the manifest (read, then record): all in the
+    # dataset
     assert sorted(p.name for p, _ in locks_seen) == sorted(
-        [f"sub-0{i}_T1w.nii.gz{x}" for i in (1, 2) for x in ("", ".download")])
+        [f"sub-0{i}_T1w.nii.gz{x}" for i in (1, 2) for x in ("", ".download")]
+        + ["manifest.json"] * 2)
     assert all(found == root for _, found in locks_seen)
 
 
@@ -646,7 +648,10 @@ def test_record_run_creates_the_state_folder(tmp_path, locks_seen):
     record_run(layout, "harvest", {"dataset": "DS"})    # before downloads
     with File(layout.source / "x.tgz", "w"):
         pass
-    assert locks_seen == [(layout.source / "x.tgz", layout.root)]
+    assert locks_seen == [
+        (Path(layout.state) / "manifest.json", layout.root),   # its lock
+        (layout.source / "x.tgz", layout.root),
+    ]
 
 
 def test_ensure_state_of_a_sites_layout(tmp_path):

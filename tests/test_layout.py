@@ -1,5 +1,7 @@
 """Dataset layouts (`bids.layout`) and the state they record."""
+import hashlib
 import json
+import threading
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,7 @@ from brainspresso.actions.state import (
 from brainspresso.bids import layout as layout_mod
 from brainspresso.bids.harvest import (
     InlineEntry,
+    generated_files,
     harvest,
     read_manifest,
     record_run,
@@ -460,6 +463,44 @@ def test_record_run(tmp_path):
     assert manifest["files"] == {}
 
 
+def test_record_run_concurrent_writes(tmp_path):
+    """Concurrent records (shared run lock: several harvests, or sites)
+    never lose each other's entries: read-modify-write under a lock."""
+    lay = make_layout("study", tmp_path)
+    record_run(lay, "harvest")
+
+    def write(name):
+        for i in range(25):
+            record_run(lay, "harvest", {"who": name},
+                       files={f"rawbids/{name}{i}": {"origin": "direct"}})
+
+    threads = [threading.Thread(target=write, args=(n,)) for n in "ab"]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    manifest = read_manifest(lay.state)
+    assert len(manifest["files"]) == 50
+    assert len(manifest["runs"]) == 51
+
+
+def test_generated_files_of_a_malformed_manifest(tmp_path):
+    lay = make_layout("study", tmp_path)
+    record_run(lay, "harvest", files={
+        "rawbids/a.json": {"origin": "generated", "sha256": 123},
+        "rawbids/b.json": {"origin": "generated", "sha256": "ab"},
+        "rawbids/c.json": {"origin": "direct", "sha256": "cd"},
+        "rawbids/d.json": "garbage",
+    })
+    assert generated_files(lay) == {"rawbids/a.json": None,
+                                    "rawbids/b.json": "ab"}
+    lay.manifest.write_text('{"files": ["x"], "runs": {}}')
+    assert generated_files(lay) == {}
+    record_run(lay, "harvest", files={"rawbids/e": {"origin": "direct"}})
+    assert read_manifest(lay.state)["files"] == {
+        "rawbids/e": {"origin": "direct"}}
+
+
 def test_task_state(tmp_path):
     lay = make_layout("study", tmp_path)
     assert read_task_states(lay.state) == {}
@@ -515,8 +556,10 @@ def test_harvest_places_files(tmp_path, kind):
     manifest = read_manifest(lay.state)
     assert manifest["layout"] == kind
     raw = "" if kind == "flat" else "rawbids/"
+    # generated files: hash of the file as written (refreshed if unedited)
     assert manifest["files"][f"{raw}sub-01/anat/sub-01_T1w.json"] == {
         "origin": "generated", "size": 2,
+        "sha256": hashlib.sha256(b"{}").hexdigest(),
     }
     assert "sourcedata/notes.txt" in manifest["files"]
     assert "derivatives/fs/sub-01/anat/sub-01_dseg.json" in manifest["files"]

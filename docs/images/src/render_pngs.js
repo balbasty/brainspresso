@@ -13,7 +13,7 @@ const CREAM = '#f6ecdd';
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ colorScheme: 'light' });
-  for (const name of ['brainspresso', 'brainfilter']) {
+  for (const name of ['brainspresso']) {
     const svg = 'file://' + path.join(DIR, `${name}-icon.svg`);
     for (const [size, bg, pad, file] of [
       [32, 'transparent', 0, `${name}-favicon-32.png`],

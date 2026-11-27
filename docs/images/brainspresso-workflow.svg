@@ -13,8 +13,8 @@
   <!-- BIDS mark, file and folder glyphs adapted from the BIDS logo (github.com/bids-standard/bids-specification, CC BY 4.0). -->
   <style>
     .ink{fill:#2b1b13} .ink-s{fill:none;stroke:#2b1b13}
-    .cream{fill:#f6ecdd} .paper{fill:#f1e2cb} .crema{fill:#c98b4e} .fixed-ink{fill:#2b1b13}
-    .glass{fill:#e6eceb} .coffee{fill:#6b3e26} .foam{fill:#fbf5ec}
+    .cream{fill:#f6ecdd} .crema{fill:#c98b4e} .fixed-ink{fill:#2b1b13}
+    .coffee{fill:#6b3e26} .foam{fill:#fbf5ec}
     
   </style>
   <defs>

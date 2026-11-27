@@ -100,7 +100,9 @@ class ExecutionOptions:
         `--keep-scratch-on-failure`
     detach : bool | None
         `--detach` (True) or `--wait` (False): one option, two
-        spellings. None: the profile, else the default of the backend
+        spellings, without value (`roast --wait 600` is an error: the
+        run-lock option is `--lock-wait SECONDS`). None: the profile,
+        else the default of the backend
     """
 
     profile: str | None = None
@@ -161,7 +163,9 @@ class Profile:
         monitoring only: stopping it never affects the jobs
     lock_wait : float
         Seconds a task waits for the locks of its datasets
-        (`--lock-wait SECONDS`; `--wait` is the execution flag)
+        (`--lock-wait SECONDS`). `--wait SECONDS` only survives as a
+        deprecated alias on harvest and compost; on roast and grind
+        `--wait` is the execution flag and takes no value
     paths : tuple[tuple[str, str], ...]
         Ordered path map: `(from, to)` prefixes, the first that matches
         a path is applied

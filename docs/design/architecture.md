@@ -1544,14 +1544,14 @@ manifest; SPM runs as compiled standalone SPM in a container;
 `--wait`/`--detach` and `--status --watch` as above.
 
 The run-lock option becomes `--lock-wait SECONDS` (profile field
-`lock_wait`); `--wait SECONDS` stays as a deprecated alias on
-commands without execution options (harvest, compost). On roast and
-grind, `--wait`/`--detach` is the execution flag; so that roast does
-not break without notice, `bx <ds> roast --wait <number>` is still
-read as `--lock-wait <number>`, with a deprecation warning, and a bare
-`--wait` is the execution flag (grind is new: the flag only). The
-"dataset is in use" message of `RunLocked` names `--lock-wait`. The
-rename and this parsing are done in the config PR (#24).
+`lock_wait`); `--wait SECONDS` stays as a deprecated alias **only** on
+harvest and compost, which have no execution options. On roast and
+grind, `--wait`/`--detach` is only the execution flag: it takes no
+value. **Breaking change**: roast gets no alias, so `bx <ds> roast
+--wait 600` is an error (the command line parser suggests
+`--lock-wait`); use `bx <ds> roast --lock-wait 600`. The "dataset is in
+use" message of `RunLocked` names `--lock-wait`. The rename is done in
+the config PR (#24).
 
 Open: none.
 
@@ -1818,7 +1818,8 @@ up as an XPASS failure once fixed (then drop the marker).
   end (`afterany`, `-hold_jid`), must-succeed only where every element
   requires it; a `collection` layout kind; input signatures relative
   to the dataset root; registry digests, never written back into the
-  plan; `roast --wait <number>` kept as deprecated `--lock-wait`;
+  plan; ~~`roast --wait <number>` kept as deprecated `--lock-wait`~~
+  (withdrawn in r21);
   BIDS-App tasks get their own `out_dir` and commit claimed paths;
   stale grind run records reconciled; a local plan whose task needs
   more CPUs than `--jobs` is refused.
@@ -1833,3 +1834,7 @@ up as an XPASS failure once fixed (then drop the marker).
   signatures relative to the dataset, source or sites-parent root
   (`_SIGNATURE_VERSION` bumped); image files enter signatures by
   content.
+* r21: correction of r19. `--wait SECONDS` stays a deprecated alias
+  only on harvest and compost; roast gets none, so `bx <ds> roast
+  --wait 600` is an error (breaking change: use `--lock-wait`), and
+  `--wait`/`--detach` on roast and grind is only the execution flag.

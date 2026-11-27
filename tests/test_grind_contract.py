@@ -685,7 +685,9 @@ def test_final_review():
         "`CollectionLayout`", "never guessed from the tree",
         "hashed on relative paths", "registry manifest digest",
         "the plan is never rewritten", "`run_lock(..., alive=)`",
-        "roast --wait <number>", "names `--lock-wait`",
+        "**Breaking change**: roast gets no alias",
+        "`bx <ds> roast --wait 600` is an error", "names `--lock-wait`",
+        "**only** on harvest and compost",
         "`<state>/work/`", "`BidsAppPipeline.shared`",
         "refuses the plan before anything runs",
     ):
@@ -752,5 +754,8 @@ def test_decisions_leave_no_question():
     assert "sbatch --wait" in SECTION and "--follow" in SECTION
     assert fields(plans.Plan)["if_stale"] == "error"
     assert "--lock-wait SECONDS" in flat(options.Profile)
+    assert "alias on harvest and compost" in flat(options.Profile)
+    assert "`roast --wait 600` is an error" in flat(options.ExecutionOptions)
+    assert "still read as `--lock-wait" not in " ".join(SECTION.split())
     assert "str | Path" not in str(
         inspect.signature(run.grind_dataset).parameters["config"])

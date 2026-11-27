@@ -11,9 +11,13 @@
 #   defaults  (optional) table of BIDS keys used when protocol2bids
 #             does not produce them
 #   drop      (optional) list of keys removed from the converted sidecar
-#   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
-#             roast only fills the keys they lack with this template and
-#             never overrides theirs (see printouts/README.md)
+#   fill      true: fill-in template, for the BIDS sidecars the bucket
+#             hosts: it never replaces one. Until the placement hook
+#             (claude/feat/hosted-bids-placement) merges keys, a template
+#             is skipped whole when the bucket hosts a file at its path,
+#             else written at the dataset root, where BIDS inheritance
+#             lets the hosted, lower-level sidecars win (see
+#             printouts/README.md)
 #   note      (optional) free-text comment
 #
 # Outputs are named as the local (remapped) BIDS files, without the

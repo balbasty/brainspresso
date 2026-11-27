@@ -49,11 +49,15 @@ A `manual = true` entry (no printout) is kept as is and takes no conversion
 key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
 `fill_select`).
 
-A `fill = true` entry (any kind) is a fill-in template: at roast time its
-keys only fill those missing from the sidecars hosted with the data, and
-never override them (INDI projects, whose bucket sidecars are often
-incomplete). The flag does not change the conversion; it is recorded in
-the lock (`"fill": true`) and in `_fill.json` next to the templates
+A `fill = true` entry (any kind) is a fill-in template, for the sidecars
+hosted with the data (INDI projects, whose bucket sidecars are often
+incomplete): it never replaces one. Until the placement hook (branch
+`claude/feat/hosted-bids-placement`) merges keys, the INDI engine skips
+a fill-in template whole when the bucket hosts a file at its path, and
+otherwise writes it at the dataset root (BIDS inheritance lets the
+hosted, lower-level sidecars win). The flag does not change the
+conversion; it is recorded in the lock (`"fill": true`) and in
+`_fill.json` next to the templates
 (`{"fill": [<output>, ...]}`, shipped with the package: what the INDI
 engine reads, as the lock is not shipped). Its names are `FILL_KEY`,
 `LOCK_FILL_KEY` and `FILL_INDEX`, to follow the convention of the roast

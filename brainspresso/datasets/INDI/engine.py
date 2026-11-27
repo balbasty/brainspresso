@@ -391,13 +391,17 @@ class Project:
         templates = self.templates()
         for entry in inline:        # generated files override the bucket's
             out[entry.path] = entry
+        site = getattr(self, "site", None)
+        where = f" (site {site.name})" if site is not None and site.name \
+            else ""
         for entry in templates:
             if entry.path in fill and entry.path in out:
                 # fill-in templates never replace a file of the bucket
-                # (nor a generated one)
+                # (nor a generated one). Until the placement hook merges
+                # keys, the whole template is skipped.
                 lg.warning(
-                    f"{self.name}: fill-in template {entry.path} not used "
-                    f"(the dataset has its own)"
+                    f"{self.name}{where}: fill-in template {entry.path} "
+                    f"not used (the dataset has its own)"
                 )
                 continue
             out[entry.path] = entry

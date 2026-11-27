@@ -16,8 +16,11 @@ templates of datasets whose providers do not distribute sidecars:
 
 INDI projects host BIDS sidecars in the bucket, but they are often
 incomplete (unless dcm2niix wrote them). Their templates are **fill-in**
-templates (`fill = true`, see below): they only add the keys a hosted
-sidecar lacks, and never override one.
+templates (`fill = true`, see below): they never replace a hosted file.
+Until the placement hook (`claude/feat/hosted-bids-placement`) merges
+them key by key, a fill-in template is skipped whole when the bucket
+hosts a file at its path, and otherwise written at the dataset root,
+where BIDS inheritance lets the hosted, lower-level sidecars win.
 
 It lives **outside** the `brainspresso` package and is never shipped in
 the wheel/sdist. The printouts are converted once, by a maintainer, with
@@ -236,8 +239,9 @@ defaults = { TaskName = "rest" }
 fill = true                       # fill-in template (see below)
 ```
 
-`fill = true` marks a fill-in template: at roast time its keys fill those
-missing from the sidecars hosted with the data and never override them.
+`fill = true` marks a fill-in template: it never replaces a sidecar
+hosted with the data (key-level merging, filling only the missing keys,
+is the job of the placement hook; until it lands, see below).
 It does not change the conversion. `sidecars.lock.json` records it as
 `"fill": true`, and `make_sidecars.py` writes the list of fill-in
 templates to `_fill.json` next to them (`{"fill": ["T1w.json", ...]}`,

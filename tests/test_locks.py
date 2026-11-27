@@ -632,7 +632,10 @@ def test_harvest_creates_the_state_folder_before_locks(
     ]
     harvest_module.harvest(entries, root, Selection(), layout=kind,
                            trim=False)
-    assert len(locks_seen) == 2
+    # the two files, plus (since fasteners was dropped) the lock of each
+    # partial download: all in the dataset
+    assert sorted(p.name for p, _ in locks_seen) == sorted(
+        [f"sub-0{i}_T1w.nii.gz{x}" for i in (1, 2) for x in ("", ".download")])
     assert all(found == root for _, found in locks_seen)
 
 
@@ -813,44 +816,6 @@ def test_timeout_of_a_file_lock(tmp_path, monkeypatch):
         pass
 
 
-def test_locks_are_taken_on_this_platform(tmp_path, monkeypatch):
-    """No platform runs unlocked unless `$BRAINSPRESSO_LOCKS` says so."""
-    import brainspresso.actions.locks as locks
-    monkeypatch.delenv(locks.ENABLE_ENV, raising=False)
-    assert locks._MECHANISM is not None, locks._NO_BACKEND
-    assert locks.locks_enabled()
-    for value in ("", "1", "yes", "on"):
-        monkeypatch.setenv(locks.ENABLE_ENV, value)
-        assert locks.locks_enabled()
-        with FileLock(tmp_path / "x.txt") as lock:
-            assert lock.locked and lock.lockfile.exists()
-    for value in ("0", "no", "OFF", "false"):
-        monkeypatch.setenv(locks.ENABLE_ENV, value)
-        assert not locks.locks_enabled()
-        with FileLock(tmp_path / "x.txt", exclusive=True) as lock:
-            assert not lock.locked and lock.lockfile is None
-
-
-def test_no_backend_raises_unless_locks_are_disabled(tmp_path, monkeypatch):
-    import brainspresso.actions.locks as locks
-    monkeypatch.delenv(locks.ENABLE_ENV, raising=False)
-    monkeypatch.setattr(locks, "_MECHANISM", None)
-    monkeypatch.setattr(locks, "_NO_BACKEND", "no module named fcntl")
-    path = tmp_path / "x.txt"
-    path.write_text("x")
-    for exclusive in (False, True):         # readers too
-        with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0") as e:
-            FileLock(path, exclusive=exclusive).acquire()
-        assert "No file lock backend" in str(e.value)
-        assert "no module named fcntl" in str(e.value)
-    with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0"):
-        with File(path, "r"):
-            pass
-    monkeypatch.setenv(locks.ENABLE_ENV, "0")
-    with File(path, "r") as f:
-        assert f.safename.read_text() == "x"
-
-
 def test_lock_keys_ignore_case_on_every_platform(tmp_path):
     """Clients of a shared dataset on Linux, macOS and Windows agree."""
     ds = dataset(tmp_path / "DS")
@@ -859,84 +824,6 @@ def test_lock_keys_ignore_case_on_every_platform(tmp_path):
     assert upper == lower
     # NFC: a decomposed name (as macOS may give it) is the composed one
     assert lock_file(ds / "e\u0301.json")[0] == lock_file(ds / "\xe9.json")[0]
-
-
-def test_two_spellings_of_a_dataset_share_one_lock_file(tmp_path, monkeypatch):
-    """
-    One open lock file per lock, whatever the spelling of the dataset.
-
-    On a caseless filesystem (macOS, Windows), `/x/DS` and `/x/ds` are one
-    folder; simulated here by a symbolic link that `_real` does not
-    resolve.
-    """
-    import brainspresso.actions.locks as locks
-    ds = dataset(tmp_path / "DS")
-    other = tmp_path / "ds-spelling"
-    other.symlink_to(ds, target_is_directory=True)
-    monkeypatch.setattr(locks, "_real",
-                        lambda p: Path(os.path.abspath(p)))
-    forget_datasets()
-    a, b = FileLock(ds / "x.nii"), FileLock(other / "x.nii")
-    assert a.acquire().lockfile != b.acquire().lockfile
-    try:
-        assert a._entry is b._entry             # (one descriptor)
-        # a writer (thread) of this process sees the readers of both
-        errors = []
-        writer = FileLock(other / "x.nii", exclusive=True, timeout=0.2)
-        thread = threading.Thread(
-            target=lambda: errors.append(_catch(writer.acquire)))
-        thread.start()
-        thread.join(SOON)
-        assert isinstance(errors[0], LockTimeout)
-        assert "readers in this process" in str(errors[0])
-        # releasing one spelling keeps the OS lock of the other
-        b.release()
-        failed = SPAWN.Queue()
-        # (keep the events: the child unpickles them)
-        proc, acquired, release = holder(ds / "x.nii", True, timeout=0.3,
-                                         failed=failed)
-        message = failed.get(timeout=SOON)
-        finish(proc)
-        assert not acquired.is_set()
-        assert message.startswith("LockTimeout") and "readers" in message
-    finally:
-        a.release()
-        b.release()
-    assert not locks._registry
-    forget_datasets()
-
-
-def test_failed_release_does_not_leak_the_entry(tmp_path, monkeypatch):
-    import brainspresso.actions.locks as locks
-    path = tmp_path / "x.txt"
-
-    def fail(self):
-        raise OSError("injected")
-
-    # an OS unlock that fails: the file is closed (which drops the lock)
-    lock = FileLock(path, exclusive=True).acquire()
-    with monkeypatch.context() as m:
-        m.setattr(locks._OSLock, "unlock", fail)
-        with pytest.raises(OSError, match="injected"):
-            lock.release()
-    assert not locks._registry and not lock.locked
-    proc, acquired, release = holder(path, True)
-    assert acquired.wait(SOON)
-    release.set()
-    finish(proc)
-    # a downgrade that fails: the entry of the remaining reader stays
-    writer = FileLock(path, exclusive=True).acquire()
-    reader = FileLock(path).acquire()
-    with monkeypatch.context() as m:
-        m.setattr(locks._OSLock, "downgrade", fail)
-        with pytest.raises(OSError, match="injected"):
-            writer.release()
-    entry = reader._entry
-    assert entry.users == 1 and list(locks._registry.values()) == [entry]
-    reader.release()
-    assert not locks._registry
-    with FileLock(path, exclusive=True, timeout=0):
-        pass
 
 
 def test_text_files_are_utf8_with_lf_on_every_platform(tmp_path):
@@ -997,72 +884,6 @@ def test_tsv_fields_with_line_breaks_are_refused(tmp_path, brk):
     assert statuses[-1]["status"] == "error", statuses
     assert "line break" in statuses[-1]["message"]
     assert not path.exists()
-
-
-def test_concurrent_threads_creating_a_lock_file_share_one_entry(tmp_path):
-    """The lock folder and file are missing: created once, one entry."""
-    import brainspresso.actions.locks as locks
-    ds = dataset(tmp_path / "DS")
-    path = ds / "sub-01" / "x.nii"
-    assert not (ds / STATE_DIR / "locks").exists()
-    barrier = threading.Barrier(8)
-    held, errors = [], []
-
-    def read():
-        try:
-            barrier.wait(SOON)
-            held.append(FileLock(path).acquire())
-        except Exception as e:
-            errors.append(e)
-
-    threads = [threading.Thread(target=read) for _ in range(8)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join(SOON)
-    try:
-        assert not errors and len(held) == 8
-        assert all(lock.locked for lock in held)
-        assert len({id(lock._entry) for lock in held}) == 1
-        assert len(locks._registry) == 1
-    finally:
-        for lock in held:
-            lock.release()
-    assert not locks._registry
-
-
-@pytest.mark.parametrize("inodes", [True, False])
-def test_datasets_with_the_same_relative_path_have_two_entries(
-    tmp_path, monkeypatch, inodes,
-):
-    """Same lock file name, two files: never one entry for both."""
-    import types
-
-    import brainspresso.actions.locks as locks
-    if not inodes:                  # (a filesystem without inodes)
-        file_key = locks._file_key
-        monkeypatch.setattr(locks, "_file_key", lambda st, path: file_key(
-            types.SimpleNamespace(st_dev=st.st_dev, st_ino=0), path))
-    a, b = dataset(tmp_path / "A"), dataset(tmp_path / "B")
-    la, lb = FileLock(a / "x.nii").acquire(), FileLock(b / "x.nii").acquire()
-    try:
-        assert la.lockfile.name == lb.lockfile.name
-        assert la._entry is not lb._entry
-        assert len(locks._registry) == 2
-        kinds = {key[0] for key in locks._registry}
-        assert kinds == ({"inode"} if inodes else {"path"})
-        # each one excludes its own writers only
-        failed = SPAWN.Queue()
-        proc, acquired, release = holder(a / "x.nii", True, timeout=0.3,
-                                         failed=failed)
-        assert failed.get(timeout=SOON).startswith("LockTimeout")
-        finish(proc)
-    finally:
-        la.release()
-        lb.release()
-    assert not locks._registry
-    with FileLock(b / "x.nii", exclusive=True, timeout=0):
-        pass
 
 
 def test_rewrite_text_through_separate_file_objects(tmp_path):

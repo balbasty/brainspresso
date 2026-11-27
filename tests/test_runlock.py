@@ -314,7 +314,7 @@ def test_pid_alive_live_and_dead_processes():
 
 def test_run_lock_without_backend_raises(state, monkeypatch):
     monkeypatch.delenv("BRAINSPRESSO_LOCKS", raising=False)
-    monkeypatch.setattr(locks, "_MECHANISM", None)
+    monkeypatch.setattr(locks, "_MECHANISMS", ())
     with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0"):
         with run_lock(state, "harvest"):
             raise AssertionError("not reached")

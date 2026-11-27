@@ -34,20 +34,6 @@ other needlessly, which is safe. (Lock files of earlier versions were
 named from the path as given: during an upgrade, runs of an older and
 a newer version do not exclude each other.)
 
-In a process, lock files are told apart by the identity of the file
-itself (device and inode; the exact resolved path where the filesystem
-gives no inode), not by path: a dataset reached through two spellings
-of its folder (another case, on macOS or Windows) has one open lock
-file per lock, as below. A missing lock file is created under the lock
-of the registry of the process, so that concurrent threads share it.
-
-Unsupported: deleting or replacing lock files, or the state folder,
-while locks are held, which splits the exclusion (between processes as
-it always did, and now in a process too); and two mounts of one NFS or
-SMB export at different mount points in one process, whose lock files
-have two identities (two descriptors: closing one may drop the POSIX
-locks of the other).
-
 Nothing is ever created next to the file: a source may be shared or
 read-only.
 
@@ -74,49 +60,98 @@ Acquisition waits, polling with a growing delay, up to a timeout
 file and what holds it (readers or a writer, with the process id and
 host of a writer, which it writes in the lock file once it holds it).
 
-Platforms
----------
-The OS lock is the reader/writer lock mechanism of `fasteners`
-(`_OSLock` wraps it, see `FASTENERS_REQUIREMENT`):
+Design: two layers
+------------------
+Under-exclusion needs both layers to fail.
 
-* POSIX (Linux, macOS): `fcntl.lockf` record locks on the whole lock
-  file. They are advisory (only brainspresso's own processes honour
-  them), they belong to a *process*, not to a file descriptor, and
-  closing *any* descriptor of the lock file releases them all.
-* Windows: `LockFileEx` locks on the first byte of the lock file (that
-  byte cannot be read by other processes while it is locked exclusively,
-  so the signature of a writer follows it). They belong to a *file
-  handle* and are mandatory on that byte. The OS releases them when the
-  handle is closed or the process ends (after a crash, possibly with a
-  short delay).
+**Layer A, the registry of a process** (`_Entry`): one entry per lock
+file, which owns its descriptor for its whole life (never reopened or
+repaired), and arbitrates the holders of the process (nested readers of
+an archive and its members, threads; a lock upgrade or a nested writer
+of one file raises `LockError` at once instead of deadlocking).
 
-On both, a process therefore opens each lock file once, and the holders
-of one lock file in a process (nested readers, threads) share that
-handle (`_Entry`), with the rules between them enforced in the process
-(a second handle would see the process's own locks as foreign on
-Windows, and drop them on POSIX when closed).
+* Entries are found by path (`str(lockfile)`, as given: not casefolded,
+  which would merge `/d/DS` and `/d/ds` on a case-sensitive
+  filesystem) and by identity, `(st_dev, st_ino, alias key)` from
+  `fstat` of a descriptor already held (never from `stat` of a path),
+  the alias key being the resolved path, NFC-normalised and casefolded.
+  So two spellings of one lock file share one entry: a symbolic link
+  resolves through `realpath`, a case alias (macOS, Windows) through
+  the casefolding; two distinct files never merge, even with equal
+  (st_dev, st_ino) (two datasets with the same relative path have lock
+  files of one name). No identity where `st_ino` is 0.
+* A descriptor opened through another spelling is parked in the entry
+  (`spares`), never closed while the entry lives (closing it would drop
+  the process's classic POSIX locks). The lookup by identity comes
+  first: a live entry of the file wins over a retired entry of the same
+  path (a lock file replaced meanwhile), and a new descriptor is closed
+  only against a retired entry, which holds no OS lock, and when no live
+  entry has its file.
+* Opening, creating, `fstat`, `stat` and closing happen outside the
+  registry lock (a leaf lock: dictionaries and counters only).
+* The last holder retires the entry, closes its descriptors, then
+  removes its keys (each one only if it still names this entry) and
+  sets its `gone` event: a thread that finds a retired entry waits for
+  it, so no new entry of that file locks before the old one closed.
+* Lock, then verify (POSIX): after the OS lock is taken, the path must
+  still name the entry's file (`stat`); if it was deleted or replaced,
+  the entry is unlocked, retired, and the lock is taken again (at most
+  `_ROUNDS` times, then accepted with a warning). Other `stat` errors
+  (EIO...) keep the lock.
 
-Network filesystems: on NFS, `fcntl` locks are shared between clients
-with NFSv4, and with NFSv3 only through a lock manager (`lockd`; mounts
-with `nolock`, or `local_lock=all`, keep them local to each client);
-Lustre and GPFS share them with locking enabled (not with
-`localflock`). On SMB shares, `LockFileEx` locks are enforced by the
-server, so they hold between Windows clients; POSIX clients of the same
-share may map their `fcntl` locks to SMB byte-range locks (Linux
-`cifs` does, unless mounted with `nobrl`; macOS `smbfs` is not
-checked), and a Samba server maps SMB locks to its local `fcntl` locks
-(`posix locking = yes`, its default). Whether locks
-hold across machines cannot be checked from here (some FUSE or object
-stores accept locks without sharing them); run records
-(`actions.runlock`) are the second line of defence of compost.
+**Layer B, the OS primitive** (`_MECHANISMS`, a chain: the next one is
+used if a primitive is refused with EINVAL, ENOTSUP or ENOSYS):
+
+* Linux: open file description locks (`F_OFD_SETLK`, 37 where `fcntl`
+  does not name it), then classic `lockf`. OFD locks belong to the
+  descriptor and share the lock space of classic `fcntl` locks: they
+  exclude earlier brainspresso versions and are excluded by them, and
+  two entries of one file (an identity split) still exclude each other.
+* macOS: classic `fcntl` (`lockf`) locks, then `flock` where `fcntl`
+  locks are refused (a `flock` lock is not downgraded: it stays
+  exclusive until the last reader leaves).
+* Windows: `LockFileEx` on byte 0 of the lock file (through `ctypes`),
+  owned by the handle and mandatory on that byte: the signature of a
+  writer follows it, at byte 1. A downgrade stacks a shared lock on the
+  exclusive one, then one unlock removes the exclusive lock. No
+  verification: an open lock file cannot be deleted there.
+
+A writer released inside readers of its thread downgrades the OS lock
+without a gap where the primitive can (OFD and `lockf` convert it in
+place); otherwise, or if the downgrade fails, the lock stays exclusive
+until the last reader leaves (over-exclusion; `release` does not raise
+for it). The OS releases the locks of a process that dies (Windows:
+possibly after a short delay); a forked child closes its copies of the
+descriptors without unlocking (OFD locks are shared with the child
+until then).
+
+Platforms and filesystems
+-------------------------
+Lock files keep their names and locations, and mixed runs of earlier
+commits and this one exclude each other on all three platforms (same
+lock space; same byte on Windows; whole file on POSIX).
+
+* Linux local filesystems (ext4, xfs, btrfs): OFD locks.
+* Linux NFS: OFD (else classic) locks are shared between clients with
+  NFSv4, and NFSv3 with `lockd` (not `nolock` or `local_lock=all`
+  mounts; a crashed client's lock stays until the lock manager notices).
+  Lustre shares them with `-o flock` (`localflock`: node-local;
+  `noflock`: `LockError`); GPFS, Ceph, GFS2: filesystem-dependent; CIFS:
+  shared unless mounted `nobrl`; FUSE: often node-local. None of these
+  is verified; run records (`actions.runlock`) are the second line of
+  defence of compost.
+* macOS (APFS, HFS+): classic locks, per process; case aliases merge in
+  layer A. macOS NFS: shared; smbfs: not verified.
+* Windows (NTFS, SMB shares): `LockFileEx`, enforced by an SMB server
+  between clients.
 
 Disabling locks
 ---------------
 Locks are disabled only explicitly: `$BRAINSPRESSO_LOCKS` set to "0",
 "no", "off" or "false" (an escape hatch for filesystems without lock
-support; unsafe with concurrent writers). Otherwise, a missing lock
-backend (an unsupported `fasteners`) raises `LockError` instead of
-running unlocked.
+support; unsafe with concurrent writers; also the lock of each
+download). A platform with neither `fcntl` nor the Windows API raises
+`LockError` instead of running unlocked.
 
 A reader whose lock file can neither be created nor opened (e.g. a
 dataset whose `.brainspresso/` is read-only for this user) reads without
@@ -127,13 +162,25 @@ unprotected.
 
 Limitations
 -----------
-* A thread that reads a file cannot also write it (lock upgrade), and a
-  thread cannot write a file twice at once: both raise `LockError` at
-  once (they would deadlock). Between processes, cycles (A reads X and
-  waits to write Y while B reads Y and waits to write X) are not
-  detected: they end with a `LockTimeout`.
-* The locks are not fair: a steady stream of readers can delay a writer
-  up to its timeout.
+* Between processes, cycles (A reads X and waits to write Y while B
+  reads Y and waits to write X) are not detected: they end with a
+  `LockTimeout`. The locks are not fair: a steady stream of readers can
+  delay a writer up to its timeout.
+* Double failure: a per-process primitive (macOS, Linux before 3.15, a
+  filesystem that ignores lock owners) and an identity split (two
+  mounts of one export at different mount points in one process, or
+  `st_ino` 0) lose the exclusion in the process. Without merged
+  aliases, on a per-descriptor primitive, an upgrade through the other
+  spelling ends in a `LockTimeout` instead of an immediate `LockError`.
+* Two distinct lock files merge (in one process) only with equal
+  (st_dev, st_ino) *and* paths that differ only by case, which needs a
+  case-sensitive filesystem whose inodes are not unique.
+* Replacing a lock file or the state folder while a lock is held splits
+  the exclusion between processes (in the process, its holders keep
+  excluding each other; the next OS acquisition retires the entry).
+  Temporary-file cleaners: each OS acquisition refreshes the times of
+  the lock file, but a lock held longer than the cleaning age can still
+  be split.
 * Lock files accumulate (one per file ever locked). Deleting the
   `locks/` folder is safe only while no brainspresso process uses the
   dataset.
@@ -151,6 +198,8 @@ import functools
 import hashlib
 import os
 import socket
+import struct
+import sys
 import tempfile
 import threading
 import time
@@ -160,17 +209,11 @@ from logging import getLogger
 from pathlib import Path
 
 try:
-    # The non-blocking shared/exclusive try-lock of `fasteners` (`lockf`
-    # on POSIX, `LockFileEx` through its ctypes shim on Windows). Its
-    # public `InterProcessReaderWriterLock` closes the file on release
-    # and cannot downgrade a lock, so `_OSLock` wraps the mechanism.
-    from fasteners.process_mechanism import (
-        _interprocess_reader_writer_mechanism as _MECHANISM,
-    )
-except ImportError as _e:       # pragma: no cover (unsupported fasteners)
-    _MECHANISM, _NO_BACKEND = None, str(_e)
-else:
-    _NO_BACKEND = ""
+    import fcntl
+except ImportError:                     # pragma: no cover (Windows)
+    fcntl = None
+if os.name == "nt":                     # pragma: no cover (Windows)
+    import msvcrt
 
 lg = getLogger(__name__)
 
@@ -206,10 +249,6 @@ ENABLE_ENV = "BRAINSPRESSO_LOCKS"
 # Delays between attempts to take a lock held by another process
 _FIRST_DELAY = 0.005
 _MAX_DELAY = 0.25
-#: The versions of `fasteners` whose (private) lock mechanism `_OSLock`
-#: uses (also in `setup.cfg`)
-FASTENERS_REQUIREMENT = "fasteners >= 0.18, < 0.21"
-
 _WINDOWS = os.name == "nt"
 
 
@@ -261,17 +300,6 @@ def locks_enabled() -> bool:
     """
     value = os.environ.get(ENABLE_ENV, "").strip().lower()
     return value not in ("0", "no", "off", "false")
-
-
-def _check_backend() -> None:
-    """Raise `LockError` if no OS lock can be taken on this platform."""
-    if _MECHANISM is None:
-        raise LockError(
-            f"No file lock backend: the reader/writer lock mechanism of "
-            f"fasteners cannot be imported ({_NO_BACKEND}). Install "
-            f"`{FASTENERS_REQUIREMENT}`, or set ${ENABLE_ENV}=0 to run "
-            f"without locks (unsafe with concurrent writers)."
-        )
 
 
 def lock_timeout(timeout: float | None = None) -> float:
@@ -500,189 +528,359 @@ def lock_file(path: str | os.PathLike) -> tuple[Path, Path | None]:
     return folder / digest[:2] / f"{digest}.lock", dataset
 
 
-def _file_key(st: os.stat_result, lockfile: Path) -> tuple:
-    """
-    Identity of a lock file in this process (`_registry`).
-
-    The device and inode of the lock file itself: one key for every
-    spelling of its path (a dataset folder named in another case on
-    macOS or Windows), distinct keys for distinct files. Where the
-    filesystem gives no inode (`st_ino` 0), the exact resolved path.
-
-    Parameters
-    ----------
-    st : os.stat_result
-        Its `stat` (or `fstat`)
-    lockfile : Path
-        Its path
-
-    Returns
-    -------
-    tuple
-        The key
-    """
-    if st.st_ino:
-        return ("inode", st.st_dev, st.st_ino)
-    return ("path", os.path.realpath(lockfile))
-
-
 # ----------------------------------------------------------------------
-#   The OS lock of a lock file (fasteners)
+#   Layer B: the OS lock of a lock-file descriptor
 # ----------------------------------------------------------------------
+
+# errno of a lock held by another holder
+_BUSY = (errno.EACCES, errno.EAGAIN)
+# errno of a primitive that this filesystem or kernel does not offer:
+# the next mechanism of the chain is used
+_UNSUPPORTED = tuple({
+    errno.EINVAL, errno.ENOSYS,
+    getattr(errno, "ENOTSUP", errno.EINVAL),
+    getattr(errno, "EOPNOTSUPP", errno.EINVAL),
+})
+# `struct flock` of Linux (`F_OFD_SETLK`): l_type, l_whence, l_start,
+# l_len, l_pid, padded to its alignment (checked by the tests: F_OFD_GETLK
+# reads it back)
+_FLOCK = "hhqqi"
+_FLOCK_SIZE = struct.calcsize(_FLOCK + "0q")
+# Offset of the signature of a writer: byte 0 holds the lock on Windows,
+# where it cannot be read while it is locked exclusively; the signature
+# is written after a newline everywhere, and read from byte 1 there
+_SIGNATURE_AT = 1 if _WINDOWS else 0
+
 
 def _describe(error: OSError) -> str:
-    """Text of an OS error (Windows codes of `fasteners` included)."""
-    if error.strerror:
-        return error.strerror
-    code = error.args[0] if len(error.args) == 1 else None
-    format_error = getattr(ctypes, "FormatError", None)     # (Windows)
-    if isinstance(code, int) and format_error is not None:
-        return f"{format_error(code).strip()} (error {code})"
-    return str(error) or type(error).__name__
+    """Text of an OS error."""
+    return error.strerror or str(error) or type(error).__name__
 
 
-class _OSLock:
+class _Mechanism:
     """
-    The OS lock of one lock file, through one open file.
+    A non-blocking shared/exclusive lock primitive on a descriptor.
 
-    A small adapter of the reader/writer mechanism of `fasteners`
-    (`FASTENERS_REQUIREMENT`), which takes a shared or exclusive lock
-    without blocking (`lockf` from offset 0 to the end on POSIX,
-    `LockFileEx` on byte 0 on Windows, both through the open file). A
-    process has at most one per lock file (`_Entry`).
+    `try_lock` returns False if another holder has the lock (and raises
+    `OSError` if the primitive cannot be used); `downgrade` turns an
+    exclusive lock into a shared one without a gap, or returns False.
+    """
 
-    Parameters
-    ----------
-    path : Path
-        Lock file
-    writable : bool
-        Open it for reading and writing, else read-only (enough for a
-        shared lock)
-    create : bool
-        Create it if it does not exist (`writable` only)
+    name = "?"
+
+    def try_lock(self, fd: int, exclusive: bool) -> bool:
+        """Take the lock if it is free (False: held by another)."""
+        raise NotImplementedError
+
+    def unlock(self, fd: int) -> None:
+        """Release the lock."""
+        raise NotImplementedError
+
+    def downgrade(self, fd: int) -> bool:
+        """Exclusive to shared without a gap (False: not supported)."""
+        return False
+
+
+def _busy(error: OSError) -> bool:
+    return error.errno in _BUSY
+
+
+class _OFDLock(_Mechanism):
+    """
+    Linux open file description locks (`F_OFD_SETLK`).
+
+    Owned by the open file description (a descriptor here), and in the
+    lock space of classic `fcntl` locks: they conflict with those of
+    other processes (older brainspresso versions included) and with
+    those of other descriptors of this process. Over the whole file.
+    """
+
+    name = "ofd"
+
+    @staticmethod
+    def command(get: bool = False) -> int:
+        """`F_OFD_SETLK` (37) or `F_OFD_GETLK` (36), also if not named."""
+        if get:
+            return getattr(fcntl, "F_OFD_GETLK", 36)
+        return getattr(fcntl, "F_OFD_SETLK", 37)
+
+    @staticmethod
+    def flock(kind: int) -> bytes:
+        """Pack a `struct flock` over the whole file (l_pid 0, for OFD)."""
+        data = struct.pack(_FLOCK, kind, os.SEEK_SET, 0, 0, 0)
+        return data + bytes(_FLOCK_SIZE - len(data))
+
+    def _set(self, fd: int, kind: int) -> None:
+        fcntl.fcntl(fd, self.command(), self.flock(kind))
+
+    def try_lock(self, fd: int, exclusive: bool) -> bool:
+        """Take the lock if it is free (False: held by another)."""
+        try:
+            self._set(fd, fcntl.F_WRLCK if exclusive else fcntl.F_RDLCK)
+        except OSError as e:
+            if _busy(e):
+                return False
+            raise
+        return True
+
+    def unlock(self, fd: int) -> None:
+        """Release the lock."""
+        self._set(fd, fcntl.F_UNLCK)
+
+    def downgrade(self, fd: int) -> bool:
+        """Exclusive to shared: the kernel converts the lock in place."""
+        try:
+            self._set(fd, fcntl.F_RDLCK)
+        except OSError:
+            return False
+        return True
+
+
+class _ClassicLock(_Mechanism):
+    """
+    Classic POSIX record locks (`fcntl.lockf`) over the whole file.
+
+    Owned by the process: closing *any* descriptor of the file drops
+    them all (hence one entry per lock file, and parked spares).
+    """
+
+    name = "fcntl"
+
+    def try_lock(self, fd: int, exclusive: bool) -> bool:
+        """Take the lock if it is free (False: held by another)."""
+        flag = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        try:
+            fcntl.lockf(fd, flag | fcntl.LOCK_NB)
+        except OSError as e:
+            if _busy(e):
+                return False
+            raise
+        return True
+
+    def unlock(self, fd: int) -> None:
+        """Release the lock."""
+        fcntl.lockf(fd, fcntl.LOCK_UN)
+
+    def downgrade(self, fd: int) -> bool:
+        """Exclusive to shared: `lockf` converts the lock in place."""
+        try:
+            fcntl.lockf(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except OSError:
+            return False
+        return True
+
+
+class _FlockLock(_Mechanism):
+    """
+    BSD `flock` locks: only where `fcntl` locks are refused (macOS).
+
+    A downgrade is not atomic with `flock`: the lock stays exclusive
+    until the last reader of the process leaves.
+    """
+
+    name = "flock"
+
+    def try_lock(self, fd: int, exclusive: bool) -> bool:
+        """Take the lock if it is free (False: held by another)."""
+        flag = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        try:
+            fcntl.flock(fd, flag | fcntl.LOCK_NB)
+        except OSError as e:
+            if e.errno in (*_BUSY, getattr(errno, "EWOULDBLOCK", 0)):
+                return False
+            raise
+        return True
+
+    def unlock(self, fd: int) -> None:
+        """Release the lock."""
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+class _OVERLAPPED(ctypes.Structure):
+    _fields_ = [("Internal", ctypes.c_void_p),
+                ("InternalHigh", ctypes.c_void_p),
+                ("Offset", ctypes.c_uint32),
+                ("OffsetHigh", ctypes.c_uint32),
+                ("hEvent", ctypes.c_void_p)]
+
+
+class _WindowsLock(_Mechanism):           # pragma: no cover (Windows)
+    """
+    `LockFileEx` on byte 0 of the lock file (through `ctypes`).
+
+    Owned by the file handle, mandatory on that byte. A downgrade stacks
+    a shared lock on the exclusive one (same handle), then one unlock
+    removes the exclusive lock.
+    """
+
+    name = "LockFileEx"
+    _FAIL_IMMEDIATELY, _EXCLUSIVE = 0x1, 0x2
+    _ERROR_LOCK_VIOLATION = 33
+
+    def __init__(self):
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        handle, dword = ctypes.c_void_p, ctypes.c_uint32
+        overlapped = ctypes.POINTER(_OVERLAPPED)
+        self._lock = kernel32.LockFileEx
+        self._lock.argtypes = [handle, dword, dword, dword, dword,
+                               overlapped]
+        self._lock.restype = ctypes.c_int
+        self._unlock = kernel32.UnlockFileEx
+        self._unlock.argtypes = [handle, dword, dword, dword, overlapped]
+        self._unlock.restype = ctypes.c_int
+
+    def try_lock(self, fd: int, exclusive: bool) -> bool:
+        """Take the lock if it is free (False: held by another)."""
+        flags = self._FAIL_IMMEDIATELY | (self._EXCLUSIVE if exclusive
+                                          else 0)
+        overlapped = _OVERLAPPED()
+        if self._lock(msvcrt.get_osfhandle(fd), flags, 0, 1, 0,
+                      ctypes.byref(overlapped)):
+            return True
+        code = ctypes.get_last_error()
+        if code == self._ERROR_LOCK_VIOLATION:
+            return False
+        raise ctypes.WinError(code)
+
+    def unlock(self, fd: int) -> None:
+        """Release the lock (the exclusive one first, if both)."""
+        overlapped = _OVERLAPPED()
+        if not self._unlock(msvcrt.get_osfhandle(fd), 0, 1, 0,
+                            ctypes.byref(overlapped)):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+    def downgrade(self, fd: int) -> bool:
+        """Stack a shared lock, then remove the exclusive one."""
+        try:
+            if not self.try_lock(fd, False):
+                return False
+            self.unlock(fd)
+        except OSError:
+            return False
+        return True
+
+
+def _default_mechanisms() -> tuple[_Mechanism, ...]:
+    """Return the chain of lock primitives of this platform."""
+    if _WINDOWS:                            # pragma: no cover (Windows)
+        return (_WindowsLock(),)
+    if fcntl is None:                       # pragma: no cover
+        return ()
+    if sys.platform.startswith("linux"):
+        return (_OFDLock(), _ClassicLock())
+    return (_ClassicLock(), _FlockLock())
+
+
+#: Lock primitives, tried in this order (`_Entry.mech` indexes it)
+_MECHANISMS: tuple[_Mechanism, ...] = _default_mechanisms()
+
+
+def _check_backend() -> None:
+    """Raise `LockError` if no OS lock can be taken on this platform."""
+    if not _MECHANISMS:
+        raise LockError(
+            f"No file lock backend: this platform has neither `fcntl` "
+            f"nor the Windows API. Set ${ENABLE_ENV}=0 to run without "
+            f"locks (unsafe with concurrent writers)."
+        )
+
+
+# ----------------------------------------------------------------------
+#   Layer A: one entry per lock file in a process
+# ----------------------------------------------------------------------
+
+def _file_id(fd: int) -> tuple[int, int]:
+    """(st_dev, st_ino) of an open descriptor."""
+    st = os.fstat(fd)
+    return st.st_dev, st.st_ino
+
+
+def _path_id(path: str) -> tuple[int, int]:
+    """(st_dev, st_ino) of a path (raises OSError)."""
+    st = os.stat(path)
+    return st.st_dev, st.st_ino
+
+
+def _alias_key(path: str) -> str:
+    """Return the resolved path, NFC-normalised and casefolded."""
+    return unicodedata.normalize("NFC", os.path.realpath(path)).casefold()
+
+
+def _ident(fd: int, path: str) -> tuple | None:
+    """
+    Identity of an open lock file: (st_dev, st_ino, alias key).
+
+    None where the filesystem gives no inode (`st_ino` 0). The alias key
+    makes two distinct files with equal (st_dev, st_ino) distinct, unless
+    their paths differ only by case (see the module docstring).
+    """
+    dev, ino = _file_id(fd)
+    if not ino:
+        return None
+    return dev, ino, _alias_key(path)
+
+
+def _open_lockfile(path: Path) -> tuple[int, bool]:
+    """
+    Open (and create) a lock file: (descriptor, writable).
+
+    Read-only where it cannot be written (enough for a reader). Its
+    folder is created first; a folder removed meanwhile is retried.
 
     Raises
     ------
     OSError
-        If it cannot be opened
+        If it can be neither created nor opened
     """
-
-    # Offset of the signature of a writer: byte 0 holds the lock on
-    # Windows, where it cannot be read while it is locked exclusively
-    _SIGNATURE_AT = 1 if _WINDOWS else 0
-
-    def __init__(self, path: Path, writable: bool, create: bool = False):
-        flags = os.O_RDWR if writable else os.O_RDONLY
-        if writable and create:
-            flags |= os.O_CREAT
-        fd = os.open(path, flags | getattr(os, "O_BINARY", 0), 0o666)
+    flags = getattr(os, "O_BINARY", 0)
+    for attempt in range(3):
         try:
-            self.file = os.fdopen(fd, "r+b" if writable else "rb",
-                                  buffering=0)
-        except BaseException:
-            os.close(fd)
-            raise
-        self.writable = writable
+            path.parent.mkdir(parents=True, exist_ok=True)
+            return os.open(path, os.O_RDWR | os.O_CREAT | flags, 0o666), True
+        except FileNotFoundError:
+            if attempt == 2:
+                raise
+        except OSError:
+            return os.open(path, os.O_RDONLY | flags), False
+    raise AssertionError("not reached")      # pragma: no cover
 
-    def try_lock(self, exclusive: bool) -> bool:
-        """
-        Take the lock if it is free, without waiting.
 
-        Parameters
-        ----------
-        exclusive : bool
-            Exclusive lock, else shared
-
-        Returns
-        -------
-        bool
-            False if another process holds it (incompatibly)
-
-        Raises
-        ------
-        OSError
-            If the lock cannot be taken at all (e.g. `ENOLCK`)
-        """
-        self.file.seek(0)               # (`lockf` locks from the offset)
-        return bool(_MECHANISM.trylock(self.file, exclusive))
-
-    def downgrade(self) -> None:
-        """Turn the exclusive lock into a shared one, without a gap."""
-        self.file.seek(0)
-        # POSIX: `lockf` converts the lock in place. Windows: a shared
-        # lock on the same handle stacks on the exclusive one, which the
-        # next unlock removes (first the exclusive, then the shared one).
-        if not _MECHANISM.trylock(self.file, False):
-            raise OSError(errno.EAGAIN, "cannot downgrade the lock")
-        if _WINDOWS:
-            _MECHANISM.unlock(self.file)
-
-    def unlock(self) -> None:
-        """Release the lock."""
-        self.file.seek(0)
-        _MECHANISM.unlock(self.file)
-
-    def sign(self, info: str) -> None:
-        """
-        Write who holds the exclusive lock in the lock file.
-
-        Parameters
-        ----------
-        info : str
-            One line ("pid 12 on node1")
-        """
+def _touch(fd: int) -> None:
+    """Refresh the times of a lock file (temporary-file cleaners)."""
+    if os.utime in os.supports_fd:
         try:
-            self.file.seek(0)
-            self.file.truncate()
-            self.file.write(b"\n" + info.encode() + b"\n")
-            self.file.seek(0)
+            os.utime(fd)
         except OSError:
             pass
 
-    def signature(self) -> str:
-        """
-        Read the signature of the last writer.
-
-        Returns
-        -------
-        str
-            Its line ("" if there is none, or it cannot be read)
-        """
-        try:
-            self.file.seek(self._SIGNATURE_AT)
-            info = self.file.read(256) or b""
-            self.file.seek(0)
-        except OSError:
-            return ""
-        return info.decode(errors="replace").strip()
-
-    def close(self) -> None:
-        """Close the file (which releases its locks)."""
-        self.file.close()
-
-
-# ----------------------------------------------------------------------
-#   One open lock file per process
-# ----------------------------------------------------------------------
 
 class _Entry:
     """
     A lock file opened by this process, and its holders in the process.
 
-    The OS lock (`mode`) is shared while only readers hold it, exclusive
-    while a writer does; `busy` while a thread waits for the OS lock.
+    The entry owns its descriptor for its whole life (never reopened):
+    descriptors of the same file opened through other spellings are
+    parked in `spares`, and all are closed only once the entry is
+    retired and has no user. The OS lock (`mode`) is shared while only
+    readers hold it, exclusive while a writer does; `busy` while a
+    thread waits for the OS lock.
     """
 
-    def __init__(self, lockfile: Path, key: tuple):
-        self.lockfile = lockfile
-        self.key = key                      # in `_registry`
+    def __init__(self, fd: int, writable: bool, ident: tuple | None,
+                 path: str):
+        self.fd, self.writable, self.ident = fd, writable, ident
+        self.lockfile = Path(path)
+        self.paths = {path}
+        self.spares: list[int] = []
+        self.mech = 0                       # in `_MECHANISMS`
         self.cond = threading.Condition()
-        self.handle: _OSLock | None = None  # the open lock file
         self.mode: str | None = None        # None | "shared" | "exclusive"
         self.readers: Counter = Counter()   # thread -> number of holds
         self.writer: int | None = None      # thread
         self.busy = False
         self.users = 0                      # holders and waiters
+        self.retired = False
+        self.gone = threading.Event()       # descriptors closed
 
     def compatible(self, exclusive: bool, me: int) -> bool:
         """Whether this thread may take the lock, given the others."""
@@ -701,26 +899,42 @@ class _Entry:
         return "another thread of this process, waiting for it"
 
 
-# Entries by lock file *identity* (`_file_key`): two spellings of one lock
-# file (a dataset folder named in another case on macOS or Windows) must
-# share one entry, as a second descriptor would drop the POSIX locks of
-# the first when closed (and conflict with it on Windows). Looked up, and
-# a missing lock file created, under `_registry_lock` (`FileLock._enter`)
-_registry: dict[tuple, _Entry] = {}
+# The registry (layer A), under `_registry_lock` (R): a leaf lock, under
+# which only dictionaries and counters change (never a filesystem call,
+# never another lock); `_Entry.cond` may take it, never the reverse.
+_by_path: dict[str, _Entry] = {}        # str(lockfile) -> entry
+_by_id: dict[tuple, _Entry] = {}        # `_ident` -> entry
 _registry_lock = threading.Lock()
+# Descriptors whose `fstat` failed: never closed (a live entry may hold
+# their file, and closing one drops its classic POSIX locks)
+_leaked: list[int] = []
+# Rounds of lock-then-verify before a lock is accepted as it is
+_ROUNDS = 3
+# Seconds that a thread waits for a retired entry to close its
+# descriptors (in-process, short), even past a zero timeout
+_GONE_GRACE = 10.0
+_RETIRED = object()
+
+
+def _entries() -> set[_Entry]:
+    """Entries of the registry (tests)."""
+    with _registry_lock:
+        return {*_by_path.values(), *_by_id.values()}
 
 
 def _after_fork() -> None:              # pragma: no cover
-    # POSIX locks are not inherited: forget those of the parent (closing
-    # the inherited descriptors in the child leaves the parent's locks)
+    # The child does not hold the locks of its parent: close its copies
+    # of the descriptors *without unlocking* (an unlock would release
+    # the OFD locks that it shares with the parent), and forget them
     global _registry_lock
-    for entry in _registry.values():
-        if entry.handle is not None:
+    for entry in {*_by_path.values(), *_by_id.values()}:
+        for fd in (entry.fd, *entry.spares):
             try:
-                entry.handle.close()
+                os.close(fd)
             except OSError:
                 pass
-    _registry.clear()
+    _by_path.clear()
+    _by_id.clear()
     _registry_lock = threading.Lock()
 
 
@@ -808,79 +1022,27 @@ class FileLock:
             except OSError as e:
                 return self._unlocked(f"no local lock folder ({e})")
         self.lockfile = lockfile
-        entry = self._enter(lockfile)
-        if entry is None:
-            return self._unlocked(f"cannot create {lockfile}")
-        try:
-            took = self._take(entry, deadline, timeout)
-        except BaseException:
-            self._leave(entry)
-            raise
-        if not took:
-            self._leave(entry)
-            return self._unlocked(f"cannot open {lockfile}")
-        self._entry, self.locked = entry, True
-        return self
-
-    def _enter(self, lockfile: Path) -> _Entry | None:
-        """
-        Find (or make) the entry of a lock file, and count this holder.
-
-        Under `_registry_lock`: an existing lock file is looked up by its
-        identity (`_file_key`), and opened later only if this process has
-        no entry for it (it never opens, then closes, a second descriptor
-        of a lock file that it holds: that would drop its POSIX locks).
-        A missing one is created at once, so that concurrent threads find
-        it; no entry can refer to it (lock files are never deleted while
-        held).
-
-        Parameters
-        ----------
-        lockfile : Path
-            Lock file
-
-        Returns
-        -------
-        _Entry | None
-            None if the lock file is missing and cannot be created (a
-            reader then goes on unlocked)
-
-        Raises
-        ------
-        LockError
-            If it is missing and cannot be created, for a writer
-        """
-        with _registry_lock:
-            try:
-                st = os.stat(lockfile)
-            except OSError:
-                st = None
-            handle = None
-            if st is None:
-                try:
-                    lockfile.parent.mkdir(parents=True, exist_ok=True)
-                    handle = _OSLock(lockfile, writable=True, create=True)
-                    st = os.fstat(handle.file.fileno())
-                except OSError as e:
-                    if handle is not None:
-                        handle.close()
-                    if self.exclusive:
-                        raise LockError(
-                            f"Cannot lock {self.path} for writing: cannot "
-                            f"create {lockfile} ({e})") from e
-                    return None
-            key = _file_key(st, lockfile)
-            entry = _registry.get(key)
+        path = str(lockfile)
+        for round_ in range(_ROUNDS):
+            entry = self._join(path, deadline, timeout)
             if entry is None:
-                entry = _registry[key] = _Entry(lockfile, key)
-                entry.handle = handle
-            elif handle is not None:
-                # (an entry of a deleted file whose inode was reused, or
-                # of the same path without inodes: this process holds no
-                # lock on the new file)
-                handle.close()
-            entry.users += 1
-            return entry
+                return self._unlocked(f"cannot create {lockfile}")
+            verify = round_ < _ROUNDS - 1
+            if not verify:
+                lg.warning(f"{lockfile} was replaced while it was locked, "
+                           f"{_ROUNDS - 1} times: locked as it is now")
+            try:
+                took = self._take(entry, path, deadline, timeout, verify)
+            except BaseException:
+                self._leave(entry)
+                raise
+            if took is _RETIRED:
+                lg.debug(f"{lockfile} was replaced: locking it again")
+                self._leave(entry)
+                continue
+            self._entry, self.locked = entry, True
+            return self
+        raise AssertionError("not reached")      # pragma: no cover
 
     def _unlocked(self, why: str) -> "FileLock":
         """Go on without a lock (a reader), or raise (a writer)."""
@@ -889,8 +1051,83 @@ class FileLock:
         lg.debug(f"{self.path} is read without a lock: {why}")
         return self
 
-    def _take(self, entry: _Entry, deadline: float, timeout: float) -> bool:
-        """Take the lock of `entry` (False: no lock file for a reader)."""
+    def _wait_gone(self, entry: _Entry, deadline: float,
+                   timeout: float) -> None:
+        """Wait until a retired entry has closed its descriptors."""
+        remaining = max(deadline - time.monotonic(), _GONE_GRACE)
+        if not entry.gone.wait(remaining):
+            raise LockTimeout(self.path, entry.lockfile, self.exclusive,
+                              "a lock file being closed in this process",
+                              timeout)
+
+    def _join(self, path: str, deadline: float,
+              timeout: float) -> _Entry | None:
+        """
+        Find or make the entry of a lock file, counting this holder.
+
+        Returns
+        -------
+        _Entry | None
+            None: a reader whose lock file can be neither created nor
+            opened
+
+        Raises
+        ------
+        LockError
+            For a writer whose lock file cannot be created, or if the
+            identity of a new descriptor cannot be read
+        """
+        while True:
+            with _registry_lock:
+                entry = _by_path.get(path)
+                if entry is not None and not entry.retired:
+                    entry.users += 1
+                    return entry
+            if entry is not None:
+                self._wait_gone(entry, deadline, timeout)
+                continue
+            # (no lock held: opening, creating and `fstat` are I/O)
+            try:
+                fd, writable = _open_lockfile(Path(path))
+            except OSError as e:
+                if self.exclusive:
+                    raise LockError(f"Cannot lock {self.path} for "
+                                    f"writing: cannot create {path} ({e})")
+                return None
+            try:
+                ident = _ident(fd, path)
+            except OSError as e:
+                _leaked.append(fd)          # (I4: never closed)
+                raise LockError(f"Cannot lock {self.path}: cannot read "
+                                f"the identity of {path} ({e})") from e
+            with _registry_lock:
+                by_id = _by_id.get(ident) if ident is not None else None
+                by_path = _by_path.get(path)
+                # a live entry of this file (by identity first: a retired
+                # entry of this path must not hide it), else of this path
+                for entry in (by_id, by_path):
+                    if entry is not None and not entry.retired:
+                        entry.spares.append(fd)
+                        entry.paths.add(path)
+                        _by_path[path] = entry
+                        entry.users += 1
+                        return entry
+                retired = by_id or by_path
+                if retired is None:
+                    entry = _Entry(fd, writable, ident, path)
+                    _by_path[path] = entry
+                    if ident is not None:
+                        _by_id[ident] = entry
+                    entry.users = 1
+                    return entry
+            # (a retired entry holds no OS lock, and no live entry has
+            # this file: closing this descriptor drops no lock)
+            os.close(fd)
+            self._wait_gone(retired, deadline, timeout)
+
+    def _take(self, entry: _Entry, path: str, deadline: float,
+              timeout: float, verify: bool):
+        """Take the lock of `entry` (`_RETIRED`: join again)."""
         me = threading.get_ident()
         with entry.cond:
             if self.exclusive and entry.writer == me:
@@ -903,18 +1140,35 @@ class FileLock:
                     f"Cannot write {self.path} while this thread reads it "
                     f"(lock upgrades are not supported: they deadlock)"
                 )
-            while not entry.compatible(self.exclusive, me):
+            while not entry.retired and \
+                    not entry.compatible(self.exclusive, me):
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise LockTimeout(self.path, entry.lockfile,
                                       self.exclusive, entry.local_holder(),
                                       timeout)
                 entry.cond.wait(remaining)
+            if entry.retired:
+                return _RETIRED
+            if self.exclusive and not entry.writable:
+                raise LockError(f"Cannot lock {self.path} for writing: "
+                                f"{entry.lockfile} is read-only")
             if self.exclusive or entry.mode is None:
                 entry.busy = True
                 try:
-                    if not self._take_os(entry, deadline, timeout):
-                        return False
+                    self._take_os(entry, deadline, timeout)
+                    if verify and not _WINDOWS and entry.ident is not None \
+                            and entry.mode is None \
+                            and self._stale(entry, path):
+                        # lock, then verify: the path names another file
+                        # now (replaced or deleted): retire the entry
+                        _MECHANISMS[entry.mech].unlock(entry.fd)
+                        with _registry_lock:
+                            entry.retired = True
+                        return _RETIRED
+                    _touch(entry.fd)
+                    if self.exclusive:
+                        self._sign(entry)
                 finally:
                     entry.busy = False
                     entry.cond.notify_all()
@@ -926,40 +1180,34 @@ class FileLock:
             self._thread = me
         return True
 
-    def _open(self, entry: _Entry) -> bool:
-        """Open the lock file of `entry` (False: a reader cannot)."""
-        if entry.handle is not None:
-            if self.exclusive and not entry.handle.writable:
-                raise LockError(f"Cannot lock {self.path} for writing: "
-                                f"{entry.lockfile} is read-only")
-            return True
-        # (it exists: `_enter` created it otherwise; it is not created
-        # again here, which would split the lock if it were deleted)
+    @staticmethod
+    def _stale(entry: _Entry, path: str) -> bool:
+        """Whether `path` no longer names the file of `entry`."""
         try:
-            entry.handle = _OSLock(entry.lockfile, writable=True)
-            return True
+            found = _path_id(path)
         except OSError as e:
-            if self.exclusive:
-                raise LockError(f"Cannot lock {self.path} for writing: "
-                                f"cannot open {entry.lockfile} ({e})")
-        try:
-            entry.handle = _OSLock(entry.lockfile, writable=False)
-            return True
-        except OSError:
-            return False
+            # gone; other errors (EIO...) keep the lock
+            return e.errno in (errno.ENOENT, errno.ENOTDIR,
+                               getattr(errno, "ESTALE", errno.ENOENT))
+        return found != entry.ident[:2]
 
     def _take_os(self, entry: _Entry, deadline: float,
-                 timeout: float) -> bool:
+                 timeout: float) -> None:
         """Take the OS lock, polling (with `entry.cond` held)."""
-        if not self._open(entry):
-            return False
         delay = _FIRST_DELAY
         while True:
+            mechanism = _MECHANISMS[entry.mech]
             try:
-                if entry.handle.try_lock(self.exclusive):
-                    break
+                if mechanism.try_lock(entry.fd, self.exclusive):
+                    return
             except OSError as e:
-                self._close(entry)
+                if e.errno in _UNSUPPORTED and entry.mode is None \
+                        and entry.mech + 1 < len(_MECHANISMS):
+                    lg.debug(f"{entry.lockfile}: {mechanism.name} locks "
+                             f"refused ({_describe(e)}): "
+                             f"{_MECHANISMS[entry.mech + 1].name} locks")
+                    entry.mech += 1
+                    continue
                 raise LockError(
                     f"Cannot lock {self.path} ({entry.lockfile}): "
                     f"{_describe(e)} (does the filesystem support file "
@@ -967,41 +1215,49 @@ class FileLock:
                 ) from e
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                holder = self._os_holder(entry)
-                self._close(entry)
                 raise LockTimeout(self.path, entry.lockfile, self.exclusive,
-                                  holder, timeout)
+                                  self._os_holder(entry), timeout)
             entry.cond.wait(min(delay, remaining))
             delay = min(2 * delay, _MAX_DELAY)
-        if self.exclusive:
-            entry.handle.sign(f"pid {os.getpid()} on {socket.gethostname()}")
-        return True
+
+    @staticmethod
+    def _sign(entry: _Entry) -> None:
+        """Write who holds the exclusive lock in its lock file."""
+        info = f"\npid {os.getpid()} on {socket.gethostname()}\n".encode()
+        try:
+            os.lseek(entry.fd, 0, os.SEEK_SET)
+            os.ftruncate(entry.fd, 0)
+            os.write(entry.fd, info)
+        except OSError:
+            pass
 
     def _os_holder(self, entry: _Entry) -> str:
         """Describe what holds an OS lock that this process lacks."""
+        mechanism = _MECHANISMS[entry.mech]
         if self.exclusive:
-            # (this process holds no OS lock on the file: see `_take`)
+            # (this entry holds no OS lock: see `_take`)
             try:
-                shared = entry.handle.try_lock(False)
+                shared = mechanism.try_lock(entry.fd, False)
             except OSError:
                 shared = False
             if shared:
-                entry.handle.unlock()
+                mechanism.unlock(entry.fd)
                 return "readers (in other processes)"
-        info = entry.handle.signature()
+        try:
+            os.lseek(entry.fd, _SIGNATURE_AT, os.SEEK_SET)
+            info = os.read(entry.fd, 256).decode(errors="replace").strip()
+        except OSError:
+            info = ""
         return f"a writer ({info})" if info else "a writer"
 
-    @staticmethod
-    def _close(entry: _Entry) -> None:
-        """Close the lock file of an entry that holds no OS lock."""
-        if entry.handle is not None and entry.mode is None:
-            try:
-                entry.handle.close()
-            finally:
-                entry.handle = None
-
     def release(self) -> None:
-        """Release the lock (no-op if it is not held)."""
+        """
+        Release the lock (no-op if it is not held).
+
+        A writer released inside readers of its thread downgrades the OS
+        lock to a shared one where the primitive can (else it stays
+        exclusive until the last reader leaves; this never raises).
+        """
         entry, self._entry = self._entry, None
         if entry is None:
             return
@@ -1016,35 +1272,52 @@ class FileLock:
                 try:
                     if entry.writer is None:
                         if +entry.readers:
-                            if entry.mode == "exclusive":
-                                entry.handle.downgrade()
+                            if entry.mode == "exclusive" \
+                                    and self._downgrade(entry):
                                 entry.mode = "shared"
                         else:
                             try:
-                                entry.handle.unlock()
+                                _MECHANISMS[entry.mech].unlock(entry.fd)
                             finally:
                                 entry.mode = None
-                                self._close(entry)
                 finally:
                     entry.cond.notify_all()
         finally:
-            # (also if the OS lock could not be downgraded or released:
-            # the entry must not leak)
             self._leave(entry)
 
     @staticmethod
+    def _downgrade(entry: _Entry) -> bool:
+        """Downgrade the OS lock of an entry (False: it stays exclusive)."""
+        try:
+            return bool(_MECHANISMS[entry.mech].downgrade(entry.fd))
+        except OSError as e:
+            lg.debug(f"{entry.lockfile}: downgrade failed ({e}): the lock "
+                     f"stays exclusive until its last reader leaves")
+            return False
+
+    @staticmethod
     def _leave(entry: _Entry) -> None:
-        """Forget (and close) an entry that has no holders and waiters."""
+        """Count a holder out; the last one retires and closes the entry."""
         with _registry_lock:
             entry.users -= 1
-            if entry.users <= 0 and _registry.get(entry.key) is entry:
-                del _registry[entry.key]
-                if entry.handle is not None and entry.mode is None:
-                    try:
-                        entry.handle.close()
-                    except OSError:
-                        pass
-                    entry.handle = None
+            last = entry.users <= 0
+            if last:
+                entry.retired = True
+        if not last:
+            return
+        # (no lock held; the entry holds no OS lock: I1)
+        for fd in (entry.fd, *entry.spares):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        with _registry_lock:
+            for path in entry.paths:
+                if _by_path.get(path) is entry:
+                    del _by_path[path]
+            if entry.ident is not None and _by_id.get(entry.ident) is entry:
+                del _by_id[entry.ident]
+        entry.gone.set()
 
     def __enter__(self) -> "FileLock":
         """Take the lock (`acquire`)."""

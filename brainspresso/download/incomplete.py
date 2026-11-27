@@ -1,10 +1,12 @@
 """
 Partial files of downloads that can be resumed.
 
-A download writes `<name>.download` under a `fasteners` lock of its own
-(`<name>.lock`, one downloader per file), and renames it to `<name>`
-under the exclusive reader/writer lock of `<name>` (`actions.locks`),
-so that it never replaces a file while an action reads it.
+A download writes `<name>.download` under the exclusive lock of that
+partial file (`actions.locks.FileLock`, taken without waiting: one
+downloader per file), and renames it to `<name>` under the exclusive
+reader/writer lock of `<name>`, so that it never replaces a file while
+an action reads it. (Earlier versions used a `fasteners` lock file,
+`<name>.lock`, next to the file: one left behind is deleted.)
 """
 __all__ = ['IncompleteFile']
 # stdlib
@@ -21,11 +23,10 @@ from typing import IO, Literal
 # externals
 import aiofiles
 import aiofiles.os as aos
-from fasteners import InterProcessLock
 
 # internals
 from brainspresso.actions.file import folder_in_the_way
-from brainspresso.actions.locks import FileLock
+from brainspresso.actions.locks import FileLock, LockError
 from brainspresso.utils.digests import get_digester
 
 lg = getLogger(__name__)
@@ -98,7 +99,7 @@ class IncompleteFile:
         # download was started (sent as `If-Range` when resuming)
         self.validator: str | None = None
         self._discard: bool = False
-        self.lock: InterProcessLock | None = None
+        self.lock: FileLock | None = None
         self.file: IO[bytes] | None = None
         self.offset: int | None = None
         self.checksum: str = checksum
@@ -124,13 +125,18 @@ class IncompleteFile:
         self.filename.parent.mkdir(parents=True, exist_ok=True)
 
         # Acquire lock
-        self.lock = await run_async(InterProcessLock, str(self.lockname))
-        lg.debug(f"acquiring lock... {self.lockname}")
-        if not await run_async(self.lock.acquire, blocking=False):
+        self.lock = FileLock(self.tempname, exclusive=True, timeout=0)
+        lg.debug(f"acquiring lock... {self.tempname}")
+        try:
+            await run_async(self.lock.acquire)
+        except LockError as e:
+            # (another download of the file runs: in another process, or
+            # in a thread of this one, maybe the same executor thread)
+            self.lock = None
             raise RuntimeError(
-                f'Could not acquire download lock for {self.filename}'
-            )
-        lg.debug(f"acquired lock: {self.lockname}")
+                f'Could not acquire download lock for {self.filename} ({e})'
+            ) from e
+        lg.debug(f"acquired lock: {self.tempname}")
 
         # Check if a file was already being downloaded, and if we should
         # continue from where we left off
@@ -234,9 +240,9 @@ class IncompleteFile:
             # Release lock and delete existing files (a complete file
             # that could not be renamed is kept, to be resumed)
             assert self.lock is not None
-            lg.debug(f"releasing lock...  {self.lockname}")
+            lg.debug(f"releasing lock...  {self.tempname}")
             await run_async(self.lock.release)
-            lg.debug(f"released lock:  {self.lockname}")
+            lg.debug(f"released lock:  {self.tempname}")
             if installed or self._discard:
                 lg.debug(f"deleting file...  {self.tempname}")
                 await run_async(self.tempname.unlink, missing_ok=True)

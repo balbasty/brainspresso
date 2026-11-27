@@ -426,13 +426,7 @@ layer in 2b-iv):
   shared dataset agree on its lock file, at the price of files that
   differ only by case sharing one; lock files of earlier versions were
   named from the path as given, so runs of an older and a newer
-  version do not exclude each other during an upgrade; in a process,
-  entries are keyed by the identity of the lock file itself (device and
-  inode, else its exact resolved path), not by its spelling, and a
-  missing lock file is created under the registry lock; deleting or
-  replacing lock files or the state folder while locks are held is
-  unsupported (it splits the exclusion), as are two mounts of one
-  NFS/SMB export at different mount points in one process);
+  version do not exclude each other during an upgrade);
   outside datasets (package templates, other source folders) in a
   private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
@@ -442,26 +436,42 @@ layer in 2b-iv):
   raises `LockError`, as does a filesystem that refuses locks. Only
   `$BRAINSPRESSO_LOCKS=0` disables locks (an unsafe escape hatch): no
   platform runs unlocked silently, and without a lock backend every
-  `FileLock` raises `LockError` naming that variable. The OS lock is
-  the reader/writer mechanism of `fasteners` (`>= 0.18, < 0.21`: its
-  non-blocking shared/exclusive try-lock is private, so one adapter,
-  `locks._OSLock`, wraps it and the range is pinned): `fcntl.lockf` on
-  the whole lock file on POSIX (Linux, macOS; advisory, per process,
-  dropped when *any* descriptor of the file is closed), `LockFileEx` on
-  its first byte on Windows (per handle, mandatory on that byte,
-  released by the OS when the handle closes or the process dies). So
-  each process opens a lock file once and arbitrates its own holders
-  (nested readers of an archive and its members, threads); an
-  exclusive holder signs the lock file ("pid N on host", after byte 0,
-  which Windows keeps unreadable while it is locked), and a timed-out
-  writer probes for readers with a shared try-lock. A writer released
-  inside its own reader keeps a shared lock without a gap (POSIX:
-  `lockf` converts it; Windows: a shared lock stacks on the exclusive
-  one, which one unlock removes). Across machines: NFSv4, or NFSv3 with
-  `lockd`, share `fcntl` locks (not `nolock` / `local_lock=all`
-  mounts); SMB servers enforce `LockFileEx` locks between Windows
-  clients, and POSIX clients of a share map `fcntl` locks to SMB locks
-  unless mounted `nobrl` (Linux `cifs`; macOS `smbfs` unchecked);
+  `FileLock` raises `LockError` naming that variable. Two layers, so
+  that under-exclusion needs both to fail (no dependency: `fcntl`,
+  `struct`, `ctypes`; fasteners is no longer used, the per-download lock
+  of `download/incomplete.py` included, which is a `FileLock` of the
+  partial file). Layer A, the registry of a process: one `_Entry` per
+  lock file, which owns its descriptor for life, found by path
+  (`str(lockfile)`, not folded) and by identity, `(st_dev, st_ino,
+  alias key)` from `fstat` of a held descriptor, the alias key being the
+  resolved path, NFC-normalised and casefolded (a symbolic link or a
+  case alias merges; two distinct files with equal inodes do not);
+  descriptors of other spellings are parked (`spares`), never closed
+  while the entry lives; a live entry found by identity wins over a
+  retired one found by path; no filesystem call under the registry lock;
+  the last holder retires the entry, closes its descriptors, then
+  removes its keys and sets `gone`, which a thread that found it waits
+  for; lock, then verify (POSIX: the path must still name the entry's
+  file, else retire and lock again, at most 3 rounds). Layer B, the OS
+  primitive (a chain, the next one on EINVAL/ENOTSUP/ENOSYS): Linux OFD
+  locks (`F_OFD_SETLK`, per descriptor, the lock space of classic
+  `fcntl` locks), then `lockf`; macOS `lockf` (per process), then
+  `flock`; Windows `LockFileEx` on byte 0 (per handle; the writer's
+  signature "pid N on host" follows at byte 1). A timed-out writer probes
+  for readers with a shared try-lock; a writer released inside its own
+  reader keeps a shared lock without a gap where the primitive converts
+  (OFD, `lockf`, Windows stacking), else stays exclusive until the last
+  reader leaves. Lock files keep their names: earlier commits and this
+  one exclude each other on all platforms. Not handled (documented in
+  `actions/locks.py`): a per-process primitive plus an identity split
+  (two mounts of one export, `st_ino` 0); two lock files with equal
+  inodes and paths that differ only by case on a case-sensitive
+  filesystem; a lock file or state folder replaced while held (split
+  across processes; the next acquisition retires the entry). Across
+  machines: NFSv4, or NFSv3 with `lockd`, share the locks (not `nolock`
+  / `local_lock=all` mounts); Lustre with `-o flock`; SMB servers enforce
+  `LockFileEx` between Windows clients; CIFS clients unless `nobrl`;
+  none verified here;
   a lock upgrade (write a file the thread reads) or a nested writer of
   one file raises `LockError` at once instead of deadlocking. Not
   handled: cross-process cycles (A reads X, writes Y; B reads Y, writes

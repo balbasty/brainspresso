@@ -318,9 +318,56 @@ def brainfilter_icon(themed=True):
       <path d="{drop}" {W}/>'''
     return _glyph_svg('brainfilter', shapes, themed)
 
+# ------------------------------------------------------------------- wordmark
+def _wordmark_text(text):
+    """Outlines of `text` in Inter ExtraBold (see outline_text.py)."""
+    for line in (HERE / 'wordmark.txt').read_text().splitlines():
+        name, upm, advance, bounds, d = line.split('\t')
+        if name == text:
+            return int(upm), float(advance), [float(v) for v in bounds.split()], d
+    raise KeyError(text)
+
+
+def brainspresso_wordmark(themed=True):
+    """The latte logo, and "brainspresso" in the ink of the logo."""
+    # the latte logo, cropped to its drawing (saucer, rim and handle)
+    lx, ly, lw, lh = 14, 102, 474, 348
+    H = 200                                  # height of the logo
+    logo_w = lw * H / lh
+    logo = brainspresso_latte(themed=False)
+    logo = logo.replace('viewBox="0 0 512 512" width="512" height="512"',
+                        f'viewBox="{lx} {ly} {lw} {lh}" x="0" y="0" '
+                        f'width="{logo_w:.1f}" height="{H}"', 1)
+    for ref in ('saucer-gap', 'poured', 'latte'):
+        logo = logo.replace(f'id="{ref}"', f'id="wm-{ref}"')
+        logo = logo.replace(f'url(#{ref})', f'url(#wm-{ref})')
+    logo = logo.replace(' role="img" aria-labelledby="title"', '')
+    logo = re.sub(r'<title id="title">[^<]*</title>', '', logo)
+    if themed:                               # the cup follows the palette
+        logo = re.sub(r'<style>.*?</style>', '', logo, flags=re.S)
+    # the name: x-height centred on the coffee, ascenders near the rim
+    upm, advance, (x0, y0, x1, y1), d = _wordmark_text('brainspresso')
+    size = 116                               # font size
+    k = size / upm
+    gap = 26
+    base = H * 0.66                          # baseline
+    tx = logo_w + gap - x0 * k
+    width = tx + x1 * k + 8
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0f} {H}" width="{width:.0f}" height="{H}" role="img" aria-labelledby="title">
+  <title id="title">brainspresso</title>
+  {ATTR}
+  <!-- Lettering: Inter ExtraBold (rsms.me/inter, SIL OFL 1.1), as outlines. -->
+  {style(themed=themed)}
+  {logo}
+  <path class="ink" transform="translate({tx:.2f} {base:.2f}) scale({k:.5f})" d="{d}"/>
+</svg>
+'''
+
+
 if __name__ == '__main__':
   open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso_latte())
   open(f'{OUT}/brainfilter-logo.svg', 'w').write(brainfilter())
   open(f'{OUT}/brainspresso-logo-espresso.svg', 'w').write(brainspresso())
   open(f'{OUT}/brainspresso-icon.svg', 'w').write(brainspresso_icon())
+  open(f'{OUT}/brainspresso-wordmark.svg', 'w').write(brainspresso_wordmark())
   open(f'{OUT}/brainfilter-icon.svg', 'w').write(brainfilter_icon())

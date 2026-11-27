@@ -3,6 +3,7 @@ Generate the brainspresso workflow diagram (harvest, roast, grind, percolate).
 
 Usage: python make_diagram.py [OUTDIR]   (default: docs/images)
 """
+import math
 import sys
 from pathlib import Path
 
@@ -40,22 +41,42 @@ def arrow(x1, y1, x2, y2, dashed=False, color=INK, width=3):
 
 # ---------------------------------------------------------------- icons
 def icon_harvest(cx, cy):
-    def leaf(x, y, r, rot):
-        return (f'<path transform="translate({x} {y}) rotate({rot})" '
-                f'd="M0 0 C{r*.5} {-r*.45} {r*1.4} {-r*.45} {r*1.9} 0 '
-                f'C{r*1.4} {r*.45} {r*.5} {r*.45} 0 0Z" fill="{LEAF}"/>')
+    """A coffee sprig: opposite leaves, cherries clustered on the stem."""
+    green, vein = '#3f6b2e', '#7da35a'
+    ripe = {'r': '#b8322a', 'd': '#8f2420', 'o': '#d7762e', 'y': '#d9a93a',
+            'g': '#8fa548'}
 
-    def cherry(x, y):
-        return (f'<circle cx="{x}" cy="{y}" r="13" fill="{CHERRY}"/>'
-                f'<circle cx="{x-4}" cy="{y-4}" r="3.5" fill="#fff" '
-                f'opacity=".55"/>')
+    def leaf(x, y, rot, size=1.0):
+        L, w = 46 * size, 17 * size
+        return (f'<g transform="translate({x} {y}) rotate({rot})">'
+                f'<path d="M0 0 C{L*.25} {-w} {L*.75} {-w} {L} 0 '
+                f'C{L*.75} {w} {L*.25} {w} 0 0Z" fill="{green}"/>'
+                f'<path d="M3 0 L{L-6} 0" stroke="{vein}" stroke-width="2" '
+                f'stroke-linecap="round"/></g>')
+
+    def cherry(nx, ny, dx, dy, colour):
+        rot = math.degrees(math.atan2(dx, -dy))
+        return (f'<g transform="translate({nx+dx} {ny+dy}) rotate({rot:.0f})">'
+                f'<ellipse rx="9" ry="10.5" fill="{ripe[colour]}"/>'
+                f'<circle cy="-8" r="2.2" fill="#3a1d14" opacity=".6"/>'
+                f'<ellipse cx="-3.2" cy="-1" rx="2.2" ry="3.4" fill="#fff" '
+                f'opacity=".45"/></g>')
+
+    def cluster(nx, ny, spec):
+        offsets = [(-11, -9), (0, -14), (11, -9), (-11, 9), (0, 14), (11, 9)]
+        return ''.join(cherry(nx, ny, dx, dy, c)
+                       for (dx, dy), c in zip(offsets, spec) if c != '-')
 
     return (f'<g transform="translate({cx} {cy})">'
-            f'<path d="M-62 -30 C-20 -34 20 -22 60 -40" fill="none" stroke="{ROAST}" stroke-width="5" stroke-linecap="round"/>'
-            + leaf(-30, -31, 22, -150) + leaf(18, -30, 22, -40) + leaf(42, -36, 18, 200)
-            + '<path d="M-8 -29 L-14 -8 M-8 -29 L4 -10 M-8 -29 L-26 -12" stroke="#4d6b2a" stroke-width="3" fill="none"/>'
-            + cherry(-14, 0) + cherry(6, 4) + cherry(-30, 2) + cherry(-4, 22) + cherry(-24, 22)
+            f'<path d="M-92 10 C-40 2 30 -2 92 -14" fill="none" '
+            f'stroke="{ROAST}" stroke-width="6" stroke-linecap="round"/>'
+            + leaf(-66, 6, -128) + leaf(-66, 6, 128)
+            + leaf(66, -8, -58, .9) + leaf(66, -8, 52, .9)
+            + leaf(90, -13, -10, .55)
+            + cluster(-30, 4, 'rdrgro')
+            + cluster(24, -4, 'ryrdog')
             + '</g>')
+
 
 def icon_roast(cx, cy):
     def bean(x, y, rot):

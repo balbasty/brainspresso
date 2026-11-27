@@ -389,7 +389,7 @@ layer in 2b-iv):
   "meta", non-JSON metadata as in `bids.select`; else "data"); outputs
   of several default kinds (`[nii, json]`, `[nii, bval, bvec]`) need an
   explicit `kind`, else the roast policy counts the action as an error.
-  JSON policy: `--json no` drops sidecars, `--json only` drops data; tables and "meta" always pass;
+  JSON policy: `--no-sidecars` drops sidecars, `--sidecars-only` drops data (formerly `--json no|only`); tables and "meta" always pass;
   `staging=True` actions (intermediate files, e.g. an unpacked
   FreeSurfer tree in `derivatives/<fs>/sourcedata/`) and the
   sub-actions of a staging claim are exempt (there is no implicit
@@ -668,9 +668,9 @@ break under `from __future__ import annotations`.
 | `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
 | `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (several roasters) |
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
-| `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--wait` | harvest |
-| `RoastOptions` | `--json`, `--if-exists`, `--jobs`, `--wait` | roast |
-| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--wait` | compost |
+| `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--lock-wait` (`--wait`, hidden, deprecated) | harvest |
+| `RoastOptions` | `--sidecars/--no-sidecars`, `--sidecars-only` (`--json VALUE`, `--no-json`: hidden, deprecated), `--if-exists`, `--jobs`, `--lock-wait` | roast |
+| `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--lock-wait` (`--wait`, hidden, deprecated) | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
 
@@ -715,18 +715,26 @@ roasters get numbers (`Dataset.numbers`).
   `brainspresso.cli`, while `-m` ran a second copy as `__main__`. Now
   datasets never import `brainspresso.cli`, `__init__` imports none, and
   `brainspresso/__main__.py` exists.
-* cyclopts floor `>= 5.1` (Python `>= 3.11`), measured in throwaway
-  environments (r16): roast `--json` is a `Literal["yes", "no", "only"]
-  | bool` field, an option that takes zero or one value (`--json`,
-  `--json only`, `--no-json`). Cyclopts 3.17 to 4.25 refuse the union
-  (token counts 1 and 0) on any `--json`, 5.0 refuses a bare `--json`
-  and `--no-json`; 5.1.0 is the first that parses all of them. No
-  field type of cyclopts 3.17 takes zero or one value, so keeping the
-  command line meant raising the floor (the earlier floor, 3.17, was
-  measured on flag names and tests that never parsed `--json`). 5.1
-  needs Python 3.11, which became the oldest Python (and `tomllib`
-  needs no backport). A CI job runs at the floor (Python 3.11, cyclopts
-  5.1.0), and `tests/test_cli.py` parses every form of `--json`.
+* cyclopts floor `>= 3.17` (Python `>= 3.10`), measured with the whole
+  test suite in a throwaway environment (Python 3.10, cyclopts 3.17.0;
+  A CI job runs at the floor); 3.1 cannot decorate classes with
+  `Parameter`. No option may take zero or one value: a `Literal | bool`
+  field only parses from cyclopts 5.1 (3.17 to 4.25 refuse the union of
+  token counts 1 and 0 on any value, 5.0 a bare flag). Roast's old
+  `--json [yes|no|only]` / `--no-json` was such a field and never parsed
+  below 5.1 (no test parsed it, r16), so it became two booleans (r18):
+  `--sidecars/--no-sidecars` (default on: the JSON sidecars of the data
+  files; tables and bval/bvec are always written, as with `--json no`)
+  and `--sidecars-only` (default off: sidecars and metadata, no images,
+  `--json only`); together with `--no-sidecars` it is a `UsageError`.
+  `RoastOptions.json_policy` maps them to the "yes"/"no"/"only" policy of
+  the roasters, which do not change. `--json VALUE` (a `Literal` that
+  always takes a value) and `--no-json` (a separate hidden bool,
+  `Parameter(name="--no-json", negative="")`) are hidden deprecated
+  aliases, logged once; an alias that contradicts a new flag (`--json
+  yes --no-sidecars`, `--no-json --sidecars-only`) is a `UsageError`,
+  checked before anything is written (`Dataset.check`). A bare `--json`
+  (a no-op: the default) is no longer accepted.
 * Later: an entry-point group for third-party datasets, merged into the
   catalog.
 
@@ -753,6 +761,17 @@ environment variables. Layers, later wins (`Loader.layers`):
    dataset file that is the user file or a `--config` file (running from
    `~`: `~/.brainspresso/config.toml`; paths compared resolved) is only
    read as that;
+
+   A `.brainspresso/` folder that holds only `config.toml` (`~`, the
+   root of all datasets) is a config folder, not a state folder: it does
+   not make its folder a dataset for the file locks
+   (`actions.locks.is_state_folder`) nor a sites parent whose run lock
+   every dataset under it would take (`bids.layout.is_sites_parent`,
+   used by `Dataset.lock_states`: the manifest, else the tree of a real
+   state folder). The first command on a dataset whose `.brainspresso/`
+   only holds `config.toml` adds `locks/` to it (`Layout.ensure_state`)
+   before it takes a lock. `bx config` only reads: it creates no
+   manifest, state or lock file;
 5. the files of `bx --config FILE`: a global option, before the dataset
    name, repeatable, applied in order (`cli.global_options`; TOML, or
    YAML if PyYAML is importable);
@@ -776,7 +795,8 @@ importing a dataset. The same section written twice in one file
 
 Keys are the long flags without `--` (`exclude-keys`, or
 `exclude_keys`; OpenNeuro's `--source` is `source`, whatever the field
-name), `no-<flag> = true` for a boolean flag (`no-bids`, `no-json`).
+name), `no-<flag> = true` for a boolean flag (`no-bids`,
+`no-sidecars`).
 Lists are TOML arrays (a scalar is a list of one, `[]` the empty list,
 which replaces a non-empty default); values become cyclopts tokens
 (`config.tokens`), so lists, `Literal` choices (per dataset, from
@@ -787,11 +807,17 @@ the file and the section (`Invalid value for --jobs from <file>
 `[<command>]`) that is not one of a dataset's choices (`[harvest]
 layout = "sites"` for IXI, `keys` of another dataset) is ignored for
 that dataset (a debug log; a lower value, or the built-in, applies);
-in a section of the dataset it is an error.
+in a section of the dataset it is an error. A shared value that fits
+no dataset at all (not a choice of any dataset that has the option, the
+generated `catalog.CHOICES`) is also ignored, with a warning naming the
+file, section and key.
 
-Deprecated aliases (`site-layout`, `bidsify`: `OptionGroup.deprecated`,
-the generated `catalog.DEPRECATED`) are refused in config ("use
-`--layout sites:<layout>`", "use `--bids/--no-bids`"): an alias from a
+Deprecated aliases (`site-layout`, `bidsify`, `wait`:
+`OptionGroup.deprecated`, the generated `catalog.DEPRECATED`) are
+refused in config ("use layout (--layout sites:<layout>)", "use bids
+(--bids/--no-bids)", "use lock-wait (--lock-wait)", also in `[roast]`,
+whose `--wait` is reserved for grind; `json` and `no-json`: "use
+sidecars / sidecars-only"): an alias from a
 file would beat, or break, the current flag given on the command line.
 An alias and its option are one option (`OptionInfo.aliases`): when the
 command line gives either (`--no-bidsify`, `--site-layout`), the other
@@ -866,8 +892,7 @@ tag = "1.0.4"
 ```
 
 A null value (YAML) is refused: TOML has none and "unset" is the
-absence of the key. `--json`, from the command line or a file, needs
-cyclopts 5.1 (the floor, `register`, the catalog and `cli.main`).
+absence of the key.
 
 ### Layouts
 
@@ -892,7 +917,7 @@ cyclopts 5.1 (the floor, `register`, the catalog and `cli.main`).
   takes it before planning and holds it through its confirmation.
   `--dry-run` and `info` take none. Sites: the parent and every
   existing site; a site created by a harvest takes its own shared lock
-  when it is created (`INDI.harvest.harvest_sites`, with the `--wait` of
+  when it is created (`INDI.harvest.harvest_sites`, with the `--lock-wait` of
   the command), and a command on one site (`--out <DS>/<site>`, listed
   by the parent or not) also takes the lock of its parent, so a compost
   of a site waits for a whole-parent compost. The parent's lock is
@@ -903,7 +928,11 @@ cyclopts 5.1 (the floor, `register`, the catalog and `cli.main`).
   site) excludes every site command. Locks are always taken parents
   first (`Dataset.lock_states`): two commands that took a site and its
   parent in opposite orders would wait on each other. All three
-  commands fail at once by default (`--wait SECONDS`). Locks disabled
+  commands fail at once by default (`--lock-wait SECONDS`, the name of
+  `Profile.lock_wait` in the grind contract, #23; `--wait SECONDS` is a
+  hidden alias, logged as deprecated, on harvest and compost only: on
+  roast, `--wait` is kept for the execution flag `--wait`/`--detach`
+  of §7, so roast has none). Locks disabled
   (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
   would go on unlocked).
@@ -960,12 +989,17 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   `sub-*_FLAIR.nii.gz`); files that follow an excluded key's scans go.
 * ABIDE-I `download-nitrc`/`download-xnat` removed (`harvest --source`).
 * Missing optional dependencies: stub commands instead of none.
-* Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--wait`,
+* Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--lock-wait`,
   `--exclude-keys` (harvests; legacy roasts: set difference),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
-  `--packet` on hosted harvests, `--exclude-sites`, `--json` on
+  `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
   UNC-Wisconsin roast, compost `--sites` (sites layouts).
 * `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
+* Roast `--json [yes|no|only]` / `--no-json` became `--sidecars/--no-sidecars`
+  and `--sidecars-only` (r18); `--json VALUE` and `--no-json` are hidden
+  deprecated aliases (a bare `--json` is refused).
+* `--wait SECONDS` (step 4) renamed `--lock-wait SECONDS`; `--wait` is a
+  hidden deprecated alias on harvest and compost, none on roast (r17).
 * Added: `bx config show|paths`, the global `--config FILE`, and config
   files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
 
@@ -980,7 +1014,8 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * Labels: zero-padded labels verbatim (fcon1000, OpenNeuro, compost);
   numeric labels with a width (IXI).
 * Layouts: `sites`, `sites:flat`, alias, errors. `--exclude-keys`.
-* Run lock: held by another process -> fail fast, `--wait`, records,
+* Run lock: held by another process -> fail fast, `--lock-wait` (and the
+  deprecated `--wait` of harvest and compost), records,
   stale records, `--ignore-runs`; dry runs create nothing;
   `BRAINSPRESSO_LOCKS=0`.
 * Config file (`tests/test_config.py`): every layer in order, the
@@ -1304,3 +1339,19 @@ up as an XPASS failure once fixed (then drop the marker).
   3.17 to 5.0 (no test parsed it): the floor becomes cyclopts 5.1, the
   first that parses `--json`, `--json only` and `--no-json`, so Python
   3.11 (tomllib, no backport).
+* r17: owner decision on PR #24: the run-lock option becomes
+  `--lock-wait SECONDS` on harvest, roast and compost (`lock_wait`, as
+  `Profile.lock_wait` of the grind contract, #23); `--wait SECONDS`
+  stays a hidden, deprecated alias on harvest and compost only (roast's
+  `--wait` is the execution flag `--wait`/`--detach` of §7); config key
+  `lock-wait`, `wait` refused. `Args.lock_wait` (was `Args.wait`).
+* r18: owner decisions on PR #24. The floor raise of r16 is reverted
+  (cyclopts `>= 3.17`, Python `>= 3.10`, tomli before 3.11): roast
+  `--json` becomes `--sidecars/--no-sidecars` and `--sidecars-only`,
+  which parse on 3.17 (`--json VALUE`, `--no-json`: hidden deprecated
+  aliases; config keys `sidecars`, `sidecars-only`, `json` refused). A
+  shared config value that fits no dataset is a warning
+  (`catalog.CHOICES`).
+  A `.brainspresso/` folder with only `config.toml` (`~`, the root of
+  all datasets) is no longer a dataset for the file locks nor a sites
+  parent for the run lock (`is_state_folder`, `is_sites_parent`).

@@ -12,7 +12,8 @@ is every curated INDI project (`INDI.dataset.project_dataset`). The
 config file reads two more tables: `ARGUMENTS` (the arguments of the
 entries that take some: OpenNeuro's accession) and `KEYS` (the config
 keys of each command, over every dataset), and `DEPRECATED` (the
-deprecated aliases, which config files refuse).
+deprecated aliases, which config files refuse) and `CHOICES` (the
+choices of each option over every dataset).
 """
 import importlib
 import inspect
@@ -82,14 +83,37 @@ def keys() -> dict[str, tuple[str, ...]]:
     return {c: tuple(sorted(v)) for c, v in sorted(out.items())}
 
 
-def deprecated() -> dict[str, tuple[str]]:
-    """`key: (what to use instead,)` of the deprecated aliases."""
+def choices() -> dict[str, tuple[str, ...]]:
+    """
+    `"command:key": choices` over every dataset.
+
+    Only options whose every dataset has choices (a value outside all of
+    them fits no dataset); free text somewhere: not listed.
+    """
+    out: dict[str, set] = {}
+    free = set()
+    for _, ds in datasets().values():
+        for command in command_names(ds):
+            for key, o in config_options(ds, command).items():
+                name = f"{command}:{key}"
+                if o.deprecated is not None or key in FORBIDDEN:
+                    continue
+                if o.choices is None:
+                    free.add(name)
+                else:
+                    out.setdefault(name, set()).update(o.choices)
+    return {k: tuple(sorted(v)) for k, v in sorted(out.items())
+            if k not in free}
+
+
+def deprecated() -> dict[str, tuple[str, str]]:
+    """`key: (config key, flag)` to use instead of the deprecated aliases."""
     out = {}
     for _, ds in datasets().values():
         for command in command_names(ds):
             for key, o in config_options(ds, command).items():
                 if o.deprecated is not None:
-                    out[key] = (o.deprecated,)
+                    out[key] = (" / ".join(o.instead), o.deprecated)
     return dict(sorted(out.items()))
 
 
@@ -153,6 +177,7 @@ def main(check: bool = False) -> int:
     new = _replace(new, "ARGUMENTS", render_table(arguments()))
     new = _replace(new, "KEYS", render_table(keys()))
     new = _replace(new, "DEPRECATED", render_table(deprecated()))
+    new = _replace(new, "CHOICES", render_table(choices()))
     if check:
         if new != text:
             print(f"{CATALOG} is out of date: run {__file__}")

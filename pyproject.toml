@@ -10,7 +10,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 79
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 # PLC0415: imports at the top level; a local import is kept only for an

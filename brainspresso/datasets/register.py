@@ -191,11 +191,23 @@ def config_options(dataset: Dataset, command: str
                 is_bool=base is bool or bool in args,
                 choices=_choices(args[0] if is_list and args else base),
             )
+        # an alias and the fields it stands for are one option
+        pairs = []
         for old, (new, instead) in group.deprecated.items():
+            new = (new,) if isinstance(new, str) else tuple(new)
             fields[old] = dataclasses.replace(
-                fields[old], deprecated=instead, aliases=(fields[new].key,))
-            fields[new] = dataclasses.replace(
-                fields[new], aliases=(fields[old].key,))
+                fields[old], deprecated=instead,
+                instead=tuple(fields[n].key for n in new))
+            members = {old, *new}
+            for other in [p for p in pairs if p & members]:
+                pairs.remove(other)
+                members |= other
+            pairs.append(members)
+        for members in pairs:
+            for name in members:
+                fields[name] = dataclasses.replace(
+                    fields[name], aliases=tuple(sorted(
+                        fields[m].key for m in members if m != name)))
         out.update({o.key: o for o in fields.values()})
     return out
 

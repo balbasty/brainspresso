@@ -13,10 +13,16 @@ import pytest
 from cyclopts import CycloptsError
 
 from brainspresso import cli, config
+from brainspresso.actions.locks import find_dataset, is_state_folder
+from brainspresso.bids.layout import is_sites_parent, make_layout
 from brainspresso.cli import build_app, global_options, main
 from brainspresso.config import ConfigError, Loader, dataset_names, tree
+from brainspresso.datasets import base
 from brainspresso.datasets.ADHD200.dataset import ADHD200
+from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
+from brainspresso.datasets.IXI.dataset import IXI
+from brainspresso.errors import UsageError
 
 # ----------------------------------------------------------------------
 #   Helpers
@@ -155,26 +161,26 @@ def test_most_specific_section_wins(tmp_path, home):
     text = """
 [defaults]
 jobs = 1
-wait = 1
+lock-wait = 1
 level = "debug"
 log = "a.log"
 [harvest]
 jobs = 2
-wait = 2
+lock_wait = 2
 level = "warning"
 [ixi]
 jobs = 3
-wait = 3
+lock-wait = 3
 [ixi.harvest]
 jobs = 4
 """
     user(home, text)
     args, report = parse("ixi", "harvest", tmp_path)
     assert value(args, "harvest", "jobs") == 4
-    assert value(args, "harvest", "wait") == 3
+    assert value(args, "harvest", "lock_wait") == 3
     assert value(args, "log", "level") == "warning"
     assert value(args, "log", "log") == "a.log"
-    assert origin(report, "wait").section == "ixi"
+    assert origin(report, "lock-wait").section == "ixi"
     assert origin(report, "level").section == "harvest"
     # another dataset: the generic sections only
     args, _ = parse("cobre", "harvest", tmp_path)
@@ -517,14 +523,50 @@ def test_bool_or_none_and_literals(tmp_path, home):
     assert value(args, "openneuro", "route") == "graphql"
 
 
-@pytest.mark.parametrize("text,expected", [
-    ("json = 'only'", "only"), ("json = false", False),
-    ("no-json = true", False), ("json = true", True),
+def _policy(args):
+    roast = args.get("roast")
+    return roast.json_policy if roast is not None else "yes"
+
+
+@pytest.mark.parametrize("text,policy", [
+    ("sidecars = true", "yes"), ("sidecars = false", "no"),
+    ("no-sidecars = true", "no"), ("sidecars-only = true", "only"),
+    ("sidecars_only = true\nsidecars = true", "only"),
+    ("sidecars-only = false", "yes"),
 ])
-def test_json_literal_or_bool(tmp_path, home, text, expected):
+def test_sidecars_keys(tmp_path, home, text, policy):
     user(home, f"[roast]\n{text}\n")
     args, _ = parse("ixi", "roast", tmp_path)
-    assert value(args, "roast", "json") == expected
+    assert _policy(args) == policy
+
+
+def test_sidecars_conflict_in_config(tmp_path, home):
+    user(home, "[roast]\nsidecars = false\nsidecars-only = true\n")
+    args, _ = parse("ixi", "roast", tmp_path)
+    with pytest.raises(UsageError, match="--sidecars-only"):
+        _policy(args)
+
+
+@pytest.mark.parametrize("cli,policy", [
+    (["--no-sidecars"], "no"), (["--json", "yes"], "yes"),
+    (["--no-json"], "no"), (["--sidecars"], "yes"),
+])
+def test_sidecars_from_the_command_line(tmp_path, home, cli, policy):
+    # one option: a sidecar flag (or alias) on the command line keeps the
+    # others out of config
+    user(home, "[roast]\nsidecars-only = true\n")
+    args, report = parse("ixi", "roast", tmp_path, *cli)
+    assert _policy(args) == policy
+    assert origin(report, "sidecars-only").kind in ("built-in", "CLI")
+
+
+@pytest.mark.parametrize("text", [
+    "json = 'only'", "json = false", "no-json = true", "no_json = true",
+])
+def test_json_key_is_refused(home, text):
+    user(home, f"[roast]\n{text}\n")
+    with pytest.raises(ConfigError, match="use sidecars / sidecars-only"):
+        parse("ixi", "roast")
 
 
 @pytest.mark.parametrize("text,use", [
@@ -573,11 +615,11 @@ def test_global_options():
 
 
 def test_config_repeated(tmp_path, home):
-    a = write(tmp_path / "a.toml", "[defaults]\njobs = 1\nwait = 1\n")
+    a = write(tmp_path / "a.toml", "[defaults]\njobs = 1\nlock-wait = 1\n")
     b = write(tmp_path / "b.toml", "[defaults]\njobs = 2\n")
     args, report = parse("ixi", "harvest", tmp_path, files=[a, b])
     assert value(args, "harvest", "jobs") == 2
-    assert value(args, "harvest", "wait") == 1
+    assert value(args, "harvest", "lock_wait") == 1
     assert origin(report, "jobs").source == str(b)
     args, _ = parse("ixi", "harvest", tmp_path, files=[b, a])
     assert value(args, "harvest", "jobs") == 1
@@ -671,7 +713,8 @@ def test_real_run(tmp_path, home):
 # ----------------------------------------------------------------------
 
 def test_config_show(tmp_path, home, capsys, monkeypatch):
-    path = user(home, "[ixi.harvest]\nkeys = ['T1w']\n[defaults]\nwait = 2\n")
+    path = user(home, "[ixi.harvest]\nkeys = ['T1w']\n"
+                      "[defaults]\nlock-wait = 2\n")
     monkeypatch.setenv("BRAINSPRESSO_OPT_HARVEST__LEVEL", "debug")
     try:
         main(["config", "show", "ixi", "harvest", str(tmp_path), "--jobs",
@@ -682,7 +725,7 @@ def test_config_show(tmp_path, home, capsys, monkeypatch):
     assert "[ixi.harvest]" in out
     assert "jobs = 3  # CLI" in out
     assert f'keys = ["T1w"]  # {path} [ixi.harvest]' in out
-    assert f"wait = 2.0  # {path} [defaults]" in out
+    assert f"lock-wait = 2.0  # {path} [defaults]" in out
     assert "if-exists = \"skip\"  # built-in" in out
     assert 'level = "debug"  # env $BRAINSPRESSO_OPT_HARVEST__LEVEL' in out
     assert "yes" not in out             # (not an option of harvest)
@@ -702,14 +745,14 @@ def test_config_show_every_command(tmp_path, home, capsys):
 
 
 def test_config_show_sections(tmp_path, home, capsys):
-    path = user(home, "[ABIDE1.roast]\njobs = 2\n[defaults]\nwait = 1\n")
-    extra = write(tmp_path / "x.toml", "[defaults]\nwait = 3\n")
+    path = user(home, "[ABIDE1.roast]\njobs = 2\n[defaults]\nlock-wait = 1\n")
+    extra = write(tmp_path / "x.toml", "[defaults]\nlock-wait = 3\n")
     try:
         main(["--config", str(extra), "config", "show"])
     except SystemExit as e:
         assert not e.code
     out = capsys.readouterr().out
-    assert f"[defaults]\nwait = 3  # {extra} [defaults]" in out
+    assert f"[defaults]\nlock-wait = 3  # {extra} [defaults]" in out
     assert f"[abide1.roast]\njobs = 2  # {path} [ABIDE1.roast]" in out
 
 
@@ -844,3 +887,100 @@ def test_paths_of_a_command(tmp_path, home, capsys):
                                 str(config.located_file(tmp_path))]
     assert lines[3].split()[-1] == str(config.located_file(
         tmp_path / "IXI"))
+
+
+@pytest.mark.parametrize("section", ["defaults", "harvest", "roast",
+                                     "ixi.compost"])
+def test_wait_key_is_refused(home, section):
+    user(home, f"[{section}]\nwait = 3\n")
+    with pytest.raises(ConfigError, match=r"use lock-wait \(--lock-wait\)"):
+        parse("ixi", "harvest")
+
+
+def test_lock_wait_alias_from_the_command_line(tmp_path, home):
+    # `--wait` given: `lock-wait` is not read from config
+    user(home, "[harvest]\nlock-wait = 7\n")
+    args, report = parse("ixi", "harvest", tmp_path, "--wait", "2")
+    assert value(args, "harvest", "lock_wait") == 0
+    assert value(args, "harvest", "wait") == 2
+    assert origin(report, "lock-wait").kind == "built-in"
+
+
+@pytest.mark.parametrize("text,warns", [
+    ("[harvest]\nif-exists = 'sometimes'\n", True),
+    ("[defaults]\nlayout = 'tree'\n", True),
+    ("[harvest]\nkeys = ['nosuchkey']\n", True),
+    ("[harvest]\nkeys = ['T1w', 'nosuchkey']\n", True),
+    ("[harvest]\nlayout = 'sites'\n", False),        # fits INDI
+    ("[harvest]\nkeys = ['PDw']\n", False),          # fits IXI
+    ("[roast]\nkeys = ['nosuchkey']\n", False),      # free text somewhere
+    ("[ixi.harvest]\njobs = 3\n", False),
+])
+def test_shared_value_of_no_dataset(tmp_path, home, caplog, text, warns):
+    # a shared value that fits no dataset at all: a warning (still
+    # ignored); one that fits some datasets: a debug log where it does not
+    path = user(home, text)
+    caplog.set_level(logging.DEBUG, logger="brainspresso.config")
+    parse("cobre", "harvest", tmp_path)
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert bool(warnings) is warns
+    if warns:
+        message = warnings[0].getMessage()
+        assert str(path) in message and "not a choice of any dataset" \
+            in message
+        assert text.split("]")[0] + "]" in message      # the section
+        assert text.split("\n")[1].split(" =")[0] in message   # the key
+
+
+# ----------------------------------------------------------------------
+#   A `.brainspresso/` folder with only a config file is not a dataset
+# ----------------------------------------------------------------------
+
+def test_root_with_only_a_config_file(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "root"
+    located(root, "[harvest]\njobs = 2\n")
+    for ds in ("IXI", "COBRE"):
+        (root / ds / "sub-002" / "anat").mkdir(parents=True)
+    state = root / ".brainspresso"
+    # neither a dataset (locks of files under it) nor a sites parent
+    assert not is_state_folder(root)
+    assert not is_sites_parent(root)
+    assert find_dataset(root / "elsewhere" / "file.txt") is None
+    assert Dataset.lock_states(make_layout("flat", root / "IXI")) == (
+        [], [root / "IXI" / ".brainspresso"])
+    # a harvest under it takes no lock of the root
+    states = []
+    original = base.run_lock
+
+    def spy(paths, command, **kwargs):
+        states.extend(paths)
+        return original(paths, command, **kwargs)
+
+    monkeypatch.setattr(base, "run_lock", spy)
+    monkeypatch.setattr(IXI, "harvest", lambda self, layout, args: None)
+    try:
+        main(["ixi", "harvest", str(root)])
+    except SystemExit as e:
+        assert not e.code
+    assert states == [root / "IXI" / ".brainspresso"]
+    # `bx config` writes nothing
+    for tokens in (["show"], ["show", "ixi", "harvest", str(root)],
+                   ["paths", "ixi", "--path", str(root)]):
+        try:
+            main(["config", *tokens])
+        except SystemExit as e:
+            assert not e.code
+    assert [p.name for p in state.iterdir()] == ["config.toml"]
+    assert not is_state_folder(root)
+
+
+def test_dataset_with_only_a_config_file(tmp_path):
+    # its first command makes it a dataset before any lock is taken
+    ds = tmp_path / "IXI"
+    located(ds, "[harvest]\njobs = 2\n")
+    assert not is_state_folder(ds)
+    layout = make_layout("flat", ds)
+    layout.ensure_state()
+    assert is_state_folder(ds)
+    assert find_dataset(ds / "sub-002" / "x.nii.gz") == ds
+    assert (ds / ".brainspresso" / "config.toml").exists()

@@ -195,7 +195,7 @@ def _locked_message(state: Path, command: str, exclusive: bool) -> str:
         f"  (no run record: a {what} of an older version, or one that "
         f"is starting)")
     return (f"Cannot {command} {state.parent}: the dataset is in use\n"
-            f"{lines}\nWait for it to finish, or use --wait SECONDS.")
+            f"{lines}\nWait for it to finish, or use --lock-wait SECONDS.")
 
 
 @contextlib.contextmanager

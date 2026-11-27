@@ -7,7 +7,8 @@ itself, and lock files are never deleted by the processes that hold them
 processes "hold" it at once):
 
 * inside a dataset (the nearest ancestor folder that has a
-  `.brainspresso/` state folder), the lock file is
+  `.brainspresso/` state folder, `is_state_folder`: not one that only
+  holds a config file, `config.toml`), the lock file is
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, with `h` the SHA-256 of
   the path of the file relative to `<DS>`. It is on the filesystem of
   the dataset, so it also protects processes on other machines that
@@ -113,14 +114,18 @@ lg = getLogger(__name__)
 
 __all__ = [
     "DEFAULT_TIMEOUT", "FileLock", "LockError", "LockTimeout",
-    "find_dataset", "forget_datasets", "lock_file", "lock_timeout",
-    "locks_enabled",
+    "find_dataset", "forget_datasets", "is_state_folder", "lock_file",
+    "lock_timeout", "locks_enabled",
 ]
 
 #: State folder of a dataset (`bids.layout.STATE_DIR`)
 STATE_DIR = ".brainspresso"
 #: Folder of the lock files, in the state folder of a dataset
 LOCKS_DIR = "locks"
+#: A config file (`brainspresso.config.FILENAME`): a `.brainspresso/`
+#: folder that holds only this file is a config folder, not a state
+#: folder (`~`, the root of all datasets)
+CONFIG_FILE = "config.toml"
 #: Seconds to wait for a lock before `LockTimeout`
 DEFAULT_TIMEOUT = 600.0
 #: Environment variable that overrides `DEFAULT_TIMEOUT` (seconds)
@@ -217,9 +222,37 @@ def _real(path: str | os.PathLike) -> Path:
     return Path(os.path.realpath(path.parent)) / path.name
 
 
+def is_state_folder(folder: str | os.PathLike) -> bool:
+    """
+    Whether a folder is a dataset: it has a state folder.
+
+    A `.brainspresso/` folder that holds only a config file
+    (`config.toml`: the user's `~`, the root of all datasets) is not a
+    state folder; an empty one is (`Layout.ensure_state` creates it
+    empty, and adds `locks/` to a config-only one).
+
+    Parameters
+    ----------
+    folder : str | PathLike
+
+    Returns
+    -------
+    bool
+    """
+    state = os.path.join(folder, STATE_DIR)
+    if not os.path.isdir(state):
+        return False
+    if not os.path.isfile(os.path.join(state, CONFIG_FILE)):
+        return True
+    try:
+        return any(name != CONFIG_FILE for name in os.listdir(state))
+    except OSError:
+        return True
+
+
 def _is_state_dir(folder: Path) -> bool:
-    """Whether a folder has a state folder (one `stat`)."""
-    return os.path.isdir(os.path.join(folder, STATE_DIR))
+    """Whether a folder has a state folder (`is_state_folder`)."""
+    return is_state_folder(folder)
 
 
 # Dataset of each (resolved) folder that holds locked files. Only hits

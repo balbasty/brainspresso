@@ -41,15 +41,26 @@ import functools
 import logging
 import os
 import shlex
-import tomllib
+import sys
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from cyclopts import Token
 
-from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, DEPRECATED, KEYS
+from brainspresso.datasets.catalog import (
+    ARGUMENTS,
+    CATALOG,
+    CHOICES,
+    DEPRECATED,
+    KEYS,
+)
 from brainspresso.errors import UsageError
 from brainspresso.utils.path import get_tree_path
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:                                           # pragma: no cover
+    import tomli as tomllib
 
 lg = logging.getLogger(__name__)
 
@@ -253,8 +264,10 @@ class OptionInfo:
         Keys of the same option (a deprecated alias and its option): one
         given on the command line, the others are not read from config
     deprecated : str | None
-        What to use instead of a deprecated alias (never read from
+        Flags to use instead of a deprecated alias (never read from
         config)
+    instead : tuple[str]
+        Config keys to use instead of a deprecated alias
     """
 
     key: str
@@ -266,6 +279,7 @@ class OptionInfo:
     choices: tuple | None = None
     aliases: tuple = ()
     deprecated: str | None = None
+    instead: tuple = ()
 
     def fits(self, value) -> bool:
         """Whether a value (or each value of a list) is a choice."""
@@ -412,7 +426,8 @@ def _entry(table: Mapping, parts: tuple, command: str | None,
         if key in DEPRECATED:
             raise _fail(source, section,
                         f"{raw!r} is a deprecated alias, not read from "
-                        f"config files: use {DEPRECATED[key][0]}")
+                        f"config files: use {DEPRECATED[key][0]} "
+                        f"({DEPRECATED[key][1]})")
         if key not in known:
             raise _fail(source, section, f"unknown key {raw!r}"
                         + _did_you_mean(key, known))
@@ -433,8 +448,27 @@ def _entry(table: Mapping, parts: tuple, command: str | None,
                             f"{raw!r}: unsupported value {value!r}")
         if key in values:
             raise _fail(source, section, f"{raw!r} is set twice")
+        if not parts and not _fits_some(command, key, value):
+            lg.warning(f"Config {source} [{section}]: {raw} = {value!r} is "
+                       f"not a choice of any dataset: ignored")
         values[key] = (value, raw, negated)
     return Entry(parts, command, section, source, values)
+
+
+def _fits_some(command: str | None, key: str, value) -> bool:
+    """Whether a value is a choice of a dataset (`catalog.CHOICES`)."""
+    commands = [command] if command else list(COMMANDS)
+    found = [f"{c}:{key}" for c in commands if key in KEYS.get(c, ())]
+    if not found or any(name not in CHOICES for name in found):
+        return True         # (free text for some dataset)
+    if isinstance(value, EnvValue):
+        try:
+            value = shlex.split(value)
+        except ValueError:
+            return True     # (an error later, for the datasets)
+    values = value if isinstance(value, list) else [value]
+    return any(all(str(v) in CHOICES[name] for v in values)
+               for name in found)
 
 
 def parse(data: Mapping, source: str, kind: str = "file") -> list[Entry]:

@@ -131,11 +131,17 @@ roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 * **Harvest** / **Roast** / **Compost** (`--if-exists`, `--jobs`,
   `--dry-run`...), **Dataset** (`path`, `--out`, `--layout`) and
   **Logging** (`--log`, `--level`; `--level debug` prints tracebacks).
+* Roast writes the JSON sidecars of the data files unless
+  `--no-sidecars` is given, and `--sidecars-only` writes only them (and
+  the other metadata), not the images; tables and bval/bvec files are
+  always written. These replace `--json yes|no|only` and `--no-json`,
+  which still work, with a deprecation warning.
 
 A dataset cannot be composted while it is harvested or roasted (also from
 other machines that share its filesystem), and the other way round: the
-second command fails at once, naming the first one (`--wait SECONDS`
-waits for it). Each run leaves a record in `.brainspresso/runs/` while it
+second command fails at once, naming the first one (`--lock-wait SECONDS`
+waits for it; harvest and compost still accept the deprecated
+`--wait SECONDS`). Each run leaves a record in `.brainspresso/runs/` while it
 runs; compost refuses to start while records of other runs are there (a
 crashed run, or a filesystem that does not share locks between machines:
 `--ignore-runs` once you have checked that nothing runs).
@@ -383,14 +389,15 @@ sex==F'`), `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`.
 Some options are never read from a config file: confirmations of
 deletions (`--yes`, compost `--force`, `--ignore-runs`), secrets
 (`--password`, `--token`: use their environment variables or the prompt)
-and `--config`, nor the deprecated `--site-layout` and `--bidsify` (use
-`layout` and `bids`). `path` and `out` go together: when the command line
+and `--config`, nor the deprecated `--site-layout`, `--bidsify`, `--wait`
+and `--json` (use `layout`, `bids`, `lock-wait`, `sidecars` and
+`sidecars-only`). `path` and `out` go together: when the command line
 gives either, neither comes from a config file. A root or dataset file
 cannot set them (they locate it), and `out` only goes in the section of
 one dataset. An unknown section or key, or a value of the wrong type, is
 an error that names the file and the section; a value of `[defaults]` or
 `[<command>]` that is not a choice of a dataset (`layout = "sites"` for
-IXI) is ignored for that dataset. `[profiles.<name>]` and `grind` tables
+IXI) is ignored for that dataset, with a warning if it fits no dataset. `[profiles.<name>]` and `grind` tables
 are reserved for the grind stage and ignored for now.
 
 ```shell

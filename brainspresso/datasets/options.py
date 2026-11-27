@@ -14,6 +14,7 @@ This module does not use `from __future__ import annotations`: cyclopts
 reads the annotations of the fields.
 """
 import dataclasses
+import functools
 import logging
 from typing import Annotated, Any, ClassVar, Literal, Mapping
 
@@ -432,8 +433,34 @@ class TokenOptions(OptionGroup):
 #   Commands
 # ----------------------------------------------------------------------
 
-_WAIT = Parameter(help="Seconds to wait for a dataset in use by another "
-                       "command (default: fail at once)")
+_LOCK_WAIT = Parameter(help="Seconds to wait for a dataset in use by "
+                            "another command (default: fail at once)")
+# `--wait SECONDS`: the deprecated name of `--lock-wait` (harvest and
+# compost only: on roast, `--wait` is kept for the execution flag
+# `--wait/--detach` of grind, §7)
+_WAIT = Parameter(show=False, help="Deprecated: use `--lock-wait`")
+_WAIT_ALIAS = {"wait": ("lock_wait", "--lock-wait")}
+
+
+def lock_wait(group) -> float:
+    """
+    Seconds to wait for the run lock (`--lock-wait`, or `--wait`).
+
+    Parameters
+    ----------
+    group : OptionGroup
+        Options of the command (harvest, roast, compost)
+
+    Returns
+    -------
+    float
+        The deprecated `--wait` (logged) if given, else `--lock-wait`
+    """
+    old = getattr(group, "wait", None)
+    if old is not None:
+        deprecated("--wait", "--lock-wait")
+        return float(old)
+    return float(getattr(group, "lock_wait", 0) or 0)
 
 
 @option_group("Harvest", 40)
@@ -456,7 +483,10 @@ class HarvestOptions(OptionGroup):
         help="Print what would be downloaded, then exit (nothing is "
         "written)"
     )] = False
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float, _LOCK_WAIT] = 0
+    wait: Annotated[float | None, _WAIT] = None
+
+    deprecated = _WAIT_ALIAS
 
     @classmethod
     def defaults(cls, dataset, command):
@@ -485,23 +515,83 @@ class HarvestOptions(OptionGroup):
 
 @option_group("Roast", 40)
 class RoastOptions(OptionGroup):
-    """Options of a roast."""
+    """
+    Options of a roast.
 
-    json: Annotated[Literal["yes", "no", "only"] | bool, Parameter(
-        help="Whether to write (only) sidecar JSON files"
-    )] = "yes"
+    `--sidecars/--no-sidecars` and `--sidecars-only` replace `--json
+    yes|no|only` (an option of zero or one value, `Literal | bool`, that
+    cyclopts only parses from 5.1); `--json VALUE` and `--no-json` are
+    hidden deprecated aliases. `json_policy` maps them to the value the
+    roasters take.
+    """
+
+    sidecars: Annotated[bool, Parameter(
+        help="Write the JSON sidecars of the data files (tables and other "
+        "metadata, bval/bvec, are always written)"
+    )] = True
+    sidecars_only: Annotated[bool, Parameter(
+        negative="", help="Only write the sidecars and metadata, not the "
+        "images"
+    )] = False
+    json: Annotated[Literal["yes", "no", "only"] | None, Parameter(
+        show=False, help="Deprecated: use `--sidecars`, `--no-sidecars` "
+        "or `--sidecars-only`"
+    )] = None
+    no_json: Annotated[bool, Parameter(
+        name="--no-json", negative="", show=False,
+        help="Deprecated: use `--no-sidecars`"
+    )] = False
     if_exists: Annotated[IfExists.Choice, Parameter(
         help="Behaviour when a file already exists"
     )] = "skip"
     jobs: Annotated[int, Parameter(help="Number of processes")] = 1
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float, _LOCK_WAIT] = 0
 
-    @property
+    deprecated = {
+        "json": (("sidecars", "sidecars_only"),
+                 "--sidecars/--no-sidecars/--sidecars-only"),
+        "no_json": (("sidecars", "sidecars_only"), "--no-sidecars"),
+    }
+
+    @functools.cached_property
     def json_policy(self) -> str:
-        """`json` as "yes", "no" or "only"."""
-        if isinstance(self.json, bool):
-            return "yes" if self.json else "no"
-        return str(self.json).lower()
+        """
+        The sidecar policy of the roasters: "yes", "no" or "only".
+
+        `--sidecars` (default): "yes"; `--no-sidecars`: "no";
+        `--sidecars-only`: "only". The deprecated `--json VALUE` and
+        `--no-json` give it directly (logged once).
+
+        Raises
+        ------
+        UsageError
+            `--sidecars-only` with `--no-sidecars`, `--json` with
+            `--no-json`, or an alias that contradicts a new flag
+        """
+        if self.sidecars_only and not self.sidecars:
+            raise UsageError("--sidecars-only writes sidecars: it cannot go "
+                             "with --no-sidecars")
+        policy = "only" if self.sidecars_only else (
+            "yes" if self.sidecars else "no")
+        old = None
+        if self.json is not None:
+            deprecated("--json", "--sidecars, --no-sidecars or "
+                       "--sidecars-only")
+            old = str(self.json).lower()
+        if self.no_json:
+            deprecated("--no-json", "--no-sidecars")
+            if old not in (None, "no"):
+                raise UsageError(f"--no-json contradicts --json {old}")
+            old = "no"
+        if old is None:
+            return policy
+        changed = self.sidecars_only or not self.sidecars
+        if changed and old != policy:
+            flag = "--sidecars-only" if self.sidecars_only \
+                else "--no-sidecars"
+            alias = f"--json {old}" if self.json is not None else "--no-json"
+            raise UsageError(f"{alias} contradicts {flag}")
+        return old
 
 
 @option_group("Compost", 40)
@@ -545,7 +635,10 @@ class CompostOptions(OptionGroup):
     list: Annotated[bool, Parameter(
         help="Print the files to delete before asking for confirmation"
     )] = False
-    wait: Annotated[float, _WAIT] = 0
+    lock_wait: Annotated[float, _LOCK_WAIT] = 0
+    wait: Annotated[float | None, _WAIT] = None
+
+    deprecated = _WAIT_ALIAS
 
 
 @option_group("Dataset", 60)

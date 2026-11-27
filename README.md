@@ -180,7 +180,7 @@ Useful options: `--sessions`, `--suffixes`, `--tasks`, `--include`/`--exclude`
 (globs on paths relative to the dataset root), `--folders derivatives`,
 `--jobs`, `--list`. By default, `participants.tsv`, `*_sessions.tsv` and
 `*_scans.tsv` are rewritten to only list what is present locally (the
-untouched copies are kept in `.brainspresso/orig/`), and field maps
+untouched copies are kept in `sourcedata/openneuro/`), and field maps
 whose `IntendedFor` targets were not downloaded lose them; disable with
 `--no-trim`. Each run is recorded in `.brainspresso/manifest.json`
 (snapshot, filters, files, URLs and checksums, and how each file got
@@ -200,7 +200,8 @@ download the JSON sidecars of the data files, `--sidecars only` only
 downloads metadata (no images; tables and field maps are still trimmed to
 the images selected). A harvest that runs again skips what did not
 change, and a roasted file you edit is kept (`--if-exists overwrite`
-replaces it).
+replaces it). `bx openneuro roast` repairs by default, also what a
+`harvest --no-repair` placed, unless a config file says `repair = false`.
 
 Files are listed through the OpenNeuro API, which pins the exact snapshot
 and provides SHA256 checksums for annexed files. If the API cannot be

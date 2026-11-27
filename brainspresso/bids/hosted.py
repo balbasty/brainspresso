@@ -95,7 +95,7 @@ lg = getLogger(__name__)
 __all__ = [
     "FILL_FILE", "FillPlan", "FillTemplate", "Placement", "fill_files",
     "fill_in", "is_data", "placement", "plan_fill", "read_fill_templates",
-    "relabel_intended", "relabel_scans", "render",
+    "relabel_intended", "relabel_scans", "render", "trim_rows",
 ]
 
 Placement = Literal["direct", "roasted"]
@@ -443,7 +443,8 @@ def plan_fill(
         Hosted or generated metadata of the dataset, relative to the
         raw dataset (the fill-in is merged into them)
     read : callable(path) -> dict | None
-        Content of a placement (keys of the top-level sidecars)
+        Content of a placement (keys of the top-level sidecars; None:
+        unreadable, so no fill-in of its suffix is pushed down)
     site : str | None
         Site that the dataset is (one dataset per site): its templates
         are written at the top level, over the dataset ones
@@ -474,7 +475,8 @@ def plan_fill(
                     add(f"sub-{label}/sub-{label}_{template.name}",
                         template)
 
-    top = {p: read(p) or {} for p in placements
+    # keys of the top-level sidecars (None: unreadable, so unknown)
+    top = {p: read(p) for p in placements
            if "/" not in p and p.endswith(".json")}
     by_subject: dict[str, list[str]] = {}
     for path in present:
@@ -488,14 +490,23 @@ def plan_fill(
                     by_subject.get(path.split("/")[0], [])
                 if not any(applies(path, p) for p in scope if p != path):
                     continue
-            exclude = set()
+            exclude, unknown = set(), False
             if "/" in path:
                 entities, suffix, _ = _entities(path.rpartition("/")[2])
                 for name, content in top.items():
                     other, other_suffix, _ = _entities(name)
                     if other_suffix == suffix and \
                             _compatible(other, entities):
-                        exclude |= set(content)
+                        if content is None:
+                            unknown = True
+                        else:
+                            exclude |= set(content)
+            if unknown:
+                # the keys a pushed-down fill-in must not give are not
+                # known: none is pushed down (never "no keys")
+                lg.warning(f"Fill-in {path} skipped: a top-level sidecar "
+                           f"of its suffix cannot be read")
+                continue
             plan = plans.setdefault(path, [[], set()])
             plan[0] += [t for t in layers if t not in plan[0]]
             plan[1] |= exclude
@@ -578,6 +589,56 @@ def relabel_intended(meta: dict, mapping: Mapping[str, str],
     return {**meta, "IntendedFor": out}
 
 
+#: Trimmed tables: the column of each that names what a row describes
+TRIMMED_COLUMNS = {"participants.tsv": ("participant_id", True),
+                   "_sessions.tsv": ("session_id", True),
+                   "_scans.tsv": ("filename", False)}
+
+
+def trim_rows(text: str, name: str,
+              here: Callable[[str, bool], bool]) -> str:
+    """
+    Keep the rows of a participants, sessions or scans table that are here.
+
+    A pure filter (the content of the table is not otherwise changed):
+    the text is returned as it is if no row is dropped.
+
+    Parameters
+    ----------
+    text : str
+        Content of the table
+    name : str
+        Its file name
+    here : callable(path, folder) -> bool
+        Whether a path relative to the folder of the table (a subject or
+        session folder, `folder=True`; a file, `folder=False`) is
+        present
+
+    Returns
+    -------
+    str
+    """
+    for end, (column, folder) in TRIMMED_COLUMNS.items():
+        if name == end or (end.startswith("_") and name.endswith(end)):
+            break
+    else:
+        return text
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
+    header = lines[0].split("\t")
+    if column not in header:
+        return text
+    col = header.index(column)
+    out, dropped = [lines[0]], False
+    for line in lines[1:]:
+        cells = line.split("\t")
+        if line and (len(cells) <= col or not here(cells[col], folder)):
+            dropped = True
+            continue
+        out.append(line)
+    return newline.join(out) if dropped else text
+
+
 def relabel_scans(text: str, mapping: Mapping[str, str],
                   remote: str, local: str) -> str:
     """
@@ -633,6 +694,7 @@ def render(
     intended: tuple | None = None,
     sibling: Callable[[str], dict | None] | None = None,
     relabel: tuple | None = None,
+    rows: Callable[[str, bool], bool] | None = None,
 ) -> bytes:
     """
     Content of a roasted metadata file, from its pristine copy.
@@ -662,6 +724,9 @@ def render(
         and local folders of the file: `IntendedFor` of a field map and
         the `filename` column of a scans table point at local files
         (`relabel_intended`, `relabel_scans`)
+    rows : callable(path, folder) -> bool | None
+        Trim a participants, sessions or scans table to the rows that
+        are here (`trim_rows`)
 
     Returns
     -------
@@ -669,7 +734,7 @@ def render(
     """
     if name.endswith(".tsv"):
         scans = relabel is not None and name.endswith("_scans.tsv")
-        if not (repair or scans) or content is None:
+        if not (repair or scans or rows) or content is None:
             return content or b""
         try:
             text = content.decode("utf-8")
@@ -679,6 +744,8 @@ def render(
         fixed = repair_table(text, name) if repair else text
         if fixed is not None and scans:
             fixed = relabel_scans(fixed, *relabel)
+        if fixed is not None and rows is not None:
+            fixed = trim_rows(fixed, name, rows)
         return content if fixed is None or fixed == text \
             else fixed.encode("utf-8")
     if not name.endswith(".json"):

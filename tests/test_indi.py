@@ -298,8 +298,8 @@ def test_fcon1000_harvest(tmp_path, layout):
         assert json.loads(
             (root / "dataset_description.json").read_text()
         )["DatasetType"] == "study"
-    # trimmed tables: pristine copy in the state folder
-    assert Layout.detect(root).original(bids / "participants.tsv").exists()
+    # trimmed tables: the generated (complete) base in the state folder
+    assert Layout.detect(root).generated(bids / "participants.tsv").exists()
 
 
 @pytest.mark.parametrize("site_layout,spelling", [

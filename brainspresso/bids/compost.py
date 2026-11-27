@@ -439,13 +439,12 @@ def delete_files(root: Path, files: Iterable[str]) -> int:
     return count
 
 
-def retrim_tables(layout: Layout, present: Iterable[str] = ()) -> list[str]:
+def retrim_tables(layout: Layout) -> list[str]:
     """
     Rewrite participants/sessions/scans tables to what is on disk.
 
     Untouched copies saved by `harvest` in
-    `.brainspresso/orig/` are used as reference when they exist; files of
-    `present` (relative to `layout.root`) count as there.
+    `.brainspresso/orig/` are used as reference when they exist.
     Returns the tables written, relative to `layout.root`.
     """
     root, bids = layout.root, layout.raw
@@ -462,7 +461,7 @@ def retrim_tables(layout: Layout, present: Iterable[str] = ()) -> list[str]:
     for path in list_files(bids, bids):
         if path.startswith("sub-") and is_trimmable(path):
             tables[_relative(bids / path, root)] = original(bids / path)
-    return trim_tables(root, tables, present=present)
+    return trim_tables(root, tables)
 
 
 def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
@@ -610,7 +609,7 @@ def compost(
     if bids_files or plan.forgotten:
         update_files(plan.layout, deleted=[*bids_files, *plan.forgotten])
     if trim and (bids_files or plan.forgotten):
-        written = retrim_tables(plan.layout, unfetched_files(plan.layout))
+        written = retrim_tables(plan.layout)
         lg.info(f"Trimmed tables: {written}")
     if after_data is not None and (bids_files or plan.forgotten):
         after_data(plan.layout)

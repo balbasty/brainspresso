@@ -118,7 +118,9 @@ def write_inline(
                 return False
             lg.info(f"{dst}: generated file refreshed")
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_bytes(entry.content)
+    # under the exclusive lock of the file, atomically (as `actions.File`)
+    with FileLock(dst, exclusive=True):
+        _write_atomic(dst, entry.content)
     return True
 
 
@@ -565,6 +567,7 @@ def record_run(
     files: dict[str, dict] | None = None,
     deleted: Iterable[str] = (),
     create: bool = True,
+    merge: bool = False,
 ) -> Path | None:
     """
     Record a stage run in `<state>/manifest.json`.
@@ -583,6 +586,9 @@ def record_run(
         Files to remove, relative to `layout.root`
     create : bool
         Create the manifest if it does not exist
+    merge : bool
+        Merge the fields of `files` into existing entries (a None value
+        removes a field) instead of replacing them
 
     Returns
     -------
@@ -592,7 +598,7 @@ def record_run(
     """
     return _update_manifest(layout, {
         "stage": stage, "date": now(), **(info or {}),
-    }, files=files, deleted=deleted, create=create)
+    }, files=files, deleted=deleted, create=create, merge=merge)
 
 
 def update_files(
@@ -676,12 +682,13 @@ def _update_manifest(layout, run, *, files=None, deleted=(), create=True,
     return path
 
 
-def _write_atomic(path: Path, text: str) -> None:
-    """Write UTF-8 text to a temporary file, then rename it into place."""
+def _write_atomic(path: Path, text: str | bytes) -> None:
+    """Write a temporary file (UTF-8 text, or bytes), then rename it."""
     tmp = path.with_name(f".{path.name}.{secrets.token_hex(8)}.part")
+    data = text.encode("utf-8") if isinstance(text, str) else text
     try:
-        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-            f.write(text)
+        with open(tmp, "wb") as f:
+            f.write(data)
         for attempt in range(20):
             try:
                 os.replace(tmp, path)
@@ -756,9 +763,7 @@ def write_manifest(
     }, files=files)
 
 
-def trim_originals(layout: Layout,
-                   present: Iterable[str] | None = None,
-                   untrimmed: Iterable[str] = ()) -> list[str]:
+def trim_originals(layout: Layout) -> list[str]:
     """
     Derive the visible tables of a roasted dataset from pristine copies.
 
@@ -766,26 +771,11 @@ def trim_originals(layout: Layout,
     pristine copies (`<state>/orig/<path>`, written complete by
     roasters), keeping the rows that refer to something on
     disk. A sessions or scans table whose folder does not exist (subject
-    or session not roasted) is not written.
+    or session not roasted) is not written. (Hosted datasets trim their
+    tables in their metadata roast instead, `roast.hosted`.)
 
-    Parameters
-    ----------
-    layout : Layout
-    present : iterable of str, optional
-        Files that count as present although they are not on disk
-        (relative to `layout.root`: data selected but not fetched,
-        `--sidecars only`)
-    untrimmed : iterable of str
-        Tables not to trim (relative to `layout.root`: harvested with
-        `--no-trim`; their pristine copy in `<state>/orig/` is kept)
-
-    Returns
-    -------
-    list[str]
-        The tables written, relative to `layout.root`
+    Returns the tables written, relative to `layout.root`.
     """
-    present = _present(present)
-    untrimmed = set(untrimmed)
     orig = Path(layout.state) / ORIG_DIR
     if not orig.is_dir():
         return []
@@ -795,29 +785,14 @@ def trim_originals(layout: Layout,
         if not is_trimmable(relpath) and \
                 not relpath.endswith("/participants.tsv"):
             continue
-        folder = Path(relpath).parent.as_posix()
         if Path(relpath).name != "participants.tsv" and \
-                not (Path(layout.root) / relpath).parent.is_dir() and \
-                folder not in present["dirs"]:
-            continue
-        if relpath in untrimmed:
+                not (Path(layout.root) / relpath).parent.is_dir():
             continue
         originals[relpath] = path
-    written = trim_tables(layout.root, originals, present=present["files"])
+    written = trim_tables(layout.root, originals)
     if written:
         lg.info(f"Trimmed tables: {written}")
     return written
-
-
-def _present(paths: Iterable[str] | None) -> dict[str, set[str]]:
-    """Files that count as present, and their folders (POSIX)."""
-    files = {str(p) for p in paths or ()}
-    dirs = set()
-    for path in files:
-        parts = path.split("/")[:-1]
-        for i in range(1, len(parts) + 1):
-            dirs.add("/".join(parts[:i]))
-    return {"files": files, "dirs": dirs}
 
 
 def finish_roast(layout: Layout, **info) -> None:

@@ -1217,8 +1217,10 @@ class Dataset:
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
             sessions=args.sessions.sessions,
             where=args.filters.where, derivatives=c.derivatives,
-            trim=c.trim, force=c.force, yes=c.yes, dry_run=c.dry_run,
-            list=c.list, sites=self.select_sites(args.sites.sites),
+            # (hosted: the roast after the deletion trims the tables)
+            trim=c.trim and not self.hosted, force=c.force, yes=c.yes,
+            dry_run=c.dry_run, list=c.list,
+            sites=self.select_sites(args.sites.sites),
             exclude_sites=self.select_sites(args.sites.exclude_sites),
             after_data=after_data, **args.filters.filters(),
         )

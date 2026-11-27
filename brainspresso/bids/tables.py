@@ -96,7 +96,6 @@ def trim_tables(
     root: Path,
     originals: dict[str, Path],
     subjects: Path | None = None,
-    present: Iterable[str] = (),
 ) -> list[str]:
     """
     Write trimmed copies of BIDS tables in `root`.
@@ -113,30 +112,12 @@ def trim_tables(
     subjects : Path, default=folder of the participants table
         Folder that contains the `sub-*` folders listed in
         `participants.tsv`.
-    present : iterable of str
-        Files (relative to `root`, POSIX) that count as present although
-        they are not on disk (selected, not fetched); their folders
-        count as present too.
 
     Returns
     -------
     written : list[str]
         Relative paths of the tables written.
     """
-    root = Path(root)
-    files = {str(p) for p in present}
-    dirs = {"/".join(p.split("/")[:i]) for p in files
-            for i in range(1, p.count("/") + 1)}
-
-    def here(path: Path, folder: bool) -> bool:
-        if (path.is_dir() if folder else path.exists()):
-            return True
-        try:
-            rel = path.relative_to(root).as_posix()
-        except ValueError:
-            return False
-        return rel in (dirs if folder else files)
-
     written = []
     for relpath, original in sorted(originals.items()):
         if not original.exists():
@@ -147,13 +128,13 @@ def trim_tables(
         if name == "participants.tsv":
             base = Path(subjects) if subjects is not None else folder
             rows = [r for r in rows
-                    if here(base / r.get("participant_id", ""), True)]
+                    if (base / r.get("participant_id", "")).is_dir()]
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
-                    if here(folder / r.get("session_id", ""), True)]
+                    if (folder / r.get("session_id", "")).is_dir()]
         elif name.endswith("_scans.tsv"):
             rows = [r for r in rows
-                    if here(folder / r.get("filename", ""), False)]
+                    if (folder / r.get("filename", "")).exists()]
         else:
             continue
         (root / relpath).parent.mkdir(parents=True, exist_ok=True)

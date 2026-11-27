@@ -10,25 +10,36 @@ roast_hosted(layout)                    # `bx <ds> roast`, on its own
 the INDI projects): it selects the entries of the listing, downloads
 the files that are never repaired or trimmed (`bids.hosted.placement`:
 "direct") to their final path, the metadata to `sourcedata/<folder>/`
-under their remote, unremapped path (pristine copies), writes the files
-that the listing generates (`InlineEntry`) to `<state>/generated/`, and
-records every file in the manifest with its origin (`direct`,
-`roasted`, `generated`) and, for roasted and generated files, its
-`source`. It then runs `roast_hosted` on what it placed.
+under their remote, unremapped path (pristine copies, refreshed against
+the listing whatever `--if-exists` says), writes the files that the
+listing generates (`InlineEntry`) to `<state>/generated/`, and merges
+every file into the manifest with its origin (`direct`, `roasted`,
+`generated`) and, for roasted and generated files, its `source` (the
+*base*). It then runs `roast_hosted` on what it placed.
 
-`roast_hosted` is the **metadata roast**: one action per roasted or
-generated file (`bids.hosted.render`: `bids.repair` if the file was
-harvested with `repair`, fill-in templates, `IntendedFor` of field maps
-trimmed to the local images), written through the action engine
-(`actions.File`: shared locks on the pristine copies, exclusive locks
-and atomic writes on the outputs); participants, sessions and scans
-tables go to `<state>/orig/` and are trimmed to what is on disk
-(`trim_originals`), as in every roast. It runs after the images are
-placed (repairs read siblings: `_phasediff`, `IntendedFor`), on its own
-(`bx <ds> roast`: everything the manifest records, re-roasted from
-`sourcedata/`), and after a compost of BIDS data (`existing_only`:
-only the files still there, so that `IntendedFor` and tables are
-trimmed again; compost never re-creates a file).
+`roast_hosted` is the **metadata roast**. The model (`docs/design/
+architecture.md`, §4, "State model"):
+
+* every visible metadata file, tables included, is
+  `render(base, options, presence)` (`bids.hosted.render`: repair,
+  fill-in, paths remapped like the images, `IntendedFor` and table rows
+  trimmed to what is present), written by one `RoastMetadata` action
+  (`actions.File`: shared locks on its inputs, an exclusive lock and an
+  atomic rename on its output);
+* a missing base freezes the file: it is left as it is (one info line),
+  and only a missing visible file too is an error (`Fail`);
+* a visible file is edited iff its SHA-256 differs from the recorded
+  one; an edit is kept under `skip` (an edited field map keeps the
+  user's keys and takes `IntendedFor` from the render); without a
+  record (an older dataset), a file equal to the render is adopted,
+  any other follows `MIGRATION_RULE`;
+* only `_record` writes the hashes, of the files that hold the render.
+
+It runs after the images are placed (repairs read siblings:
+`_phasediff`, `IntendedFor`), on its own (`bx <ds> roast`: everything
+the manifest records, from the bases), and after a compost of BIDS data
+(`existing_only`: only the files still there; compost never re-creates
+a file).
 
 Rules (`docs/design/architecture.md`, §4):
 
@@ -37,24 +48,20 @@ Rules (`docs/design/architecture.md`, §4):
   files, "only" does not fetch data files (images, recordings); in a
   roast, it drops the actions of the kinds it excludes (files on disk
   are left as they are).
-* Selection: a harvest roasts what it selected; a roast takes `--subs`,
-  `--exclude-subs`, `--sessions` (subject shards are pruned, top-level
-  files always roasted).
-* `--if-exists`: under "skip" (default) a roasted file is regenerated
-  and replaces the existing one only if its content changed (its inputs
-  are small; a new pristine copy or fill-in template must reach the
-  dataset); "overwrite" rewrites, "error" refuses an existing file,
-  "refresh" compares mtimes with the pristine copy.
-* Edits: the manifest records the SHA-256 of every file a roast wrote;
-  under "skip", a file that no longer has it (edited by hand) is kept,
-  with a warning ("different" or "overwrite" replaces it).
+* `--repair/--no-repair` (default on): recorded per file, in the shard
+  config; a roast with the default repairs (also what a harvest with
+  `--no-repair` placed).
+* Selection: a harvest roasts what it selected and the files of the
+  subjects it touched; a roast takes `--subs`, `--exclude-subs`,
+  `--sessions` (files that describe no selected data are left alone).
+* `--if-exists`: governs the visible files only. Under "skip" (default)
+  a file is rendered and replaces the visible one if its content changed
+  and it is not edited; "overwrite" rewrites, "error" refuses an
+  existing file, "refresh" compares mtimes with the base.
 * Re-runs: one shard per subject (`roast/hosted/sub-<label>`), whose
-  input signature is its pristine copies, fill-in templates and the
-  files of the subject on disk (images: `IntendedFor`), skipped under
-  "skip" when unchanged.
-* A pristine copy that is missing (composted with `--sourcedata`) is
-  not an error if the roasted file exists (it is left as it is); else it
-  is (harvest again).
+  input signature is its bases, fill-in templates, the files of the
+  subject on disk, `.bidsignore` and `Shard.config` (per-file options,
+  `RENDER_VERSION`), skipped under "skip" when unchanged.
 """
 from __future__ import annotations
 
@@ -62,12 +69,13 @@ import functools
 import os
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Literal
 
 from humanize import naturalsize
 
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
+from brainspresso.actions.locks import FileLock
 from brainspresso.actions.writers import Unlink
 from brainspresso.bids.harvest import (
     InlineEntry,
@@ -90,7 +98,12 @@ from brainspresso.bids.hosted import (
 from brainspresso.bids.keys import KeySelection
 from brainspresso.bids.kinds import accepts, default_kind
 from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
-from brainspresso.bids.repair import loads, read_sibling, repair_sidecar
+from brainspresso.bids.repair import (
+    dumps,
+    loads,
+    read_sibling,
+    repair_sidecar,
+)
 from brainspresso.bids.select import OPTIONAL_FOLDERS, Selection
 from brainspresso.bids.tables import is_trimmable
 from brainspresso.download import Downloader, DownloadManager
@@ -100,13 +113,23 @@ from brainspresso.sources.base import write_content
 
 lg = getLogger(__name__)
 
-__all__ = ["RoastMetadata", "harvest_hosted", "hosted_files",
-           "roast_hosted", "roast_metadata"]
+__all__ = ["MIGRATION_RULE", "RENDER_VERSION", "RoastMetadata",
+           "harvest_hosted", "hosted_files", "roast_hosted",
+           "roast_metadata"]
 
 #: Origins of the files that a metadata roast writes
 PLACED = ("roasted", "generated")
 #: Progress group (and task ids: `roast/hosted/sub-<label>`)
 TAG = "hosted"
+#: Version of what `render` writes: bump it when the repairs or the
+#: rendering change, so that unchanged shards are roasted again
+RENDER_VERSION = 1
+#: A file without a recorded hash (an older dataset) that differs from
+#: the render: "keep" it (with a warning), or "replace" it (moved to
+#: `<state>/replaced/<path>` first)
+MIGRATION_RULE: Literal["keep", "replace"] = "keep"
+#: Backups of the files replaced by the migration rule, in the state
+REPLACED_DIR = "replaced"
 
 
 # ----------------------------------------------------------------------
@@ -119,24 +142,23 @@ def _rel(layout: Layout, path: Path) -> str:
 
 def _remote_fields(entry, rel: str) -> dict:
     """
-    Remote path of an entry, where it differs from its local one.
+    Remote path of an entry, for the manifest (cleared fields: None).
 
     `remote_root` is the folder of the remote BIDS dataset that holds it
     (INDI: its site), recorded on every entry that has one, renamed or
     not: the paths that its sidecars and tables give are relative to it.
     `remote` is its path there, recorded where it differs from the local
-    one. Nothing for a listing without remote roots (OpenNeuro: placed
+    one. None for a listing without remote roots (OpenNeuro: placed
     under its remote names).
     """
     meta = getattr(entry, "meta", None) or {}
     remote = meta.get("remote")
     root = str(meta.get("remote_root") or "").strip("/")
     if remote is None or not root:
-        return {}
+        return {"remote_root": None, "remote": None}
     if remote.startswith(root + "/"):
         remote = remote[len(root) + 1:]
-    return {"remote_root": root,
-            **({"remote": remote} if remote != rel else {})}
+    return {"remote_root": root, "remote": remote if remote != rel else None}
 
 
 def harvest_hosted(
@@ -152,7 +174,7 @@ def harvest_hosted(
     dry_run: bool = False,
     listing: bool = False,
     provenance: dict | None = None,
-    repair: bool = False,
+    repair: bool = True,
     layout: str | None = None,
     insecure: bool = False,
     chunk_size: int | None = None,
@@ -169,8 +191,8 @@ def harvest_hosted(
     ----------
     entries : list[RemoteEntry | InlineEntry]
         Full listing (flat BIDS view, after remapping); `entry.meta`
-        may give the `remote` path (default: `entry.path`) and the
-        `site` of an entry
+        may give the `remote` path (default: `entry.path`), the
+        `remote_root` and the `site` of an entry
     root : path | Layout
         Dataset folder, or its layout (study or flat)
     selection : Selection
@@ -181,10 +203,11 @@ def harvest_hosted(
     where : list[str]
         Queries on participants.tsv columns
     trim : bool
-        Trim tables and `IntendedFor` to what is on disk (recorded per
+        Trim tables and `IntendedFor` to what is present (recorded per
         file: a later roast keeps the choice)
     if_exists : {"skip", "overwrite", "different", "refresh", "error"}
-        Downloads, and the metadata roast (see the module)
+        Downloads of data files, and the visible files of the roast;
+        pristine copies are always refreshed against the listing
     jobs : int
         Concurrent downloads
     dry_run, listing : bool
@@ -244,30 +267,30 @@ def harvest_hosted(
         raise ValueError(f"{layout.root} holds one dataset per site: "
                          f"harvest each site")
     layout.ensure_state()
-    # SHA-256 of the files the earlier roasts wrote (an edited file is
-    # kept, see `_actions`)
     before = manifest_files(layout)
-    known = {k: v["sha256"] for k, v in before.items()
-             if isinstance(v.get("sha256"), str)}
+    # entries are merged into the manifest (None clears a field); only
+    # the roast writes the hashes of roasted files (`_record`)
     files: dict[str, dict] = {}
     placed: set[str] = set()
     downloads: dict[Path, Downloader] = {}
     raw = Path(layout.raw)
     present: list[str] = []
     nb_generated = 0
+    flags = {"repair": True if repair else None,
+             "trim": None if trim else False}
 
-    def download(e, dst):
+    def download(e, dst, ifexists):
         if dst not in downloads:
             downloads[dst] = Downloader(
                 e.url, dst, size=e.size, mtime=e.mtime,
-                digests=e.digests or None, ifexists=if_exists,
+                digests=e.digests or None, ifexists=ifexists,
                 insecure=insecure,
                 **({"chunk_size": chunk_size} if chunk_size else {}),
             )
 
     touched: set[str] = set()
     fetched_paths = {e.path for e in selected}
-    remotes: dict[str, dict] = {}       # remote paths, where remapped
+    remotes: dict[str, dict] = {}
     for e in chosen:
         local = layout.resolve(e.path)
         dataset, rel = layout.relative(local)
@@ -284,15 +307,13 @@ def harvest_hosted(
                 meta = getattr(e, "meta", None) or {}
                 files[key] = {"url": e.url, "size": e.size,
                               "origin": "direct", "fetched": False,
-                              **({"site": meta["site"]}
-                                 if meta.get("site") else {}),
+                              "site": meta.get("site"),
                               **remotes.get(key, {})}
     for e in selected:
         local = layout.resolve(e.path)
         key = _rel(layout, local)
         meta = getattr(e, "meta", None) or {}
-        extra = {"site": meta["site"]} if meta.get("site") else {}
-        extra.update(remotes.get(key, {}))
+        extra = {"site": meta.get("site"), **remotes.get(key, {})}
         roasted = placement(e.path) == "roasted"
         if isinstance(e, InlineEntry):
             if roasted:
@@ -300,62 +321,61 @@ def harvest_hosted(
                 nb_generated += write_content(base, e.content, "overwrite")
                 files[key] = {"origin": "generated",
                               "source": _rel(layout, base),
-                              **({"trim": False} if not trim else {}),
+                              "trim": flags["trim"], "repair": None,
                               **extra}
-                # earlier versions of a template, unedited: ours
+                # an earlier version of a template, unedited: ours
                 previous = set(getattr(e, "previous", ()) or ())
                 if previous and local.is_file() and \
                         sha256(local.read_bytes()) in previous:
-                    known[key] = sha256(local.read_bytes())
+                    files[key]["sha256"] = sha256(local.read_bytes())
                 placed.add(key)
             else:
                 # placed directly: refreshed if unedited (#26)
-                nb_generated += write_inline(
-                    e, local, if_exists, before.get(key, {}).get("sha256"))
+                old = before.get(key, {}).get("sha256")
+                nb_generated += write_inline(e, local, if_exists, old)
                 files[key] = {"origin": "generated", "size": e.size,
                               **extra}
                 if local.is_file() and local.read_bytes() == e.content:
                     files[key]["sha256"] = sha256(e.content)
-                elif key in known:
-                    files[key]["sha256"] = known[key]   # (an edit, kept)
             continue
         remote = {"url": e.url, "size": e.size,
-                  **({"digests": e.digests} if e.digests else {})}
+                  "digests": e.digests or None}
         if roasted:
             path = PurePosixPath(str(meta.get("remote") or e.path))
             if path.is_absolute() or ".." in path.parts:
                 raise ValueError(f"Invalid remote path: {path}")
             pristine = layout.source.joinpath(folder, *path.parts)
-            download(e, pristine)
+            # pristine copies follow the listing (size, digests), whatever
+            # `--if-exists` says (it governs the visible files)
+            download(e, pristine, "different")
             files[_rel(layout, pristine)] = {**remote, "origin": "direct"}
             files[key] = {"origin": "roasted",
                           "source": _rel(layout, pristine),
-                          "url": e.url,
-                          **({"repair": True} if repair else {}),
-                          **({"trim": False} if not trim else {}),
-                          **extra}
+                          "url": e.url, **flags, **extra}
             placed.add(key)
         else:
-            download(e, local)
-            files[key] = {**remote, "origin": "direct", **extra}
-    for key in placed:
-        if key in known:
-            files[key]["sha256"] = known[key]
+            download(e, local, if_exists)
+            files[key] = {**remote, "origin": "direct", "fetched": None,
+                          **extra}
     if nb_generated:
         lg.info(f"Wrote {nb_generated} generated files")
-    if downloads:
-        DownloadManager(list(downloads.values()), ifexists=if_exists,
-                        jobs=jobs, path="short").run()
+    # (one manager per `IfExists`: a manager imposes its own)
+    groups: dict[str, list] = {}
+    for downloader in downloads.values():
+        groups.setdefault(downloader.ifexists, []).append(downloader)
+    for policy, group in groups.items():
+        DownloadManager(group, ifexists=policy, jobs=jobs,
+                        path="short").run()
     record_run(layout, "harvest", {
         **(provenance or {}),
         "filters": _filters(selection),
         "where": list(where or []),
         "sidecars": sidecars,
         "nb_files": len(selected),
-    }, files=files)
+    }, files=files, merge=True)
     report = roast_hosted(
         layout, fill=fill, site=site, paths=placed, subjects=touched,
-        present=present, json=sidecars, ifexists=if_exists,
+        present=present, json=sidecars, repair=repair, ifexists=if_exists,
         display=display, info={"trigger": "harvest"},
     )
     if report.status != "complete":
@@ -402,6 +422,23 @@ def _sibling_reader(folder: Path, sources: dict[str, Path]):
     return read
 
 
+def _read_json(path: Path) -> dict | None:
+    try:
+        meta = loads(Path(path).read_text(encoding="utf-8",
+                                          errors="replace"))
+    except (OSError, ValueError):
+        return None
+    return meta if isinstance(meta, dict) else None
+
+
+def _read_json_bytes(data: bytes) -> dict | None:
+    try:
+        meta = loads(data.decode("utf-8", errors="replace"))
+    except ValueError:
+        return None
+    return meta if isinstance(meta, dict) else None
+
+
 def _plan(
     layout: Layout,
     files: dict[str, dict],
@@ -413,6 +450,8 @@ def _plan(
     present: Iterable[str] = (),
     existing_only: bool = False,
     every: dict[str, dict] | None = None,
+    repair: bool | None = None,
+    selection: Selection | None = None,
 ) -> tuple[list[dict], list[dict]]:
     """
     Items of a metadata roast (picklable dictionaries).
@@ -438,7 +477,7 @@ def _plan(
     present = set(present)
     subject_sites = {}
     # selected data not fetched (`--sidecars only`), per dataset and
-    # subject: present for `IntendedFor`
+    # subject ("*": all): present when tables and `IntendedFor` are trimmed
     unfetched: dict[tuple, list[str]] = {}
     # remapped paths, per remote dataset and remote subject folder
     remapped: dict[tuple, dict[str, str]] = {}
@@ -449,6 +488,7 @@ def _plan(
             continue
         if entry.get("fetched") is False:
             unfetched.setdefault((dataset, _subject(rel)), []).append(rel)
+            unfetched.setdefault((dataset, "*"), []).append(rel)
         if dataset != raw:
             continue
         present.add(rel)
@@ -462,18 +502,18 @@ def _plan(
             )[remote] = rel
 
     def read(rel):
-        entry = files[raw_placed[rel]]
-        source = root / entry["source"]
-        try:
-            meta = loads(source.read_text(encoding="utf-8",
-                                          errors="replace"))
-        except (OSError, ValueError):
-            return None
-        if not isinstance(meta, dict):
-            return None
-        # the keys of the roasted file: repairs may rename or add some
-        return repair_sidecar(meta, PurePosixPath(rel).name) \
-            if entry.get("repair") else meta
+        # keys of a top-level sidecar as roasted: the base (repaired as
+        # this roast repairs), else the visible file (base composted);
+        # None if neither can be read
+        key = raw_placed[rel]
+        entry = files[key]
+        meta = _read_json(root / entry["source"])
+        if meta is not None:
+            fix = entry.get("repair") if repair is None else repair
+            if fix and entry.get("origin") == "roasted":
+                meta = repair_sidecar(meta, PurePosixPath(rel).name)
+            return meta
+        return _read_json(root / key)
 
     plans = plan_fill(
         list(fill), present=present, placements=raw_placed, read=read,
@@ -496,6 +536,12 @@ def _plan(
         entry.pop("source", None)
         items.append(_item(layout, key, target, raw, rel, entry, plan,
                            context))
+    if repair is not None:
+        for item in items:
+            if item["origin"] == "roasted":
+                item["repair"] = bool(repair)
+                item["intended"] = item["fmap"] and (item["repair"]
+                                                     or item["trim"])
     planned = {i["key"] for i in items}
     orphans = [
         {"key": key, "dst": str(root / key), "sha256": entry.get("sha256"),
@@ -516,9 +562,18 @@ def _plan(
             i["source"] is None and i["subject"] is None)]
         orphans = [o for o in orphans
                    if o["subject"] is None or o["subject"] in touched]
+    if selection is not None and (selection.sessions or selection.subs
+                                  or selection.exclude_subs):
+        # files of subjects that describe no selected data are left alone
+        listed = sorted(present | {i["rel"] for i in items
+                                   if i["dataset"] == str(raw)})
+        kept = set(Selection(subs=selection.subs,
+                             exclude_subs=selection.exclude_subs,
+                             sessions=selection.sessions).select(listed))
+        items = [i for i in items if i["dataset"] != str(raw)
+                 or i["subject"] is None or i["rel"] in kept]
     if existing_only:
-        items = [i for i in items if Path(i["dst"]).exists()
-                 or (i["table"] and Path(i["target"]).exists())]
+        items = [i for i in items if Path(i["target"]).exists()]
     return items, orphans
 
 
@@ -526,11 +581,9 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
     root = Path(layout.root)
     files = context["files"]
     name = target.name
-    trim = entry.get("trim", True)
+    trim = entry.get("trim", True) is not False
     repair = bool(entry.get("repair", False))
     trimmable = is_trimmable(rel) and dataset == Path(layout.raw)
-    table = trim and trimmable
-    dst = layout.original(target) if table else target
     sibling = None
     if name.endswith("_phasediff.json"):        # (used if repaired)
         magnitude = name.replace("_phasediff.json", "_magnitude1.json")
@@ -553,11 +606,17 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
             else:
                 relabel = [mapping, PurePosixPath(remote).parent.as_posix(),
                            PurePosixPath(rel).parent.as_posix()]
+    # files that count as present without being on disk (unfetched)
+    if trimmable and rel == "participants.tsv":
+        present = context["unfetched"].get((dataset, "*"), [])
+    elif intended or trimmable:
+        present = context["unfetched"].get((dataset, _subject(rel)), [])
+    else:
+        present = []
     return {
         "key": key,
         "origin": entry.get("origin", "roasted"),
         "source": str(root / source) if source else None,
-        "dst": str(dst),
         "target": str(target),
         "dataset": str(dataset),
         "rel": rel,
@@ -565,29 +624,42 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "trim": trim,
         "intended": intended,
         "fmap": fmap,
+        "rows": trimmable and trim,
         "sibling": sibling,
         "fill": plan,
         "subject": _subject(rel),
-        "table": table,
-        # a full table that a roast without trimming starts from when the
-        # pristine copy is gone (it is kept: no row is ever lost)
-        "orig": str(layout.original(target)) if trimmable and not table
-        else None,
         "sha256": entry.get("sha256"),
         "previous": previous,
-        "present": context["unfetched"].get((dataset, _subject(rel)), [])
-        if intended else [],
+        "present": present,
         "relabel": relabel,
     }
+
+
+def _here(folder: Path, dataset: Path, present: Iterable[str]):
+    """Presence of a path relative to `folder`: on disk, or unfetched."""
+    try:
+        prefix = folder.relative_to(dataset).as_posix()
+    except ValueError:
+        prefix = "."
+    prefix = "" if prefix == "." else prefix + "/"
+    files = {p[len(prefix):] for p in present if p.startswith(prefix)}
+    dirs = {"/".join(p.split("/")[:i]) for p in files
+            for i in range(1, p.count("/") + 1)}
+
+    def here(path: str, is_folder: bool) -> bool:
+        found = (folder / path).is_dir() if is_folder \
+            else (folder / path).exists()
+        return found or path in (dirs if is_folder else files)
+    return here
 
 
 class RoastMetadata(Action):
     """
     Write a roasted metadata file (`bids.hosted.render`).
 
-    Its sources (pristine copy, sibling, fill-in templates) are read
-    under shared locks, the output written under an exclusive lock, to a
-    temporary file renamed into place (`actions.Action`).
+    Its inputs (base, sibling, fill-in templates) are read under shared
+    locks, the output written under an exclusive lock, to a temporary
+    file renamed into place (`actions.Action`).
 
     Parameters
     ----------
@@ -597,15 +669,20 @@ class RoastMetadata(Action):
         Behaviour if the output exists (default: that of the roast)
     tag : str
         Progress group
+    keep : bool
+        The output is an edited field map: keep its keys, take
+        `IntendedFor` from the render
     """
 
-    def __init__(self, item: dict, *, ifexists=None, tag=None):
+    def __init__(self, item: dict, *, ifexists=None, tag=None,
+                 keep: bool = False):
         self.item = item
+        self.keep = keep
         fill: FillPlan | None = item.get("fill")
         src = [p for p in (item["source"], item["sibling"]) if p]
         src += fill.paths if fill else []
         super().__init__(
-            src=[p for p in src if Path(p).exists()], dst=item["dst"],
+            src=[p for p in src if Path(p).exists()], dst=item["target"],
             action=self.write, mode="wb", input="file", ifexists=ifexists,
             tag=tag, compare=True,
         )
@@ -625,97 +702,107 @@ class RoastMetadata(Action):
                 name: Path(item["sibling"])})
         intended = (item["dataset"], item["rel"], item["trim"],
                     item["present"]) if item["intended"] else None
-        return render(content, target.name, repair=item["repair"],
-                      fill=item["fill"], intended=intended, sibling=sibling,
-                      relabel=item.get("relabel"))
+        rows = _here(target.parent, Path(item["dataset"]), item["present"]) \
+            if item["rows"] else None
+        out = render(content, target.name, repair=item["repair"],
+                     fill=item["fill"], intended=intended, sibling=sibling,
+                     relabel=item.get("relabel"), rows=rows)
+        if self.keep:
+            # an edited field map: the user's keys, the render's targets
+            mine = _read_json(target) or {}
+            ours = _read_json_bytes(out) or {}
+            kept = {k: v for k, v in mine.items() if k != "IntendedFor"}
+            if "IntendedFor" in ours:
+                kept["IntendedFor"] = ours["IntendedFor"]
+            return dumps(kept).encode("utf-8") \
+                if kept != mine else target.read_bytes()
+        return out
 
     def write(self, file) -> None:
         """Write the output (the actor of the action)."""
         file.write(self.render())
 
 
-def _renders(item: dict, data: bytes) -> bool:
-    """Whether `data` is what an item renders (False if it cannot)."""
-    try:
-        return RoastMetadata(item).render() == data
-    except (OSError, ValueError) as e:
-        lg.debug(f"{item['dst']}: cannot render ({e})")
-        return False
-
-
-def _edited(item: dict) -> bool:
+def _state(item: dict) -> str:
     """
-    Whether the output of an item was edited since brainspresso wrote it.
+    State of the visible file of an item, by hash only.
 
-    Its SHA-256 is neither the one recorded in the manifest nor that of
-    a known earlier version of its template, and it is not what this
-    roast writes. Without a record (a dataset harvested before hashes
-    were recorded), a file that is what an earlier harvest wrote (the
-    pristine copy repaired and trimmed, without fill-in) is ours too.
+    Returns
+    -------
+    {"absent", "ours", "edited", "unknown"}
+        "ours": its hash is the recorded one (or that of a known earlier
+        version of its template); "edited": another hash; "unknown": no
+        hash recorded (an older dataset)
     """
-    dst = Path(item["dst"])
-    if item["table"] or not dst.is_file():
-        return False
-    data = dst.read_bytes()
-    if sha256(data) in {item["sha256"], *item["previous"]} - {None}:
-        return False
-    if _renders(item, data):
-        return False
-    if item["sha256"] is None:
-        # what an older harvest may have written: no fill-in, paths not
-        # remapped, or neither
-        for older in ({"fill": None}, {"relabel": None},
-                      {"fill": None, "relabel": None}):
-            if _renders({**item, **older}, data):
-                return False
-    return True
+    dst = Path(item["target"])
+    if not dst.is_file():
+        return "absent"
+    digest = sha256(dst.read_bytes())
+    if digest in {item["sha256"], *item["previous"]} - {None}:
+        return "ours"
+    return "edited" if item["sha256"] else "unknown"
 
 
-def _in_place(item: dict) -> dict:
-    """Make an item that trims `IntendedFor` of the field map on disk."""
-    return {**item, "source": item["dst"], "repair": False, "fill": None,
-            "sibling": None, "relabel": None}
+def _migrate(ctx: RoastContext, item: dict, rule: str) -> bool:
+    """
+    Apply the migration rule to a file without a recorded hash.
+
+    Called when the file differs from the render. "keep": it is kept,
+    with a warning; "replace": it is moved to `<state>/replaced/<path>`
+    (then written again), with a warning naming the backup.
+
+    Returns
+    -------
+    bool
+        Whether the file is to be written
+    """
+    dst = Path(item["target"])
+    if rule == "replace":
+        backup = Path(ctx.layout.state) / REPLACED_DIR / item["key"]
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        with FileLock(dst, exclusive=True):
+            os.replace(dst, backup)
+        lg.warning(f"{dst} differs from what brainspresso writes and has no "
+                   f"recorded hash (an older harvest): replaced, the old "
+                   f"file is in {backup}")
+        return True
+    lg.warning(f"{dst} differs from what brainspresso writes and has no "
+               f"recorded hash (an older harvest, or edited): kept "
+               f"(--if-exists different or overwrite replaces it)")
+    return False
 
 
 def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
-    source, dst = item["source"], Path(item["dst"])
+    source, dst = item["source"], Path(item["target"])
     skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
     ifexists = "different" if skip else None
-    missing = source is not None and not Path(source).exists()
-    if missing and item["orig"] and Path(item["orig"]).exists():
-        # not trimmed, no pristine copy: the full table in `orig/`
-        item = {**item, "source": item["orig"], "repair": False,
-                "relabel": None}
-        missing = False
-    if missing and not dst.exists():
-        if item["table"] and Path(item["target"]).exists():
-            # (an older harvest: neither `orig/` nor a pristine copy)
-            lg.info(f"{item['key']}: no pristine copy, left as it is")
+    if source is not None and not Path(source).exists():
+        # a missing base freezes the file
+        if dst.exists():
+            lg.info(f"{item['key']}: no base ({source}): left as it is")
             return
-        yield Fail(f"{item['key']}: its pristine copy {source} is "
-                   f"missing (harvest again)", name=dst.name, tag=ctx.tag)
+        yield Fail(f"{item['key']}: its base {source} is missing "
+                   f"(harvest again)", name=dst.name, tag=ctx.tag)
         return
-    edited = item.get("edited")
-    if edited is None:
-        edited = skip and not missing and _edited(item)
-    if missing or edited:
-        if item["intended"] and item["trim"]:
-            # trim `IntendedFor` of the file on disk, keep the rest
-            if edited:
-                lg.warning(f"{dst} was edited since brainspresso wrote "
-                           f"it: kept, its IntendedFor trimmed "
-                           f"(--if-exists different or overwrite "
-                           f"replaces it)")
-            yield RoastMetadata(_in_place(item), ifexists=ifexists,
-                                tag=ctx.tag)
-        elif edited:
+    state = item["state"] if skip else "ours"
+    if state == "edited":
+        if item["fmap"] and item["intended"]:
             lg.warning(f"{dst} was edited since brainspresso wrote it: "
-                       f"kept (--if-exists different or overwrite "
-                       f"replaces it)")
-        else:
-            lg.debug(f"{item['key']}: no pristine copy ({source}), "
-                     f"left as it is")
+                       f"kept, its IntendedFor from the pristine copy "
+                       f"(--if-exists different or overwrite replaces it)")
+            yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
+                                keep=True)
+            return
+        lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
+                   f"(--if-exists different or overwrite replaces it)")
         return
+    if state == "unknown":
+        try:
+            same = RoastMetadata(item).render() == dst.read_bytes()
+        except (OSError, ValueError):
+            same = False
+        if not same and not _migrate(ctx, item, MIGRATION_RULE):
+            return
     yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag)
 
 
@@ -751,15 +838,8 @@ def roast_subject(ctx: RoastContext, label: str, items: list[dict]):
 
 
 def _inputs(items: list[dict], label: str) -> list[str]:
-    """
-    Input signature of a subject: sources, templates, files on disk.
-
-    The outputs are not inputs, but for those whose pristine copy is
-    missing (left as they are): their deletion must run the shard again.
-    """
-    outputs = {os.path.normcase(i[k]) for i in items for k in ("dst",
-                                                                "target")
-               if i["source"] is None or os.path.exists(i["source"])}
+    """Input signature of a subject: bases, templates, files on disk."""
+    outputs = {os.path.normcase(i["target"]) for i in items}
     inputs = set()
     for item in items:
         for path in (item["source"], item["sibling"]):
@@ -768,6 +848,8 @@ def _inputs(items: list[dict], label: str) -> list[str]:
         if item["fill"]:
             inputs.update(item["fill"].paths)
     for dataset in {i["dataset"] for i in items}:
+        # (free-text `IntendedFor` tags ignore what it lists)
+        inputs.add(os.path.join(dataset, ".bidsignore"))
         folder = Path(dataset) / f"sub-{label}"
         for dirpath, dirnames, filenames in os.walk(folder):
             dirnames[:] = [d for d in dirnames if not d.endswith(".tmp")]
@@ -778,17 +860,18 @@ def _inputs(items: list[dict], label: str) -> list[str]:
     return sorted(inputs)
 
 
-def _config(items: list[dict]) -> list:
+def _config(items: list[dict]) -> dict:
     """
     Describe what else decides the outputs of a subject (`Shard.config`).
 
-    The options of each file (`repair`, `trim`, fill-in templates with
-    their keys and the keys excluded from them, the unfetched files that
-    count as present, the remapped paths); not its paths (inputs and
-    outputs are signed as such), nor the hashes the roast records.
+    `RENDER_VERSION`, and the options of each file (`repair`, `trim`,
+    fill-in templates with their keys and the keys excluded from them,
+    the unfetched files that count as present, the remapped paths); not
+    its paths (inputs and outputs are signed as such), nor the hashes the
+    roast records.
     """
-    skipped = ("sha256", "fill", "edited", "source", "dst", "target",
-               "dataset", "sibling", "orig")
+    skipped = ("sha256", "fill", "state", "source", "target", "dataset",
+               "sibling")
     out = []
     for item in items:
         fill = item["fill"]
@@ -799,7 +882,7 @@ def _config(items: list[dict]) -> list:
                 "exclude": sorted(fill.exclude),
             },
         })
-    return out
+    return {"render": RENDER_VERSION, "items": out}
 
 
 def roast_metadata(ctx: RoastContext, items: Iterable[dict] = (),
@@ -860,7 +943,7 @@ def roast_hosted(
     info: dict | None = None,
 ) -> RoastReport:
     """
-    Roast the metadata of a hosted dataset from `sourcedata/`.
+    Roast the metadata of a hosted dataset from its bases.
 
     See the module docstring.
 
@@ -891,7 +974,7 @@ def roast_hosted(
         Repair the hosted metadata (`--repair/--no-repair`; recorded per
         file); None: as each file was harvested
     ifexists : {"skip", "overwrite", "different", "refresh", "error"}
-        Default `IfExists`
+        Default `IfExists` of the visible files
     jobs : int
         Processes (subject shards)
     display : bool
@@ -910,26 +993,9 @@ def roast_hosted(
     items, orphans = _plan(
         layout, files, fill=fill, site=site, paths=paths,
         subjects=subjects, present=present, existing_only=existing_only,
-        every=every)
-    if repair is not None:
-        # (in the shard config: a change roasts the files again)
-        for item in items:
-            if item["origin"] == "roasted":
-                item["repair"] = bool(repair)
-                item["intended"] = item["fmap"] and (item["repair"]
-                                                     or item["trim"])
-    skip = IfExists.from_any(ifexists) is IfExists.SKIP
+        every=every, repair=repair, selection=selection)
     for item in items:
-        if item["source"] is not None and \
-                not Path(item["source"]).exists() and \
-                not (item["orig"] and Path(item["orig"]).exists()):
-            # (no pristine copy: decided here, before the file changes)
-            item["edited"] = skip and _edited(item)
-    unfetched = sorted(k for k, v in every.items()
-                       if v.get("fetched") is False)
-    untrimmed = sorted(
-        k for k, v in every.items() if v.get("trim") is False and (
-            is_trimmable(k) or k.endswith("/participants.tsv")))
+        item["state"] = _state(item)        # (before anything changes)
     base = selection or Selection()
     ctx = RoastContext(
         layout=layout,
@@ -947,71 +1013,48 @@ def roast_hosted(
     roaster = functools.partial(roast_metadata, items=items,
                                 orphans=orphans)
     roaster.__name__ = "roast_metadata"
+    # (tables are trimmed as they are rendered: no `trim_originals`)
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
-                       info={"hosted": True, **(info or {})},
-                       present=unfetched, untrimmed=untrimmed)
-    _record(layout, items, orphans, report)
-    if repair is not None:
-        flags = {
-            i["key"]: {"repair": True if repair else None} for i in items
-            if i["origin"] == "roasted" and (
-                i["subject"] is None
-                or ctx.selection.keeps_subject(i["subject"]))
-        }
-        if flags:
-            update_files(layout, flags)
+                       info={"hosted": True, **(info or {})}, trim=False)
+    _record(layout, items, orphans, report, ctx, repair)
     return report
 
 
-def _record(layout, items, orphans, report) -> None:
+def _record(layout, items, orphans, report, ctx, repair) -> None:
     """
     Record what a roast wrote: hashes, fill-in templates, removals.
 
-    A hash is only recorded for a file that holds what this roast writes
-    (or, without a pristine copy, an unedited field map trimmed in
-    place): never for an edit kept, nor for the outputs of a skipped
-    shard that are no longer what it writes.
+    The one writer of the hashes of roasted files: that of a file which
+    holds what this roast writes; never that of an edit kept, nor of
+    the outputs a skipped shard replays.
     """
     written = {os.path.normcase(os.path.abspath(p)) for p in report.outputs}
-
-    def done(path):
-        return os.path.normcase(os.path.abspath(path)) in written
-
     recorded = {}
     for item in items:
-        dst, target = Path(item["dst"]), Path(item["target"])
-        if not done(dst):
-            continue
-        if item["table"]:
-            # the visible table, trimmed from the pristine one
-            if target.is_file():
-                recorded[item["key"]] = {
-                    "sha256": sha256(target.read_bytes())}
-            continue
-        if not dst.is_file():
+        dst = Path(item["target"])
+        if os.path.normcase(os.path.abspath(dst)) not in written or \
+                item["state"] == "edited" or not dst.is_file():
             continue
         data = dst.read_bytes()
-        missing = item["source"] is not None and \
-            not Path(item["source"]).exists() and \
-            not (item["orig"] and Path(item["orig"]).exists())
-        if missing:
-            # trimmed in place: its hash if unedited; its fill-in list
-            # untouched (nothing merged)
-            if not item.get("edited"):
-                recorded[item["key"]] = {"sha256": sha256(data)}
-            continue
-        source = item["source"]
-        if not _renders(item, data):
-            # (a no-trim table without pristine copy: from `orig/`)
-            if not (item["orig"] and source and not Path(source).exists()
-                    and _renders({**item, "source": item["orig"],
-                                  "repair": False, "relabel": None}, data)):
+        if item["state"] == "unknown":
+            # (a skipped shard replays outputs: only the render counts)
+            try:
+                if RoastMetadata(item).render() != data:
+                    continue
+            except (OSError, ValueError):
                 continue
         entry = recorded[item["key"]] = {"sha256": sha256(data)}
         # (None removes a stale list)
         entry["fill"] = item["fill"].ids if item["fill"] else None
         if item["fill"] and item["source"] is None:
             entry["origin"] = "generated"
+    if repair is not None and report.status != "failed":
+        for item in items:
+            if item["origin"] == "roasted" and (
+                    item["subject"] is None
+                    or ctx.selection.keeps_subject(item["subject"])):
+                recorded.setdefault(item["key"], {})["repair"] = \
+                    True if repair else None
     deleted = []
     for orphan in orphans:
         if not Path(orphan["dst"]).exists():

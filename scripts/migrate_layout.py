@@ -199,7 +199,7 @@ def plan(ds: Path, layout: str) -> tuple[list, list, list]:
                     f"{STATE}/{DUP_SAVE}")
             continue
         raise Refusal(f"{ds}: {RAW_OLD}/{p.name} conflicts with "
-                      f"{twin.relative_to(ds)}")
+                      f"{twin.relative_to(ds).as_posix()}")
     return moves, drops, warnings
 
 
@@ -380,11 +380,11 @@ def migrate(ds: Path, layout: str, apply: bool = False,
     for w in warnings:
         print(f"WARNING: {w}", file=sys.stderr)
     for src, dst in moves:
-        print(f"{tag}move {src.relative_to(ds)} -> {dst.relative_to(ds)}",
-              file=out)
+        print(f"{tag}move {src.relative_to(ds).as_posix()} -> "
+              f"{dst.relative_to(ds).as_posix()}", file=out)
     for p in drops:
-        print(f"{tag}delete {p.relative_to(ds)} (identical duplicate)",
-              file=out)
+        print(f"{tag}delete {p.relative_to(ds).as_posix()} "
+              f"(identical duplicate)", file=out)
     print(f"{tag}remove {RAW_OLD}/, write descriptions and manifest "
           f"(layout {layout!r})", file=out)
     if not apply:
@@ -401,10 +401,10 @@ def migrate(ds: Path, layout: str, apply: bool = False,
                     done.append(("mkdir", parent, None))
             src.replace(dst)
             done.append(("move", src, dst))
-            lines.append(f"delete {src.relative_to(ds)} (identical)"
-                         if dst.parent == trash else
-                         f"move {src.relative_to(ds)} -> "
-                         f"{dst.relative_to(ds)}")
+            lines.append(f"delete {src.relative_to(ds).as_posix()} "
+                         f"(identical)" if dst.parent == trash else
+                         f"move {src.relative_to(ds).as_posix()} -> "
+                         f"{dst.relative_to(ds).as_posix()}")
         (ds / RAW_OLD).rmdir()
         done.append(("rmdir", ds / RAW_OLD, None))
         lines.append(f"rmdir {RAW_OLD}")

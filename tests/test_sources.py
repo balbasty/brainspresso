@@ -11,6 +11,7 @@ import json
 import os
 import socket
 import ssl
+import sys
 import tarfile
 import threading
 from pathlib import Path
@@ -724,6 +725,8 @@ def umask_002():
         os.umask(old)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason=(
+    "POSIX permission bits: Windows has no umask or group/other modes"))
 def test_write_content_mode_follows_the_umask(tmp_path, umask_002):
     path = tmp_path / "a.json"
     assert write_content(path, "{}")

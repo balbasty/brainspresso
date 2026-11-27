@@ -105,11 +105,40 @@ def write_task_state(
     tmp = path.with_name(f".{os.getpid()}-{secrets.token_hex(4)}.tmp")
     try:
         tmp.write_text(json.dumps(record, indent=2, default=str))
-        os.replace(tmp, path)
+        _replace(tmp, path)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise
     return path
+
+
+# Windows: retries of a replacement refused while the destination is
+# open or being replaced by another process or thread (seconds)
+_REPLACE_DELAYS = (0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0)
+
+
+def _replace(src: Path, dst: Path) -> None:
+    """
+    Rename a file onto another one, atomically.
+
+    On Windows, `os.replace` raises `PermissionError` while another
+    process or thread has `dst` open (a reader) or is replacing it: the
+    replacement is retried for a few seconds then.
+
+    Parameters
+    ----------
+    src : Path
+        New file
+    dst : Path
+        File to replace
+    """
+    for delay in _REPLACE_DELAYS if os.name == "nt" else ():
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            time.sleep(delay)
+    os.replace(src, dst)
 
 
 def _sweep(folder: Path) -> None:

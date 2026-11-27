@@ -566,6 +566,8 @@ def test_lock_states_parent_first(tmp_path):
         [], [tmp_path / "X" / ".brainspresso"])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason=(
+    "Windows file names cannot contain ':'"))
 def test_subject_file_with_colon(tmp_path):
     subs = tmp_path / "a:b.txt"
     subs.write_text("2\n12\n")

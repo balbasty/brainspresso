@@ -327,6 +327,8 @@ def test_read_only_source_folder(tmp_path, where):
         folder.chmod(0o755)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason=(
+    "POSIX permissions: chmod cannot make a folder read-only on Windows"))
 def test_reader_without_lock_folder(tmp_path):
     """A read-only state folder: readers go on, writers refuse."""
     if hasattr(os, "geteuid") and os.geteuid() == 0:

@@ -311,7 +311,8 @@ class Layout:
             return PurePosixPath(path.relative_to(self.root).as_posix())
         except ValueError:
             pass
-        if path.is_absolute() or ".." in path.parts:
+        # (`anchor`: also a rooted path without a drive on Windows)
+        if path.is_absolute() or path.anchor or ".." in path.parts:
             raise ValueError(f"{path} is not inside {self.root}")
         return PurePosixPath(path.as_posix())
 

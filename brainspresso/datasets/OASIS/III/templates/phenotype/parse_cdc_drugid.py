@@ -35,5 +35,6 @@ for elem in root.findall('body/div/div/div'):
 
 print(json.dumps(drugmap, indent=4))
 
-with open(Path(__file__).parent / 'cdc_drugid.json', 'wt') as f:
+with open(Path(__file__).parent / 'cdc_drugid.json', 'wt',
+          encoding='utf-8', newline='\n') as f:
     json.dump(drugmap, f, indent=2)

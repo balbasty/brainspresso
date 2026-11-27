@@ -153,10 +153,11 @@ def nrrd_to_nifti(
             raise ValueError(
                 f"{len(bvals)} gradients for {data.shape[-1]} volumes"
             )
-        Path(bval).write_text(" ".join(f"{b:g}" for b in bvals) + "\n")
+        Path(bval).write_text(" ".join(f"{b:g}" for b in bvals) + "\n",
+                              encoding="utf-8", newline="\n")
         Path(bvec).write_text("\n".join(
             " ".join(f"{x:.6f}" for x in row) for row in bvecs
-        ) + "\n")
+        ) + "\n", encoding="utf-8", newline="\n")
 
     nib.save(img, str(out))
     return img

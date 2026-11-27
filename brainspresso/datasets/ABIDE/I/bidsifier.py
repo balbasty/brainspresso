@@ -175,7 +175,7 @@ class BidsifierBase:
         """
         if not mod.endswith('bold'):
             return CopyJSON(tpl, dst)
-        meta = jsonlib.loads(tpl.read_text())
+        meta = jsonlib.loads(tpl.read_text(encoding="utf-8"))
         if 'RepetitionTime' in meta:
             return CopyJSON(tpl, dst)
         try:
@@ -459,7 +459,8 @@ class BidsifierBase:
 
             def yield_rows():
                 for i, input_path in enumerate(input_paths):
-                    with open(input_path, newline='') as textio:
+                    with open(input_path, newline='',
+                              encoding='utf-8') as textio:
                         csvio = csv.reader(textio)
                         yield from mapper.remap(csvio, header=(i == 0))
 
@@ -605,7 +606,8 @@ class BidsifierBase:
 
             def yield_rows() -> Iterator[list[str]]:
                 for i, input_path in enumerate(input_paths):
-                    with open(input_path, newline='') as textio:
+                    with open(input_path, newline='',
+                              encoding='utf-8') as textio:
                         csvio = csv.reader(textio)
                         yield from mapper.remap(csvio, header=(i == 0))
 

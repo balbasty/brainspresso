@@ -1404,7 +1404,7 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
                 add(i)
         elif isinstance(value, str) and not value.isdigit() and \
                 Path(value).is_file():
-            for line in Path(value).read_text().splitlines():
+            for line in Path(value).read_text(encoding="utf-8").splitlines():
                 add(line)
         else:
             add(value)

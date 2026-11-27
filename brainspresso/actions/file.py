@@ -32,6 +32,7 @@ lg = getLogger(__name__)
 
 __all__ = [
     "File", "Files", "FileObj", "FileObjMixin", "OpenedFile",
+    "folder_in_the_way",
     "LockError", "LockTimeout",
 ]
 
@@ -43,7 +44,10 @@ def _text_options(mode: str, options: dict) -> dict:
     Text files are UTF-8 (BIDS), and written with "\n" line endings, so
     that outputs are byte-identical on every platform (the locale
     encoding and "\r\n" of Windows otherwise). Readers keep universal
-    newlines.
+    newlines; so do the update modes (`+`), which read as well as write
+    (with `newline="\n"`, their reads would keep "\r\n" line endings,
+    on Linux too): their writes use the platform's line endings unless
+    `newline` is given.
 
     Parameters
     ----------
@@ -60,13 +64,30 @@ def _text_options(mode: str, options: dict) -> dict:
     if "b" in mode:
         return dict(options)
     defaults = {"encoding": "utf-8"}
-    if _is_writer(mode):
+    if _is_writer(mode) and "+" not in mode:
         defaults["newline"] = "\n"
     return {**defaults, **options}
 
 
-def _folder_in_the_way(src: Path, dst: Path) -> bool:
-    """Whether a rename of file `src` failed because `dst` is a folder."""
+def folder_in_the_way(src: Path, dst: Path) -> bool:
+    """
+    Tell whether a rename of file `src` failed because `dst` is a folder.
+
+    The error is `IsADirectoryError` on POSIX but `PermissionError` on
+    Windows: callers catch `OSError` and ask this.
+
+    Parameters
+    ----------
+    src : Path
+        File renamed
+    dst : Path
+        Its destination
+
+    Returns
+    -------
+    bool
+        Whether `src` is a file and `dst` a folder (not a link to one)
+    """
     return src.is_file() and dst.is_dir() and not dst.is_symlink()
 
 
@@ -291,7 +312,7 @@ class File:
                 except OSError:
                     # a folder in the way of a file: IsADirectoryError
                     # (POSIX), PermissionError (Windows)
-                    if not _folder_in_the_way(self.tempname, self.filename):
+                    if not folder_in_the_way(self.tempname, self.filename):
                         raise
                     rmtree(self.filename)
                     self.tempname.replace(self.filename)

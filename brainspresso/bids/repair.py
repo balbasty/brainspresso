@@ -195,8 +195,11 @@ def _phasediff(path: Path, meta: dict) -> dict:
     if "EchoTime" not in meta or not magnitude.exists():
         return meta
     try:
-        te1 = loads(magnitude.read_text(encoding="utf-8")).get("EchoTime")
-    except json.JSONDecodeError:
+        # (as `repair_json`: a sidecar that is not valid UTF-8 is read
+        # with replacement characters, only its EchoTime is used)
+        text = magnitude.read_text(encoding="utf-8", errors="replace")
+        te1 = loads(text).get("EchoTime")
+    except (ValueError, OSError, AttributeError):
         return meta
     te2 = meta["EchoTime"]
     if isinstance(te1, (int, float)) and isinstance(te2, (int, float)) \
@@ -306,6 +309,11 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
         if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
     try:
         meta = loads(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as e:
+        # (not rewritten: replacement characters would be lossy)
+        lg.warning(f"{path}: not valid UTF-8, IntendedFor not repaired "
+                   f"({e})")
+        return False
     except (json.JSONDecodeError, OSError):
         return False
     if not isinstance(meta, dict) or "IntendedFor" not in meta:
@@ -353,7 +361,7 @@ def _bidsignore(root: Path) -> list[str]:
     path = Path(root) / ".bidsignore"
     if not path.exists():
         return []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     return [line.strip().lstrip("/") for line in lines
             if line.strip() and not line.startswith("#")]
 

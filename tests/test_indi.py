@@ -803,3 +803,25 @@ def test_fcon1000_site_lock_waits(tmp_path, monkeypatch):
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
        "--sites", "ICBM", "--wait", 3)
     assert waits == [3]
+
+
+def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
+    """Latin-1 sidecars: skipped with a warning, never a crash."""
+    sub = tmp_path / "sub-1" / "fmap"
+    sub.mkdir(parents=True)
+    # a phase difference whose magnitude is not UTF-8: EchoTime still read
+    magnitude = sub / "sub-1_magnitude1.json"
+    magnitude.write_bytes(b'{"EchoTime": 0.00492, "Note": "caf\xe9"}')
+    phasediff = sub / "sub-1_phasediff.json"
+    phasediff.write_text('{"EchoTime": 0.00738}', encoding="utf-8")
+    repair([phasediff])
+    assert json.loads(phasediff.read_text(encoding="utf-8")) == {
+        "EchoTime": 0.00738, "EchoTime1": 0.00492, "EchoTime2": 0.00738,
+    }
+    # IntendedFor of a sidecar that is not UTF-8: left as it is
+    epi = sub / "sub-1_dir-AP_epi.json"
+    blob = b'{"IntendedFor": "dwi", "Note": "caf\xe9"}'
+    epi.write_bytes(blob)
+    assert not fix_intended_for(epi, tmp_path)
+    assert epi.read_bytes() == blob
+    assert "not valid UTF-8" in caplog.text

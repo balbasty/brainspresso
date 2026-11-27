@@ -296,7 +296,7 @@ class Bidsifier:
         ]
 
         def iter_rows():
-            with open(path_csv, 'rt', newline='') as textio:
+            with open(path_csv, 'rt', newline='', encoding='utf-8') as textio:
                 csvio = csv.reader(textio)
                 next(csvio)
                 yield HEADER

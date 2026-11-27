@@ -131,7 +131,9 @@ def roast_uncwisc(ctx: RoastContext) -> Iterator:
 def folders(ctx: RoastContext) -> dict:
     """Girder metadata of subject and session folders"""
     path = ctx.source / "folders.json"
-    return json.loads(path.read_text()) if path.exists() else {}
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def roast_meta(ctx: RoastContext, meta: dict) -> Iterator[Action]:

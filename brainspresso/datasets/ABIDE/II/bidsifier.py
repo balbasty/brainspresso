@@ -412,7 +412,7 @@ class Bidsifier:
         def action_tsv(opath):
 
             def yield_rows():
-                with open(input_path, newline='') as textio:
+                with open(input_path, newline='', encoding='utf-8') as textio:
                     csvio = csv.reader(textio)
                     yield from self.ParticipantsMapper.remap(csvio)
 
@@ -1000,7 +1000,8 @@ class Bidsifier:
 
             def yield_rows():
                 for input_path in input_paths:
-                    with open(input_path, newline='') as textio:
+                    with open(input_path, newline='',
+                              encoding='utf-8') as textio:
                         csvio = csv.reader(textio)
                         yield from mapper.remap(csvio)
 

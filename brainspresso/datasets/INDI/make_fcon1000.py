@@ -147,17 +147,18 @@ async def main():
             })
     first = ["participant_id", "site", "site_participant_id",
              "age", "sex", "handedness"]
-    (OUT / "_participants.tsv").write_text(format_tsv(rows, first))
+    (OUT / "_participants.tsv").write_text(format_tsv(rows, first),
+                                           encoding="utf-8", newline="\n")
     (OUT / "_sites.tsv").write_text(format_tsv(
         [{"site": s, "code": c, "repetition_time": site_tr[s],
           "participants": sum(r["site"] == s for r in rows)}
          for s, c in CODES.items()],
-    ))
+    ), encoding="utf-8", newline="\n")
     (OUT / "_repetition_times.tsv").write_text(format_tsv(
         [{"participant_id": k, "repetition_time": v}
          for k, v in sorted(exceptions.items())],
         ["participant_id", "repetition_time"],
-    ))
+    ), encoding="utf-8", newline="\n")
     print(f"{len(rows)} participants, {len(CODES)} sites, "
           f"{len(exceptions)} subjects with a different TR")
 

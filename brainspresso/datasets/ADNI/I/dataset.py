@@ -33,7 +33,8 @@ class URLOptions(OptionGroup):
         out = []
         for url in self.urls:
             if Path(url).exists():
-                out += [x.strip() for x in Path(url).read_text().splitlines()
+                text = Path(url).read_text(encoding="utf-8")
+                out += [x.strip() for x in text.splitlines()
                         if x.strip()]
             else:
                 out.append(url)

@@ -67,7 +67,7 @@ def render(catalog: dict[str, tuple[str, str]]) -> str:
 
 def main(check: bool = False) -> int:
     """Rewrite (or check) the catalog."""
-    text = CATALOG.read_text()
+    text = CATALOG.read_text(encoding="utf-8")
     new = re.sub(
         r"(    # BEGIN CATALOG[^\n]*\n)(.*?)(    # END CATALOG)",
         lambda m: m.group(1) + render(entries()) + m.group(3),
@@ -78,7 +78,7 @@ def main(check: bool = False) -> int:
             print(f"{CATALOG} is out of date: run {__file__}")
             return 1
         return 0
-    CATALOG.write_text(new)
+    CATALOG.write_text(new, encoding="utf-8", newline="\n")
     return 0
 
 

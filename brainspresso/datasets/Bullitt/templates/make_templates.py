@@ -109,7 +109,8 @@ def write_participants(rows: dict[int, dict]) -> None:
 
     header = ["participant_id", "age", "sex", "race", "handedness",
               "vessels_quality", "exclude_suggested", "notes"]
-    with open(HERE / "participants.tsv", "w", newline="") as f:
+    with open(HERE / "participants.tsv", "w", newline="",
+              encoding="utf-8") as f:
         writer = csv.writer(f, delimiter="\t", lineterminator="\n")
         writer.writerow(header)
         for sub in range(1, N_SUBJECTS + 1):
@@ -159,7 +160,8 @@ NUMBERS = {"FlipAngle": "FlipAngle", "PixelBandwidth": "PixelBandwidth",
 
 def parse_dicom_text(path: Path) -> dict:
     values = {}
-    for line in path.read_text(errors="replace").splitlines():
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for line in text.splitlines():
         m = re.match(r"\([0-9A-F]{4},[0-9A-F]{4}\) \w+\[\d+\] (\w+): (.*)",
                      line)
         if not m:
@@ -198,7 +200,8 @@ def main(admin: Path) -> None:
     write_participants(parse_pdf(pdf))
     for src, dst in SIDECARS.items():
         sidecar = make_sidecar(admin / "DICOM Headers" / src)
-        (HERE / dst).write_text(json.dumps(sidecar, indent=2) + "\n")
+        (HERE / dst).write_text(json.dumps(sidecar, indent=2) + "\n",
+                                encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

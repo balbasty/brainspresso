@@ -176,6 +176,8 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
             return write_tsv(src, fdst, makedirs=False, **kwargs)
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
+    # (`csv` ends rows with "\r\n" by default; BIDS tables use "\n")
+    kwargs.setdefault('lineterminator', '\n')
     writer = csv.writer(dst, **kwargs)
     writer.writerows(src)
 

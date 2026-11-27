@@ -24,6 +24,7 @@ import aiofiles.os as aos
 from fasteners import InterProcessLock
 
 # internals
+from brainspresso.actions.file import folder_in_the_way
 from brainspresso.actions.locks import FileLock
 from brainspresso.utils.digests import get_digester
 
@@ -134,7 +135,8 @@ class IncompleteFile:
         # Check if a file was already being downloaded, and if we should
         # continue from where we left off
         try:
-            async with aiofiles.open(self.checkname, 'rt') as f:
+            async with aiofiles.open(self.checkname, 'rt',
+                                     encoding='utf-8') as f:
                 checksum = await f.read()
         except (FileNotFoundError, ValueError):
             checksum = None
@@ -164,7 +166,8 @@ class IncompleteFile:
                     get_digester, self.tempname, self.checkalgo
                 )
             try:
-                async with aiofiles.open(self.validname, 'rt') as f:
+                async with aiofiles.open(self.validname, 'rt',
+                                         encoding='utf-8') as f:
                     self.validator = (await f.read()).strip() or None
             except (FileNotFoundError, ValueError):
                 self.validator = None
@@ -195,7 +198,8 @@ class IncompleteFile:
 
         # Write expected checksum
         if self.checksum:
-            async with aiofiles.open(self.checkname, "w") as f:
+            async with aiofiles.open(self.checkname, "w", encoding="utf-8",
+                                     newline="\n") as f:
                 await f.write(self.checksum)
 
         return self
@@ -267,8 +271,7 @@ class IncompleteFile:
             except OSError:
                 # a folder in the way: IsADirectoryError (POSIX),
                 # PermissionError (Windows)
-                if not (self.tempname.is_file() and self.filename.is_dir()
-                        and not self.filename.is_symlink()):
+                if not folder_in_the_way(self.tempname, self.filename):
                     raise
                 rmtree(self.filename)
                 os.replace(self.tempname, self.filename)
@@ -320,7 +323,8 @@ class IncompleteFile:
         """Save the remote validator (ETag/Last-Modified) of this file."""
         self.validator = validator
         if validator:
-            async with aiofiles.open(self.validname, 'wt') as f:
+            async with aiofiles.open(self.validname, 'wt', encoding='utf-8',
+                                     newline='\n') as f:
                 await f.write(validator)
         else:
             await run_async(self.validname.unlink, missing_ok=True)

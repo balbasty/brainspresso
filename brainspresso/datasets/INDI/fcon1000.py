@@ -91,7 +91,8 @@ def repetition_times() -> tuple[dict[str, float], dict[str, float]]:
     for name, key in (("_sites.tsv", "site"),
                       ("_repetition_times.tsv", "participant_id")):
         path = TEMPLATES / "fcon1000" / name
-        rows = read_table(path.read_text()) if path.exists() else []
+        rows = (read_table(path.read_text(encoding="utf-8"))
+                if path.exists() else [])
         out.append({r[key]: float(r["repetition_time"]) for r in rows})
     return tuple(out)
 
@@ -114,7 +115,8 @@ class FCON1000(Project):
 
     def participants(self, tables):
         """Merged site tables (built by `make_fcon1000.py`)"""
-        return (TEMPLATES / "fcon1000" / "_participants.tsv").read_text()
+        path = TEMPLATES / "fcon1000" / "_participants.tsv"
+        return path.read_text(encoding="utf-8")
 
     def remap(self, items: list[Item]):
         # Runs: a subject whose rest scans are split across `func`,

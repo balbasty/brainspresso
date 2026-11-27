@@ -698,7 +698,7 @@ class Bidsifier:
         # Old version, when OASIS was providing a CSV file
 
         def iter_rows():
-            with open(path_csv, 'rt') as finp:
+            with open(path_csv, 'rt', newline='', encoding='utf-8') as finp:
                 yield self.PARTICIPANTS_HEADER
                 reader = csv.reader(
                     finp, delimiter=',', quoting=csv.QUOTE_NONE

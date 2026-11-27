@@ -148,7 +148,7 @@ def plan(ds: Path, layout: str) -> tuple[list, list, list]:
     manifest = None
     if mpath.exists():
         try:
-            manifest = json.loads(mpath.read_text())
+            manifest = json.loads(mpath.read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:
             raise Refusal(f"{ds}: {STATE}/manifest.json cannot be parsed "
                           f"({e}); fix or remove it first")
@@ -205,7 +205,7 @@ def plan(ds: Path, layout: str) -> tuple[list, list, list]:
 
 def _read_json(path: Path) -> dict | None:
     try:
-        out = json.loads(path.read_text())
+        out = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return out if isinstance(out, dict) else None
@@ -213,7 +213,8 @@ def _read_json(path: Path) -> dict | None:
 
 def _write_json(path: Path, obj: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2) + "\n")
+    path.write_text(json.dumps(obj, indent=2) + "\n",
+                    encoding="utf-8", newline="\n")
 
 
 def _raw_url(layout: str) -> str:
@@ -422,7 +423,8 @@ def migrate(ds: Path, layout: str, apply: bool = False,
             p.unlink()
         trash.rmdir()
     (ds / STATE).mkdir(exist_ok=True)
-    with open(ds / STATE / "migrate.log", "a") as log:
+    with open(ds / STATE / "migrate.log", "a", encoding="utf-8",
+              newline="\n") as log:
         stamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         log.write(f"# {stamp} migrate to {layout} (backend {BACKEND})\n")
         for w in warnings:

@@ -31,10 +31,14 @@ from brainspresso.datasets.INDI.engine import (
     fetch_tables,
     list_extra,
     list_sites,
+    remote_entry,
     site_label,
 )
 from brainspresso.errors import UsageError
-from brainspresso.sources import fcp
+from brainspresso.roast.hosted import harvest_hosted
+
+#: Sub-folder of `sourcedata/` for the pristine metadata of the bucket
+FOLDER = "fcp-indi"
 
 
 def prepare(
@@ -86,10 +90,9 @@ def prepare(
 
 
 def extra_entries(project: Project) -> list:
-    return [
-        obj.entry(fcp.get_bucket().url(obj.key), path)
-        for path, obj in asyncio.run(list_extra(project))
-    ]
+    """Entries of `project.extra_files` (outside of the sites)."""
+    return [remote_entry(obj, path)
+            for path, obj in asyncio.run(list_extra(project))]
 
 
 def collect(
@@ -125,9 +128,17 @@ def site_selection(selection: Selection, site: Site) -> Selection:
 
 def harvest_sites(
     project: Project, layout: SitesLayout, selection: Selection, *,
-    sites=(), where=(), provenance=None, wait: float = 0, **options,
+    sites=(), where=(), provenance=None, wait: float = 0, fill=(),
+    **options,
 ) -> None:
-    """Layout "sites": one dataset per site in `<DS>/<site>/`"""
+    """
+    Layout "sites": one dataset per site in `<DS>/<site>/`.
+
+    Each site is harvested with hybrid placement
+    (`roast.hosted.harvest_hosted`, fill-in templates of the project
+    and of the site); the parent folder holds the README and the merged
+    participants table.
+    """
     asked = copy.copy(selection or Selection())
     found = set()
     items, tables, selection, chosen = prepare(
@@ -168,15 +179,19 @@ def harvest_sites(
                 child.ensure_state()
                 stack.enter_context(run_lock(child.state, "harvest",
                                              wait=wait))
-            harvest(entries, child, local, repair=True,
-                    provenance={**(provenance or {}), "site": site.name},
-                    check_subjects=False, **options)
+            harvest_hosted(
+                entries, child, local, folder=FOLDER,
+                provenance={**(provenance or {}), "site": site.name},
+                check_subjects=False, fill=fill, site=site.name,
+                **options)
             harvested.append(site.name)
     extra = extra_entries(project)
     parent = Selection(folders=list(selection.folders))
     recorded = False
     if parent.select(e.path for e in extra):
+        # the parent is not a BIDS dataset: its files are placed directly
         print("--- (dataset)")
+        options = {k: v for k, v in options.items() if k != "sidecars"}
         recorded = bool(harvest(extra, layout, parent, provenance=provenance,
                                 check_subjects=False, **options))
     if dry_run:

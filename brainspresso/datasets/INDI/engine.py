@@ -11,12 +11,17 @@ them:
   way;
 * which files must be generated locally (`InlineEntry`): a merged
   `participants.tsv`, sidecars the bucket lacks, or curated
-  `dataset_description.json`/`README` (from `templates/<name>/`).
+  `dataset_description.json`/`README` (from `templates/<name>/`);
+* fill-in sidecar templates (`templates/<name>/_fill.json`, see
+  `bids.hosted`), which add the keys the bucket's sidecars lack.
 
-The harvest then reuses the generic BIDS machinery (`bids.harvest`):
-selection by subject/session/datatype/suffix/task/globs, participant
-queries (`--where`), trimmed tables and a manifest. Listing is pruned:
-only the subjects that are selected are listed.
+The harvest then reuses the generic machinery of hosted datasets
+(`roast.hosted.harvest_hosted`, hybrid placement): selection by
+subject/session/datatype/suffix/task/globs, participant queries
+(`--where`); images placed directly, metadata downloaded to
+`sourcedata/fcp-indi/<key under data/Projects>` and roasted (repaired,
+filled in, trimmed); a manifest. Listing is pruned: only the subjects
+that are selected are listed.
 
 Local layouts (`bids.layout`):
 
@@ -50,10 +55,16 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator
 
 from brainspresso.bids.harvest import InlineEntry
+from brainspresso.bids.hosted import (
+    FILL_FILE,
+    FillTemplate,
+    fill_files,
+    read_fill_templates,
+)
 from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName
 from brainspresso.download.session import new_session
 from brainspresso.sources import fcp
-from brainspresso.sources.base import LabelMap, prefix_labels
+from brainspresso.sources.base import LabelMap, RemoteEntry, prefix_labels
 from brainspresso.sources.s3 import S3Object
 
 lg = getLogger(__name__)
@@ -68,14 +79,14 @@ ENTITIES = (
 )
 TEMPLATES = Path(__file__).parent / "templates"
 # Fill-in templates of `templates/<name>/` (sidecars converted from the
-# scanner printouts, `scripts/make_sidecars.py`): `{"fill": [paths]}`.
-# They only fill in what the bucket lacks: a bucket file at the same path
-# is kept (see `Project.entries`).
-FILL_INDEX = "_fill.json"
+# scanner printouts, `scripts/make_sidecars.py`): `{"fill": [paths]}`,
+# merged key by key into the bucket's sidecars by the metadata roast
+# (`bids.hosted`, `roast.hosted`)
+FILL_INDEX = FILL_FILE
 # SHA-256 of earlier versions of templates (`<name>/<path>`): a harvest
 # refreshes a local copy that is still such a version (see
-# `bids.harvest.write_inline`; later versions are recognised from the
-# manifest)
+# `bids.harvest.write_inline` and `roast.hosted`; later versions are
+# recognised from the manifest)
 PREVIOUS_TEMPLATES = {
     # hand-written {TaskName, RepetitionTime}, before printouts/SLIM
     "slim/task-rest_bold.json": (
@@ -287,21 +298,26 @@ class Project:
         )))
         return out
 
-    def fill_templates(self) -> frozenset[str]:
-        """Paths of the fill-in templates (`templates/<name>/_fill.json`)"""
-        path = TEMPLATES / self.name / FILL_INDEX
-        if not path.is_file():
-            return frozenset()
-        return frozenset(
-            json.loads(path.read_text(encoding="utf-8")).get("fill", ())
-        )
+    @property
+    def template_dir(self) -> Path:
+        """
+        Folder of the templates of the project.
+
+        Curated files mirrored into the dataset, and fill-in sidecar
+        templates (`_fill.json`). Default: `templates/<name>/` next to
+        this module; a project defined elsewhere overrides it.
+        """
+        return TEMPLATES / self.name
 
     def _templates(self) -> list[InlineEntry]:
-        root = TEMPLATES / self.name
+        root = self.template_dir
         if not root.is_dir():
             return []
+        # fill-in templates are merged by the metadata roast instead
+        fill = fill_files(root)
+
         def keep(p):
-            if not p.is_file():
+            if not p.is_file() or p.relative_to(root).as_posix() in fill:
                 return False
             return p.name == ".bidsignore" or \
                 not p.name.startswith((".", "_"))
@@ -316,6 +332,26 @@ class Project:
                 previous=PREVIOUS_TEMPLATES.get(f"{self.name}/{rel}", ()),
             ))
         return out
+
+    def fill_templates(self) -> list[FillTemplate]:
+        """
+        Fill-in sidecar templates (`<template_dir>/_fill.json`).
+
+        See `bids.hosted` for the convention: `[<site>/]<name>.json`,
+        `<site>` a `Site.name` of the project.
+
+        Returns
+        -------
+        list[FillTemplate]
+        """
+        parent = getattr(self, "parent", None)
+        sites = (parent or self).sites
+        return [
+            dataclasses.replace(t, previous=PREVIOUS_TEMPLATES.get(
+                f"{self.name}/{t.id}", ()))
+            for t in read_fill_templates(self.template_dir,
+                                         [s.name for s in sites if s.name])
+        ]
 
     # ------------------------------------------------------------------
     #   Layout "sites": one BIDS dataset per site
@@ -376,7 +412,8 @@ class Project:
                 )
                 continue
             path = reorder_entities(path)
-            out[path] = it.obj.entry(fcp.get_bucket().url(it.obj.key), path)
+            out[path] = remote_entry(it.obj, path, it.site.name,
+                                     it.site.prefix.strip("/"))
         inline = list(self.generated(items, tables))
         participants = self.participants(tables)
         if participants is not None:
@@ -387,23 +424,10 @@ class Project:
                 site_of if self.multisite else None,
             )
             inline.append(InlineEntry("participants.tsv", participants))
-        fill = self.fill_templates()
-        templates = self.templates()
+        # (fill-in templates are not among the templates: the metadata
+        # roast merges them key by key into what the dataset has)
+        inline += self.templates()
         for entry in inline:        # generated files override the bucket's
-            out[entry.path] = entry
-        site = getattr(self, "site", None)
-        where = f" (site {site.name})" if site is not None and site.name \
-            else ""
-        for entry in templates:
-            if entry.path in fill and entry.path in out:
-                # fill-in templates never replace a file of the bucket
-                # (nor a generated one). Until the placement hook merges
-                # keys, the whole template is skipped.
-                lg.warning(
-                    f"{self.name}{where}: fill-in template {entry.path} "
-                    f"not used (the dataset has its own)"
-                )
-                continue
             out[entry.path] = entry
         return [out[k] for k in sorted(out)]
 
@@ -482,6 +506,44 @@ def reorder_entities(path: str) -> str:
     pairs.sort(key=lambda p: ENTITIES.index(p[0]))
     name = "_".join(["-".join(p) for p in pairs] + [parts[-1]]) + dot + ext
     return f"{folder}/{name}" if folder else name
+
+
+def remote_entry(obj: S3Object, path: str, site: str = "",
+                 root: str = "") -> RemoteEntry:
+    """
+    Entry of a bucket object placed at `path` (flat BIDS view).
+
+    `meta["remote"]` is its key relative to `data/Projects/` (the path
+    of its pristine copy, `sourcedata/fcp-indi/<remote>`, when it is
+    metadata), `meta["remote_root"]` the folder of the BIDS dataset of
+    the bucket that holds it (the site prefix: paths in its sidecars are
+    relative to it) and `meta["site"]` its site, if any.
+
+    Parameters
+    ----------
+    obj : S3Object
+        The object
+    path : str
+        Its local path (flat view)
+    site : str
+        Name of its site ("" for single-site projects)
+    root : str
+        Folder of its site in the bucket, relative to `data/Projects/`
+
+    Returns
+    -------
+    RemoteEntry
+    """
+    entry = obj.entry(fcp.get_bucket().url(obj.key), path)
+    key = obj.key
+    prefix = f"{fcp.PROJECTS}/"
+    entry.meta["remote"] = key[len(prefix):] if key.startswith(prefix) \
+        else key
+    if site:
+        entry.meta["site"] = site
+    if root:
+        entry.meta["remote_root"] = root
+    return entry
 
 
 def join(*parts: str) -> str:

@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 from typing import Iterable, Literal
 
-__all__ = ["KINDS", "Kind", "default_kind", "kinds_of"]
+__all__ = ["KINDS", "Kind", "accepts", "default_kind", "kinds_of"]
 
 Kind = Literal["data", "sidecar", "meta", "table"]
 #: Every kind
@@ -92,3 +92,26 @@ def kinds_of(paths: Iterable[str | os.PathLike]) -> set[Kind]:
         Their kinds (`default_kind`)
     """
     return set(map(default_kind, paths))
+
+
+def accepts(policy: str, kind: str) -> bool:
+    """
+    Apply a sidecar policy (`--sidecars yes|no|only`) to a kind.
+
+    Parameters
+    ----------
+    policy : {"yes", "no", "only"}
+        The policy
+    kind : {"data", "sidecar", "meta", "table"}
+        Kind of a file (`default_kind`)
+
+    Returns
+    -------
+    bool
+        False for sidecars under "no" and data under "only"
+    """
+    if policy == "no":
+        return kind != "sidecar"
+    if policy == "only":
+        return kind != "data"
+    return True

@@ -130,16 +130,17 @@ KEYS: dict[str, tuple[str, ...]] = {
         "bids", "datatypes", "discs", "dry-run", "exclude", "exclude-keys",
         "exclude-sites", "exclude-subs", "folders", "if-exists", "include",
         "insecure", "jobs", "keys", "layout", "level", "list", "lock-wait",
-        "log", "out", "packet", "parts", "path", "sessions", "sites", "source",
-        "subs", "suffixes", "tag", "tasks", "trim", "user", "where",
+        "log", "out", "packet", "parts", "path", "repair", "sessions",
+        "sidecars", "sites", "source", "subs", "suffixes", "tag", "tasks",
+        "trim", "user", "where",
     ),
     "info": (
         "derivatives", "exclude-sites", "level", "log", "sites", "source",
     ),
     "roast": (
-        "discs", "exclude-keys", "exclude-subs", "if-exists", "jobs", "keys",
-        "layout", "level", "lock-wait", "log", "out", "parts", "path",
-        "sessions", "sidecars", "source", "subs",
+        "discs", "exclude-keys", "exclude-sites", "exclude-subs", "if-exists",
+        "jobs", "keys", "layout", "level", "lock-wait", "log", "out", "parts",
+        "path", "repair", "sessions", "sidecars", "sites", "source", "subs",
     ),
     # END KEYS
 }
@@ -189,13 +190,14 @@ CHOICES: dict[str, tuple[str, ...]] = {
         "skullstripped", "swi", "vessels",
     ),
     "harvest:layout": ("flat", "sites", "sites:flat", "sites:study", "study"),
+    "harvest:sidecars": ("no", "only", "yes"),
     "harvest:source": (
         "auto", "bundled", "dataverse", "girder", "graphql", "imperial",
         "nitrc", "s3", "wustl", "xnat",
     ),
     "info:source": ("auto", "graphql", "s3"),
     "roast:if-exists": ("different", "error", "overwrite", "refresh", "skip"),
-    "roast:layout": ("flat", "study"),
+    "roast:layout": ("flat", "sites", "sites:flat", "sites:study", "study"),
     "roast:sidecars": ("no", "only", "yes"),
     "roast:source": ("nitrc", "s3", "xnat"),
     # END CHOICES

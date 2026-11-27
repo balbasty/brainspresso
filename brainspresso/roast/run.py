@@ -58,6 +58,7 @@ def run_roast(
     info: dict | None = None,
     executor=None,
     policy: RoastPolicy | None = None,
+    trim: bool = True,
 ) -> RoastReport:
     """
     Run a roaster and the common steps that follow every roast.
@@ -79,6 +80,10 @@ def run_roast(
         `jobs > 1`)
     policy : RoastPolicy | None
         Acceptance policy (default: `RoastPolicy()`)
+    trim : bool
+        Trim the tables from their pristine copies in `<state>/orig/`
+        (`trim_originals`); hosted datasets trim theirs as they roast
+        them (`roast.hosted`)
 
     Returns
     -------
@@ -95,7 +100,8 @@ def run_roast(
     finally:
         status = report.status
         try:
-            trim_originals(ctx.layout)
+            if trim:
+                trim_originals(ctx.layout)
         except Exception as e:
             lg.error(f"Could not trim tables: {e}\n{traceback.format_exc()}")
             report.status = status = "failed" if status == "failed" \

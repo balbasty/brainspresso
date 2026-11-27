@@ -22,6 +22,8 @@ Any OpenNeuro dataset (BIDS)
 
 * **Host**          https://openneuro.org (GraphQL API) and s3://openneuro.org
 * **Format**        Already BIDS: harvest downloads a filtered subset
+                    (images in place, metadata in `sourcedata/openneuro/`,
+                    then roasted; `roast` re-roasts the metadata)
 * **License**       Per dataset (mostly CC0)
 """  # noqa: E501
 
@@ -64,7 +66,7 @@ class OpenNeuroDataset(Dataset):
     harvest_jobs = 8
     option_defaults = {"harvest": {"insecure": False}}
     folder_choices = ("derivatives", "sourcedata", "code", "stimuli")
-    commands = ("harvest", "compost", "info")
+    commands = ("harvest", "roast", "compost", "info")
 
     def options(self, command):
         """`--tag`, `--source` (harvest); `--source` (info)."""
@@ -72,7 +74,7 @@ class OpenNeuroDataset(Dataset):
             return {"openneuro": OpenNeuroOptions}
         if command == "info":
             return {"openneuro": RouteOptions}
-        return {}
+        return super().options(command)
 
     def groups(self, command):
         """`info` takes `--token`."""
@@ -87,7 +89,16 @@ class OpenNeuroDataset(Dataset):
                 "Download (a subset of) an OpenNeuro dataset, as BIDS.\n\n"
                 "Metadata that applies to the selected data files is "
                 "always included. The dataset is saved in "
-                "`<path>/OpenNeuro/<dataset>/` (or `--out`)."
+                "`<path>/OpenNeuro/<dataset>/` (or `--out`). Images are "
+                "placed directly; metadata (sidecars, tables, README...) "
+                "is downloaded to `sourcedata/openneuro/` and roasted into "
+                "the dataset (tables and field maps trimmed to the subset)."
+            )
+        if command == "roast":
+            return (
+                "Roast the metadata again, from `sourcedata/openneuro/` "
+                "(after deleting or editing roasted files, or to change "
+                "`--sidecars`)."
             )
         if command == "info":
             return "Show the snapshots and content of an OpenNeuro dataset."
@@ -112,7 +123,10 @@ class OpenNeuroDataset(Dataset):
         )
         options = args.harvest.runtime()
         remote.harvest(layout, selection, options=options, where=f.where,
-                       trim=args.hosted.trim, listing=args.hosted.list)
+                       trim=args.hosted.trim, listing=args.hosted.list,
+                       sidecars=args.hosted.sidecars,
+                       repair=args.hosted.repair,
+                       fill=self.fill_templates())
         if not options.dry_run:
             print(f"BIDS root: {Path(layout.raw)}")
 

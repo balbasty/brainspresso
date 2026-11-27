@@ -1,6 +1,9 @@
 {
+  "visit": {
+    "Description": "Visit number (the session label is the number of the MRI ID)"
+  },
   "delay": {
-    "Description": "Time to first visit",
+    "Description": "Time since the first visit",
     "Units": "days"
   },
   "pathology": {
@@ -8,7 +11,8 @@
       "N": "nondemented",
       "D": "demented",
       "C": "converted"
-    }
+    },
+    "Description": "Group of the participant across the study (converted: nondemented at the first visit, demented at a later one)"
   },
   "age": {
     "Description": "Age of the participant",
@@ -42,14 +46,14 @@
   },
   "etiv": {
     "Description": "Estimated Total Intracranial Volume",
-    "Unit": "cubic centimeter"
+    "Units": "cubic centimeter"
   },
   "nwbv": {
     "Description": "Normalized Whole Brain Volume, expressed as a percent of all voxels in the atlas-masked image that are labeled as gray or white matter by the automated tissue segmentation process (Fotenos et al., 2005)",
-    "Unit": "unitless"
+    "Units": "unitless"
   },
   "asf": {
     "Description": "Atlas Scaling Factor. Computed scaling factor that transforms native-space brain and skull to the atlas target (i.e., the determinant of the transform matrix) (Buckner et al., 2004)",
-    "Unit": "unitless"
+    "Units": "unitless"
   }
 }

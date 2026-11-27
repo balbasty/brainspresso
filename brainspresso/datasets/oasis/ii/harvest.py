@@ -1,4 +1,5 @@
-
+"""Sources of OASIS-2: the WUSTL parts and demographics."""
+from brainspresso.datasets.oasis.ii.roaster import roast_oasis2
 from brainspresso.sources.base import StaticURLs
 
 URLBASE = 'https://download.nrg.wustl.edu/data'
@@ -14,12 +15,16 @@ URLS = {
 }
 
 
-
 class WUSTL(StaticURLs):
-    """OASIS-II parts (download.nrg.wustl.edu) and demographics
-    (sites.wustl.edu), no login. Per-run option: `parts`."""
+    """
+    OASIS-II parts and demographics, no login.
+
+    Parts from download.nrg.wustl.edu, demographics from
+    sites.wustl.edu. Per-run option: `parts`.
+    """
 
     name = "wustl"
+    roaster = staticmethod(roast_oasis2)
     parts: frozenset = frozenset({1, 2})
     urls = {
         "raw": [StaticURLs.entry(url, part=part)
@@ -29,7 +34,22 @@ class WUSTL(StaticURLs):
     }
 
     def keep(self, entry, selection, wants) -> bool:
+        """
+        Keep the selected parts (`parts`) and the demographics.
+
+        Parameters
+        ----------
+        entry : RemoteEntry
+            A file of the source
+        selection : Selection
+            Subjects, sessions... (unused: parts hold many subjects)
+        wants : Wants
+            Keys (unused: entries are listed per key)
+
+        Returns
+        -------
+        bool
+            Whether to harvest the entry
+        """
         part = entry.meta.get("part")
         return part is None or part in self.parts
-
-

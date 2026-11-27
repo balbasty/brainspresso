@@ -7,7 +7,11 @@ Two things can be composted:
    were downloaded by `harvest` and converted by `roast`. Once the
    dataset is roasted, they are usually only taking up space.
    Raw files unpacked under `derivatives/<pipeline>/sourcedata/` while
-   roasting (e.g. FreeSurfer outputs) can be composted too.
+   roasting (e.g. FreeSurfer outputs) can be composted too. The
+   pristine metadata of a dataset hosted as BIDS (the copies in
+   `sourcedata/<folder>/` that its metadata roast reads, `roast.hosted`)
+   is kept unless asked for explicitly (`--sourcedata`): the next
+   harvest then fetches it again.
 
 2. **BIDS data** that falls outside a selection. The filters are the
    same as for `harvest`, and describe what is *kept*: composting with
@@ -36,7 +40,12 @@ from typing import Callable, Iterable
 from humanize import naturalsize
 
 from brainspresso.bids.harvest import _filters, record_run
-from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
+from brainspresso.bids.layout import (
+    Layout,
+    SitesLayout,
+    read_manifest,
+    resolve_layout,
+)
 from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName, Selection
 from brainspresso.bids.tables import (
     is_trimmable,
@@ -59,6 +68,7 @@ class CompostPlan:
     data: list[str] = field(default_factory=list)
     derivatives: list[str] = field(default_factory=list)
     kept_subjects: set[str] | None = None
+    pristine: list[str] = field(default_factory=list)
 
     @property
     def files(self) -> list[str]:
@@ -89,8 +99,14 @@ class CompostPlan:
                     f"{label:>12}: {len(files)} files, "
                     f"{naturalsize(self.size(files))}"
                 )
-        if not lines:
-            return "Nothing to compost."
+        if self.pristine:
+            lines.append(
+                f"{'kept':>12}: {len(self.pristine)} pristine metadata "
+                f"files of the hosted dataset (--sourcedata to delete "
+                f"them; the next harvest fetches them again)"
+            )
+        if not self.files:
+            return "\n".join(["Nothing to compost.", *lines])
         lines.append(
             f"{'total':>12}: {len(self.files)} files, "
             f"{naturalsize(self.size())}"
@@ -202,6 +218,29 @@ def _bids_candidates(paths: Iterable[str]) -> list[str]:
     return out
 
 
+def pristine_files(layout: Layout) -> set[str]:
+    """
+    Pristine copies of the metadata of a hosted dataset.
+
+    The `source` of its roasted files (`roast.hosted`), from the
+    manifest, relative to `layout.root`.
+
+    Parameters
+    ----------
+    layout : Layout
+
+    Returns
+    -------
+    set[str]
+    """
+    manifest = read_manifest(layout.state) or {}
+    return {
+        entry["source"] for entry in (manifest.get("files") or {}).values()
+        if isinstance(entry, dict) and entry.get("origin") == "roasted"
+        and isinstance(entry.get("source"), str)
+    }
+
+
 def _filter_tree(tree: Path, selection: Selection) -> list[str]:
     """Files of a BIDS tree that fall outside a selection."""
     paths = list_files(tree, tree)
@@ -225,6 +264,7 @@ def plan_compost(
     derivatives: bool = False,
     force: bool = False,
     layout: str | None = None,
+    pristine: bool = False,
 ) -> CompostPlan:
     """
     Compute the list of files to delete (nothing is deleted).
@@ -250,6 +290,9 @@ def plan_compost(
         Compost source data even if nothing seems to have been roasted
     layout : {"study", "flat"}, optional
         Expected layout (default: detected)
+    pristine : bool
+        Also compost the pristine metadata of a hosted dataset (kept by
+        default, `CompostPlan.pristine`)
     """
     if not isinstance(root, Layout) and not Path(root).is_dir():
         raise DatasetNotFound(f"Dataset folder not found: {root}")
@@ -272,6 +315,10 @@ def plan_compost(
         for folder in folders:
             files += list_files(folder, root)
         files = [f for f in files if not _matches(f, keep)]
+        if not pristine:
+            kept = pristine_files(layout)
+            plan.pristine = [f for f in files if f in kept]
+            files = [f for f in files if f not in kept]
         if files and not force and not has_subjects(bids):
             raise UsageError(
                 f"No BIDS subject found in {bids}: the dataset does not "
@@ -424,7 +471,8 @@ def compost(
         Dataset root (e.g. `<path>/IXI`), or its layout
     sourcedata : bool | None
         Compost `sourcedata/`. By default (None), source data is
-        composted only if no BIDS filter is given.
+        composted only if no BIDS filter is given, but for the pristine
+        metadata of a hosted dataset, which only True composts.
     nested : bool
         Also compost `derivatives/*/sourcedata/`
     keep : list[str]
@@ -456,6 +504,8 @@ def compost(
     plan : CompostPlan
     """
     filtering = is_filtering(selection, where)
+    # pristine metadata of hosted datasets: only when asked explicitly
+    pristine = sourcedata is True
     if sourcedata is None:
         sourcedata = not filtering
     if not sourcedata and not filtering:
@@ -474,6 +524,7 @@ def compost(
         derivatives=derivatives,
         force=force,
         layout=layout,
+        pristine=pristine,
     )
     root = plan.root
 

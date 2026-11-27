@@ -55,6 +55,7 @@ from brainspresso.datasets import options as opt
 from brainspresso.datasets.compost import run_compost
 from brainspresso.errors import DatasetNotFound, UsageError
 from brainspresso.roast import make_context, run_roast
+from brainspresso.roast.hosted import roast_hosted
 from brainspresso.sources.base import (
     Wants,
     harvest_sources,
@@ -682,7 +683,10 @@ class Dataset:
             roasters = {id(s.roaster) for s in self.sources().values()
                         if getattr(s, "roaster", None) is not None}
             source = ("source",) if len(roasters) > 1 else ()
-            return (*keys, "select", *sessions, *source, "roast",
+            # hosted datasets: `--sites` selects site datasets
+            sites = ("sites",) if self.hosted and "sites" in self.layouts \
+                else ()
+            return (*keys, "select", *sessions, *sites, *source, "roast",
                     "layout", "log")
         if command == "compost":
             sites = ("sites",) if "sites" in self.layouts else ()
@@ -762,7 +766,7 @@ class Dataset:
 
     def has_roast(self) -> bool:
         """Whether the dataset can be roasted."""
-        if type(self).roast is not Dataset.roast:
+        if type(self).roast is not Dataset.roast or self.hosted:
             return True
         return self.roaster is not None or any(
             getattr(s, "roaster", None) is not None
@@ -1157,6 +1161,8 @@ class Dataset:
         -------
         RoastReport
         """
+        if self.hosted:
+            return self.roast_hosted(layout, args)
         if isinstance(layout, SitesLayout):
             raise UsageError(f"{self.name}: roast of a dataset with one "
                              f"dataset per site is not supported")
@@ -1194,7 +1200,7 @@ class Dataset:
         CompostPlan | list[CompostPlan]
         """
         c = args.compost
-        return run_compost(
+        plans = run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
@@ -1205,6 +1211,117 @@ class Dataset:
             exclude_sites=self.select_sites(args.sites.exclude_sites),
             **args.filters.filters(),
         )
+        if self.hosted and not c.dry_run:
+            # the metadata that is left is roasted again (`IntendedFor`
+            # and tables trimmed to what is left; nothing is re-created)
+            composted = {
+                Path(p.root) for p in (plans if isinstance(plans, list)
+                                       else [plans])
+                if p.data or p.derivatives
+            }
+            if composted:
+                self.roast_hosted(layout, None, existing_only=True,
+                                  only=composted)
+        return plans
+
+    # ------------------------------------------------------------------
+    #   Hosted datasets (hybrid placement, `roast.hosted`)
+    # ------------------------------------------------------------------
+    def fill_templates(self) -> list:
+        """
+        Fill-in sidecar templates of a hosted dataset (`bids.hosted`).
+
+        Returns
+        -------
+        list[FillTemplate]
+            None by default
+        """
+        return []
+
+    def hosted_selection(self, args: Args | None = None) -> Selection:
+        """
+        Subject and session filters of a hosted roast.
+
+        Parameters
+        ----------
+        args : Args, optional
+
+        Returns
+        -------
+        Selection
+        """
+        if args is None:
+            return Selection()
+        return Selection(
+            subs=self.labels(args.select.subs),
+            exclude_subs=self.labels(args.select.exclude_subs),
+            sessions={s[4:] if s.startswith("ses-") else s
+                      for s in args.sessions.sessions},
+        )
+
+    def hosted_datasets(self, layout, args: Args | None = None) -> list:
+        """
+        Datasets of a hosted roast, with their site and selection.
+
+        Parameters
+        ----------
+        layout : Layout
+        args : Args, optional
+
+        Returns
+        -------
+        list[tuple[Layout, str | None, Selection]]
+            The dataset itself (no site), or each site dataset of a
+            sites layout (named after its site)
+        """
+        selection = self.hosted_selection(args)
+        if not isinstance(layout, SitesLayout):
+            return [(layout, None, selection)]
+        names = set(self.chosen_sites(args)) if args is not None else set()
+        return [(child, name, selection)
+                for name, child in sorted(layout.children.items())
+                if (not names or name in names)
+                and Path(child.root).is_dir()]
+
+    def roast_hosted(self, layout, args: Args | None = None, *,
+                     existing_only: bool = False, only=None):
+        """
+        Roast the metadata of a hosted dataset (`roast.hosted`).
+
+        The body of `roast` for hosted datasets, also run after a
+        compost of BIDS data (`existing_only`).
+
+        Parameters
+        ----------
+        layout : Layout
+        args : Args, optional
+            Options of `roast` (None: defaults, no selection)
+        existing_only : bool
+            Only rewrite the files that exist
+        only : set[Path], optional
+            Only the datasets with these roots
+
+        Returns
+        -------
+        RoastReport | list[RoastReport]
+            One per dataset (site)
+        """
+        fill = self.fill_templates()
+        reports = []
+        for child, site, selection in self.hosted_datasets(layout, args):
+            if only is not None and Path(child.root) not in only:
+                continue
+            if isinstance(layout, SitesLayout):
+                print(f"--- {site}")
+            reports.append(roast_hosted(
+                child, fill=fill, site=site, selection=selection,
+                existing_only=existing_only,
+                json=args.roast.sidecar_policy if args else "yes",
+                ifexists=args.roast.if_exists if args else "skip",
+                jobs=args.roast.jobs if args else 1,
+                info={"trigger": "compost" if existing_only else "roast"},
+            ))
+        return reports[0] if len(reports) == 1 else reports
 
     def info(self, layout=None, args: Args | None = None):
         """

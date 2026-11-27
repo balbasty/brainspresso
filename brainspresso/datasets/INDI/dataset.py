@@ -2,8 +2,9 @@
 `bx <project>` for the curated INDI projects (`engine.Project`).
 
 `INDIDataset` wraps a `Project` (composition: a project keeps its own
-`sites` and `templates()`): harvest as BIDS (merged sites, or one
-dataset per site with `--layout sites`), compost, info.
+`sites` and `templates()`): harvest as BIDS with hybrid placement
+(merged sites, or one dataset per site with `--layout sites`), roast
+(the metadata, from `sourcedata/fcp-indi/`), compost, info.
 """
 import copy
 from pathlib import Path
@@ -15,17 +16,22 @@ from humanize import naturalsize
 from brainspresso.bids.harvest import (
     check_selected_subjects,
     format_summary,
-    harvest,
     summarize,
 )
 from brainspresso.bids.layout import ALL_LAYOUTS, SitesLayout
 from brainspresso.bids.select import Selection
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.INDI.fcon1000 import FCON1000
-from brainspresso.datasets.INDI.harvest import collect, harvest_sites
+from brainspresso.datasets.INDI.harvest import (
+    FOLDER,
+    collect,
+    harvest_sites,
+    site_selection,
+)
 from brainspresso.datasets.INDI.projects import PROJECTS
 from brainspresso.datasets.options import OptionGroup, option_group
 from brainspresso.errors import UsageError
+from brainspresso.roast.hosted import harvest_hosted
 
 
 @option_group("Info", 50)
@@ -55,7 +61,7 @@ class INDIDataset(Dataset):
     harvest_jobs = 8
     option_defaults = {"harvest": {"insecure": False}}
     folder_choices = ("derivatives", "sourcedata")
-    commands = ("harvest", "compost", "info")
+    commands = ("harvest", "roast", "compost", "info")
 
     def __init__(self, project, **arguments):
         super().__init__(**arguments)
@@ -98,6 +104,40 @@ class INDIDataset(Dataset):
             raise UsageError(str(e)) from e
         return tuple(s.name for s in chosen if not s.derivative)
 
+    def fill_templates(self):
+        """Fill-in sidecar templates of the project (`fill.toml`)."""
+        return self.project.fill_templates()
+
+    def hosted_datasets(self, layout, args=None):
+        """
+        Datasets of a hosted roast: the merged one, or each site.
+
+        Site datasets take the labels of the bucket; `--subs` also
+        accepts merged labels (with the site code), as harvest does.
+        """
+        if not isinstance(layout, SitesLayout):
+            return super().hosted_datasets(layout, args)
+        selection = self.hosted_selection(args)
+        names = set(self.chosen_sites(args)) if args is not None else set()
+        out = []
+        for name, child in sorted(layout.children.items()):
+            if names and name not in names:
+                continue
+            if not Path(child.root).is_dir():
+                continue
+            site = next((s for s in self.project.sites if s.name == name),
+                        None)
+            local = selection
+            if site is not None:
+                expanded = copy.copy(selection)
+                for attr in ("subs", "exclude_subs"):
+                    labels = set(getattr(selection, attr))
+                    setattr(expanded, attr, labels | {
+                        site.label(x) for x in labels})
+                local = site_selection(expanded, site)
+            out.append((child, name, local))
+        return out
+
     def options(self, command):
         """`info --derivatives`."""
         return {"info": InfoOptions} if command == "info" else {}
@@ -116,7 +156,10 @@ class INDIDataset(Dataset):
                 "Metadata (sidecars, tables, top-level files) that applies "
                 "to the selected data files is always included. Files that "
                 "the bucket lacks (merged participants table, curated "
-                "description, missing sidecars) are generated. With "
+                "description, missing sidecars) are generated. Images are "
+                "placed directly; metadata is downloaded to "
+                "`sourcedata/fcp-indi/` and roasted (repaired, filled in, "
+                "trimmed). With "
                 "`--layout study` or `flat`, sites are merged (labels made "
                 "unique with a site code when needed, `site` column in "
                 "participants.tsv); with `--layout sites`, one dataset per "
@@ -125,6 +168,13 @@ class INDIDataset(Dataset):
                 "00448`), and the parent folder holds the README and the "
                 "merged participants.tsv. Single-site projects treat "
                 "`sites:<layout>` as `<layout>`."
+            )
+        if command == "roast":
+            return (
+                "Roast the metadata again, from `sourcedata/fcp-indi/` "
+                "(repaired, filled in from the templates of the project, "
+                "trimmed): after deleting or editing roasted files, or to "
+                "change `--sidecars`."
             )
         if command == "info":
             return "Show the content of the dataset (lists the bucket)."
@@ -156,11 +206,13 @@ class INDIDataset(Dataset):
             dry_run=h.dry_run, listing=args.hosted.list,
             insecure=bool(h.insecure),
             chunk_size=h.runtime().chunk_size,
+            sidecars=args.hosted.sidecars,
         )
+        fill = self.fill_templates()
         if isinstance(layout, SitesLayout):
             harvest_sites(self.project, layout, selection, sites=sites,
                           where=f.where, provenance=provenance,
-                          wait=args.lock_wait,
+                          wait=args.lock_wait, fill=fill,
                           **options)
             if not h.dry_run:
                 print(f"Site datasets in: {layout.root}")
@@ -169,8 +221,9 @@ class INDIDataset(Dataset):
         entries, selection = collect(self.project, sites=sites,
                                      selection=selection, where=f.where)
         check_selected_subjects(asked, entries)
-        harvest(entries, layout, selection, repair=True,
-                provenance=provenance, check_subjects=False, **options)
+        harvest_hosted(entries, layout, selection, folder=FOLDER,
+                       repair=True, fill=fill, provenance=provenance,
+                       check_subjects=False, **options)
         if not h.dry_run:
             print(f"BIDS root: {Path(layout.raw)}")
 

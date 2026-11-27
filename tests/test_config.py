@@ -771,7 +771,7 @@ def test_config_show_sections(tmp_path, home, capsys):
 
 
 def test_config_show_errors(capsys):
-    for tokens in (["nope"], ["openneuro", "roast"]):
+    for tokens in (["nope"], ["gsp", "roast"]):
         with pytest.raises(SystemExit) as e:
             main(["config", "show", *tokens])
         assert e.value.code == 1

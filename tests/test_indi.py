@@ -744,13 +744,13 @@ def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
 
 def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
     seen = []
-    original = indi.harvest
+    original = indi.harvest_hosted       # (each site: hybrid placement)
 
     def spy(entries, layout, *args, **kwargs):
         seen.append((Path(layout.state), list(held_states())))
         return original(entries, layout, *args, **kwargs)
 
-    monkeypatch.setattr(indi, "harvest", spy)
+    monkeypatch.setattr(indi, "harvest_hosted", spy)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
        "--sites", "ICBM")
     site, held = seen[0]

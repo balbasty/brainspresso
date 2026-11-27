@@ -11,12 +11,17 @@ them:
   way;
 * which files must be generated locally (`InlineEntry`): a merged
   `participants.tsv`, sidecars the bucket lacks, or curated
-  `dataset_description.json`/`README` (from `templates/<name>/`).
+  `dataset_description.json`/`README` (from `templates/<name>/`);
+* fill-in sidecar templates (`templates/<name>/fill.toml`, see
+  `bids.hosted`), which add the keys the bucket's sidecars lack.
 
-The harvest then reuses the generic BIDS machinery (`bids.harvest`):
-selection by subject/session/datatype/suffix/task/globs, participant
-queries (`--where`), trimmed tables and a manifest. Listing is pruned:
-only the subjects that are selected are listed.
+The harvest then reuses the generic machinery of hosted datasets
+(`roast.hosted.harvest_hosted`, hybrid placement): selection by
+subject/session/datatype/suffix/task/globs, participant queries
+(`--where`); images placed directly, metadata downloaded to
+`sourcedata/fcp-indi/<key under data/Projects>` and roasted (repaired,
+filled in, trimmed); a manifest. Listing is pruned: only the subjects
+that are selected are listed.
 
 Local layouts (`bids.layout`):
 
@@ -50,10 +55,15 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator
 
 from brainspresso.bids.harvest import InlineEntry
+from brainspresso.bids.hosted import (
+    FillTemplate,
+    fill_files,
+    read_fill_templates,
+)
 from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName
 from brainspresso.download.session import new_session
 from brainspresso.sources import fcp
-from brainspresso.sources.base import LabelMap, prefix_labels
+from brainspresso.sources.base import LabelMap, RemoteEntry, prefix_labels
 from brainspresso.sources.s3 import S3Object
 
 lg = getLogger(__name__)
@@ -276,8 +286,11 @@ class Project:
         root = TEMPLATES / self.name
         if not root.is_dir():
             return []
+        # fill-in templates are merged by the metadata roast instead
+        fill = fill_files(root)
+
         def keep(p):
-            if not p.is_file():
+            if not p.is_file() or p.relative_to(root).as_posix() in fill:
                 return False
             return p.name == ".bidsignore" or \
                 not p.name.startswith((".", "_"))
@@ -286,6 +299,22 @@ class Project:
             InlineEntry(p.relative_to(root).as_posix(), p.read_bytes())
             for p in sorted(root.rglob("*")) if keep(p)
         ]
+
+    def fill_templates(self) -> list[FillTemplate]:
+        """
+        Fill-in sidecar templates (`templates/<name>/fill.toml`).
+
+        See `bids.hosted` for the convention: `[<site>/]<name>.json`,
+        `<site>` a `Site.name` of the project.
+
+        Returns
+        -------
+        list[FillTemplate]
+        """
+        parent = getattr(self, "parent", None)
+        sites = (parent or self).sites
+        return read_fill_templates(TEMPLATES / self.name,
+                                   [s.name for s in sites if s.name])
 
     # ------------------------------------------------------------------
     #   Layout "sites": one BIDS dataset per site
@@ -346,7 +375,7 @@ class Project:
                 )
                 continue
             path = reorder_entities(path)
-            out[path] = it.obj.entry(fcp.get_bucket().url(it.obj.key), path)
+            out[path] = remote_entry(it.obj, path, it.site.name)
         inline = list(self.generated(items, tables))
         participants = self.participants(tables)
         if participants is not None:
@@ -437,6 +466,37 @@ def reorder_entities(path: str) -> str:
     pairs.sort(key=lambda p: ENTITIES.index(p[0]))
     name = "_".join(["-".join(p) for p in pairs] + [parts[-1]]) + dot + ext
     return f"{folder}/{name}" if folder else name
+
+
+def remote_entry(obj: S3Object, path: str, site: str = "") -> RemoteEntry:
+    """
+    Entry of a bucket object placed at `path` (flat BIDS view).
+
+    `meta["remote"]` is its key relative to `data/Projects/` (the path
+    of its pristine copy, `sourcedata/fcp-indi/<remote>`, when it is
+    metadata) and `meta["site"]` its site, if any.
+
+    Parameters
+    ----------
+    obj : S3Object
+        The object
+    path : str
+        Its local path (flat view)
+    site : str
+        Name of its site ("" for single-site projects)
+
+    Returns
+    -------
+    RemoteEntry
+    """
+    entry = obj.entry(fcp.get_bucket().url(obj.key), path)
+    key = obj.key
+    prefix = f"{fcp.PROJECTS}/"
+    entry.meta["remote"] = key[len(prefix):] if key.startswith(prefix) \
+        else key
+    if site:
+        entry.meta["site"] = site
+    return entry
 
 
 def join(*parts: str) -> str:

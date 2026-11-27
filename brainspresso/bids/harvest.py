@@ -47,7 +47,7 @@ lg = getLogger(__name__)
 
 __all__ = [
     "InlineEntry", "STATE_DIR", "finish_roast", "harvest", "read_manifest",
-    "record_run", "trim_originals",
+    "record_run", "select_entries", "trim_originals", "update_files",
     "write_manifest",
 ]
 
@@ -197,6 +197,57 @@ def check_selected_subjects(selection, entries, found=None) -> None:
                    f"{', '.join(missing)}")
 
 
+def select_entries(
+    entries: list,
+    selection: Selection,
+    *,
+    where: Iterable[str] = (),
+    listing: bool = False,
+    check_subjects: bool = True,
+    keep=None,
+) -> tuple[list, Selection]:
+    """
+    Select the entries of a hosted listing (first step of a harvest).
+
+    Parameters
+    ----------
+    entries : list[RemoteEntry | InlineEntry]
+        Full listing of the remote dataset (flat BIDS view)
+    selection : Selection
+        Filters
+    where : list[str]
+        Queries on participants.tsv columns (e.g. "age>=60")
+    listing : bool
+        Print the selected files
+    check_subjects : bool
+        Warn about selected subjects that match nothing (`UsageError`
+        if none does)
+    keep : callable(entry) -> bool, optional
+        Entries to keep among the selected ones (e.g. a sidecar policy);
+        the summary describes what is kept
+
+    Returns
+    -------
+    selected : list
+        The selected entries, in the order of the listing
+    selection : Selection
+        The selection, with participant queries applied
+    """
+    if check_subjects:
+        check_selected_subjects(selection, entries)
+    selection = resolve_participants(entries, selection, where)
+    chosen = set(selection.select(e.path for e in entries))
+    selected = [e for e in entries if e.path in chosen
+                and (keep is None or keep(e))]
+    if listing:
+        for e in selected:
+            size = naturalsize(e.size) if e.size is not None else "?"
+            print(f"{size:>10}  {e.path}")
+    print(f"Selected: {format_summary(summarize(selected))}")
+    print(f"     out of {format_summary(summarize(entries))}")
+    return selected, selection
+
+
 def harvest(
     entries: list,
     root: Path | Layout,
@@ -264,18 +315,10 @@ def harvest(
     -------
     selected : list[RemoteEntry]
     """
-    if check_subjects:
-        check_selected_subjects(selection, entries)
-    selection = resolve_participants(entries, selection, where)
-    keep = set(selection.select(e.path for e in entries))
-    selected = [e for e in entries if e.path in keep]
-
-    if listing or dry_run:
-        for e in selected:
-            size = naturalsize(e.size) if e.size is not None else "?"
-            print(f"{size:>10}  {e.path}")
-    print(f"Selected: {format_summary(summarize(selected))}")
-    print(f"     out of {format_summary(summarize(entries))}")
+    selected, selection = select_entries(
+        entries, selection, where=where, listing=listing or dry_run,
+        check_subjects=check_subjects,
+    )
     if dry_run or not selected:
         return selected
 
@@ -371,8 +414,12 @@ def harvest(
 #
 # `origin` says how a file got to its place: downloaded to its final
 # path (`direct`), downloaded to `sourcedata/` then roasted (`roasted`,
-# hybrid placement of hosted-BIDS sources, step 2b-iii), or generated
-# locally (`generated`). Manifests without `schema` (written before the
+# hybrid placement of hosted-BIDS sources, `roast.hosted`), or generated
+# locally (`generated`). A `roasted` or `generated` file of a hosted
+# dataset also has a `source` (its pristine copy in `sourcedata/<folder>/`,
+# or its generated base in `<state>/generated/`), and optionally `repair`
+# (true), `trim` (false), `site` and `fill` (fill-in templates merged
+# into it); see `roast.hosted`. Manifests without `schema` (written before the
 # layouts) are read as is; their `files` keys are relative to the raw
 # dataset, which is `layout.root` for a flat layout.
 #
@@ -433,6 +480,42 @@ def record_run(
         Path of the manifest (None if it does not exist and `create` is
         False)
     """
+    return _update_manifest(layout, {
+        "stage": stage, "date": now(), **(info or {}),
+    }, files=files, deleted=deleted, create=create)
+
+
+def update_files(
+    layout: Layout,
+    files: dict[str, dict] | None = None,
+    *,
+    deleted: Iterable[str] = (),
+    merge: bool = True,
+) -> Path | None:
+    """
+    Update the `files` of `<state>/manifest.json`, without a run.
+
+    Parameters
+    ----------
+    layout : Layout
+    files : dict[str, dict]
+        Files to add (or update), keyed by path relative to `layout.root`
+    deleted : list[str]
+        Files to remove
+    merge : bool
+        Merge the fields of an existing entry (else replace it)
+
+    Returns
+    -------
+    path : Path | None
+        Path of the manifest (None if it does not exist)
+    """
+    return _update_manifest(layout, None, files=files, deleted=deleted,
+                            create=False, merge=merge)
+
+
+def _update_manifest(layout, run, *, files=None, deleted=(), create=True,
+                     merge=False):
     state = Path(layout.state)
     path = state / MANIFEST
     if not path.exists() and not create:
@@ -446,13 +529,17 @@ def record_run(
             manifest = {}
     manifest["schema"] = MANIFEST_SCHEMA
     manifest.update(layout.to_manifest())
-    manifest.setdefault("runs", []).append({
-        "stage": stage, "date": now(), **(info or {}),
-    })
+    runs = manifest.setdefault("runs", [])
+    if run is not None:
+        runs.append(run)
     entries = manifest.setdefault("files", {})
     for f in deleted:
         entries.pop(f, None)
-    entries.update(files or {})
+    for key, value in (files or {}).items():
+        if merge and isinstance(entries.get(key), dict):
+            entries[key] = {**entries[key], **value}
+        else:
+            entries[key] = value
     layout.ensure_state()
     path.write_text(json.dumps(manifest, indent=2, default=str),
                     encoding="utf-8", newline="\n")

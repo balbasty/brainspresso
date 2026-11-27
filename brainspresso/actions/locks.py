@@ -246,11 +246,12 @@ STATE_DIR = ".brainspresso"
 LOCKS_DIR = "locks"
 #: Entries that make a `.brainspresso/` folder a state folder: lock
 #: files, manifest (`bids.layout.MANIFEST`), run lock and records
-#: (`actions.runlock`), task states, pristine tables. Anything else (a
+#: (`actions.runlock`), task states, pristine tables, generated metadata
+#: of hosted datasets. Anything else (a
 #: config file, `config.toml`, with its backup or swap files) does not:
 #: `~/.brainspresso/` and `<root>/.brainspresso/` are config folders
 STATE_ENTRIES = frozenset({LOCKS_DIR, "manifest.json", "run", "runs",
-                           "tasks", "orig"})
+                           "tasks", "orig", "generated"})
 #: Folder of the user config file instead of `~/.brainspresso`
 #: (`brainspresso.config.HOME_ENV`): never a state folder
 CONFIG_HOME_ENV = "BRAINSPRESSO_CONFIG_HOME"

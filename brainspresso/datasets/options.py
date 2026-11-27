@@ -377,6 +377,12 @@ class HostedOptions(OptionGroup):
     list: Annotated[bool, Parameter(
         help="Print the selected files before downloading"
     )] = False
+    sidecars: Annotated[Literal["yes", "no", "only"], Parameter(
+        help="Sidecars: \"yes\" fetches them; \"no\" does not fetch the "
+        "JSON sidecars of the data files (bval/bvec and tables are still "
+        "fetched); \"only\" fetches the sidecars and metadata only, not "
+        "the images"
+    )] = "yes"
 
     @classmethod
     def choices(cls, dataset, command):

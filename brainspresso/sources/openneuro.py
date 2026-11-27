@@ -17,9 +17,10 @@ Two routes are supported:
 S3 when the API cannot be reached and no specific tag was requested.
 
 `OpenNeuro` is the source of a dataset (see `sources.base`): it lists a
-snapshot and places the selected files in the BIDS dataset
-(`bids.harvest.harvest`: selection with inheritance, `--where`, trimmed
-tables, manifest).
+snapshot and places the selected files with hybrid placement
+(`roast.hosted.harvest_hosted`: selection with inheritance, `--where`;
+images directly in the BIDS dataset, metadata in
+`sourcedata/openneuro/` then roasted, trimmed tables, manifest).
 """
 from __future__ import annotations
 
@@ -32,10 +33,10 @@ from urllib.parse import quote
 
 import aiohttp
 
-from brainspresso.bids.harvest import harvest
 from brainspresso.bids.select import Selection
 from brainspresso.download.session import new_session
 from brainspresso.errors import UsageError
+from brainspresso.roast.hosted import harvest_hosted
 from brainspresso.sources.base import (
     DownloadOptions,
     RemoteEntry,
@@ -351,8 +352,10 @@ class OpenNeuro(Source):
 
     `list()` returns the whole snapshot (selection needs the full
     listing, for inheritance); `fetch(entries, layout, options,
-    selection=, where=, trim=, listing=, provenance=)` selects and
-    places files with `bids.harvest.harvest`.
+    selection=, where=, trim=, listing=, provenance=, sidecars=)` selects
+    and places files with `roast.hosted.harvest_hosted` (pristine
+    metadata in `sourcedata/openneuro/`, under their path in the
+    snapshot).
 
     Parameters
     ----------
@@ -369,6 +372,8 @@ class OpenNeuro(Source):
     name = "openneuro"
     provides = frozenset({"bids"})
     jobs = 8
+    #: Sub-folder of `sourcedata/` for the pristine metadata
+    folder = "openneuro"
 
     def __init__(self, dataset: str, tag: str | None = None,
                  route: str = "auto", token: str | None = None, *,
@@ -417,8 +422,9 @@ class OpenNeuro(Source):
 
     def fetch(self, entries, layout, options=None, *, selection=None,
               where=(), trim: bool = True, listing: bool = False,
-              repair: bool = False, provenance: dict | None = None):
-        """Select files and place them with `bids.harvest.harvest`.
+              repair: bool = False, provenance: dict | None = None,
+              sidecars: str = "yes", fill=()):
+        """Select files and place them (`roast.hosted.harvest_hosted`).
 
         Parameters
         ----------
@@ -433,22 +439,33 @@ class OpenNeuro(Source):
         where : list
             Other filters of the selection.
         trim : bool
-            Trim the generated files to the selection.
+            Trim tables and `IntendedFor` to the selection.
         listing : bool
-            Only list the selected files.
+            Print the selected files.
         repair : bool
-            Repair the existing files.
+            Repair the metadata (`bids.repair`; OpenNeuro datasets are
+            validated: off by default).
         provenance : dict, optional
             Provenance to record (default: `provenance()`).
+        sidecars : {"yes", "no", "only"}
+            Placement policy (`--sidecars`).
+        fill : list[FillTemplate]
+            Fill-in sidecar templates (`bids.hosted`).
+
+        Returns
+        -------
+        list
+            The entries fetched.
         """
         options = DownloadOptions.from_any(options)
-        return harvest(
+        return harvest_hosted(
             list(entries), layout, selection or Selection(),
-            where=where, trim=trim, if_exists=options.ifexists,
-            jobs=options.jobs or self.jobs, dry_run=options.dry_run,
-            listing=listing, repair=repair, insecure=bool(options.insecure),
+            folder=self.folder, where=where, trim=trim,
+            if_exists=options.ifexists, jobs=options.jobs or self.jobs,
+            dry_run=options.dry_run, listing=listing, repair=repair,
+            insecure=bool(options.insecure),
             provenance=provenance or self.provenance(),
-            chunk_size=options.chunk_size,
+            chunk_size=options.chunk_size, sidecars=sidecars, fill=fill,
         )
 
     def harvest(self, layout, selection=None, keys=None, options=None,

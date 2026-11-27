@@ -19,6 +19,7 @@ from typing import Iterable, Literal
 from brainspresso.actions.action import IfExists, Kind
 from brainspresso.actions.engine import Context
 from brainspresso.bids.keys import KeyAliases, KeySelection
+from brainspresso.bids.kinds import accepts
 from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
 
 __all__ = ["JsonPolicy", "RoastContext", "as_list", "make_context"]
@@ -150,11 +151,7 @@ class RoastContext(Context):
             False for sidecars under `--sidecars no` and data under
             `--sidecars only`
         """
-        if self.json == "no":
-            return kind != "sidecar"
-        if self.json == "only":
-            return kind != "data"
-        return True
+        return accepts(self.json, kind)
 
     def _unorig(self, path) -> Path:
         """Map a pristine table (`<state>/orig/...`) to its table."""

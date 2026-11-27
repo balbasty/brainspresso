@@ -56,7 +56,7 @@ def test_template_exists(site, name):
 
 @pytest.mark.parametrize("site", ["UCLA", "UCLA_1", "UCLA2", "UCLA_2"])
 def test_template_hires(site):
-    assert site_template(site, "acq-hires_T1w.json").is_file()
+    assert site_template(site, "acq-hires_T2w.json").is_file()
 
 
 @pytest.mark.parametrize("site, name, expected", [
@@ -118,7 +118,7 @@ def _load(path):
     return json.loads(path.read_text())
 
 
-@pytest.mark.parametrize("name", NAMES + ("acq-hires_T1w.json",))
+@pytest.mark.parametrize("name", NAMES + ("acq-hires_T2w.json",))
 @pytest.mark.parametrize("site", sorted(sites.SAMPLES))
 def test_unknown_sample_never_borrows(site, name):
     """With no sample in the data, a site whose samples differ uses a

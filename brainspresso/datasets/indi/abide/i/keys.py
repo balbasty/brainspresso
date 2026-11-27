@@ -13,7 +13,7 @@ allkeys: dict = {
         "meta": {"pheno"},
         "raw": {
             "mri": {
-                "anat": {"T1w"},
+                "anat": {"T1w", "T2w"},     # T2w: UCLA hi-res (acq-hires)
                 "func": {"bold": {"rest"}},
             },
         },

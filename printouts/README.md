@@ -295,9 +295,11 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   first sample (only where all samples share one protocol, which the
   tests check). Sites without samples accept only a tarball part as
   suffix (`NYU_a`). An unknown site, sample or suffix, or a missing
-  template, is an error naming both, counted by the roast. `UCLA_{1,2}/acq-hires_T1w.json` is
+  template, is an error naming both, counted by the roast. `UCLA_{1,2}/acq-hires_T2w.json` is
   the high-resolution anatomical (`anat_hires`, protocol 1 of `anat.pdf`),
-  the sidecar of UCLA `anat_2` (`sub-<label>_acq-hires_T1w`).
+  the sidecar of UCLA `anat_2` (`sub-<label>_acq-hires_T2w`, key `T2w`):
+  a "Matched Bandwidth HiRes" 2D spin-echo EPI, hence T2w, not T1w (owner
+  decision, step 5).
 - ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
   exports (`*.txt`) are kept over the scantable for BNI_1, ETH_1, KUL_3 and
   TCD_1 (more keys: parallel imaging, readout, slice timing). New templates

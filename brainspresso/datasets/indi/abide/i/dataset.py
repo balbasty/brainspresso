@@ -64,8 +64,10 @@ class ABIDE1(Dataset):
             return (
                 "Convert the source data of ABIDE-I to BIDS.\n\n"
                 "`--source s3` (default) or `nitrc`: the bucket copy or "
-                "the NITRC tarballs (T1w, rest, phenotypes). `--source "
-                "xnat`: the NITRC-IR archives (T1w, rest, phenotypes, and "
+                "the NITRC tarballs (T1w, rest, phenotypes; the UCLA "
+                "high-resolution anatomical is `acq-hires_T2w`, key "
+                "`T2w`). `--source xnat`: the NITRC-IR archives (the same, "
+                "and "
                 "FreeSurfer outputs: `fs`, the files that BIDS describes; "
                 "`fs-all`, an add-on of `fs` selected only when named, "
                 "also unpacks every other file, and `--exclude-keys fs` "

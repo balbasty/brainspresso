@@ -18,6 +18,7 @@ are only on xnat (`--source xnat`). s3 and nitrc are roasted by
 from __future__ import annotations
 
 from brainspresso.datasets.indi.abide.i.roaster import (
+    HIRES_SITES,
     SCAN_ID,
     is_freesurfer,
     roast_nitrc,
@@ -110,8 +111,13 @@ class S3(SitesOption, FCP):
         parts = entry.relpath.parts[1:]
         if len(parts) != 5:
             return False
-        site, sub, *_, fname = parts
-        if fname not in RAW_FILES or not wants(RAW_FILES[fname]):
+        site, sub, _, scan, fname = parts
+        if fname not in RAW_FILES:
+            return False
+        key = RAW_FILES[fname]
+        if key == "T1w" and scan == "anat_2" and _site(site) in HIRES_SITES:
+            key = "T2w"                 # `acq-hires_T2w` (roast)
+        if not wants(key):
             return False
         if not self.keeps_site(_site(site)):
             return False
@@ -199,13 +205,19 @@ def scan_key(scan: dict) -> str:
     Returns
     -------
     str
-        `rest` or `anat` for the scans the roast converts (the names it
-        accepts, `roaster.SCAN_ID`), else the scan id itself
+        `rest`, `T1w` or `T2w` (a high-resolution anatomical: `anat_2`,
+        `hires`) for the scans the roast converts (the names it accepts,
+        `roaster.SCAN_ID`), else the scan id itself
     """
     match = SCAN_ID.fullmatch(str(scan.get("ID", "")))
     if match is None:
         return str(scan.get("ID", ""))
-    return "rest" if match["mod"].lower() == "rest" else "anat"
+    mod = match["mod"].lower()
+    if mod == "rest":
+        return "rest"
+    if mod in ("hires", "anat_hires") or int(match["n"] or 1) > 1:
+        return "T2w"
+    return "T1w"
 
 
 def assessor_keys(assessor: dict) -> tuple[str, ...]:

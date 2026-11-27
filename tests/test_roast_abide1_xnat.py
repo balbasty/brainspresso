@@ -123,8 +123,8 @@ RAW = {
     "sub-51330/anat/sub-51330_T1w.json",
     "sub-51201/anat/sub-51201_T1w.nii.gz",
     "sub-51201/anat/sub-51201_T1w.json",
-    "sub-51201/anat/sub-51201_acq-hires_T1w.nii.gz",
-    "sub-51201/anat/sub-51201_acq-hires_T1w.json",
+    "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
+    "sub-51201/anat/sub-51201_acq-hires_T2w.json",
     "sub-50642/func/sub-50642_task-rest_bold.nii.gz",
     "sub-50642/func/sub-50642_task-rest_bold.json",
     "sub-50003/anat/sub-50003_T1w.nii.gz",
@@ -145,19 +145,19 @@ def xnat(root, **options):
 
 
 def test_raw(root):
-    report = xnat(root, keys={"T1w", "rest"})
+    report = xnat(root, keys={"T1w", "T2w", "rest"})
     assert not report.errors, report.errors
     assert raw_tree(root) == RAW
     assert sidecar(root, "sub-51330/anat/sub-51330_T1w.json") == \
         tpl("MaxMun_a/T1w.json")
     assert sidecar(root, "sub-51201/anat/sub-51201_T1w.json") == \
         tpl("UCLA_1/T1w.json")
-    assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T1w.json") == \
-        tpl("UCLA_1/acq-hires_T1w.json")
+    assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T2w.json") == \
+        tpl("UCLA_1/acq-hires_T2w.json")
     assert sidecar(root, "sub-50642/func/sub-50642_task-rest_bold.json") \
         == {**tpl("CMU/bold.json"), "RepetitionTime": 1.5}
     img = nib.load(raw_file(root,
-                            "sub-51201/anat/sub-51201_acq-hires_T1w.nii.gz"))
+                            "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz"))
     assert img.get_fdata().max() == 2
 
 
@@ -467,20 +467,22 @@ def test_subjects_filters_and_shards(root, monkeypatch):
 
     monkeypatch.setattr(roaster, "TarArchive", opener)
     xnat(root, keys={"T1w"}, subs=["sub-51330", "0051201"])
-    assert raw_tree(root) == {p for p in RAW
-                              if "51330" in p or "51201" in p}
+    assert raw_tree(root) == {p for p in RAW if "hires" not in p
+                              and ("51330" in p or "51201" in p)}
     assert sorted(opened) == ["MaxMun_a_0051330/anat.tar.gz",
-                              "UCLA1_51201/anat.tar.gz",
-                              "UCLA1_51201/anat_2.tar.gz"]
+                              "UCLA1_51201/anat.tar.gz"]
     # unchanged: skipped by signature
     xnat(root, keys={"T1w"}, subs=["sub-51330", "0051201"])
-    assert len(opened) == 3
+    assert len(opened) == 2
+    # the high-resolution anatomical is `T2w` (`acq-hires_T2w`)
+    xnat(root, keys={"T2w"})
+    assert opened[2:] == ["UCLA1_51201/anat_2.tar.gz"]
 
 
 def test_corrupt_archive(root):
     (root / "sourcedata" / "Caltech_0051456" / "rest.tar.gz").write_bytes(
         b"garbage")
-    report = xnat(root, keys={"T1w", "rest"})
+    report = xnat(root, keys={"anat", "rest"})
     assert RAW - raw_tree(root) == {
         "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
         "sub-51456/func/sub-51456_task-rest_bold.json"}
@@ -540,10 +542,24 @@ def test_harvest_assessor_keys(record, keys):
 
 
 @pytest.mark.parametrize("scan_id, key", [
-    ("anat", "anat"), ("mprage", "anat"), ("anat_2", "anat"),
-    ("hires", "anat"), ("rest", "rest"), ("rest_1", "rest"),
-    ("dwi", "dwi"),
+    ("anat", "T1w"), ("mprage", "T1w"), ("anat_1", "T1w"),
+    ("anat_2", "T2w"), ("hires", "T2w"), ("anat_hires", "T2w"),
+    ("rest", "rest"), ("rest_1", "rest"), ("dwi", "dwi"),
 ])
 def test_harvest_scan_keys(scan_id, key):
     """Scans are harvested under the names that the roast converts"""
     assert sources.scan_key({"ID": scan_id}) == key
+
+
+@pytest.mark.parametrize("path, keys, kept", [
+    ("UCLA_1/0051201/session_1/anat_2/mprage.nii.gz", ["T2w"], True),
+    ("UCLA_1/0051201/session_1/anat_2/mprage.nii.gz", ["T1w"], False),
+    ("UCLA_1/0051201/session_1/anat_1/mprage.nii.gz", ["T1w"], True),
+    ("UCLA_1/0051201/session_1/anat_1/mprage.nii.gz", ["T2w"], False),
+    ("Pitt/0050003/session_1/anat_2/mprage.nii.gz", ["T1w"], True),
+])
+def test_harvest_s3_hires_key(path, keys, kept):
+    """The bucket's UCLA `anat_2` is harvested with `T2w`"""
+    wants = ABIDE1().wants("harvest", keys)
+    entry = RemoteEntry(path=f"RawData/{path}")
+    assert sources.S3().keep_raw(entry, None, wants) is kept

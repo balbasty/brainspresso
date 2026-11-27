@@ -30,7 +30,7 @@ ABIDE-1/
         README, dataset_description.json, participants.{tsv,json}
         phenotype/{adir,ados,ados_gotham,srs,vineland,wisc_iv}.{tsv,json}
         sub-{05d}/anat/sub-{05d}_T1w.{nii.gz,json}
-        sub-{05d}/anat/sub-{05d}_acq-hires_T1w.{nii.gz,json}   (UCLA)
+        sub-{05d}/anat/sub-{05d}_acq-hires_T2w.{nii.gz,json}   (UCLA)
         sub-{05d}/func/sub-{05d}_task-rest_bold.{nii.gz,json}
     derivatives/abide-freesurfer/   (xnat, keys `fs`, `fs-all`)
         atlas-*_dseg.tsv
@@ -112,6 +112,7 @@ KEYS = KeyAliases(
     {"all": {**allkeys["all"], "meta": {"meta", "pheno"}}},
     bids={
         "T1w": {"datatypes": ["anat"], "suffixes": ["T1w"]},
+        "T2w": {"datatypes": ["anat"], "suffixes": ["T2w"]},
         "rest": {"datatypes": ["func"], "suffixes": ["bold"]},
     },
     folders={
@@ -128,9 +129,10 @@ FS_ADD_ON = (("fs-all", "fs"),)
 ROAST_SPEC = KeySpec(KEYS, off=("fs-all",), implies=FS_ADD_ON)
 
 #: Sidecar templates of a site (`templates/<Site>[_<sample>]/`)
-TEMPLATE_NAMES = ("T1w.json", "acq-hires_T1w.json", "bold.json")
+TEMPLATE_NAMES = ("T1w.json", "acq-hires_T2w.json", "bold.json")
 
-#: Sites with a high-resolution anatomical (`anat_2`, `acq-hires`)
+#: Sites with a high-resolution anatomical (`anat_2`): a 2D spin-echo EPI
+#: ("Matched Bandwidth HiRes"), so `acq-hires_T2w` (owner decision)
 HIRES_SITES = ("UCLA",)
 
 NIFTI = (".nii.gz", ".nii")
@@ -267,7 +269,7 @@ def scan_name(site: str, mod: str, number: int
     Returns
     -------
     (key, datatype, name, template) | None
-        E.g. `("T1w", "anat", "acq-hires_T1w", "acq-hires_T1w.json")`;
+        E.g. `("T2w", "anat", "acq-hires_T2w", "acq-hires_T2w.json")`;
         None for a scan without a BIDS name (other numbers)
     """
     if mod == "anat" and number == 1:
@@ -278,7 +280,7 @@ def scan_name(site: str, mod: str, number: int
         except TemplateError:
             hires = False
         if hires:
-            return "T1w", "anat", "acq-hires_T1w", "acq-hires_T1w.json"
+            return "T2w", "anat", "acq-hires_T2w", "acq-hires_T2w.json"
     if mod == "rest" and number == 1:
         return "rest", "func", "task-rest_bold", "bold.json"
     return None
@@ -465,7 +467,7 @@ ARCHIVE_ERRORS = (tarfile.TarError, EOFError, zlib.error, OSError)
 
 def wants_raw(ctx: RoastContext) -> bool:
     """Whether any raw scan is wanted."""
-    return ctx.wants("T1w") or ctx.wants("rest")
+    return ctx.wants("T1w") or ctx.wants("T2w") or ctx.wants("rest")
 
 
 # ----------------------------------------------------------------------

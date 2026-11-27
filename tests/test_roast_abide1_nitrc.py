@@ -275,7 +275,8 @@ def test_corrupt_archive_fails_its_shard_only(root):
 
 
 def test_hires_anatomical(root):
-    """UCLA `anat_2` is the high-resolution anatomical (`acq-hires`)"""
+    """UCLA `anat_2` is the high-resolution anatomical: a spin-echo EPI,
+    `acq-hires_T2w` (owner decision), key `T2w`"""
     make_tar(root / "sourcedata" / "UCLA_1.tgz", {
         "UCLA_1/0051201/session_1/anat_1/mprage.nii.gz": nii_bytes(),
         "UCLA_1/0051201/session_1/anat_2/mprage.nii.gz":
@@ -283,18 +284,23 @@ def test_hires_anatomical(root):
         "UCLA_1/0051201/session_1/rest_1/rest.nii.gz":
             nii_bytes((2, 2, 2, 3)),
     })
-    report = roast(root, keys={"T1w"}, subs=[51201], display=False)
+    report = roast(root, keys={"T2w"}, subs=[51201], display=False)
+    assert not report.errors
+    assert raw_tree(root) == {
+        "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.json"}
+    report = roast(root, keys={"anat"}, subs=[51201], display=False)
     assert not report.errors
     assert raw_tree(root) == {
         "sub-51201/anat/sub-51201_T1w.nii.gz",
         "sub-51201/anat/sub-51201_T1w.json",
-        "sub-51201/anat/sub-51201_acq-hires_T1w.nii.gz",
-        "sub-51201/anat/sub-51201_acq-hires_T1w.json",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
+        "sub-51201/anat/sub-51201_acq-hires_T2w.json",
     }
-    assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T1w.json") \
-        == tpl("UCLA_1/acq-hires_T1w.json")
+    assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T2w.json") \
+        == tpl("UCLA_1/acq-hires_T2w.json")
     img = nib.load(raw_file(root,
-                            "sub-51201/anat/sub-51201_acq-hires_T1w.nii.gz"))
+                            "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz"))
     assert img.get_fdata().max() == 2
 
 

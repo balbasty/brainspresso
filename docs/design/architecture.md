@@ -2141,7 +2141,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires`, the XNAT bugs fixed; with OASIS-I: 1688 passed, 2 skipped, 12 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I: 1688 passed, 2 skipped, 12 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2292,12 +2292,12 @@ up as an XPASS failure once fixed (then drop the marker).
   misses `UCLA1_...`; the `*_{id:05d}` glob misses 7-digit labels.~~
   (all fixed in the port, step 5)
 * ~~ABIDE-I NITRC: `acq-hires_T1w.json` (UCLA `anat_2`) is never
-  used.~~ (step 5: `sub-<label>_acq-hires_T1w`)
-  Open (owner decision): the template `UCLA_{1,2}/acq-hires_T1w.json`
-  describes a "Matched Bandwidth HiRes" 2D spin-echo EPI
-  (`ep_seg_se`, `SliceTiming`, `PhaseEncodingDirection`), probably not
-  a T1w: the suffix (`T1w`, `T2w` or another) is to be decided; the name
-  is kept until then.
+  used.~~ (step 5: `sub-<label>_acq-hires_T2w`). Decision (owner, review
+  of #33): the template describes a "Matched Bandwidth HiRes" 2D
+  spin-echo EPI (`ep_seg_se`, `SliceTiming`, `PhaseEncodingDirection`),
+  not a T1w: it is named `acq-hires_T2w` (templates
+  `UCLA_{1,2}/acq-hires_T2w.json`, key `T2w` under `anat`, in harvest
+  and roast).
 * ~~`set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II~~ (fixed in OASIS-III, step 2b-ii, with its
   sessions table name; in ABIDE-I/II in step 4, where `--exclude-keys`
@@ -2670,7 +2670,7 @@ up as an XPASS failure once fixed (then drop the marker).
   group and its leaf, which `KeyAliases` cannot tell apart); `meta` is
   also the category of the dataset files (`--keys pheno`: phenotypes
   only). Fixed: `participant_id` with `sub-`, `phenotypic_MAX_MUN.csv`
-  read, UCLA `anat_2` written as `acq-hires_T1w` with its template, and
+  read, UCLA `anat_2` written as `acq-hires_T2w` with its template, and
   every XNAT bug of §8 (FreeSurfer archives found by name, sample and
   `UCLA1_` labels, ids of 5 or 7 digits, keys selecting by output instead
   of `rawkeys`); the harvest fetches FreeSurfer assessors with `fs` or
@@ -2691,5 +2691,6 @@ up as an XPASS failure once fixed (then drop the marker).
   trees rooted at the deepest FreeSurfer folder, other trees and `..`
   skipped; subject folders need an ABIDE-I site and an id of 5 or 7
   digits (others warned); FreeSurfer work is one sibling shard per
-  subject (`roast/fs/sub-<label>`), so re-runs skip it. Open: the
-  suffix of UCLA `acq-hires` (§8, known bugs).
+  subject (`roast/fs/sub-<label>`), so re-runs skip it. Decision
+  (owner): UCLA `anat_2` is `acq-hires_T2w` (a spin-echo EPI, not a
+  T1w; key `T2w`, templates renamed).

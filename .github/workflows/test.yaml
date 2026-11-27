@@ -95,3 +95,20 @@ jobs:
         run: |
           python -c "import brainspresso; print(brainspresso.__file__)"
           pytest "$GITHUB_WORKSPACE/tests" -n auto
+      # TEMPORARY (to be removed): loop the dropped-connection tests
+      - name: Loop dropped-connection tests (temporary)
+        if: ${{ inputs.os == 'windows-latest' }}
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          K="restart_when_remote_changed or resume_after_dropped"
+          for v in old new; do
+            if [ $v = old ]; then f="$GITHUB_WORKSPACE/ci_tmp/test_download_old.py"
+            else f="$GITHUB_WORKSPACE/tests/test_download.py"; fi
+            fails=0
+            for i in $(seq 50); do
+              pytest -q -p no:cacheprovider "$f" -k "$K" > out.txt 2>&1 \
+                || { fails=$((fails+1)); grep -E "^E |FAILED" out.txt | head -5; }
+            done
+            echo "LOOP $v: $fails failed runs of 50"
+          done

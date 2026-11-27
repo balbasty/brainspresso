@@ -27,16 +27,13 @@ jobs:
         python-version: ["3.10", "3.14"]
         os: [ubuntu-24.04]
         cyclopts-version: [""]
-        fasteners-version: [""]
         include:
-          # The floors of setup.cfg (`cyclopts >= 3.17`,
-          # `fasteners >= 0.18`)
+          # The floor of setup.cfg (`cyclopts >= 3.17`)
           - python-version: "3.10"
             os: ubuntu-24.04
             cyclopts-version: "3.17.0"
-            fasteners-version: "0.18"
-          # Other platforms (locks: `LockFileEx` on Windows, `lockf` on
-          # macOS), one Python version each
+          # Other platforms (locks: `LockFileEx` on Windows, classic
+          # `fcntl` on macOS; OFD locks on Linux), one Python version each
           - python-version: "3.12"
             os: windows-latest
           - python-version: "3.12"
@@ -47,4 +44,3 @@ jobs:
       python-version: ${{ matrix.python-version }}
       os: ${{ matrix.os }}
       cyclopts-version: ${{ matrix.cyclopts-version }}
-      fasteners-version: ${{ matrix.fasteners-version }}

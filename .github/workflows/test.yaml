@@ -15,10 +15,6 @@ on:
         description: "cyclopts version to pin (default: the latest)"
         required: false
         default: ""
-      fasteners-version:
-        description: "fasteners version to pin (default: the latest)"
-        required: false
-        default: ""
       os:
         description: Runner (ubuntu-24.04, windows-latest, macos-latest)
         required: false
@@ -36,11 +32,6 @@ on:
         type: string
       cyclopts-version:
         description: "cyclopts version to pin (default: the latest)"
-        required: false
-        default: ""
-        type: string
-      fasteners-version:
-        description: "fasteners version to pin (default: the latest)"
         required: false
         default: ""
         type: string
@@ -80,12 +71,22 @@ jobs:
           if [ -n "${{ inputs.cyclopts-version }}" ]; then
             pip install "cyclopts==${{ inputs.cyclopts-version }}"
           fi
-          if [ -n "${{ inputs.fasteners-version }}" ]; then
-            pip install "fasteners==${{ inputs.fasteners-version }}"
-          fi
       - name: Check the CLI
         shell: bash
         run: bx --help
+      - name: Report the lock primitives of this platform
+        shell: bash
+        # OFD locks and their `struct flock` layout (Linux), conflicts
+        # between descriptors and between flock and lockf (POSIX)
+        working-directory: ${{ runner.temp }}
+        run: |
+          python "$GITHUB_WORKSPACE/tests/lock_probe.py" | tee probe.json
+          {
+            echo '## Lock primitives'
+            echo '```json'
+            cat probe.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test with pytest
         shell: bash
         # Run from outside the checkout so that `import brainspresso`

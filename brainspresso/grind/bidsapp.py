@@ -43,7 +43,8 @@ class BidsAppConfig:
         Content of the filter file of apps that take one
         (`--bids-filter-file`). A selection finer than subjects and
         sessions needs it, or staging (`--stage inputs|all` copies only
-        the selected files, `grind.staging`); else it is refused
+        the selected files, `grind.staging`); else it is refused, with
+        a message that names `--stage inputs`
     skip_bids_validation : bool
         Pass the app's flag that skips its validation of the dataset
     files : Mapping[str, str]

@@ -52,7 +52,7 @@ class GrindContext(Context):
     overrides : GrindOverrides | None
         What the dataset declares
     profile : Profile | None
-        Execution profile (container runtime, scratch, lock wait)
+        Execution profile (container runtime, scratch, `lock_wait`)
     dataset : str | None
         Reference of the dataset
     variant : str | None

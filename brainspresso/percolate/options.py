@@ -98,6 +98,9 @@ class ExecutionOptions:
         (`$SLURM_TMPDIR`), expanded in the job
     keep_scratch_on_failure : bool
         `--keep-scratch-on-failure`
+    detach : bool | None
+        `--detach` (True) or `--wait` (False): one option, two
+        spellings. None: the profile, else the default of the backend
     """
 
     profile: str | None = None
@@ -117,6 +120,7 @@ class ExecutionOptions:
     stage: str | None = None
     scratch: str | None = None
     keep_scratch_on_failure: bool = False
+    detach: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -150,7 +154,12 @@ class Profile:
         environment activation)
     executable : str
         Command that runs brainspresso on the nodes (`bx`)
-    wait : float
+    detach : bool | None
+        `detach = true|false`: return once tasks are started instead
+        of waiting for them. None: wait on the local backend, detach
+        on schedulers. The command line wins over it. Waiting is
+        monitoring only: stopping it never affects the jobs
+    lock_wait : float
         Seconds a task waits for the locks of its datasets
     paths : tuple[tuple[str, str], ...]
         Ordered path map: `(from, to)` prefixes, the first that matches
@@ -179,7 +188,8 @@ class Profile:
     directives: tuple[str, ...] = ()
     setup: tuple[str, ...] = ()
     executable: str = "bx"
-    wait: float = 0
+    detach: bool | None = None
+    lock_wait: float = 0
     paths: tuple[tuple[str, str], ...] = ()
     stage: str = "none"
     keep_scratch_on_failure: bool = False

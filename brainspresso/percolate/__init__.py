@@ -14,14 +14,15 @@ memory and run; `--plan PATH` writes the plan and runs nothing;
 scheduler jobs whose payload is `bx percolate PLAN --task <id>`.
 
 * `plan`: `Plan`, `PlanTask`, `PlanDataset`, `TaskScope`, `Resources`,
-  `read_plan`, `write_plan`, `resolve_roots`, `check_strings`,
-  `ambiguous_scalar`;
+  `read_plan`, `write_plan`, `plan_dumper`, `resolve_roots`,
+  `check_strings`;
 * `options`: `ExecutionOptions` (the option group shared by roast,
   grind and percolate), `Profile`, `load_profile`, `resolve_resources`,
   `translate` (path maps);
 * `jobs`: `Job`, `Scheduler`, `make_jobs`, `write_jobs`, `submit_jobs`;
 * `run`: `StagePlanner`, `PLANNERS`, `percolate`, `run_task`,
-  `plan_status`, `cancel_plan`, `list_plans`, `PlanStatus`.
+  `plan_status`, `watch_plan`, `cancel_plan`, `list_plans`,
+  `PlanStatus`.
 
 Layering: `percolate/` builds on `actions/` and `bids/` and is
 stage-agnostic: it imports neither `roast/` nor `grind/`, which
@@ -61,8 +62,8 @@ from brainspresso.percolate.plan import (
     PlanTask,
     Resources,
     TaskScope,
-    ambiguous_scalar,
     check_strings,
+    plan_dumper,
     plan_path,
     read_plan,
     resolve_roots,
@@ -78,6 +79,7 @@ from brainspresso.percolate.run import (
     percolate,
     plan_status,
     run_task,
+    watch_plan,
 )
 
 __all__ = [
@@ -86,9 +88,9 @@ __all__ = [
     "YAML_PITFALLS", "ExecutionOptions", "Job", "JobState", "Plan",
     "PlanDataset", "PlanError", "PlanStatus", "PlanTask", "Profile",
     "Resources", "Scheduler", "StagePlanner", "TaskScope",
-    "ambiguous_scalar", "cancel_plan", "check_strings", "get_planner",
+    "cancel_plan", "check_strings", "get_planner",
     "get_scheduler", "list_plans", "load_profile", "make_jobs",
-    "percolate", "plan_path", "plan_status", "read_plan",
+    "percolate", "plan_dumper", "plan_path", "plan_status", "read_plan",
     "resolve_resources", "resolve_roots", "run_task", "submit_jobs",
-    "translate", "write_jobs", "write_plan",
+    "translate", "watch_plan", "write_jobs", "write_plan",
 ]

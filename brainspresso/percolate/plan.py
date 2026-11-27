@@ -47,15 +47,18 @@ the path map of the profile (`percolate.options.translate`), and
 `resolve_roots` checks that each translated root exists and holds the
 dataset the plan names (`uid`).
 
-YAML and strings. Plans are read with `yaml.safe_load` and written with
-`yaml.safe_dump`, nothing else. YAML 1.1 reads an unquoted `01` as a
-number and `no` or `on` as booleans, and YAML 1.2 readers read `1e3`
-as a number although PyYAML writes it unquoted. So:
+YAML and strings. YAML 1.1 reads an unquoted `01` as a number and `no`
+or `on` as booleans, and YAML 1.2 readers read `1e3` as a number
+although PyYAML writes it unquoted (`YAML_PITFALLS`). So:
+
+* plans are read with `yaml.safe_load`, nothing else, and written with
+  a `yaml.SafeDumper` subclass that quotes every string scalar
+  (`plan_dumper`): such values round-trip as strings for any reader,
+  and nothing is refused when writing (the example above shows the
+  content, not the quoting);
 
 * BIDS labels are written with their prefix (`sub-01`, `ses-no`), which
   no reader takes for anything but a string;
-* `write_plan` refuses an identifier (task id, dataset reference,
-  pipeline, stage, variant, version) that `ambiguous_scalar` flags;
 * `read_plan` checks that every field that must be a string is one
   (`check_strings`) and names the field to quote otherwise: it never
   converts a number or a boolean back into a label.
@@ -68,8 +71,8 @@ from typing import Any, Literal, Mapping, Sequence
 
 __all__ = [
     "PLANS_DIR", "PLAN_SCHEMA", "YAML_PITFALLS", "Plan", "PlanDataset",
-    "PlanError", "PlanTask", "Resources", "TaskScope", "ambiguous_scalar",
-    "check_strings", "plan_path", "read_plan", "resolve_roots",
+    "PlanError", "PlanTask", "Resources", "TaskScope", "check_strings",
+    "plan_dumper", "plan_path", "read_plan", "resolve_roots",
     "write_plan",
 ]
 
@@ -78,7 +81,8 @@ PLANS_DIR = "plans"
 #: Version of the format of plan files
 PLAN_SCHEMA = 1
 #: Strings that YAML readers take for something else when unquoted
-#: (number, boolean, null, date): what `ambiguous_scalar` must flag
+#: (number, boolean, null, date): why the plan writer quotes every
+#: string, and what the contract tests round-trip
 YAML_PITFALLS = ("01", "1", "1.0", "1e3", "0x1F", "0o17", "no", "on",
                  "yes", "off", "y", "n", "true", "False", "null", "~",
                  "", "2026-11-27", ".inf", ".nan")
@@ -89,7 +93,7 @@ class PlanError(ValueError):
     A plan that cannot be read, written or followed.
 
     Unknown schema, a field of the wrong type (a label read as a
-    number: "quote it"), an ambiguous identifier, or a stale plan: a
+    number: "quote it"), a root that is missing, or a stale plan: a
     pipeline version or image digest that differs from the plan's.
     """
 
@@ -223,9 +227,10 @@ class PlanDataset:
         absolute path of the dataset in the plan (translated by the
         path map of the profile on other machines)
     uid : str | None
-        Identifier of the dataset, from its manifest (step 7 writes
-        one, once, in `<state>/manifest.json`): what a job checks
-        before it trusts a translated root
+        Identifier of the dataset: a UUID that `Layout.ensure_state`
+        writes once in `<state>/manifest.json` (step 7); what a job
+        checks before it trusts a translated root. None: a dataset
+        made before, accepted with a warning
     layout : str
         Its layout kind
     config : Mapping[str, Mapping[str, Any]]
@@ -368,29 +373,26 @@ def resolve_roots(plan: Plan,
     ------
     PlanError
         Naming the root that is missing here, or that holds another
-        dataset, and the path map that was applied
+        dataset, and the path map that was applied (a dataset without
+        an id is accepted with a warning)
     """
     raise NotImplementedError
 
 
-def ambiguous_scalar(text: str) -> bool:
+def plan_dumper() -> type:
     """
-    Tell whether a YAML reader may not read a string back as a string.
+    Return the YAML dumper of plans.
 
-    When it is written without quotes: numbers (`01`, `1e3`, `0x1F`),
-    booleans (`no`, `on`, `y`), nulls (`~`, empty), dates, under the
-    YAML 1.1 rules and under the YAML 1.2 core schema (PyYAML follows
-    1.1 and writes `1e3` unquoted). See `YAML_PITFALLS`.
-
-    Parameters
-    ----------
-    text : str
-        The string
+    A subclass of `yaml.SafeDumper` (it writes plain data only) that
+    represents every `str` as a quoted scalar, keys included; numbers,
+    booleans and nulls stay plain. So `"1e3"`, `"01"`, `"no"` and
+    `"on"` are read back as strings by YAML 1.1 and 1.2 readers alike.
+    Built on first use: PyYAML is not imported with this module.
 
     Returns
     -------
-    bool
-        Whether it is ambiguous
+    type
+        The dumper class, for `yaml.dump(..., Dumper=...)`
     """
     raise NotImplementedError
 
@@ -400,14 +402,15 @@ def check_strings(document: Mapping[str, Any]) -> None:
     Check the strings of a plan document.
 
     Every field that must be a string (ids, dataset references, labels,
-    pipeline, stage, variant and version names, dependencies) is one
-    and is not ambiguous, and labels carry their prefix. Nothing is
-    converted: `sub: 01`, read as the number 1, is an error.
+    pipeline, stage, variant and version names, dependencies) is one,
+    and labels carry their prefix. Nothing is converted: `sub: 01`,
+    read as the number 1 from a plan edited by hand, is an error. It is
+    the check of the reader; the writer refuses nothing.
 
     Parameters
     ----------
     document : Mapping[str, Any]
-        What `yaml.safe_load` returned, or what is about to be dumped
+        What `yaml.safe_load` returned
 
     Raises
     ------
@@ -439,7 +442,9 @@ def plan_path(state: str | Path, plan: Plan) -> Path:
 
 def write_plan(plan: Plan, path: str | Path | None = None) -> Path:
     """
-    Write a plan (`yaml.safe_dump`, atomically).
+    Write a plan (YAML, every string quoted; atomically).
+
+    `yaml.dump(document, Dumper=plan_dumper())`.
 
     Parameters
     ----------
@@ -455,8 +460,8 @@ def write_plan(plan: Plan, path: str | Path | None = None) -> Path:
 
     Raises
     ------
-    PlanError
-        If `check_strings` refuses it
+    OSError
+        If it cannot be written
     """
     raise NotImplementedError
 

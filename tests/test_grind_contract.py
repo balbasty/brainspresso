@@ -165,8 +165,9 @@ def test_design_document_names_the_stubs():
         assert re.search(rf"\b{name}\b", SECTION), name
     for name in (
         "Plan", "PlanTask", "TaskScope", "PlanError", "PLAN_SCHEMA",
-        "YAML_PITFALLS", "ambiguous_scalar", "check_strings", "read_plan",
-        "write_plan", "resolve_roots", "ExecutionOptions", "Profile",
+        "YAML_PITFALLS", "plan_dumper", "check_strings", "read_plan",
+        "write_plan", "watch_plan", "resolve_roots", "ExecutionOptions",
+        "Profile",
         "resolve_resources", "translate", "Scheduler", "make_jobs",
         "write_jobs", "submit_jobs", "StagePlanner", "PLANNERS", "percolate",
         "run_task", "plan_status", "cancel_plan", "list_plans",
@@ -177,7 +178,8 @@ def test_design_document_names_the_stubs():
         assert f'"{field}"' in SECTION, field
     # what the plan decisions removed
     for gone in ("Executor.attach", "NotReady", "TaskLost", "TaskArray",
-                 "Task.status", "submit_array"):
+                 "Task.status", "submit_array", "ambiguous_scalar",
+                 "--follow` is used"):
         assert gone not in SECTION, gone
     assert "PlanTask.verdict" in SECTION
     assert "`pipeline`: the **name**" in SECTION
@@ -191,6 +193,7 @@ def test_command_options_are_in_the_design():
         "--cpus", "--gpus", "--max-array", "--max-running", "--directive",
         "--container-runtime", "--path-map", "--stage", "--scratch",
         "--keep-scratch-on-failure", "--with", "--variant", "--if-stale",
+        "--wait", "--status --watch",
     ):
         assert option in SECTION, option
     assert "abide1/NYU" in SECTION and "openneuro/ds000224" in SECTION
@@ -354,32 +357,53 @@ def test_plan_dataclasses():
     assert fields(plans.Plan)["if_stale"] == "error"
 
 
-def test_yaml_pitfalls():
-    """Why plans prefix labels and check strings (PyYAML, YAML 1.1)."""
-    for pitfall in ("01", "no", "on", "1e3"):
+def quoting_dumper(yaml):
+    """What `plan_dumper` is specified to return (reference)."""
+    class Dumper(yaml.SafeDumper):
+        pass
+
+    Dumper.add_representer(str, lambda dumper, value: dumper.
+                           represent_scalar("tag:yaml.org,2002:str", value,
+                                            style='"'))
+    return Dumper
+
+
+def test_yaml_strings_round_trip():
+    """Plans quote every string: `1e3`, `01`, `no`, `on` stay strings."""
+    for pitfall in ("1e3", "01", "no", "on"):
         assert pitfall in plans.YAML_PITFALLS
     doc = flat(plans)
-    assert "yaml.safe_load" in doc and "yaml.safe_dump" in doc
-    assert "never converts" in doc
+    assert "yaml.safe_load" in doc and "yaml.SafeDumper" in doc
+    assert "never converts" in doc and "nothing is refused" in doc
+    assert "quotes every string scalar" in doc
+    assert not hasattr(plans, "ambiguous_scalar")
+    assert "SafeDumper" in flat(plans.plan_dumper)
     yaml = pytest.importorskip("yaml")
-    # what safe_dump writes is read back unchanged by safe_load...
+    dumper = quoting_dumper(yaml)
+    assert issubclass(dumper, yaml.SafeDumper)
     for pitfall in plans.YAML_PITFALLS:
-        text = yaml.safe_dump({"label": pitfall})
-        assert yaml.safe_load(text) == {"label": pitfall}, pitfall
-    # ...but a plan edited by hand is coerced: `read_plan` must check
-    loaded = yaml.safe_load("sub: 01\nses: no\nrun: on\nacq: 1.0\n")
-    assert loaded == {"sub": 1, "ses": False, "run": True, "acq": 1.0}
-    assert not any(isinstance(v, str) for v in loaded.values())
-    # `1e3` is written unquoted (YAML 1.2 readers take it for a
-    # number): `write_plan` must refuse it as an identifier
+        document = {"variant": pitfall, "labels": [pitfall], pitfall: "k"}
+        text = yaml.dump(document, Dumper=dumper)
+        assert f'"{pitfall}"' in text, pitfall
+        loaded = yaml.safe_load(text)
+        assert loaded == document, pitfall
+        assert isinstance(loaded["variant"], str)
+        # no plain scalar is left for a YAML 1.2 reader to reinterpret
+        assert not re.search(rf"(?m)[:-] {re.escape(pitfall)}$", text)
+    # numbers, booleans and nulls stay what they are
+    text = yaml.dump({"schema": 1, "gpu": False, "digest": None},
+                     Dumper=dumper)
+    assert yaml.safe_load(text) == {"schema": 1, "gpu": False,
+                                    "digest": None}
+    # plain `safe_dump` would write this one for a float (YAML 1.2)
     assert yaml.safe_dump({"variant": "1e3"}) == "variant: 1e3\n"
-    # labels with their BIDS prefix are strings for every reader
+    # a plan edited by hand is coerced by the reader: `read_plan` checks
+    loaded = yaml.safe_load("sub: 01\nses: no\nrun: on\nacq: 1.0\n")
+    assert not any(isinstance(v, str) for v in loaded.values())
+    # labels with their BIDS prefix are strings even unquoted
     prefixed = "sub: sub-01\nses: ses-no\nrun: run-on\nacq: acq-1e3\n"
     assert all(isinstance(v, str)
                for v in yaml.safe_load(prefixed).values())
-    scope = yaml.safe_dump(dataclasses.asdict(
-        plans.TaskScope("session", "sub-01", "ses-1e3")))
-    assert yaml.safe_load(scope)["sub"] == "sub-01"
 
 
 def test_execution_options():
@@ -387,16 +411,22 @@ def test_execution_options():
         "profile", "backend", "jobs", "partition", "account", "time",
         "mem", "cpus", "gpus", "max_array", "max_running", "directives",
         "container_runtime", "path_map", "stage", "scratch",
-        "keep_scratch_on_failure"]
+        "keep_scratch_on_failure", "detach"]
+    assert options.ExecutionOptions().detach is None
     assert options.ExecutionOptions() == options.ExecutionOptions()
     assert list(fields(options.Profile)) == [
         "name", "backend", "container_runtime", "jobs", "partition",
         "account", "resources", "stages", "max_array", "max_running",
-        "directives", "setup", "executable", "wait", "paths", "stage",
+        "directives", "setup", "executable", "detach", "lock_wait", "paths",
+        "stage",
         "keep_scratch_on_failure", "scratch", "image_cache"]
     profile = options.Profile()
     assert (profile.backend, profile.container_runtime, profile.stage,
             profile.executable) == ("local", "docker", "none", "bx")
+    assert profile.detach is None       # wait locally, detach on schedulers
+    doc = flat(options.Profile)
+    assert "wait on the local backend, detach on schedulers" in doc
+    assert "The command line wins" in doc
     assert options.BACKENDS == ("local", "slurm", "sge", "pbs")
     assert jobs.SCHEDULERS == options.BACKENDS[1:]
     assert options.STAGING == ("none", "inputs", "all")
@@ -467,24 +497,24 @@ SIGNATURES = {
     run.grind_dataset: [
         "pipeline", "layout", "dataset", "selection", "overrides", "config",
         "execution", "redo", "if_stale", "variant", "variants", "plan_path",
-        "detach", "dry_run", "display"],
+        "dry_run", "display"],
     run.grind_collection: [
         "pipeline", "datasets", "where", "root", "out", "selection",
         "config", "execution", "redo", "if_stale", "variant", "variants",
-        "plan_path", "detach", "dry_run", "display"],
+        "plan_path", "dry_run", "display"],
     run.grind_status: ["pipeline", "layout", "variant"],
     run.GrindPlanner.run: ["self", "plan", "task", "profile"],
     run.GrindPlanner.locks: ["self", "plan", "task"],
     prun.StagePlanner.run: ["self", "plan", "task", "profile"],
     prun.StagePlanner.locks: ["self", "plan", "task"],
     prun.get_planner: ["stage"],
-    prun.percolate: ["plan", "options", "retry", "write_jobs", "detach",
-                     "display"],
+    prun.percolate: ["plan", "options", "retry", "write_jobs", "display"],
+    prun.watch_plan: ["plan", "interval", "display"],
     prun.run_task: ["plan", "task", "options"],
     prun.plan_status: ["plan", "reconcile"],
     prun.cancel_plan: ["plan"],
     prun.list_plans: ["state"],
-    plans.ambiguous_scalar: ["text"],
+    plans.plan_dumper: [],
     plans.check_strings: ["document"],
     plans.plan_path: ["state", "plan"],
     plans.write_plan: ["plan", "path"],
@@ -547,7 +577,8 @@ def test_nothing_is_implemented(tmp_path):
         lambda: plan.id,
         lambda: plan.todo(),
         lambda: plans.Resources().merged({"cpus": 2}),
-        lambda: plans.ambiguous_scalar("01"),
+        lambda: plans.plan_dumper(),
+        lambda: prun.watch_plan(plan),
         lambda: plans.check_strings({"schema": 1}),
         lambda: plans.write_plan(plan, tmp_path / "plan.yaml"),
         lambda: plans.read_plan(tmp_path / "plan.yaml"),
@@ -600,3 +631,18 @@ def test_task_state_fields():
     assert run.GRIND_LOCK == "grind"
     assert list(fields(run.GrindReport)) == [
         "plan", "status", "counts", "failures", "progress"]
+
+
+def test_decisions_leave_one_question():
+    """The owner's decisions are in the text; one question is open."""
+    start = SECTION.index("### Decisions (owner) and open questions")
+    decisions, _, questions = SECTION[start:].partition("\nOpen:\n")
+    assert len(re.findall(r"(?m)^\d+\. ", questions)) == 1
+    assert "--lock-wait" in questions
+    for word in ("--if-stale", "PyYAML is a core", "UUID", "never adopted",
+                 "--wait`/`--detach", "--status --watch"):
+        assert " ".join(word.split()) in " ".join(decisions.split()), word
+    assert "sbatch --wait" in SECTION and "--follow" in SECTION
+    assert fields(plans.Plan)["if_stale"] == "error"
+    assert "str | Path" not in str(
+        inspect.signature(run.grind_dataset).parameters["config"])

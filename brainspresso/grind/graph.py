@@ -315,7 +315,8 @@ def plan(
     Raises
     ------
     ValueError
-        If the pipeline is inconsistent, or if tasks are stale under
-        "error"
+        If the pipeline is inconsistent, if tasks are stale under
+        "error", or if a derivative folder has content but no record
+        of this pipeline (foreign outputs are never adopted)
     """
     raise NotImplementedError

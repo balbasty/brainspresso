@@ -4,6 +4,7 @@ Staging: run a task on node-local scratch.
 Interfaces only (see `brainspresso.grind`). Chosen when a plan is run
 (`--stage none|inputs|all`, `--scratch`, `--keep-scratch-on-failure`;
 `percolate.options`), never part of the plan or of the signature.
+Grind tasks only: roast ignores `--stage`, with a warning.
 
 Inside the task:
 

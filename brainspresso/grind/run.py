@@ -14,10 +14,10 @@ Interfaces only (see `brainspresso.grind`).
 
 Both commands plan (`grind.graph.plan`), then: by default run the plan
 from memory on the local pool, writing no plan file; with `plan_path`
-(`--plan PATH`) write the plan and run nothing; with `detach`, or a
-scheduler backend, save the plan under `<state>/plans/` and hand it to
-`percolate.run.percolate` (`detach` prints the `bx percolate <plan>
---status` command and returns).
+(`--plan PATH`) write the plan and run nothing; when detached, or with
+a scheduler backend, save the plan under `<state>/plans/` and hand it
+to `percolate.run.percolate`, which waits or detaches
+(`ExecutionOptions.detach`: wait locally, detach on schedulers).
 
 Locks: grind never takes the run lock of harvest and roast
 (`<state>/run`). The process that plans and runs, and every task while
@@ -66,7 +66,8 @@ class GrindReport:
         The plan (its `path` is set when it was saved)
     status : {"complete", "partial", "failed", "submitted", "planned"}
         "partial": some tasks failed or were skipped; "submitted": a
-        detached run; "planned": `--plan` or a dry run
+        detached run (`bx percolate <plan> --status` follows it);
+        "planned": `--plan` or a dry run
     counts : dict[str, dict[str, int]]
         `{stage: {task status: n}}`
     failures : dict[str, str]
@@ -112,7 +113,7 @@ class GrindPlanner:
         task : PlanTask
             The task
         profile : Profile
-            Container runtime, scratch, lock wait
+            Container runtime, scratch, `lock_wait`
 
         Returns
         -------
@@ -161,14 +162,13 @@ def grind_dataset(
     dataset: str | None = None,
     selection: Selection | None = None,
     overrides: GrindOverrides | None = None,
-    config: Mapping[str, Any] | str | Path | None = None,
+    config: Mapping[str, Any] | None = None,
     execution: ExecutionOptions | None = None,
     redo: Sequence[str] = (),
     if_stale: IfStale = "error",
     variant: str | None = None,
     variants: Mapping[str, str | None] | None = None,
     plan_path: str | Path | None = None,
-    detach: bool = False,
     dry_run: bool = False,
     display: bool = True,
 ) -> GrindReport:
@@ -188,11 +188,12 @@ def grind_dataset(
         Subjects and sessions to grind (default: all)
     overrides : GrindOverrides | None
         What the dataset declares (`Dataset.grind`)
-    config : Mapping[str, Any] | str | Path | None
-        Configuration fields of the pipeline (command line), over
-        those of the config file (separate PR); or a file of them
+    config : Mapping[str, Any] | None
+        Configuration fields of the pipeline (generated options), over
+        those of the config file (separate PR, which owns `--config`)
     execution : ExecutionOptions | None
-        Backend, profile, limits, resources (default: the local pool)
+        Backend, profile, limits, resources, `--wait`/`--detach`
+        (default: the local pool, waiting)
     redo : Sequence[str]
         Stages to run again, with what depends on them
     if_stale : {"error", "redo", "keep"}
@@ -203,9 +204,6 @@ def grind_dataset(
         Variant of each required pipeline (default: its unnamed one)
     plan_path : str | Path | None
         `--plan PATH`: write the plan there and run nothing
-    detach : bool
-        Save the plan, start it and return (`bx percolate <plan>
-        --status` follows it)
     dry_run : bool
         Print the plan: nothing is written, locked, pulled or run
     display : bool
@@ -234,14 +232,13 @@ def grind_collection(
     root: str | Path | None = None,
     out: str | Path | None = None,
     selection: Selection | None = None,
-    config: Mapping[str, Any] | str | Path | None = None,
+    config: Mapping[str, Any] | None = None,
     execution: ExecutionOptions | None = None,
     redo: Sequence[str] = (),
     if_stale: IfStale = "error",
     variant: str | None = None,
     variants: Mapping[str, str | None] | None = None,
     plan_path: str | Path | None = None,
-    detach: bool = False,
     dry_run: bool = False,
     display: bool = True,
 ) -> GrindReport:
@@ -267,11 +264,12 @@ def grind_collection(
         Home of group outputs and of their state (default: `root`)
     selection : Selection | None
         Subjects and sessions, applied to every dataset
-    config : Mapping[str, Any] | str | Path | None
-        Configuration fields of the pipeline (command line), over
-        those of the config file (separate PR); or a file of them
+    config : Mapping[str, Any] | None
+        Configuration fields of the pipeline (generated options), over
+        those of the config file (separate PR, which owns `--config`)
     execution : ExecutionOptions | None
-        Backend, profile, limits, resources (default: the local pool)
+        Backend, profile, limits, resources, `--wait`/`--detach`
+        (default: the local pool, waiting)
     redo : Sequence[str]
         Stages to run again, with what depends on them
     if_stale : {"error", "redo", "keep"}
@@ -282,8 +280,6 @@ def grind_collection(
         Variant of each required pipeline (default: its unnamed one)
     plan_path : str | Path | None
         `--plan PATH`: write the plan there and run nothing
-    detach : bool
-        Save the plan, start it and return
     dry_run : bool
         Print the plan only
     display : bool

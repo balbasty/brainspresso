@@ -340,7 +340,8 @@ class Output:
         Key of the path in `Work.outputs`
     template : str
         Path relative to the derivative dataset (`format_output`), e.g.
-        `sub-{sub}[/ses-{ses}]/anat/{base}_desc-preproc_{suffix}.nii.gz`
+        `sub-{sub}[/ses-{ses}]/anat/{base}_desc-preproc_{suffix}.nii.gz`;
+        fixed by the pipeline (the configuration does not override it)
     source : str | None
         Name of the requirement that gives `{base}` and `{suffix}`
     claim : bool

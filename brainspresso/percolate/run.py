@@ -8,17 +8,25 @@ Interfaces only (see `brainspresso.percolate`).
   write the jobs only);
 * `--retry failed`: also run again the tasks recorded "failed" or
   "skipped", and what depends on them;
-* `--status`: report the tasks from their records, reconciled with the
-  scheduler (a record "pending" or "running" whose job is gone becomes
-  "failed");
+* `--status`: print a snapshot of the tasks from their records,
+  reconciled with the scheduler (a record "pending" or "running" whose
+  job is gone becomes "failed"); `--status --watch`: refresh it until
+  the plan finishes, read-only (`--follow` is not used: it is kept for
+  a future `--logs <task> --follow`);
+* `--wait` / `--detach`: one option, two spellings. Default: wait on
+  the local backend, detach on schedulers; the profile may say
+  otherwise, the command line wins. Waiting on a scheduler is
+  `submit, then watch`: it exits non-zero if any task failed, is never
+  needed for correctness, and killing it never affects the jobs;
 * `--cancel`: cancel its jobs and record their tasks "failed";
 * `--task ID`, `--array JOB --index N`: run one task, in this process
   (what jobs call);
-* no argument: list the plans of the dataset and their state.
+* no argument: list the plans of the dataset that contains the
+  current folder (else of `--out`) and their state.
 
-One lock per plan: every form but `--task`, `--array` and a read-only
-`--status` holds an exclusive lock on the plan file, so one process at
-a time submits, retries or cancels a plan.
+One lock per plan: every form but `--task`, `--array`, `--watch` and a
+read-only `--status` holds an exclusive lock on the plan file, so one
+process at a time submits, retries or cancels a plan.
 
 Running a task calls the planner of its stage (`StagePlanner.run`),
 restricted to its scope. The task takes the locks of its stage and its
@@ -38,7 +46,7 @@ from brainspresso.percolate.plan import Plan, PlanTask
 
 __all__ = ["PLANNERS", "PlanStatus", "StagePlanner", "cancel_plan",
            "get_planner", "list_plans", "percolate", "plan_status",
-           "run_task"]
+           "run_task", "watch_plan"]
 
 #: Planner of each stage, "module:attribute", loaded on first use
 PLANNERS: dict[str, str] = {
@@ -82,7 +90,7 @@ class StagePlanner(Protocol):
         task : PlanTask
             The task
         profile : Profile
-            Container runtime, scratch, lock wait
+            Container runtime, scratch, `lock_wait`
 
         Returns
         -------
@@ -179,7 +187,6 @@ def percolate(
     *,
     retry: Sequence[str] = (),
     write_jobs: str | Path | None = None,
-    detach: bool = False,
     display: bool = True,
 ) -> PlanStatus:
     """
@@ -189,28 +196,32 @@ def percolate(
     left; the others run in dependency order, on the local pool (each
     worker runs `run_task`) or as scheduler jobs (`make_jobs`,
     `submit_jobs`). A plan in memory can only run locally: a scheduler
-    backend saves it first.
+    backend saves it first. A plan written by another brainspresso
+    version is run with a warning.
+
+    Whether it waits for the tasks: `options.detach`, else the profile,
+    else wait on the local backend and detach on schedulers. Detached,
+    it prints the `bx percolate <plan> --status` command and returns;
+    waiting on a scheduler, it submits, then watches (`watch_plan`).
 
     Parameters
     ----------
     plan : Plan | str | Path
         The plan, or its file
     options : ExecutionOptions | None
-        Backend, profile, limits and resource overrides
+        Backend, profile, limits, resource overrides, wait or detach
     retry : Sequence[str]
         Record statuses to run again ("failed" covers "skipped")
     write_jobs : str | Path | None
         Write the jobs in this folder and submit nothing
-    detach : bool
-        Scheduler backends: return once the jobs are submitted instead
-        of waiting for them
     display : bool
         Show the progress table
 
     Returns
     -------
     PlanStatus
-        State of the plan when it returns
+        State of the plan when it returns (the command exits non-zero
+        if it waited and a task failed)
 
     Raises
     ------
@@ -269,6 +280,32 @@ def plan_status(plan: Plan | str | Path, *,
     raise NotImplementedError
 
 
+def watch_plan(plan: Plan | str | Path, *, interval: float = 10.0,
+               display: bool = True) -> PlanStatus:
+    """
+    Watch a plan until it finishes: the body of `--status --watch`.
+
+    Read-only: it reads the task records and asks the scheduler, writes
+    no record, takes no lock, and may be stopped and started again at
+    any time without effect on the jobs.
+
+    Parameters
+    ----------
+    plan : Plan | str | Path
+        The plan, or its file
+    interval : float
+        Seconds between two refreshes
+    display : bool
+        Show the progress table
+
+    Returns
+    -------
+    PlanStatus
+        State of the plan once no task is pending or running
+    """
+    raise NotImplementedError
+
+
 def cancel_plan(plan: Plan | str | Path) -> PlanStatus:
     """
     Cancel the jobs of a plan: the body of `--cancel`.
@@ -297,7 +334,8 @@ def list_plans(state: str | Path) -> list[PlanStatus]:
     Parameters
     ----------
     state : str | Path
-        State folder of the dataset
+        State folder of the dataset: the one that contains the
+        current folder, else that of `--out`
 
     Returns
     -------

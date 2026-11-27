@@ -154,10 +154,27 @@ def fix_sidecar(meta: dict, name: str = "") -> dict:
     return out
 
 
+def _read_utf8(path: Path) -> str | None:
+    """
+    Text of a file to repair in place (None: not valid UTF-8).
+
+    Decoded strictly: a file that is not valid UTF-8 is left as it is,
+    with a warning, as text decoded with replacement characters must
+    never be written back (it would lose the original bytes).
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        lg.warning(f"{path}: not valid UTF-8, not repaired ({e})")
+        return None
+
+
 def repair_json(path: Path) -> bool:
     """Repair a JSON file in place. Returns whether it was changed."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _read_utf8(path)
+    if text is None:
+        return False
     try:
         meta = loads(text)
     except json.JSONDecodeError as e:
@@ -232,7 +249,9 @@ def read_rows(text: str) -> list[list[str]]:
 def repair_tsv(path: Path) -> bool:
     """Repair a TSV file in place. Returns whether it was changed."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _read_utf8(path)
+    if text is None:
+        return False
     rows = read_rows(text)
     if not rows:
         return False

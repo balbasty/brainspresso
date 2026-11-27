@@ -44,10 +44,10 @@ def _text_options(mode: str, options: dict) -> dict:
     Text files are UTF-8 (BIDS), and written with "\n" line endings, so
     that outputs are byte-identical on every platform (the locale
     encoding and "\r\n" of Windows otherwise). Readers keep universal
-    newlines; so do the update modes (`+`), which read as well as write
-    (with `newline="\n"`, their reads would keep "\r\n" line endings,
-    on Linux too): their writes use the platform's line endings unless
-    `newline` is given.
+    newlines. Update modes (`+`), which read as well as write, use
+    `newline=""`: no translation either way, so their writes stay "\n"
+    on every platform, and their reads return line endings as stored
+    ("\r\n" in a CRLF file) on every platform too.
 
     Parameters
     ----------
@@ -64,7 +64,9 @@ def _text_options(mode: str, options: dict) -> dict:
     if "b" in mode:
         return dict(options)
     defaults = {"encoding": "utf-8"}
-    if _is_writer(mode) and "+" not in mode:
+    if "+" in mode:
+        defaults["newline"] = ""
+    elif _is_writer(mode):
         defaults["newline"] = "\n"
     return {**defaults, **options}
 

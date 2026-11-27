@@ -825,3 +825,16 @@ def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
     assert not fix_intended_for(epi, tmp_path)
     assert epi.read_bytes() == blob
     assert "not valid UTF-8" in caplog.text
+    # sidecars and tables that would be repaired are left byte for byte
+    # (never rewritten with replacement characters)
+    bad = sub / "sub-1_acq-x_T1w.json"
+    bad_blob = b'{"EchoTime": "0.003", "Note": "Z\xfcrich",}'
+    bad.write_bytes(bad_blob)
+    table = tmp_path / "participants.tsv"
+    table_blob = b"participant_id\tsite\n1\tZ\xfcrich\n"
+    table.write_bytes(table_blob)
+    caplog.clear()
+    assert repair([bad, table]) == []
+    assert bad.read_bytes() == bad_blob
+    assert table.read_bytes() == table_blob
+    assert caplog.text.count("not valid UTF-8") == 2

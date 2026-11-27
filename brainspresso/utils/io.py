@@ -155,10 +155,15 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     r"""
     Write a BIDS tsv (delimiter = '\t', quoting=QUOTE_NONE)
 
+    Rows end with "\n". A field that contains a line break ("\n" or
+    "\r") raises `ValueError` before anything is written: with
+    `QUOTE_NONE` it cannot be written, and `csv` itself does not reject
+    a "\r" on every Python version (3.10 and 3.11 write it raw).
+
     Parameters
     ----------
     src : list[list]
-        A list of rows
+        A list of rows (the first one is the header)
     dst : str or Path or file-like
         Output path
 
@@ -166,20 +171,45 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     ----------------
     makedirs : bool, default=True
         Create all directories needs to write the file
+
+    Raises
+    ------
+    ValueError
+        If a field contains a line break (the message names its row and
+        column)
     """
+    rows = _tsv_rows(src, dst)
     if isinstance(dst, (str, Path)):
         dst = Path(dst)
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
         with open(dst, 'wt', encoding='utf-8', newline='') as fdst:
-            return write_tsv(src, fdst, makedirs=False, **kwargs)
+            return write_tsv(rows, fdst, makedirs=False, **kwargs)
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
     # (`csv` ends rows with "\r\n" by default; BIDS tables use "\n")
     kwargs.setdefault('lineterminator', '\n')
     writer = csv.writer(dst, **kwargs)
-    writer.writerows(src)
+    writer.writerows(rows)
+
+
+def _tsv_rows(src, dst) -> list[list]:
+    """Rows of a TSV table, checked for line breaks in fields."""
+    rows = [list(row) for row in src]
+    header = rows[0] if rows else []
+    for n, row in enumerate(rows):
+        for i, value in enumerate(row):
+            text = "" if value is None else str(value)
+            if "\n" in text or "\r" in text:
+                column = header[i] if i < len(header) else f"#{i + 1}"
+                name = getattr(dst, "name", dst)
+                raise ValueError(
+                    f"{name}: row {n + 1}, column {column!r}: the field "
+                    f"{text!r} contains a line break, which a TSV table "
+                    f"cannot hold"
+                )
+    return rows
 
 
 def write_from_buffer(src, dst, makedirs=True):

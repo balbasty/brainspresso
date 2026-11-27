@@ -118,19 +118,29 @@ Every dataset has the same commands (`harvest`, `roast` when it can be
 roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 <command> --help` lists them:
 
-* **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
-  (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
-  files that match no key.
+* **Dataset** (`path`, `--out`, the arguments of a dataset such as an
+  OpenNeuro accession, `--layout`).
 * **Selection** (`--subs`, `--exclude-subs`, `--sessions`, `--sites`,
   `--exclude-sites`): subject labels with or without `sub-` (a file
   lists one per line). Datasets with numbered subjects also accept
   numbers (`--subs 2 12` is `002 012` for IXI) and ranges (`1:10`);
   other labels are kept verbatim (`--subs 00448`).
-* **Sources** (`--source`), **Credentials** (`--user`/`--password`, or
-  `--token`; else environment variables or a prompt).
-* **Harvest** / **Roast** / **Compost** (`--if-exists`, `--jobs`,
-  `--dry-run`...), **Dataset** (`path`, `--out`, `--layout`) and
-  **Logging** (`--log`, `--level`; `--level debug` prints tracebacks).
+* **Filters** (BIDS filters: `--datatypes`, `--suffixes`, `--tasks`,
+  `--include`, `--exclude`, `--where`; `--folders` of hosted datasets).
+* **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
+  (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
+  files that match no key.
+* **Harvest** / **Roast** / **Compost**: options of the command
+  (`--if-exists`, `--dry-run`, `--lock-wait`...; roast `--jobs`).
+* **Sources** (`--source`, and the download options of every source:
+  `--jobs`, `--packet`, `--insecure`, whose help gives the default of
+  each source), then one panel per source that needs options of its
+  own, e.g. **NITRC (--source nitrc)** (`--user`/`--password`) or
+  **Dataverse** (`--token`); credentials not given are read from
+  environment variables, or prompted for.
+* Options of a collection (**INDI**) or of one dataset (**OASIS-1**:
+  `--discs`), then **Logging** (`--log`, `--level`; `--level debug`
+  prints tracebacks).
 * Roast `--sidecars yes|no|only` (default `yes`): `yes` writes the
   sidecars; `no` skips the JSON sidecars (bval/bvec and tables are still
   written); `only` writes the sidecars and metadata only, not the

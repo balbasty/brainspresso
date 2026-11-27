@@ -17,7 +17,10 @@ dataset instantiates, or subclasses, for its own host. It declares
   `DownloadManager`) into `layout.source` (or a sub-folder of it);
   sources with their own transport override it;
 * `auth()`: an optional downloader authentication hook (credentials are
-  resolved when the harvest starts, never when the source is declared).
+  resolved when the harvest starts, never when the source is declared);
+* `title` and `reads(option)`: the help panel of the per-run options of
+  the command line that it reads (`--user`, `--token`...), titled
+  "<title> (--source <name>)" (`datasets.options.source_panels`).
 
 A dataset declares its sources and, per key, an ordered list of default
 sources (`{"raw": ["s3", "nitrc"], "meta": ["nitrc"]}`); `plan_sources`
@@ -683,12 +686,16 @@ class Source:
         Default number of concurrent downloads for this source
     name : str
         Name in messages and in the manifest
+    title : str
+        Title of the help panel of its options ("NITRC"; default: its
+        name), see `reads`
     **options
         Other attributes of the source (credentials, sites...); see
         also `configure` and `with_options` (per-run copies)
     """
 
     name: str = ""
+    title: str = ""
     provides: frozenset = frozenset()
     roaster: Callable | None = None
     labels: LabelMap = LabelMap()
@@ -748,6 +755,25 @@ class Source:
         known = {k: v for k, v in options.items()
                  if v is not None and self._is_option(k)}
         return self.with_options(**known)
+
+    def reads(self, option: str) -> bool:
+        """
+        Whether a per-run option configures this source.
+
+        The help panel of the source shows the options that it reads
+        (`datasets.options.source_panels`).
+
+        Parameters
+        ----------
+        option : str
+            A per-run option (`user`, `token`...)
+
+        Returns
+        -------
+        bool
+            Whether `configure` keeps it
+        """
+        return self._is_option(option)
 
     def _is_option(self, key: str) -> bool:
         return not key.startswith("_") and hasattr(self, key) and \
@@ -1095,6 +1121,14 @@ class CompositeSource(Source):
         if kwargs.get("provides") is None:
             kwargs["provides"] = set().union(*(p.provides for p in parts))
         super().__init__(**kwargs)
+        if not self.title:
+            # help panel: "XNAT + NITRC" (the distinct titles of its parts)
+            titles = [p.title for p in parts if p.title]
+            self.title = " + ".join(dict.fromkeys(titles))
+
+    def reads(self, option: str) -> bool:
+        """Whether one of the parts reads a per-run option."""
+        return any(part.reads(option) for part in self.parts)
 
     def with_options(self, **options) -> "CompositeSource":
         """Options are passed to the parts that have them."""
@@ -1143,6 +1177,7 @@ class LocalSource(Source):
     """
 
     name = "local"
+    title = "Local files"
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
         """List nothing (the files are already local)."""

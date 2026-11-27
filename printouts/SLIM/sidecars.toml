@@ -1,0 +1,42 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py SLIM` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/INDI/templates/slim/
+#   printout  path of the protocol printout, relative to printouts/SLIM
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/SLIM) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
+#             roast only fills the keys they lack with this template and
+#             never overrides theirs (see printouts/README.md)
+#   note      (optional) free-text comment
+#
+# Outputs are named as the local (remapped) BIDS files, without the
+# sub/ses/run entities, so that they apply to every matching file.
+# One site (Southwest University, Siemens TrioTim); the bucket hosts no
+# sidecars at all. task-rest_bold.json replaces the hand-written
+# {TaskName, RepetitionTime} template.
+
+[[sidecar]]
+output = "T1w.json"
+printout = "anat.pdf"
+nii = "nii/T1w.nii"
+fill = true
+
+[[sidecar]]
+output = "dwi.json"
+printout = "dti.pdf"
+nii = "nii/dwi.nii"
+fill = true
+
+[[sidecar]]
+output = "task-rest_bold.json"
+printout = "rest.pdf"
+nii = "nii/bold.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = "TaskName from the BIDS file name (not in the printout)"

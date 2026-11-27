@@ -1,0 +1,159 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py MPI-LEMON` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/INDI/templates/mpi-lemon/
+#   printout  path of the protocol printout, relative to printouts/MPI-LEMON
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/MPI-LEMON) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
+#             roast only fills the keys they lack with this template and
+#             never overrides theirs (see printouts/README.md)
+#   note      (optional) free-text comment
+#
+# Outputs are named as the local (remapped) BIDS files, without the
+# sub/ses/run entities, so that they apply to every matching file.
+# One site (MPI CBS Leipzig, Siemens Verio). Printouts:
+#   1_LEMON_resting_130904.pdf       resting session (bold, field maps)
+#   2_LEMON_anat_130904.pdf          anatomical session, first version
+#   3_LEMON_anat_MODIFIED_141008.pdf anatomical session, modified: 3D FLAIR
+#                                    (acq-highres) instead of the 2D one
+#                                    (acq-lowres), as_gre_TE17ms (the
+#                                    bucket's GRE, TE = 17.3 ms) instead
+#                                    of gre_me4_SWI (not in the bucket)
+#   4_MRI_Sequences_Table_LEMON.pdf  summary table (not read by
+#                                    protocol2bids; not used)
+# Protocols common to both anatomical printouts convert to the same
+# sidecar; 2_LEMON_anat_130904.pdf is used for them. Names follow
+# LEMON.remap (`acq-{mag,phase}_GRE` -> `part-{mag,phase}_T2starw`,
+# `mp2rage` -> `MP2RAGE`); MP2RAGE.json and T2starw.json apply to both
+# inversions / parts. Localizers (QuinPilot) and cmrr_mbep2d_test are
+# not in the bucket.
+
+[[sidecar]]
+output = "task-rest_acq-AP_bold.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "cmrr_mbep2d_resting"
+nii = "nii/bold.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = "TaskName from the BIDS file name (not in the printout)"
+
+[[sidecar]]
+output = "acq-GEfmap_phasediff.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "gre_field_mapping"
+nii = "nii/phasediff.nii"
+fill = true
+
+[[sidecar]]
+output = "acq-SEfmapBOLDpre_dir-AP_epi.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "3"
+nii = "nii/SEfmapBOLDpre_AP.nii"
+fill = true
+note = "cmrr_mbep2d_se before the resting scan (same polarity as the AP bold)"
+
+[[sidecar]]
+output = "acq-SEfmapBOLDpre_dir-PA_epi.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "4"
+nii = "nii/SEfmapBOLDpre_PA.nii"
+fill = true
+note = "cmrr_mbep2d_se_invpol (inverted polarity) before the resting scan"
+
+[[sidecar]]
+output = "acq-SEfmapBOLDpost_dir-AP_epi.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "6"
+nii = "nii/SEfmapBOLDpost_AP.nii"
+fill = true
+note = "cmrr_mbep2d_se after the resting scan"
+
+[[sidecar]]
+output = "acq-SEfmapBOLDpost_dir-PA_epi.json"
+printout = "1_LEMON_resting_130904.pdf"
+select = "7"
+nii = "nii/SEfmapBOLDpost_PA.nii"
+fill = true
+note = "cmrr_mbep2d_se_invpol after the resting scan"
+
+[[sidecar]]
+output = "MP2RAGE.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "mp2rage_p3_602B"
+nii = "nii/inv-1_MP2RAGE.nii"
+fill = true
+note = "inv-1 and inv-2 (the bucket's inv-*_mp2rage.json)"
+
+[[sidecar]]
+output = "acq-mp2rage_T1w.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "mp2rage_p3_602B"
+nii = "nii/mp2rage_T1w.nii"
+fill = true
+note = "UNI image of the MP2RAGE (no sidecar in the bucket)"
+
+[[sidecar]]
+output = "acq-mp2rage_T1map.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "mp2rage_p3_602B"
+nii = "nii/mp2rage_T1map.nii"
+fill = true
+note = "T1 map of the MP2RAGE (no sidecar in the bucket)"
+
+[[sidecar]]
+output = "T2w.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "t2_spc_sag_p2_iso_1.0"
+nii = "nii/T2w.nii"
+fill = true
+
+[[sidecar]]
+output = "acq-lowres_FLAIR.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "t2_tse_FLAIR_tra_fs"
+nii = "nii/lowres_FLAIR.nii"
+fill = true
+note = "2D FLAIR of the first protocol version"
+
+[[sidecar]]
+output = "acq-highres_FLAIR.json"
+printout = "3_LEMON_anat_MODIFIED_141008.pdf"
+select = "t2_spc_da-fl_irprep_sag_p2_iso"
+nii = "nii/highres_FLAIR.nii"
+fill = true
+note = "3D FLAIR of the modified protocol"
+
+[[sidecar]]
+output = "T2starw.json"
+printout = "3_LEMON_anat_MODIFIED_141008.pdf"
+select = "as_gre_TE17ms_nifti"
+nii = "nii/mag_GRE.nii"
+fill = true
+note = "part-mag and part-phase (the bucket's acq-{mag,phase}_GRE)"
+
+[[sidecar]]
+output = "dwi.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "cmrr_mbep2d_diff"
+nii = "nii/dwi.nii"
+fill = true
+
+[[sidecar]]
+output = "acq-SEfmapDWI_dir-AP_epi.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "cmrr_mbep2d_se_AP_unwarp_diff"
+nii = "nii/SEfmapDWI_AP.nii"
+fill = true
+
+[[sidecar]]
+output = "acq-SEfmapDWI_dir-PA_epi.json"
+printout = "2_LEMON_anat_130904.pdf"
+select = "cmrr_mbep2d_se_PA_unwarp_diff"
+nii = "nii/SEfmapDWI_PA.nii"
+fill = true

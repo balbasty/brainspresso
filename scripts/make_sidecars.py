@@ -10,7 +10,7 @@ Usage
     python scripts/make_sidecars.py DATASET [--check] [--only PATTERN]
                                     [--baseline REF]
 
-DATASET is one of ABIDE1, ABIDE2, CoRR
+DATASET is one of ABIDE1, ABIDE2, CoRR, MPI-LEMON, NKI-RS, SALD, SLIM
 (see `printouts/<DATASET>/sidecars.toml`).
 
 For each entry of the conversion table, the printout is converted with
@@ -48,6 +48,14 @@ a site template used when the data does not name the sample).
 A `manual = true` entry (no printout) is kept as is and takes no conversion
 key (`printout`, `select`, `nii`, `defaults`, `assigns`, `fill_from`,
 `fill_select`).
+
+A `fill = true` entry (any kind) is a fill-in template: at roast time its
+keys only fill those missing from the sidecars hosted with the data, and
+never override them (INDI projects, whose bucket sidecars are often
+incomplete). The flag does not change the conversion; it is recorded in
+the lock (`"fill": true`). Its table and lock names are `FILL_KEY` and
+`LOCK_FILL_KEY`, to follow the convention of the roast hook that applies
+these templates.
 """
 import argparse
 import fnmatch
@@ -68,16 +76,27 @@ TEMPLATES = {
     'ABIDE1': 'brainspresso/datasets/ABIDE/I/templates',
     'ABIDE2': 'brainspresso/datasets/ABIDE/II/templates',
     'CoRR': 'brainspresso/datasets/CoRR/templates',
+    # INDI projects: brainspresso/datasets/INDI/templates/<Project.name>
+    'MPI-LEMON': 'brainspresso/datasets/INDI/templates/mpi-lemon',
+    'NKI-RS': 'brainspresso/datasets/INDI/templates/nki-rs',
+    'SALD': 'brainspresso/datasets/INDI/templates/sald',
+    'SLIM': 'brainspresso/datasets/INDI/templates/slim',
 }
 # template JSON files that are not acquisition sidecars
-NON_SIDECARS = ('dataset_description.json', 'participants.json')
+NON_SIDECARS = ('dataset_description.json', 'participants.json',
+                'sessions.json')
+# fill-in flag: name in sidecars.toml and in sidecars.lock.json (kept in
+# one place, to follow the convention of the roast hook that applies the
+# fill-in templates)
+FILL_KEY = 'fill'
+LOCK_FILL_KEY = 'fill'
 ENTRY_KEYS = {'output', 'printout', 'select', 'nii', 'defaults', 'assigns',
               'fill_from', 'fill_select', 'manual', 'common', 'note',
-              'previous'}
+              'previous', FILL_KEY}
 # keys that drive a conversion (meaningless, hence rejected, if manual
 # or common)
 CONVERSION_KEYS = ENTRY_KEYS - {'output', 'manual', 'common', 'note',
-                                'previous'}
+                                'previous', FILL_KEY}
 
 
 class TableError(ValueError):
@@ -117,6 +136,9 @@ def load_table(dataset, root=ROOT):
         if e['output'] in seen:
             raise TableError(f'{path}: duplicate output {e["output"]}')
         seen.add(e['output'])
+        if not isinstance(e.get(FILL_KEY, False), bool):
+            raise TableError(f'{path}: {e["output"]}: {FILL_KEY} must be '
+                             'true or false')
         if e.get('manual') and 'common' in e:
             raise TableError(f'{path}: {e["output"]}: manual and common')
         if e.get('manual') or 'common' in e:
@@ -459,7 +481,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         write(e, common_keys(sources), {'common': list(e['common'])}, prov)
 
     lock = {'protocol2bids': lock_version(locked), 'sidecars': {
-        e['output']: locked[e['output']] for e in entries
+        e['output']: flagged(e, locked[e['output']]) for e in entries
         if e['output'] in locked}}
     lock_text = dumps(lock)
     old_lock_text = (lock_path.read_text(encoding="utf-8")
@@ -477,6 +499,15 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
     lock_path.write_text(lock_text, encoding="utf-8", newline="\n")
     report_path.write_text(md, encoding="utf-8", newline="\n")
     return 1 if failures else 0
+
+
+def flagged(e, rec):
+    """Lock entry with the fill-in flag of its table entry (also for an
+    entry kept from the old lock, so the lock always follows the table)."""
+    rec = {k: v for k, v in rec.items() if k != LOCK_FILL_KEY}
+    if e.get(FILL_KEY):
+        rec[LOCK_FILL_KEY] = True
+    return rec
 
 
 def lock_version(locked):

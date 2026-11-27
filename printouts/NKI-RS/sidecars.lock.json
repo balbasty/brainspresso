@@ -1,0 +1,96 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+    },
+    "sidecars": {
+        "T1w.json": {
+            "printout": "NKI_MPRAGE.pdf",
+            "sha256": "d45f725cded2df561265dded9386299518ca9e7a401ae54a442bc0988d157307",
+            "nii": "nii/T1w.nii",
+            "nii_sha256": "1f7aa7673dc9920e299973a922f99c617ed18b91039913f7ca4b45bbdd09f235",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "dwi.json": {
+            "printout": "../CoRR/NKI_TRT/dti.pdf",
+            "sha256": "2ee613604bc111db2a67881fee3593c5d387ceb0f5accab45c11bac09209efd6",
+            "nii": "nii/dwi.nii",
+            "nii_sha256": "a32511d0e9d2d7918fe3d490ed2cb7c080154827fd705d95fb2c0090111fa0c5",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-rest_acq-645_bold.json": {
+            "printout": "../CoRR/NKI_TRT/rest_645.pdf",
+            "sha256": "84c96233751520225bae02a64bcef9fe79b6a5e7e8e657358d756e69e17e0c39",
+            "nii": "nii/rest_645.nii",
+            "nii_sha256": "c2614c4d8753d24821ac53038ef0f337f84822bfa97ba239abe64b68c304bd04",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-rest_acq-1400_bold.json": {
+            "printout": "../CoRR/NKI_TRT/rest_1400.pdf",
+            "sha256": "356c93bb821b8109648dc3b76268e9619ed6482e01c044b13a499e329882e70d",
+            "nii": "nii/rest_1400.nii",
+            "nii_sha256": "3c9043649347ffa2bddf0f7c249dd4c4ec9c7a4436ffa0c9952e40a8d9ae6f08",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-rest_acq-CAP_bold.json": {
+            "printout": "../CoRR/NKI_TRT/rest_2500.pdf",
+            "sha256": "7c84e97555f8647c0748ad0d78f386dd50d5dd5f9b70ca5210c7307826890c86",
+            "nii": "nii/rest_CAP.nii",
+            "nii_sha256": "d792e3622ed320abc34fe66aede8d3d586c1e41b3a72705f6aa26b96363260f9",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-CHECKERBOARD_acq-645_bold.json": {
+            "printout": "Checker_645.pdf",
+            "sha256": "8502db7df89b1dd6c68038228f26212a90908714468cac4c9f1d7f50643ec99b",
+            "nii": "nii/checker_645.nii",
+            "nii_sha256": "42b9028e41f1e652d670a49e9be58d2762aa3407f8afb6e9bb990041331e788c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-CHECKERBOARD_acq-1400_bold.json": {
+            "printout": "Checker_1400.pdf",
+            "sha256": "a70929170e0ce01c5e0cd70feaadd7026b936e7bc32ba8325d0976d13d746271",
+            "nii": "nii/checker_1400.nii",
+            "nii_sha256": "95bfadb53111a1c5eb357997f52991af0459a390ceb8b3a7b4cdff6b0d8c900b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-BREATHHOLD_acq-1400_bold.json": {
+            "printout": "Breath_1400.pdf",
+            "sha256": "9606d3af172011520683b06dc68f55e6004dbdf3e11b5148e414d1669d8eb025",
+            "nii": "nii/breathhold_1400.nii",
+            "nii_sha256": "1915f51b00e74983886bee2b8d2dd637b9d4be07d3565af3b127becf48692cf4",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        }
+    }
+}

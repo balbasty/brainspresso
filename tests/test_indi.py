@@ -557,9 +557,11 @@ def test_slim_harvest(tmp_path):
         ["ses-1", "2011-11-19", "18"],
         ["ses-2", "2013-05-04", "n/a"],
     ]
-    assert json.loads((root / "task-rest_bold.json").read_text()) == {
-        "TaskName": "rest", "RepetitionTime": 2.0,
-    }
+    # generated from the scanner printout (printouts/SLIM/sidecars.toml)
+    sidecar = json.loads((root / "task-rest_bold.json").read_text())
+    assert sidecar["TaskName"] == "rest"
+    assert sidecar["RepetitionTime"] == 2.0
+    assert sidecar["ProtocolName"] == "rest"
 
 
 def test_slim_sessions_trimmed(tmp_path):

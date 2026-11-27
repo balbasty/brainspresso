@@ -1,0 +1,31 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Gradient Echo",
+    "ScanningSequence": [
+        "GR"
+    ],
+    "SequenceVariant": [
+        "SP"
+    ],
+    "ScanOptions": [],
+    "SequenceName": "gre_field_mapping",
+    "PulseSequenceDetails": "%SiemensSeq%\\gre_field_mapping",
+    "EchoTime": [
+        0.00519,
+        0.0076500000000000005
+    ],
+    "EchoTime1": 0.00519,
+    "EchoTime2": 0.0076500000000000005,
+    "RepetitionTime": 0.68,
+    "RepetitionTimeExcitation": 0.68,
+    "Modality": "MR",
+    "ProtocolName": "gre_field_mapping",
+    "SeriesDescription": "gre_field_mapping",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ]
+}

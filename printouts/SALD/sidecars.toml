@@ -1,0 +1,38 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py SALD` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/INDI/templates/sald/
+#   printout  path of the protocol printout, relative to printouts/SALD
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/SALD) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   fill      true: fill-in template. The bucket hosts BIDS sidecars; the
+#             roast only fills the keys they lack with this template and
+#             never overrides theirs (see printouts/README.md)
+#   note      (optional) free-text comment
+#
+# Outputs are named as the local (remapped) BIDS files, without the
+# sub/ses/run entities, so that they apply to every matching file.
+# One site (Southwest University, Siemens TrioTim). The SALD printouts
+# published on NITRC are byte-identical to SLIM's anat and rest printouts
+# (same scanner and protocols): they are used from printouts/SLIM by
+# reference (`../SLIM/...`), with SALD's own NIfTI headers.
+
+[[sidecar]]
+output = "T1w.json"
+printout = "../SLIM/anat.pdf"
+nii = "nii/T1w.nii"
+fill = true
+note = "NITRC retro/SALD/swu_slim_scan_params_anat.pdf == SLIM anat.pdf"
+
+[[sidecar]]
+output = "task-rest_bold.json"
+printout = "../SLIM/rest.pdf"
+nii = "nii/bold.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = "NITRC retro/SALD/swu_slim_scan_params_rest.pdf == SLIM rest.pdf"

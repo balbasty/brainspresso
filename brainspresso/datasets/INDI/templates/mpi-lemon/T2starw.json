@@ -1,0 +1,15 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "EchoTime": 0.0173,
+    "RepetitionTime": 0.03,
+    "Modality": "MR",
+    "ProtocolName": "as_gre_TE17ms_nifti",
+    "SeriesDescription": "as_gre_TE17ms_nifti",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ]
+}

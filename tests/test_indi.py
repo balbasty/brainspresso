@@ -593,16 +593,24 @@ def test_fill_in_template_never_replaces_the_bucket(
 
 
 def test_generated_templates_refreshed_unless_edited(tmp_path, caplog):
-    """A re-harvest refreshes a template it generated (known earlier
-    version, or hash in the manifest), and keeps an edited one."""
+    """A re-harvest leaves a template it generated alone (pure skip);
+    `roast --if-exists update` refreshes it (known earlier version, or
+    hash in the manifest) and keeps an edited one, `harvest --if-exists
+    different` replaces it, edits included."""
     bx("slim", "harvest", tmp_path)
     path = raw(tmp_path / "SLIM") / "task-rest_bold.json"
     current = path.read_bytes()
-    # the hand-written template of earlier versions: refreshed
-    path.write_bytes(b'{\n  "TaskName": "rest",\n  "RepetitionTime": 2.0\n}\n')
+    # the hand-written template of earlier versions
+    older = b'{\n  "TaskName": "rest",\n  "RepetitionTime": 2.0\n}\n'
+    path.write_bytes(older)
+    caplog.clear()
     bx("slim", "harvest", tmp_path)
+    assert path.read_bytes() == older
+    assert not [r for r in caplog.records if r.levelname == "WARNING"
+                and path.name in r.getMessage()]
+    bx("slim", "roast", tmp_path, "--if-exists", "update")
     assert path.read_bytes() == current
-    # edited by the user: kept, with a warning, at every later harvest
+    # edited by the user: kept, with a warning, at every later update
     # (the manifest never takes the edit for a generated file)
     edited = b'{"TaskName": "rest"}\n'
     path.write_bytes(edited)
@@ -610,10 +618,13 @@ def test_generated_templates_refreshed_unless_edited(tmp_path, caplog):
         caplog.clear()
         bx("slim", "harvest", tmp_path)
         assert path.read_bytes() == edited
+        assert "was edited" not in caplog.text
+        bx("slim", "roast", tmp_path, "--if-exists", "update")
+        assert path.read_bytes() == edited
         assert "was edited since brainspresso wrote it: kept" in caplog.text
         assert manifest_file(tmp_path / "SLIM", path)["sha256"] \
             == hashlib.sha256(current).hexdigest()
-    bx("slim", "harvest", tmp_path, "--if-exists", "overwrite")
+    bx("slim", "harvest", tmp_path, "--if-exists", "different")
     assert path.read_bytes() == current
 
 
@@ -642,6 +653,10 @@ def test_generated_file_now_in_the_bucket(
     bx("slim", "harvest", tmp_path)
     record = manifest_file(tmp_path / "SLIM", path)
     assert record["origin"] == "roasted"
+    # (skip: the visible file is left alone, its pristine copy fetched)
+    assert path.read_bytes() == before and "was edited" not in caplog.text
+    bx("slim", "roast", tmp_path, "--if-exists", "update")
+    record = manifest_file(tmp_path / "SLIM", path)
     if edited:
         assert path.read_bytes() == before
         assert "was edited since brainspresso wrote it: kept" in caplog.text

@@ -1378,7 +1378,9 @@ class Dataset:
                 json=args.roast.sidecar_policy if args else "yes",
                 repair=args.extra("hosted_roast", "repair", True)
                 if args else None,
-                ifexists=args.roast.if_exists if args else "skip",
+                # (the roast of a compost re-trims and repairs what is
+                # left: `update`, not a user's pure `skip`)
+                ifexists=args.roast.if_exists if args else "update",
                 jobs=args.roast.jobs if args else 1,
                 info={"trigger": "compost" if existing_only else "roast"},
             ))

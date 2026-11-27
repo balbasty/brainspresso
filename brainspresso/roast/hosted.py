@@ -29,7 +29,7 @@ architecture.md`, §4, "State model"):
 * a missing base freezes the file: it is left as it is (one info line),
   and only a missing visible file too is an error (`Fail`);
 * a visible file is edited iff its SHA-256 differs from the recorded
-  one; an edit is kept under `skip` (an edited field map keeps the
+  one; an edit is kept under `update` (an edited field map keeps the
   user's keys and takes `IntendedFor` from the render); without a
   record (an older dataset), a file equal to the render is adopted,
   any other follows `bids.harvest.MIGRATION_RULE` (re-exported here);
@@ -49,15 +49,20 @@ Rules (`docs/design/architecture.md`, §4):
   roast, it drops the actions of the kinds it excludes (files on disk
   are left as they are).
 * `--repair/--no-repair` (default on): recorded per file, in the shard
-  config; a roast with the default repairs (also what a harvest with
-  `--no-repair` placed).
+  config; a roast with the default repairs the files it writes (also
+  what a harvest with `--no-repair` placed, under `--if-exists
+  update`).
 * Selection: a harvest roasts what it selected and the files of the
   subjects it touched; a roast takes `--subs`, `--exclude-subs`,
   `--sessions` (files that describe no selected data are left alone).
-* `--if-exists`: governs the visible files only. Under "skip" (default)
-  a file is rendered and replaces the visible one if its content changed
-  and it is not edited; "overwrite" rewrites, "error" refuses an
-  existing file, "refresh" compares mtimes with the base.
+* `--if-exists`: governs the visible files only. "skip" (default) is
+  pure: an existing file is left alone (not rendered, no log line, no
+  orphan removed), but for the trimmed tables and the field maps whose
+  `IntendedFor` is trimmed, which follow "update"; a missing file is
+  written. Under "update" a file is rendered and replaces the visible
+  one if its content changed and it is not edited (the edit test
+  above); "different" replaces edits too, "overwrite" rewrites, "error"
+  refuses an existing file, "refresh" compares mtimes with the base.
 * Re-runs: one shard per subject (`roast/hosted/sub-<label>`), whose
   input signature is its bases, fill-in templates, the files of the
   subject on disk, `.bidsignore` and `Shard.config` (per-file options,
@@ -640,6 +645,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "intended": intended,
         "fmap": fmap,
         "rows": trimmable and trim,
+        "table": trimmable,
         "sibling": sibling,
         "fill": plan,
         "subject": _subject(rel),
@@ -680,7 +686,7 @@ class RoastMetadata(Action):
     ----------
     item : dict
         What to roast (`roast.hosted._item`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Behaviour if the output exists (default: that of the roast)
     tag : str
         Progress group
@@ -791,10 +797,29 @@ def _migrate(ctx: RoastContext, item: dict, rule: str
     return False, None
 
 
+def _trimmed(item: dict) -> bool:
+    """
+    Tell a derived file, which follows `update` under `skip`.
+
+    A participants, sessions or scans table of the raw dataset (trimmed
+    to what is present, or restored whole under `--no-trim`), or a field
+    map whose `IntendedFor` is trimmed or repaired.
+    """
+    return bool(item.get("table") or item["intended"])
+
+
 def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     source, dst = item["source"], Path(item["target"])
-    skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
-    ifexists = "different" if skip else None
+    mode = IfExists.from_any(ctx.ifexists)
+    if mode is IfExists.SKIP and not _trimmed(item) and dst.exists():
+        # pure skip: left alone, never rendered (also a frozen file); a
+        # skipped action makes it an output of the shard, so that
+        # deleting it runs the shard again (`_record` ignores it)
+        yield RoastMetadata(item, ifexists="skip", tag=ctx.tag)
+        return
+    # (`update`, and the trimmed files under `skip`: the edit test)
+    update = mode is IfExists.UPDATE or mode is IfExists.SKIP
+    ifexists = "different" if update else None
     if source is not None and not Path(source).exists():
         # a missing base freezes the file
         if dst.exists():
@@ -803,7 +828,7 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
         yield Fail(f"{item['key']}: its base {source} is missing "
                    f"(harvest again)", name=dst.name, tag=ctx.tag)
         return
-    state = item["state"] if skip else "ours"
+    state = item["state"] if update else "ours"
     if state == "edited":
         if item["fmap"] and item["intended"]:
             lg.warning(f"{dst} was edited since brainspresso wrote it: "
@@ -894,7 +919,7 @@ def _config(items: list[dict]) -> dict:
     roast records.
     """
     skipped = ("sha256", "fill", "state", "source", "target", "dataset",
-               "sibling")
+               "sibling", "left", "table")
     out = []
     for item in items:
         fill = item["fill"]
@@ -1000,8 +1025,10 @@ def roast_hosted(
     tables : bool
         Roast the participants, sessions and scans tables (False: left
         as they are, `compost --no-trim`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
-        Default `IfExists` of the visible files
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
+        Default `IfExists` of the visible files: under "skip" an existing
+        file is left alone, but for the trimmed tables and the field maps
+        whose `IntendedFor` is trimmed, which follow "update"
     jobs : int
         Processes (subject shards)
     display : bool
@@ -1023,14 +1050,20 @@ def roast_hosted(
         every=every, repair=repair, selection=selection)
     if not tables:
         items = [i for i in items if not is_trimmable(i["rel"])]
+    skip = IfExists.from_any(ifexists) is IfExists.SKIP
     for item in items:
+        exists = Path(item["target"]).exists()
+        frozen = item["source"] is not None and \
+            not Path(item["source"]).exists()
+        if skip and not _trimmed(item):
+            # pure skip: an existing file is left alone (not even hashed)
+            item["state"], item["kept"], item["left"] = None, None, exists
+            continue
         item["state"] = _state(item)        # (before anything changes)
         # a file the shard leaves as it is (an edit, a file without a
         # hash, a frozen one) is no recorded output: whether it exists
         # is in the shard config, so that deleting it runs the shard
-        frozen = item["source"] is not None and \
-            not Path(item["source"]).exists()
-        item["kept"] = Path(item["target"]).exists() \
+        item["kept"] = exists \
             if frozen or item["state"] in ("edited", "unknown") else None
     base = selection or Selection()
     ctx = RoastContext(
@@ -1043,7 +1076,8 @@ def roast_hosted(
     )
     for orphan in orphans:
         # what this roast handles: in the selection, under the policy
-        orphan["handled"] = ctx.accepts("sidecar") and (
+        # (not under `skip`: a removal touches an existing file)
+        orphan["handled"] = not skip and ctx.accepts("sidecar") and (
             orphan["subject"] is None
             or ctx.selection.keeps_subject(orphan["subject"]))
     roaster = functools.partial(roast_metadata, items=items,
@@ -1070,9 +1104,9 @@ def _record(layout, items, orphans, report, ctx, repair) -> None:
     recorded = {}
     for item in items:
         dst = Path(item["target"])
-        if os.path.normcase(os.path.abspath(dst)) not in written or \
-                not dst.is_file():
-            continue
+        if item.get("left") or not dst.is_file() or \
+                os.path.normcase(os.path.abspath(dst)) not in written:
+            continue                # (left alone under `skip`: no hash)
         data = dst.read_bytes()
         # whatever its state was: ours iff it holds the render (an edit
         # replaced by `--if-exists overwrite` is ours; an edited field

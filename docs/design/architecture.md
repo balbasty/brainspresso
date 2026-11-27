@@ -431,10 +431,39 @@ Interactions (decided):
 * Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
   `sites[:kind]` in each site's own `sourcedata/` (the parent's files
   are direct). Fill-in placement depends on the layout (below).
-* `--if-exists`: downloads as before; roasted files under "skip" use
-  "different" with `compare` (they are cheap and derived: a new pristine
-  copy or template must reach the dataset); "overwrite", "error" and
-  "refresh" (mtime of the pristine copy) apply as such.
+* `--if-exists`: downloads as before. Roasted files (r43): "skip"
+  (default) is pure, an existing visible file is left alone (not
+  rendered, no hash, no log line, no orphan removed; a frozen file too),
+  but for the derived files: the participants, sessions and scans
+  tables of the raw dataset and the field maps whose `IntendedFor` is
+  trimmed or repaired, which follow "update" (they must follow the
+  images on disk); a missing visible file is written (repaired and
+  filled in). "update" (roast only) is what "skip" did before r43: a
+  file is rendered and replaces the visible one if its content changed
+  and it is unedited (the edit test of the state model below); the
+  roast that a compost runs uses it (it re-trims and repairs what is
+  left: not a user's `skip`). "different" replaces edits too (no edit
+  test), "overwrite" rewrites, "error" refuses an existing file,
+  "refresh" compares mtimes with the base. Harvest has no "update", so
+  a harvest never re-renders existing visible metadata, except under
+  "different"/"overwrite"; after a harvest under "skip" the bases may
+  be newer than the visible files, and `roast --if-exists update`
+  renders them.
+
+  | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
+  |---|---|---|---|---|
+  | `skip` (default) | write | left alone | left alone | left alone |
+  | `skip`, trimmed table or field map with `IntendedFor` | write | as `update` | as `update` | as `update` |
+  | `update` | write | rewritten iff the render differs | kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else `MIGRATION_RULE` "replace": backup in `<state>/replaced/`, then replaced |
+  | `different` | write | rewritten iff the render differs | same (edit lost) | same |
+  | `overwrite` | write | rewritten | rewritten | rewritten |
+  | `refresh` | write | by the mtime of the base | same | same |
+  | `error` | write | error | error | error |
+
+  The `update` rows of engine roasts (§5) and of hosted roasts are one
+  rule; the backup is shared (`Layout.replaced`, `Action.backup`).
+  Hosted roasts run with `RoastPolicy(track=False)`: `_record` stays
+  the one writer of their hashes (no "converted" entries).
 * Re-runs: a harvest that runs again skips existing downloads and the
   subject shards whose signature is unchanged (their bases, templates,
   files on disk, `.bidsignore`, and `Shard.config`: `RENDER_VERSION`,
@@ -442,13 +471,19 @@ Interactions (decided):
   file). Edits are decided by hash only (see the state model). New
   fill-in sidecars are judged from their own record too. A fill-in
   sidecar whose template no longer applies is removed if unedited (and
-  forgotten), else kept with a warning, when a roast handles it.
-  Directly placed generated files keep #26's refresh-if-unedited
-  (`write_inline`, now under the file's lock and atomic).
-* `--repair/--no-repair`: `bx <ds> roast` with its defaults repairs, so
-  it undoes a `harvest --no-repair` unless a config file says
-  `repair = false`. The flags of the manifest are not updated when the
-  roast failed.
+  forgotten), else kept with a warning, when a roast handles it (not
+  under "skip": a removal touches an existing file). Under "skip" a
+  file left alone is yielded as a skipped action, so that it is an
+  output of its shard and deleting it runs the shard again; its
+  existence is no part of the shard config. Directly placed generated
+  files: see §4 "Harvest" (pure skip, r43).
+* `--repair/--no-repair`: applies to the files a roast writes (under
+  "skip": absent files, tables and field maps). `bx <ds> roast
+  --if-exists update` with the default repairs, so it undoes a
+  `harvest --no-repair` unless a config file says `repair = false`;
+  under "skip" an existing unrepaired file stays unrepaired (the flag
+  is still recorded for the selection, an option of the next render).
+  The flags of the manifest are not updated when the roast failed.
 * A missing base freezes the file (left as it is; a `Fail` only if the
   visible file is missing too). The accepted cost: after `compost
   --sourcedata`, a later filtering compost no longer trims `IntendedFor`
@@ -487,7 +522,7 @@ authoritative copy first):
 | Kind | Copies | Written | Deleted |
 |------|--------|---------|---------|
 | Data (images, recordings) | visible only (manifest: `direct`; `fetched: false` if selected, not fetched) | harvest (download; `--if-exists`) | compost filters (entry removed) |
-| Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: every metadata roast (rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
+| Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: when absent, and by every metadata roast under `update` (tables and field maps: also under `skip`; rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
 | Generated metadata (templates, merged tables, generated sidecars) | base `<state>/generated/<path>`; visible (`generated`, `source`) | base: every harvest; visible: as hosted metadata | as hosted metadata (the base stays) |
 | New fill-in sidecars | templates in the package; visible (`generated`, `fill`, no `source`) | metadata roasts, where a template applies | when no template applies any more, if unedited (and the roast handles it) |
 | Directly placed generated files | visible only (`generated`, `sha256`) | harvest, if unedited (#26) | compost filters |
@@ -495,14 +530,16 @@ authoritative copy first):
 * A missing base freezes its file: left as it is (one info line); a
   `Fail` only if the visible file is missing too.
 * Edits, by hash only: a visible file is edited iff its hash differs
-  from the recorded one; kept under `skip` (an edited field map keeps
-  the user's keys and takes `IntendedFor` from the render);
+  from the recorded one; kept under `update` (an edited field map keeps
+  the user's keys and takes `IntendedFor` from the render), left alone
+  under `skip` (tables and field maps: as `update`);
   `--if-exists different|overwrite` replaces it.
-* No recorded hash (an older dataset): a file equal to the render is
-  adopted; any other follows `MIGRATION_RULE` ("keep": kept, with a
-  warning; "replace": copied to `<state>/replaced/<path>` as the action
-  writes it, which replaces it atomically; nothing is copied or lost if
-  no action writes). Default "replace" (owner decision).
+* No recorded hash (an older dataset), under `update`: a file equal to
+  the render is adopted; any other follows `bids.harvest.MIGRATION_RULE`
+  ("keep": kept, with a warning; "replace": copied to
+  `<state>/replaced/<path>` by the action core as it writes it, which
+  replaces it atomically; nothing is copied or lost if no action
+  writes). Default "replace" (owner decision).
 * Only `_record` writes the hashes of roasted files: that of a file
   holding the render, whatever its state was (an edit replaced with
   `--if-exists overwrite` is ours again; a merged field map or a
@@ -3058,3 +3095,13 @@ up as an XPASS failure once fixed (then drop the marker).
   signature version bump, nothing rewritten at upgrade: `roast
   --if-exists update` does what a plain roast did to visible table-kind
   files. `harvest --if-exists` does not take `update`.
+  Hosted roasts (§4): `skip` is pure too; what hosted `skip` did (render,
+  replace if unedited, keep an edit with a warning, adopt or migrate a
+  file without a hash, remove unedited orphan fill-ins, repair existing
+  files) is now `update`, the same rule as for engine roasts. Under
+  `skip` the participants, sessions and scans tables and the field maps
+  whose `IntendedFor` is trimmed still follow `update`, a missing file
+  is written, and a file left alone is a skipped action of its shard
+  (an output, so that deleting it runs the shard again). The roast that
+  a compost runs passes `update`; `bx <ds> roast` keeps the user's
+  value (default `skip`). The hosted default stays `skip`.

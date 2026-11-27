@@ -132,6 +132,10 @@ roasted, `compost`, `info`), with the same option groups; `bx <dataset>
   files that match no key.
 * **Harvest** / **Roast** / **Compost**: options of the command
   (`--if-exists`, `--dry-run`, `--lock-wait`...; roast `--jobs`).
+  `--if-exists skip` (the default) leaves existing files alone, except
+  the tables derived from what is on disk; `roast --if-exists update`
+  rewrites the sidecars and metadata files whose content changed and
+  keeps the ones you edited; `different` replaces edits too.
 * **Sources** (`--source`, and the download options of every source:
   `--jobs`, `--packet`, `--insecure`, whose help gives the default of
   each source), then one panel per source that needs options of its
@@ -208,10 +212,15 @@ again from those copies, without the network (after deleting or editing
 a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
 download the JSON sidecars of the data files, `--sidecars only` only
 downloads metadata (no images; tables and field maps are still trimmed to
-the images selected). A harvest that runs again skips what did not
-change, and a roasted file you edit is kept (`--if-exists overwrite`
-replaces it). `bx openneuro roast` repairs by default, also what a
-`harvest --no-repair` placed, unless a config file says `repair = false`.
+the images selected). A harvest or roast that runs again leaves the
+files that exist alone (`--if-exists skip`, the default), except the
+tables and the `IntendedFor` of field maps, which follow the images on
+disk. `bx openneuro roast --if-exists update` brings the metadata up to
+date with the pristine copies and templates, and keeps a file you
+edited (`--if-exists different` or `overwrite` replaces it). A roast
+repairs the files it writes by default, also what a `harvest
+--no-repair` placed (with `--if-exists update`), unless a config file
+says `repair = false`.
 
 Files are listed through the OpenNeuro API, which pins the exact snapshot
 and provides SHA256 checksums for annexed files. If the API cannot be

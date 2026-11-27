@@ -607,6 +607,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   2 decompressions per image disc, 1 per FreeSurfer disc (plus a
   listing of the image disc of the same number if a tree lacks the
   `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
+  OASIS-II parts are read the same way (one shard per part, task id
+  `roast/parts/part<N>`, inputs: the part and the `T1w.json` template;
+  2 decompressions per part).
 * Several gz archives (ABIDE-I, step 5): one shard per gz archive (NITRC
   `<Site>.tgz`, id `roast/raw/<name>`), or per folder that stands for
   one (a site folder of a bucket copy, `RawData/<Site>/`, its files as
@@ -1375,7 +1378,8 @@ units take the run lock (§7, "What the ports must and must not assume").
 | ABIDE-II, CoRR | declared (sites, login) | ABIDE-II: override, legacy code (step 5) | |
 | COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
 | OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
-| Bullitt, OASIS-II | declared (OASIS: `parts` group) | override, legacy code; own `keys_for("roast")` | |
+| OASIS-II | declared (`parts` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--parts`); sessions |
+| Bullitt | declared | override, legacy code; own `keys_for("roast")` | |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
@@ -2180,7 +2184,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2322,7 +2326,21 @@ up as an XPASS failure once fixed (then drop the marker).
   also listed raw runs 1 to 4 as the `Sources` of every FreeSurfer
   tree (now its `mri/orig/` volumes, else the runs of its image disc),
   and wrote `"Manual": "False"` (a string) in the FSL `dseg` sidecar.
-* OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
+* ~~OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks
+  `return`.~~ Fixed in the port of OASIS-II (step 5,
+  `datasets/oasis/ii/roaster.py`; xfail removed). Also fixed there:
+  sessions tables labelled from the `Visit` column while the scans are
+  in the folders of the MRI ID (`OAS2_<sub>_MR<n>`, now both `ses-<n>`;
+  the visit is a column); `PATHOLOGY_MAP` raised `KeyError` on an
+  empty or unknown group (now `n/a`, with a warning); MMSE, CDR and
+  other integral cells written as floats (`30.0`, CDR `0.0`: not a
+  level of `sessions.json`) and empty cells as `None`; the IDs parsed
+  with `int(id.split('_')[-1])` crashed on blank rows and on IDs that
+  are not `OAS2_<n>`, and runs `mpr-<n>` with more than one digit
+  were misread; a subject missing from the spreadsheet crashed the
+  roast of its part; participants were read from visit 1 only (now the
+  first visit); `sessions.json`: `Unit` for `Units`, `delay` described
+  as the time *to* the first visit.
 * ~~ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
   `OAS3{id:05d}_MR_*`, so `fs`/`fs-all` roasts find nothing; `fixstatus`
@@ -2750,3 +2768,24 @@ up as an XPASS failure once fixed (then drop the marker).
   every member under the subject's root (`tmp/`, `bem/`, root files),
   once the root is known (members before it are skipped: one pass); a
   root that does not name the subject's id is warned about.
+* r40: step 5, OASIS-II on the roast engine: one shard per part (§5),
+  participants and per-subject sessions tables through
+  `.brainspresso/orig/` and trim (both with the `meta` key, as in
+  OASIS-III: a `--keys raw` roast no longer writes sessions tables);
+  missing parts are skipped with a warning unless named with `--parts`
+  (default `()`, values outside 1 and 2 a `UsageError`), `--parts`
+  passed through `Dataset.roast_options`; `legacy_subjects`,
+  `legacy_keys` and the `Bidsifier` class no longer used by OASIS-II
+  (`subject_width = 4`); its known bug fixed, and the legacy bugs
+  found while porting (§8). Session labels are the numbers of the MRI
+  IDs (the folders of the scans); member names are matched with and
+  without the top folder `OAS2_RAW_PART<N>/` (not checked on the real
+  tarballs). Open, as for OASIS-I: the shard signature includes the
+  whole selection. Review round 1 of #34: member names normalised
+  (`./`, any prefix before `OAS2_<n>_MR<m>/RAW/`), a part without any
+  recognised scan is an error; the spreadsheet is read without
+  `read_only` (which trusts a stale `<dimension>`), short rows padded,
+  columns found by name (else by position, with a warning), an MRI ID
+  of another subject skipped, the visit used (with a warning) when the
+  MRI ID cannot be parsed; a missing openpyxl is an error with the
+  install hint; `--sessions` for roast (`Dataset.sessions`).

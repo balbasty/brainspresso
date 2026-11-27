@@ -118,14 +118,17 @@ class GrindPlanner:
         Returns
         -------
         str
-            "done", "failed", "skipped" (requirements not met) or
-            "pending" (an upstream task is not over)
+            "done", "failed", "skipped" (requirements can no longer be
+            met) or "waiting" (an upstream task is not over)
 
         Raises
         ------
         PlanError
             If the pipeline has another version, the image another
-            digest, or the task another signature than the plan says
+            registry digest than the plan records (a digest that the
+            plan does not hold is written in the task record, never in
+            the plan), or the task another signature than the plan
+            says
         """
         raise NotImplementedError
 

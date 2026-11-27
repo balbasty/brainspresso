@@ -11,7 +11,7 @@ serialised callable: running it calls the planner of the stage again,
 restricted to the scope of the task. `bx <ds> roast|grind` plan in
 memory and run; `--plan PATH` writes the plan and runs nothing;
 `bx percolate PLAN` runs or tracks a saved plan, locally or as
-scheduler jobs whose payload is `bx percolate PLAN --task <id>`.
+scheduler jobs whose payload is `bx percolate PLAN --task <key>`.
 
 * `plan`: `Plan`, `PlanTask`, `PlanDataset`, `TaskScope`, `Resources`,
   `read_plan`, `write_plan`, `plan_dumper`, `resolve_roots`,
@@ -71,6 +71,7 @@ from brainspresso.percolate.plan import (
 )
 from brainspresso.percolate.run import (
     PLANNERS,
+    TASK_STATUSES,
     PlanStatus,
     StagePlanner,
     cancel_plan,
@@ -85,10 +86,10 @@ from brainspresso.percolate.run import (
 __all__ = [
     "BACKENDS", "JOB_STATES", "PLANNERS", "PLANS_DIR", "PLAN_SCHEMA",
     "PROFILES_SECTION", "SCHEDULERS", "SCRATCH_VARIABLES", "STAGING",
-    "YAML_PITFALLS", "ExecutionOptions", "Job", "JobState", "Plan",
-    "PlanDataset", "PlanError", "PlanStatus", "PlanTask", "Profile",
-    "Resources", "Scheduler", "StagePlanner", "TaskScope",
-    "cancel_plan", "check_strings", "get_planner",
+    "TASK_STATUSES", "YAML_PITFALLS", "ExecutionOptions", "Job",
+    "JobState", "Plan", "PlanDataset", "PlanError", "PlanStatus",
+    "PlanTask", "Profile", "Resources", "Scheduler", "StagePlanner",
+    "TaskScope", "cancel_plan", "check_strings", "get_planner",
     "get_scheduler", "list_plans", "load_profile", "make_jobs",
     "percolate", "plan_dumper", "plan_path", "plan_status", "read_plan",
     "resolve_resources", "resolve_roots", "run_task", "submit_jobs",

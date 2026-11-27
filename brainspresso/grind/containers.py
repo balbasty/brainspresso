@@ -32,9 +32,11 @@ class Container:
         Image reference (`nipreps/fmriprep:23.2.1`), or the path of an
         Apptainer image file
     digest : str | None
-        Content digest (`sha256:...`). It is recorded in task records
-        and `GeneratedBy` and compared when known, apart from the task
-        signature (which holds `image`); found by
+        Registry manifest digest of the image (`sha256:...`), the same
+        whatever runtime runs it (for a local image file: the SHA-256
+        of the file). It is recorded in task records and `GeneratedBy`
+        and compared when known, apart from the task signature, which
+        holds `image` as declared, never a local path; found by
         `ContainerRuntime.inspect` or `pull` when None
     env : Mapping[str, str]
         Environment variables set in the container
@@ -94,10 +96,12 @@ class ContainerRuntime(Protocol):
 
     def inspect(self, container: Container) -> str | None:
         """
-        Return the digest of an image without pulling it.
+        Return the registry digest of an image without pulling it.
 
-        From `container.digest`, the local image store or the image
-        cache. Used when planning (dry runs included): nothing is
+        From `container.digest`, the local image store (Docker), or
+        the digest that the runtime kept next to the image file it
+        converted (Apptainer); never a digest of the local copy. Used
+        when planning (dry runs included): nothing is
         downloaded or written.
 
         Parameters
@@ -118,8 +122,9 @@ class ContainerRuntime(Protocol):
         Make an image available locally.
 
         Docker pulls it; Apptainer builds an image file in the cache.
-        Done once, when tasks are about to be submitted, never by a
-        dry run; the plan is then made again with the digests.
+        Done once, when tasks are about to run, never by a dry run or
+        when planning. The plan is not changed: a digest that it does
+        not hold is written by each task in its record.
 
         Parameters
         ----------
@@ -129,7 +134,8 @@ class ContainerRuntime(Protocol):
         Returns
         -------
         Container
-            The same, with its `digest` (and local `image`) resolved
+            The same, with its registry `digest`; `image` is unchanged
+            (where the local copy is kept is the runtime's business)
         """
         ...
 

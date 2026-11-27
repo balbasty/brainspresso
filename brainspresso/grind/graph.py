@@ -232,9 +232,12 @@ def signature(
     inputs : Sequence[Path]
         Raw input files
     root : Path | None
-        Dataset folder that input paths are made relative to
+        Dataset folder that input paths are made relative to: a
+        signature never holds an absolute path, so it is the same on
+        translated roots
     upstream : Mapping[str, str | None] | None
-        `{upstream task id: its signature}`
+        `{upstream task key: its signature}` (`PlanTask.key`: an
+        upstream task may be in another dataset)
     container : str | None
         Image reference (`Container.image`), without digest
 

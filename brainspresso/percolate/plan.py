@@ -32,13 +32,19 @@ tasks:
   dataset: IXI
   stage: cross
   scope: {level: session, sub: sub-01, ses: ses-1}
-  after: []
+  after: []                     # task keys, e.g. 'IXI:grind/...'
   after_any: []
   resources: {cpus: 4, memory_gb: 16.0}
   overrides: {}
   signature: null
   verdict: todo
 ```
+
+Task ids are unique in one dataset only (they name the record file in
+its state folder). Wherever a plan refers to a task (`after`,
+`after_any`, jobs, `--task`, status reports) it uses the task's **key**,
+`<dataset ref>:<id>` (`PlanTask.key`; the bare id for a task of the
+home): two datasets of one plan have tasks with equal ids.
 
 Paths. A plan holds no path but the roots (`home`, each dataset
 `root`): tasks are ids and scopes, and everything else is relative to a
@@ -175,7 +181,8 @@ class PlanTask:
     Attributes
     ----------
     id : str
-        Task id, also that of its record (`roast/...`, `grind/...`)
+        Task id, that of its record in the state folder of its dataset
+        (`roast/...`, `grind/...`); not unique in a cross-dataset plan
     dataset : str | None
         Reference of its dataset (None: the home of a cross-dataset
         run)
@@ -184,9 +191,10 @@ class PlanTask:
     scope : TaskScope
         What it is restricted to
     after : tuple[str, ...]
-        Ids of tasks that must succeed first
+        Keys of tasks that must succeed first (checked by the task
+        when it starts)
     after_any : tuple[str, ...]
-        Ids of tasks that must be over first
+        Keys of tasks that must be over first
     resources : Resources
         What the stage declares: a default, see `resolve_resources`
     overrides : Mapping[str, Any]
@@ -211,6 +219,16 @@ class PlanTask:
     signature: str | None = None
     verdict: str = "todo"
     reason: str = ""
+
+    @property
+    def key(self) -> str:
+        """
+        Key of the task in its plan: `<dataset>:<id>`.
+
+        The bare `id` when `dataset` is None. References and ids hold
+        no colon, so keys are unique in a plan and split back.
+        """
+        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -315,14 +333,14 @@ class Plan:
         """
         raise NotImplementedError
 
-    def task(self, id: str) -> PlanTask:
+    def task(self, key: str) -> PlanTask:
         """
-        Return a task by id.
+        Return a task by key.
 
         Parameters
         ----------
-        id : str
-            Task id
+        key : str
+            Task key (`PlanTask.key`)
 
         Returns
         -------

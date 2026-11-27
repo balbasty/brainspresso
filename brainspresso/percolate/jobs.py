@@ -4,14 +4,27 @@ Scheduler jobs: batch scripts that run tasks of a plan.
 Interfaces only (see `brainspresso.percolate`).
 
 The payload of a job is plain data: a batch script whose command is
-`bx percolate PLAN --task <id>`, or, for a job array, `bx percolate
+`bx percolate PLAN --task <key>`, or, for a job array, `bx percolate
 PLAN --array <job> --index <n>` with the array index of the scheduler.
 No callable is pickled, so scripts can be read, checked and submitted
 by hand. Backends are small native templates over the scheduler's own
-commands (`sbatch --parsable`, `qsub`), with `afterok`/`afterany`
-dependencies (`aftercorr` where valid); there is no submitit backend:
+commands (`sbatch --parsable`, `qsub`); there is no submitit backend:
 what submitit adds is pickling callables and fetching their results,
 which this design does not use, and it does not cover SGE and PBS.
+
+Dependencies. A job waits for the **end** of the jobs it depends on,
+not for their success: tasks check their requirements when they start,
+and a must-succeed dependency on an array would leave every dependant
+queued forever after one failed element. A must-succeed dependency
+(`Job.after`) is only used when each task of the job requires every
+task of the upstream job. What schedulers get:
+
+* SLURM: `afterany`; must succeed: `afterok` with
+  `--kill-on-invalid-dep=yes`; aligned arrays: `aftercorr`;
+* SGE: `-hold_jid` for both (it has no must-succeed form: the task
+  checks); aligned arrays: `-hold_jid_ad`;
+* PBS: `depend=afterany`; must succeed: `depend=afterok` between
+  single jobs only (arrays: `afterany`); no element-wise form.
 
 `write_jobs` writes, in one folder: one script per job, `manifest.json`
 (jobs, their tasks and dependencies) and `submit.sh`, which submits
@@ -52,16 +65,19 @@ class Job:
     name : str
         Name in the plan (`j0003`): script `<name>.sh`, `--array` value
     tasks : tuple[str, ...]
-        Task ids; several: a job array, element `n` runs `tasks[n]`
+        Task keys (`PlanTask.key`); several: a job array, element `n`
+        runs `tasks[n]`
     resources : Resources
         Resources of each task (`resolve_resources`)
     after : tuple[str, ...]
-        Names of jobs that must succeed first (`afterok`)
+        Names of jobs that must succeed first: only jobs of which
+        every task is required by every task of this one
     after_any : tuple[str, ...]
-        Names of jobs that must be over first (`afterany`)
+        Names of jobs that must be over first: the default for a
+        dependency between jobs
     pairwise : tuple[str, ...]
-        Names of jobs in `after` that this array is aligned with:
-        element `n` only waits for their element `n` (`aftercorr`)
+        Names of jobs in `after` or `after_any` that this array is
+        aligned with: element `n` only waits for their element `n`
     """
 
     name: str
@@ -86,12 +102,17 @@ class Scheduler(Protocol):
         (`$SLURM_ARRAY_TASK_ID`)
     pairwise : bool
         Whether the scheduler has element-wise array dependencies
-        (SLURM `aftercorr`); otherwise they become whole-array ones
+        (SLURM `aftercorr`, SGE `-hold_jid_ad`); otherwise they become
+        whole-array ones
+    must_succeed : bool
+        Whether it has a must-succeed dependency (not SGE); otherwise
+        "ok" dependencies become "any" ones
     """
 
     name: str
     array_index: str
     pairwise: bool
+    must_succeed: bool
 
     def script(self, job: Job, command: Sequence[str],
                profile: Profile) -> str:
@@ -129,7 +150,9 @@ class Scheduler(Protocol):
         script : str
             Path of the script
         after : Mapping[str, Sequence[str]] | None
-            Scheduler job ids per condition: "ok", "any", "pairwise"
+            Scheduler job ids per condition: "any" (wait for the end),
+            "ok" (must succeed), "pairwise"; a condition the scheduler
+            lacks is mapped to "any"
 
         Returns
         -------
@@ -205,7 +228,9 @@ def make_jobs(plan: Plan, profile: Profile,
     (`Job.pairwise`) only if they are built here together from the same
     ordered list of scopes and split at the same places, so that
     element `n` depends on element `n` and on no other; equal lengths
-    are not enough. Any other dependency is on the whole job.
+    are not enough. Any other dependency is on the whole job, and waits
+    for its end (`Job.after_any`) unless every task of the job requires
+    every task of the other (`Job.after`).
 
     Parameters
     ----------

@@ -318,6 +318,10 @@ def test_bids_app():
     assert app.claims == ()         # default claims depend on the level
     doc = inspect.getdoc(grind.BidsAppPipeline)
     assert "sub-{sub}/ses-{ses}/" in doc and "refuses" in doc
+    assert app.shared == ()
+    doc = flat(grind.bidsapp)
+    assert "its own `out_dir`" in doc and "never the derivative" in doc
+    assert "`finalize` task writes the description" in doc
     assert list(fields(grind.BidsAppConfig)) == [
         "args", "bids_filter", "skip_bids_validation", "files"]
     assert params(grind.BidsAppStage.command) == ["self", "ctx", "work"]
@@ -445,15 +449,46 @@ def test_jobs():
         "name", "tasks", "resources", "after", "after_any", "pairwise"]
     assert typing.get_args(jobs.JobState) == jobs.JOB_STATES
     hints = typing.get_type_hints(jobs.Scheduler)
-    assert (hints["name"], hints["array_index"], hints["pairwise"]) == (
-        str, str, bool)
+    assert (hints["name"], hints["array_index"], hints["pairwise"],
+            hints["must_succeed"]) == (str, str, bool, bool)
     doc = flat(jobs)
-    assert "bx percolate PLAN --task <id>" in doc
+    # dependencies wait for the end; must-succeed only where it holds
+    for word in ("not for their success", "afterany", "afterok",
+                 "--kill-on-invalid-dep=yes", "aftercorr", "-hold_jid",
+                 "-hold_jid_ad", "depend=afterany"):
+        assert word in doc, word
+    assert "the default for a dependency between jobs" in flat(jobs.Job)
+    assert "bx percolate PLAN --task <key>" in doc
     assert "bx percolate PLAN --array <job> --index <n>" in doc
     assert "no submitit" in doc
     assert "equal lengths are not enough" in flat(jobs.make_jobs)
     assert list(fields(prun.PlanStatus)) == [
         "plan", "status", "counts", "failures", "jobs", "unknown"]
+    assert '"incomplete"' in flat(prun.PlanStatus)
+
+
+def test_plan_keys_and_waiting():
+    """Task ids repeat across datasets; "waiting" is not "pending"."""
+    one = plans.PlanTask("grind/p/s/sub-01", "ixi")
+    two = plans.PlanTask("grind/p/s/sub-01", "abide1/NYU")
+    assert one.id == two.id and one != two
+    assert isinstance(plans.PlanTask.key, property)
+    assert "<dataset>:<id>" in flat(plans.PlanTask.key)
+    assert params(plans.Plan.task) == ["self", "key"]
+    for doc in (flat(plans.PlanTask), flat(jobs.Job), flat(prun.run_task),
+                flat(prun.PlanStatus)):
+        assert "key" in doc.lower()
+    assert prun.TASK_STATUSES == (
+        "pending", "running", "waiting", "done", "failed", "skipped")
+    assert '"status": "' + " | ".join(prun.TASK_STATUSES) + '"' in SECTION
+    doc = flat(prun)
+    assert "never turns it into \"failed\"" in doc
+    assert "submits it again" in doc
+    assert "more CPUs than `--jobs`" in doc
+    assert '"waiting"' in flat(prun.StagePlanner.run)
+    assert '"waiting"' in flat(run.GrindPlanner.run)
+    assert "nothing is clamped" in flat(prun.percolate)
+    assert "`<dataset ref>:<id>`" in SECTION
 
 
 # ----------------------------------------------------------------------
@@ -520,7 +555,7 @@ SIGNATURES = {
     plans.write_plan: ["plan", "path"],
     plans.read_plan: ["path"],
     plans.resolve_roots: ["plan", "paths"],
-    plans.Plan.task: ["self", "id"],
+    plans.Plan.task: ["self", "key"],
     plans.Plan.todo: ["self"],
     options.load_profile: ["options", "config"],
     options.resolve_resources: ["task", "profile", "options"],
@@ -575,6 +610,7 @@ def test_nothing_is_implemented(tmp_path):
         lambda: run.planner.run(plan, plan.tasks[0], profile),
         lambda: run.planner.locks(plan, plan.tasks[0]),
         lambda: plan.id,
+        lambda: plan.tasks[0].key,
         lambda: plan.todo(),
         lambda: plans.Resources().merged({"cpus": 2}),
         lambda: plans.plan_dumper(),
@@ -631,6 +667,24 @@ def test_task_state_fields():
     assert run.GRIND_LOCK == "grind"
     assert list(fields(run.GrindReport)) == [
         "plan", "status", "counts", "failures", "progress"]
+
+
+def test_final_review():
+    """What the final review added to §7 (step 7 changes included)."""
+    section = " ".join(SECTION.split())
+    for word in (
+        "`CollectionLayout`", "never guessed from the tree",
+        "relative to the dataset root", "registry manifest digest",
+        "The plan is never rewritten", "`run_lock(..., alive=)`",
+        "roast --wait <number>", "names `--lock-wait`",
+        "`<state>/work/`", "`BidsAppPipeline.shared`",
+        "refuses the plan before anything runs",
+    ):
+        assert word in section, word
+    doc = flat(containers.Container)
+    assert "Registry manifest digest" in doc and "never a local path" in doc
+    assert "`image` is unchanged" in flat(containers.ContainerRuntime.pull)
+    assert "plan again" not in section
 
 
 def test_decisions_leave_no_question():

@@ -19,7 +19,7 @@ Interfaces only (see `brainspresso.percolate`).
   `submit, then watch`: it exits non-zero if any task failed, is never
   needed for correctness, and killing it never affects the jobs;
 * `--cancel`: cancel its jobs and record their tasks "failed";
-* `--task ID`, `--array JOB --index N`: run one task, in this process
+* `--task KEY`, `--array JOB --index N`: run one task, in this process
   (what jobs call);
 * no argument: list the plans of the dataset that contains the
   current folder (else of `--out`) and their state.
@@ -32,8 +32,23 @@ Running a task calls the planner of its stage (`StagePlanner.run`),
 restricted to its scope. The task takes the locks of its stage and its
 own unit lock, checks its inputs and its signature again, and refuses a
 plan that no longer matches (`PlanError`: reported, never followed
-blindly). A task whose upstream task is still "pending" or "running"
-is not run and stays "pending": the next `bx percolate PLAN` runs it.
+blindly).
+
+Statuses of task records (`TASK_STATUSES`). "waiting" means "an
+upstream task is not over": a task that finds an upstream record
+"pending", "running" or "waiting" when it starts records itself
+"waiting" and exits. No job holds it, so reconciliation never turns it
+into "failed" for a job that is gone, and a plain `bx percolate PLAN`
+submits it again, as it does tasks without a record. When a "waiting"
+task's upstream ended without success, reconciliation applies the
+failure policy: "skipped" if what it requires can no longer be met,
+else it stays "waiting" and runs on what succeeded. For `--wait` and
+`--watch` it counts as unfinished only while one of its upstream tasks
+is "pending" or "running"; otherwise a waiting percolate submits it
+again, and a watch ends with the plan "incomplete".
+
+The local pool: a task whose resources ask for more CPUs than `--jobs`
+could never start, so the plan is refused before anything runs.
 """
 from __future__ import annotations
 
@@ -44,10 +59,15 @@ from typing import Protocol, Sequence, runtime_checkable
 from brainspresso.percolate.options import ExecutionOptions, Profile
 from brainspresso.percolate.plan import Plan, PlanTask
 
-__all__ = ["PLANNERS", "PlanStatus", "StagePlanner", "cancel_plan",
+__all__ = ["PLANNERS", "TASK_STATUSES", "PlanStatus", "StagePlanner",
+           "cancel_plan",
            "get_planner", "list_plans", "percolate", "plan_status",
            "run_task", "watch_plan"]
 
+#: Statuses of task records ("waiting": an upstream task is not over;
+#: added to those of `actions.state` in step 7)
+TASK_STATUSES = ("pending", "running", "waiting", "done", "failed",
+                 "skipped")
 #: Planner of each stage, "module:attribute", loaded on first use
 PLANNERS: dict[str, str] = {
     "roast": "brainspresso.roast.plan:planner",
@@ -96,7 +116,8 @@ class StagePlanner(Protocol):
         -------
         str
             Status written in its record: "done", "failed", "skipped"
-            or "pending" (an upstream task is not over)
+            (requirements can no longer be met) or "waiting" (an
+            upstream task is not over)
 
         Raises
         ------
@@ -137,18 +158,22 @@ class PlanStatus:
     ----------
     plan : Plan | None
         The plan
-    status : {"planned", "running", "complete", "partial", "stale"}
-        "partial": some tasks failed or were skipped and none is
-        running; "stale": the plan no longer matches the dataset
+    status : {"planned", "running", "incomplete", "complete", "partial",
+              "stale"}
+        "running": a task is pending or running; "incomplete": none
+        is, and tasks remain to run ("waiting", or without a record):
+        `bx percolate PLAN` goes on; "partial": none remains, some
+        failed or were skipped; "stale": the plan no longer matches
+        the dataset
     counts : dict[str, int]
         `{task status: n}` ("todo" for tasks without a record)
     failures : dict[str, str]
-        `{task id: error}` of failed and skipped tasks
+        `{task key: error}` of failed and skipped tasks
     jobs : dict[str, str]
-        `{task id: scheduler job id}` of tasks that have one
+        `{task key: scheduler job id}` of tasks that have one
     unknown : dict[str, str]
         Tasks recorded "pending" or "running" that cannot be checked
-        (a local run on another host): `{task id: host}`
+        (a local run on another host): `{task key: host}`
     """
 
     plan: Plan | None = None
@@ -193,7 +218,8 @@ def percolate(
     Run a plan: the body of `bx percolate PLAN`.
 
     Under the lock of the plan. Tasks already done (same signature) are
-    left; the others run in dependency order, on the local pool (each
+    left; the others ("waiting" ones included) run in dependency
+    order, on the local pool (each
     worker runs `run_task`) or as scheduler jobs (`make_jobs`,
     `submit_jobs`). A plan in memory can only run locally: a scheduler
     backend saves it first. A plan written by another brainspresso
@@ -228,7 +254,9 @@ def percolate(
     LockError
         If another process holds the lock of the plan
     PlanError
-        If the plan is stale
+        If the plan is stale, or if on the local pool a task needs
+        more CPUs than `jobs` (the message names the task, its stage
+        and both numbers; nothing is clamped)
     """
     raise NotImplementedError
 
@@ -238,7 +266,7 @@ def run_task(plan: Plan | str | Path, task: str, *,
     """
     Run one task: the body of `bx percolate PLAN --task ID`.
 
-    Also of `--array JOB --index N`, once the task id is read from the
+    Also of `--array JOB --index N`, once the task key is read from the
     job manifest. Takes no plan lock.
 
     Parameters
@@ -246,7 +274,7 @@ def run_task(plan: Plan | str | Path, task: str, *,
     plan : Plan | str | Path
         The plan, or its file
     task : str
-        Task id
+        Task key (`PlanTask.key`)
     options : ExecutionOptions | None
         Profile and container runtime (as given when it was submitted)
 
@@ -268,9 +296,15 @@ def plan_status(plan: Plan | str | Path, *,
     plan : Plan | str | Path
         The plan, or its file
     reconcile : bool
-        Ask the scheduler about recorded jobs and record as "failed"
-        the tasks whose job ended without finishing them (needs the
-        lock of the plan; skipped, read-only, when it is held)
+        Ask the scheduler about recorded jobs and settle the records
+        (needs the lock of the plan; skipped, read-only, when it is
+        held): a "pending" or "running" task whose job ended without
+        finishing it becomes "failed" ("skipped" if the scheduler
+        dropped the job because a required upstream failed); a
+        "waiting" task is never failed for its job, and becomes
+        "skipped" only when its requirements can no longer be met;
+        run records of the grind lock left by jobs that are over are
+        removed
 
     Returns
     -------
@@ -302,6 +336,9 @@ def watch_plan(plan: Plan | str | Path, *, interval: float = 10.0,
     -------
     PlanStatus
         State of the plan once no task is pending or running
+        ("incomplete" if "waiting" tasks are left: it says to run
+        `bx percolate PLAN`, and never waits for a task that no
+        running task can release)
     """
     raise NotImplementedError
 

@@ -99,16 +99,17 @@ jobs:
       - name: Loop dropped-connection tests (temporary)
         if: ${{ inputs.os == 'windows-latest' }}
         shell: bash
-        working-directory: ${{ runner.temp }}
+        working-directory: ${{ github.workspace }}/ci_tmp
         run: |
-          K="restart_when_remote_changed or resume_after_dropped"
-          for v in old new; do
-            if [ $v = old ]; then f="$GITHUB_WORKSPACE/ci_tmp/test_download_old.py"
-            else f="$GITHUB_WORKSPACE/tests/test_download.py"; fi
-            fails=0
-            for i in $(seq 50); do
-              pytest -q -p no:cacheprovider "$f" -k "$K" > out.txt 2>&1 \
-                || { fails=$((fails+1)); grep -E "^E |FAILED" out.txt | head -5; }
-            done
-            echo "LOOP $v: $fails failed runs of 50"
+          # CPU load, as during the parallel test suite
+          for k in 1 2 3 4; do
+            python -c "while True: pass" & done
+          for round in 1 2 3; do
+            pytest -q -p no:cacheprovider test_stress.py -n auto -rf \
+              > out.txt 2>&1 || true
+            tail -1 out.txt
+            echo "ROUND $round old: $(grep -c '^FAILED.*\[old-' out.txt) failed"
+            echo "ROUND $round new: $(grep -c '^FAILED.*\[new-' out.txt) failed"
+            grep '^FAILED' out.txt | head -5
           done
+          kill $(jobs -p) || true

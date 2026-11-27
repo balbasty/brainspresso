@@ -7,7 +7,19 @@ import nibabel as nib
 import numpy as np
 import pytest
 from cli_utils import bx
-from roast_utils import LAYOUTS, init_layout, layout_of, raw_file, raw_tree
+from roast_utils import (
+    LAYOUTS,
+    init_layout,
+    layout_of,
+    raw_file,
+    raw_tree,
+    read_tsv,
+)
+
+from brainspresso.actions.state import read_task_states
+from brainspresso.datasets.bullitt import roaster
+from brainspresso.datasets.bullitt.dataset import Bullitt
+from brainspresso.datasets.bullitt.roaster import roast as roast_api
 
 TEMPLATES = (Path(__file__).parents[1] / "brainspresso" / "datasets"
              / "bullitt" / "templates")
@@ -82,6 +94,12 @@ def root(tmp_path, request):
     return root
 
 
+def corrupt(path):
+    """Replace the (compressed) data of a MetaImage file."""
+    head = path.read_bytes().split(b"ElementDataFile = LOCAL\n")[0]
+    path.write_bytes(head + b"ElementDataFile = LOCAL\nnot zlib data")
+
+
 def roast(root, *flags):
     """`bx bullitt roast <tmp> <flags>`."""
     bx("bullitt", "roast", root.parent, *flags)
@@ -134,9 +152,13 @@ def test_sidecars_and_templates(root):
         assert json.loads(raw_file(
             root, f"sub-001/anat/sub-001_{suffix}.json").read_text()
         ) == json.loads((TEMPLATES / f"{suffix}.json").read_text())
-    for name in ("README", "participants.tsv"):
-        assert raw_file(root, name).read_bytes() == \
-            (TEMPLATES / name).read_bytes()
+    assert raw_file(root, "README").read_bytes() == \
+        (TEMPLATES / "README").read_bytes()
+    # trimmed to the subjects on disk (legacy: the 109 rows of the
+    # template)
+    template = (TEMPLATES / "participants.tsv").read_text().splitlines()
+    assert raw_file(root, "participants.tsv").read_text().splitlines() \
+        == template[:4]
     for name in ("participants.json",):
         assert json.loads(raw_file(root, name).read_text()) == \
             json.loads((TEMPLATES / name).read_text())
@@ -173,7 +195,8 @@ def test_exclude_keys(root):
           "skullstripped")
     assert raw_tree(root) == anat("001", "acq-mprage_T1w") | \
         anat("003", "acq-mprage_T1w")
-    assert deriv_tree(root) == {
+    # (legacy: no derivative dataset files without the meta key)
+    assert deriv_tree(root) == DERIV_META | {
         "sub-001/anat/sub-001_desc-vessels_tubes.tre",
         "sub-002/anat/sub-002_desc-vessels_tubes.tre"}
 
@@ -199,8 +222,7 @@ def test_sidecars_only_raw(root):
 def test_corrupt_image(root):
     """A corrupt image is an error of its own output; the rest is
     written."""
-    path = root / "sourcedata" / "Normal-001/T2/Normal001-T2.mha"
-    path.write_bytes(path.read_bytes()[:-20])
+    corrupt(root / "sourcedata" / "Normal-001/T2/Normal001-T2.mha")
     roast(root)
     assert raw_tree(root) == META | (RAW - {"sub-001/anat/sub-001_T2w.nii.gz"})
     assert deriv_tree(root) == DERIV_META | DERIV
@@ -216,27 +238,194 @@ def test_rerun_skips(root):
 
 
 # ----------------------------------------------------------------------
-#   Known bugs of the legacy roaster
+#   Bugs of the legacy roaster
 # ----------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="legacy: --sidecars only writes the "
-                   "derivative images (desc-brain_T1w.nii.gz, .tre)")
 def test_sidecars_only_derivatives(root):
+    """Legacy: `--sidecars only` wrote the derivative images (and `.tre`)"""
     roast(root, "--keys", "skullstripped", "vessels", "--sidecars", "only")
     assert {p for p in deriv_tree(root) if p.startswith("sub-")} == {
         f"{BRAIN}.json"}
 
 
-@pytest.mark.xfail(strict=True, reason="legacy: --sidecars no writes the "
-                   "sidecar of the skull-stripped image")
+def test_sidecars_only_never_writes_images(root):
+    roast(root, "--sidecars", "only")
+    assert raw_tree(root) == META | {p for p in RAW if p.endswith(".json")}
+    assert deriv_tree(root) == DERIV_META | {f"{BRAIN}.json"}
+
+
 def test_sidecars_no_derivatives(root):
+    """Legacy: `--sidecars no` wrote the sidecar of the skull-stripped
+    image"""
     roast(root, "--keys", "skullstripped", "--sidecars", "no")
     assert {p for p in deriv_tree(root) if p.startswith("sub-")} == {
         f"{BRAIN}.nii.gz"}
 
 
-@pytest.mark.xfail(strict=True, reason="legacy: the derivative dataset "
-                   "files are only written with the meta key")
 def test_derivatives_without_meta(root):
+    """Legacy: the derivative dataset files were only written with the
+    meta key"""
     roast(root, "--keys", "skullstripped", "vessels")
     assert deriv_tree(root) == DERIV_META | DERIV
+    assert raw_tree(root) == set()
+
+
+# ----------------------------------------------------------------------
+#   Engine port
+# ----------------------------------------------------------------------
+
+def test_api_keys_and_subjects(root):
+    """`roast(keys=)` takes a bare string; subjects as `--subs`"""
+    report = roast_api(root, keys="T2w", subs=[2], json="no", display=False)
+    assert not report.errors
+    assert raw_tree(root) == {"sub-002/anat/sub-002_T2w.nii.gz"}
+
+
+@pytest.mark.parametrize("subs", [["sub-001"], ["001"], ["1"], [1],
+                                  ["1:2"]])
+def test_api_subject_values(root, subs):
+    roast_api(root, keys=["angio"], subs=subs, display=False)
+    assert raw_tree(root) == anat("001", "angio")
+
+
+def test_api_subject_file(root, tmp_path):
+    (tmp_path / "subs.txt").write_text("sub-001\nsub-002\n")
+    roast_api(root, keys="mprage", exclude_subs=[str(tmp_path / "subs.txt")],
+              display=False)
+    assert raw_tree(root) == anat("003", "acq-mprage_T1w")
+
+
+@pytest.mark.parametrize("keys, expected", [
+    ("raw", RAW),
+    ("T1w", {p for p in RAW if "_T1w" in p}),
+    ("anat", RAW),
+    ("derivatives", set()),
+])
+def test_key_groups(root, keys, expected):
+    """Groups select their keys (and name them: missing scans are
+    errors)"""
+    report = roast_api(root, keys=keys, display=False)
+    assert report.errors
+    assert raw_tree(root) == expected
+    if keys == "derivatives":
+        assert deriv_tree(root) == DERIV_META | DERIV
+
+
+def test_default_roast_has_no_errors(root):
+    """Missing scans are not errors by default (the source distributes
+    them incompletely)"""
+    report = roast_api(root, display=False)
+    assert not report.errors
+    assert report.status == "complete"
+
+
+def test_missing_scans_named(root):
+    """A missing scan is an error when `--keys` names its key"""
+    report = roast_api(root, keys=["mprage", "skullstripped"],
+                       display=False)
+    assert sorted(name for _, name, _ in report.errors) == [
+        "sub-002_acq-flash_desc-brain_T1w.nii.gz",
+        "sub-002_acq-mprage_T1w.nii.gz",
+        "sub-003_acq-flash_desc-brain_T1w.nii.gz",
+    ]
+    assert raw_tree(root) == anat("001", "acq-mprage_T1w") | \
+        anat("003", "acq-mprage_T1w")
+    # (through a group, in any case)
+    report = roast_api(root, keys="T1W", display=False)
+    assert sorted(name for _, name, _ in report.errors) == [
+        "sub-002_acq-mprage_T1w.nii.gz", "sub-003_acq-flash_T1w.nii.gz"]
+    # (no image is written: no error)
+    report = roast_api(root, keys="T1w", json="only", display=False)
+    assert not report.errors
+
+
+def test_missing_scans_named_cli(root):
+    spec = Bullitt().keys_for("roast")
+    keys, _ = spec.effective(spec.default, ())
+    assert roaster.roast_options(keys) == {"named": []}
+    assert roaster.roast_options(["raw"]) == {
+        "named": ["T2w", "angio", "flash", "mprage"]}
+
+
+def test_missing_source(root):
+    """No subject folder: an error (legacy: a warning)"""
+    for path in (root / "sourcedata").iterdir():
+        if path.name.startswith("Normal-"):
+            for f in sorted(path.rglob("*"), reverse=True):
+                f.unlink() if f.is_file() else f.rmdir()
+            path.rmdir()
+    report = roast_api(root, display=False)
+    assert [name for _, name, _ in report.errors] == ["sourcedata"]
+    assert raw_tree(root) == META
+    # (only when images are wanted)
+    report = roast_api(root, keys="meta", display=False)
+    assert not report.errors
+
+
+def test_missing_sidecar_template(root, monkeypatch, tmp_path):
+    """A missing sidecar template is an error only when sidecars are
+    written"""
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    for path in TEMPLATES.iterdir():
+        if path.name != "T2w.json":
+            (templates / path.name).write_bytes(path.read_bytes())
+    monkeypatch.setattr(roaster, "TEMPLATES", templates)
+    report = roast_api(root, keys="T2w", subs="1:3", display=False)
+    assert sorted(name for _, name, _ in report.errors) == [
+        "sub-001_T2w.json", "sub-002_T2w.json"]
+    assert raw_tree(root) == {"sub-001/anat/sub-001_T2w.nii.gz",
+                              "sub-002/anat/sub-002_T2w.nii.gz"}
+    report = roast_api(root, keys="T2w", subs="1:3", json="no",
+                       display=False)
+    assert not report.errors
+
+
+def test_corrupt_image_is_an_error(root):
+    corrupt(root / "sourcedata" / "Normal-001/T2/Normal001-T2.mha")
+    report = roast_api(root, display=False)
+    assert [name for _, name, _ in report.errors] == ["sub-001_T2w.nii.gz"]
+    assert "gzip" in report.errors[0][2]   # (neither zlib nor gzip data)
+    assert report.status == "partial"
+
+
+def test_participants_rows(root, caplog):
+    """Bad rows are skipped with a warning, empty cells are n/a, IDs
+    have `sub-`"""
+    (root / "sourcedata" / "participants.tsv").write_text(
+        "participant_id\tage\tsex\n"
+        "001\t54\tF\n"
+        "\n"
+        "sub-002\t\tM\n"
+        "sub-x\t1\tM\n"
+        "sub-003\t20\n")
+    roast_api(root, keys=["meta", "T2w", "mprage"], display=False)
+    assert read_tsv(raw_file(root, "participants.tsv")) == [
+        ["participant_id", "age", "sex"],
+        ["sub-001", "54", "F"],
+        ["sub-002", "n/a", "M"],
+    ]
+    assert "'sub-x' with 3 cells (skipped)" in caplog.text
+    assert "'sub-003' with 2 cells (skipped)" in caplog.text
+
+
+def test_template_participants():
+    rows = roaster.participants(TEMPLATES / "participants.tsv")
+    assert len(rows) == 110
+    assert all(len(r) == len(rows[0]) for r in rows)
+    assert [r[0] for r in rows[1:]] == [f"sub-{i:03d}" for i in
+                                       range(1, 110)]
+
+
+def test_shards(root):
+    roast_api(root, display=False)
+    states = read_task_states(layout_of(root).state)
+    assert {f"roast/subjects/sub-{s}" for s in ("001", "002", "003")} \
+        <= set(states)
+
+
+def test_subject_folder_names(root, caplog):
+    (root / "sourcedata" / "Normal-4" / "T2").mkdir(parents=True)
+    report = roast_api(root, keys="angio", display=False)
+    assert [name for _, name, _ in report.errors] == ["sub-003_angio.nii.gz"]
+    assert "Normal-4: not a subject folder" in caplog.text

@@ -811,7 +811,7 @@ def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
     sub.mkdir(parents=True)
     # a phase difference whose magnitude is not UTF-8: EchoTime still read
     magnitude = sub / "sub-1_magnitude1.json"
-    magnitude.write_bytes(b'{"EchoTime": 0.00492, "Note": "caf\xe9"}')
+    magnitude.write_bytes(b'{"EchoTime": 0.00492, "Note": "Z\xfcrich"}')
     phasediff = sub / "sub-1_phasediff.json"
     phasediff.write_text('{"EchoTime": 0.00738}', encoding="utf-8")
     repair([phasediff])
@@ -820,7 +820,7 @@ def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
     }
     # IntendedFor of a sidecar that is not UTF-8: left as it is
     epi = sub / "sub-1_dir-AP_epi.json"
-    blob = b'{"IntendedFor": "dwi", "Note": "caf\xe9"}'
+    blob = b'{"IntendedFor": "dwi", "Note": "Z\xfcrich"}'
     epi.write_bytes(blob)
     assert not fix_intended_for(epi, tmp_path)
     assert epi.read_bytes() == blob

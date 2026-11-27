@@ -116,11 +116,11 @@ def original(root, name="participants.tsv"):
 
 
 def tpl(path):
-    return json.loads((TEMPLATES / path).read_text())
+    return json.loads((TEMPLATES / path).read_text(encoding="utf-8"))
 
 
 def sidecar(root, path):
-    return json.loads(raw_file(root, path).read_text())
+    return json.loads(raw_file(root, path).read_text(encoding="utf-8"))
 
 
 def ids(path):
@@ -586,7 +586,7 @@ def test_participants_sites_and_samples(tmp_path):
         "sub-29003": ("UCLA", "UCLA2"), "sub-29004": ("ETH", "ETH"),
         "sub-29005": ("ONRC", "ONRC2"), "sub-29006": ("OTHER", "OTHER"),
     }
-    levels = json.loads((TEMPLATES / "participants.json").read_text())
+    levels = tpl("participants.json")
     for site, sample in list(got.values())[:-1]:
         assert site in levels["site"]["Levels"]
         assert sample == site or sample in levels["sample"]["Levels"]
@@ -627,7 +627,8 @@ def test_csv_encoding_and_cells(tmp_path):
         .encode("cp1252"))
     report = roast(root, keys="meta", display=False)
     assert not report.errors
-    rows = read_tsv(original(root))
+    rows = [line.split("\t") for line in
+            original(root).read_text(encoding="utf-8").splitlines()]
     assert dict(zip(rows[0], rows[1]))["med_name"] == "Méthyl phenidate"
     assert read_csv(src / "ABIDEII-IP_1.csv")[1][0] == "29001"
 
@@ -661,7 +662,7 @@ def test_phenotype_templates():
         assert "MeasurementToolMetadata" in meta, name
         assert set(meta) - {"MeasurementToolMetadata"} \
             <= set(table.columns), name
-    assert (TEMPLATES / "README").read_text().startswith(
+    assert (TEMPLATES / "README").read_text(encoding="utf-8").startswith(
         "# Autism Brain Imaging Data Exchange II")
 
 

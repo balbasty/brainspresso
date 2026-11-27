@@ -391,8 +391,10 @@ def test_rerun_skips_subjects(root, monkeypatch):
     assert json.loads(sidecar.read_text()) != {}
 
     calls.clear()
-    os.utime(root / "sourcedata" / "oasis_cross-sectional_disc1.tar.gz",
-             (1, 1))
+    # (a recent mtime: Windows cannot convert times near the epoch)
+    disc = root / "sourcedata" / "oasis_cross-sectional_disc1.tar.gz"
+    mtime = disc.stat().st_mtime - 3600
+    os.utime(disc, (mtime, mtime))
     report = roast(root, keys={"raw"}, discs=[1], display=False)
     assert sorted(calls) == ["0001", "0002"]
     assert report.counts["raw"] == {"skipped": 8}

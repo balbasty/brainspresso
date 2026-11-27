@@ -602,8 +602,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   offset of their first member, each reading its members in order: a
   backward seek in a gz `TarFile` restarts decompression from byte
   0); a FreeSurfer disc is unpacked by one `ExtractMembers` pass. Cost:
-  2 decompressions per image disc, 1 per FreeSurfer disc, 0 when
-  skipped (step 5).
+  2 decompressions per image disc, 1 per FreeSurfer disc (plus a
+  listing of the image disc of the same number if a tree lacks the
+  `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
@@ -2223,6 +2224,15 @@ up as an XPASS failure once fixed (then drop the marker).
   1 = CSF, 2 = GM, 3 = WM become GM = 1, WM = 2, CSF = 3 (SPM order,
   confirmed on review; the xfail of step 1 expected `{old: new}`),
   described by `derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv`.
+* ~~FreeSurfer (`freesurfer/bidsify.py`, OASIS-I/III, ABIDE-I XNAT):
+  the lookup tables `atlas-AsegDesikanKillian_dseg.tsv` and
+  `atlas-Desikan-Killian_dseg.tsv` did not match the `atlas-` of the
+  images (`AsegDesikanKilliany`, `DesikanKilliany`), so they did not
+  apply by inheritance.~~ Renamed in the review of #32 (tables of an
+  earlier roast keep their old names; delete them by hand). OASIS-I
+  also listed raw runs 1 to 4 as the `Sources` of every FreeSurfer
+  tree (now its `mri/orig/` volumes, else the runs of its image disc),
+  and wrote `"Manual": "False"` (a string) in the FSL `dseg` sidecar.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
 * ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
@@ -2583,3 +2593,9 @@ up as an XPASS failure once fixed (then drop the marker).
   used by OASIS-I (`subject_width = 4`); its known bugs fixed (§8).
   Open, as for COBRE: the shard signature includes the whole
   selection, so a changed `--subs` or key re-reads every disc (once).
+  Review round 2 of #32: `roast(subs=)` takes the values of `--subs`
+  (`subject_labels`); a named `--discs` (even all 12) makes missing
+  discs errors, values outside 1 to 12 are a `UsageError`; missing
+  members are not errors under `--sidecars only`; FreeSurfer lookup
+  tables renamed to match the images; FreeSurfer `Sources` from the
+  runs of the tree; `"Manual": false`.

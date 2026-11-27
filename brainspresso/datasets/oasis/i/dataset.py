@@ -7,7 +7,7 @@ from cyclopts import Parameter
 from brainspresso.datasets.base import Dataset, KeySpec
 from brainspresso.datasets.oasis.i.harvest import WUSTL
 from brainspresso.datasets.oasis.i.roaster import KEYS as ROAST_ALIASES
-from brainspresso.datasets.oasis.i.roaster import ROAST_KEYS
+from brainspresso.datasets.oasis.i.roaster import ROAST_KEYS, check_discs
 from brainspresso.datasets.options import OptionGroup, option_group
 
 HELP = """
@@ -39,8 +39,10 @@ class DiscOptions(OptionGroup):
     """
 
     discs: Annotated[tuple[int, ...], Parameter(
-        help="Only these discs (1 to 12)", consume_multiple=True,
-    )] = DISCS
+        help="Only these discs (1 to 12; default: all). A named disc "
+             "that is not in sourcedata/ is an error for roast, other "
+             "missing discs are skipped", consume_multiple=True,
+    )] = ()
 
     def source_options(self, dataset):
         """
@@ -136,9 +138,28 @@ class OASIS1(Dataset):
         Returns
         -------
         dict
-            `{"discs": [...]}` when `--discs` names some of the discs
-            (a missing one is then an error), else `{}` (every disc;
-            missing ones are skipped with a warning)
+            `{"discs": [...]}` when `--discs` is given (a missing named
+            disc is then an error), else `{}` (every disc; missing ones
+            are skipped with a warning)
         """
-        discs = set(args.extra("discs", "discs", ()) or DISCS)
-        return {"discs": sorted(discs)} if discs != set(DISCS) else {}
+        discs = args.extra("discs", "discs", ())
+        return {"discs": sorted(set(discs))} if discs else {}
+
+    def check(self, command, args):
+        """
+        Check the options of a command (also `--discs`: 1 to 12).
+
+        Parameters
+        ----------
+        command : str
+            Name of the command
+        args : Args
+            Values of the command line
+
+        Raises
+        ------
+        UsageError
+            If an option value cannot be used
+        """
+        super().check(command, args)
+        check_discs(args.extra("discs", "discs", ()))

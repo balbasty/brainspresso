@@ -72,6 +72,9 @@ EXCEPTIONS = {
     ("abide1", "harvest", "--sites"): "choices, default",
     ("abide2", "harvest", "--sites"): "choices, default",
     ("corr", "harvest", "--sites"): "choices, default",
+    # default () = all discs (was the list of discs), so that a roast
+    # tells named discs (a missing one is an error) from the default
+    ("oasis1", "*", "--discs"): "default",
     # ABIDE-I download-nitrc/xnat: removed (`harvest --source`)
     ("abide1", "download-nitrc", "*"): "removed",
     ("abide1", "download-xnat", "*"): "removed",

@@ -20,7 +20,10 @@ from roast_utils import (
 
 from brainspresso.actions.state import read_task_states
 from brainspresso.datasets.oasis.i import roaster
+from brainspresso.datasets.oasis.i.dataset import OASIS1, DiscOptions
 from brainspresso.datasets.oasis.i.roaster import roast
+from brainspresso.datasets.options import KeyOptions
+from brainspresso.errors import UsageError
 
 openpyxl = pytest.importorskip("openpyxl")
 
@@ -83,6 +86,7 @@ def freesurfer_disc(src, disc=1):
     s = f"disc{disc}/OAS1_0001_MR1"
     return make_tar(src / f"oasis_cs_freesurfer_disc{disc}.tar.gz", {
         f"{s}/mri/aseg.mgz": mgz_bytes(),
+        f"{s}/mri/orig/001.mgz": mgz_bytes(),       # (its raw run 1)
         f"{s}/stats/aseg.stats": b"# not bidsifiable",
         f"disc{disc}/OAS1_0002_MR2/mri/aseg.mgz": mgz_bytes(),
     }, dirs=[f"disc{disc}", s])
@@ -132,6 +136,20 @@ def test_roast_raw(root):
     tpl = json.loads((roaster.TEMPLATES / "T1w.json").read_text())
     assert json.loads(raw_file(
         root, "sub-0001/anat/sub-0001_run-1_T1w.json").read_text()) == tpl
+
+
+@pytest.mark.parametrize("subs", [["sub-0002"], ["2"], [2], ["2:3"]])
+def test_subject_values(root, subs, tmp_path):
+    """`roast(subs=)` takes the values of `--subs`"""
+    roast(root, keys={"raw"}, discs=[1], subs=subs)
+    assert raw_tree(root) == raw_runs(2)
+
+
+def test_subject_file(root, tmp_path):
+    (tmp_path / "subs.txt").write_text("sub-0001\n")
+    roast(root, keys={"raw"}, discs=[1],
+          exclude_subs=[str(tmp_path / "subs.txt")])
+    assert raw_tree(root) == raw_runs(2)
 
 
 def test_roast_raw_filters(root):
@@ -260,10 +278,10 @@ def test_fsl_relabel(root):
     f = (drv(root) / "sub-0001/anat"
          / "sub-0001_space-Talairach_res-1mm_dseg.nii.gz")
     dat = np.asarray(nib.load(f).dataobj).ravel()
-    # `relabel(vol, {1: 2, 2: 3, 3: 1})` maps {new: old}: 1, 2, 3 (FSL:
-    # CSF, GM, WM) become 3, 1, 2 (GM, WM, CSF). The xfail of step 1
-    # expected [0, 2, 3, 1] ({old: new}); the lookup is kept as it was
-    # (to be confirmed by the owner, see the PR)
+    # `relabel(vol, {1: 2, 2: 3, 3: 1})` maps {new: old}: FAST's 1, 2, 3
+    # (CSF, GM, WM) become 3, 1, 2, i.e. GM = 1, WM = 2, CSF = 3 (SPM
+    # order, confirmed on review of #32; the xfail of step 1 expected
+    # {old: new}), as the dataset-level dseg.tsv says
     assert list(dat[:4]) == [0, 3, 1, 2]
     rows = read_tsv(drv(root) / roaster.DSEG_NAME)
     assert rows == [["index", "name"], ["1", "GM"], ["2", "WM"],
@@ -285,6 +303,32 @@ def test_missing_masked_talairach(root):
     assert raw_tree(root) == raw_runs(1)
     assert drv_tree(root) == tal_files() - {
         f"{TAL}_desc-skullstripped_T1w.nii.gz"}
+
+
+def test_missing_member_sidecars_only(root):
+    """`--sidecars only`: a missing image is not an error (no data)"""
+    image_disc(root / "sourcedata", ids=(1,), avg=False)
+    report = roast(root, keys={"avg", "tal"}, json="only", display=False)
+    assert not report.errors and report.status == "complete"
+    assert drv_tree(root) == {p for p in tal_files() if p.endswith("json")}
+
+
+def test_unreadable_disc_is_closed(root, monkeypatch):
+    closed = []
+    real = roaster.TarArchive
+
+    class Spy(real):
+        def getmembers(self):
+            raise EOFError("truncated")
+
+        def __exit__(self, *args):
+            closed.append(self.path.name)
+            return super().__exit__(*args)
+
+    monkeypatch.setattr(roaster, "TarArchive", Spy)
+    report = roast(root, keys={"raw"}, discs=[1], display=False)
+    assert report.counts == {"discs": {"error": 1}}
+    assert closed == ["oasis_cross-sectional_disc1.tar.gz"]
 
 
 def test_members_read_in_archive_order(root, monkeypatch):
@@ -318,8 +362,8 @@ def test_missing_processed_image(root):
 # ----------------------------------------------------------------------
 
 SEG = "sub-0001/anat/sub-0001_atlas-Aseg_dseg"
-LOOKUP = {"atlas-Aseg_dseg.tsv", "atlas-AsegDesikanKillian_dseg.tsv",
-          "atlas-Desikan-Killian_dseg.tsv", "atlas-Destrieux_dseg.tsv"}
+LOOKUP = {"atlas-Aseg_dseg.tsv", "atlas-AsegDesikanKilliany_dseg.tsv",
+          "atlas-DesikanKilliany_dseg.tsv", "atlas-Destrieux_dseg.tsv"}
 
 
 def test_freesurfer(root):
@@ -348,6 +392,34 @@ def test_freesurfer_sidecars_only(root):
     assert not report.errors
     assert not layout_of(root).derivative(FS).source.exists()
     assert drv_tree(root, FS) == LOOKUP | {f"{SEG}.json"}
+
+
+def test_freesurfer_sources_from_orig_volumes(root):
+    """`Sources` of a tree: the runs of its `mri/orig/<NNN>.mgz`"""
+    s = "disc1/OAS1_0001_MR1/mri"
+    make_tar(root / "sourcedata" / "oasis_cs_freesurfer_disc1.tar.gz", {
+        f"{s}/rawavg.mgz": mgz_bytes(),
+        **{f"{s}/orig/{run:03d}.mgz": mgz_bytes() for run in (1, 2, 3)},
+    })
+    report = roast(root, keys={"fs"}, json="only", discs=[1],
+                   display=False)
+    assert not report.errors
+    sidecar = drv(root, FS) / "sub-0001/anat/sub-0001_desc-orig_T1w.json"
+    assert json.loads(sidecar.read_text())["Sources"] == [
+        f"bids:raw:sub-0001/anat/sub-0001_run-{run}_T1w.nii.gz"
+        for run in (1, 2, 3)]
+
+
+def test_freesurfer_sources_from_image_disc(root):
+    """A tree without `mri/orig/` volumes: the runs of the image disc"""
+    s = "disc1/OAS1_0001_MR1/mri"
+    make_tar(root / "sourcedata" / "oasis_cs_freesurfer_disc1.tar.gz", {
+        f"{s}/rawavg.mgz": mgz_bytes()})
+    roast(root, keys={"fs"}, discs=[1], display=False)
+    sidecar = drv(root, FS) / "sub-0001/anat/sub-0001_desc-orig_T1w.json"
+    assert json.loads(sidecar.read_text())["Sources"] == [
+        f"bids:raw:sub-0001/anat/sub-0001_run-{run}_T1w.nii.gz"
+        for run in (1, 2)]
 
 
 def test_missing_freesurfer_disc(root):
@@ -407,6 +479,26 @@ def test_cli_sidecars(root):
     cli(root, "--keys", "raw", "avg", "--sidecars", "only")
     assert raw_tree(root) == raw_runs(1) | raw_runs(2)
     assert len(drv_tree(root)) == 4
+
+
+def test_discs_named_all(root):
+    """`--discs` naming every disc: the missing ones are errors"""
+    ds = OASIS1()
+    groups = {"keys": KeyOptions(keys=("raw",)),
+              "discs": DiscOptions(discs=tuple(range(1, 13)))}
+    report = ds.execute("roast", out=root, **groups)
+    assert report.counts["discs"] == {"error": 11}
+    report = ds.execute("roast", out=root, keys=KeyOptions(keys=("raw",)))
+    assert not report.errors
+
+
+@pytest.mark.parametrize("discs", [[0], [13], [1, 14]])
+def test_discs_out_of_range(root, discs):
+    with pytest.raises(UsageError, match="discs are 1 to 12"):
+        roast(root, keys={"raw"}, discs=discs)
+    with pytest.raises(UsageError, match="discs are 1 to 12"):
+        OASIS1().execute("roast", out=root,
+                         discs=DiscOptions(discs=tuple(discs)))
 
 
 def test_cli_discs(root):

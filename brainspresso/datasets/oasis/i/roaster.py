@@ -67,14 +67,15 @@ from brainspresso.actions import (
 from brainspresso.actions.archive import ExtractMembers
 from brainspresso.actions.state import read_task_states
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.errors import UsageError
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
     RoastContext,
     Shard,
-    as_list,
     copy_templates,
     roast_dataset,
 )
+from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import (
     nibabel_convert,
@@ -93,6 +94,7 @@ FS_NAME = "oasis-freesurfer"
 FS_VERSION = (4, 0)
 XLSX = "oasis_cross-sectional.xlsx"
 SIDECAR = "T1w.json"
+WIDTH = 4               # subject labels: `sub-0001`
 
 #: Keys of the roast
 ROAST_KEYS = ("raw", "fs", "fs-all", "fsl", "avg", "tal", "meta")
@@ -143,10 +145,12 @@ def roast(root, *, subs=(), exclude_subs=(), discs=None, **options):
     root : path
         Dataset folder
     subs, exclude_subs : list[int | str]
-        Subject numbers (or labels)
+        Subjects: numbers (`1` is `sub-0001`), labels with or without
+        `sub-`, ranges, files (as `--subs`)
     discs : list[int]
-        Only these discs (default: all; a disc named here that is not
-        in `sourcedata/` is an error, other missing discs are skipped)
+        Only these discs, 1 to 12 (default: all; a disc named here that
+        is not in `sourcedata/` is an error, other missing discs are
+        skipped)
     **options
         Those of the command line (`keys`, `exclude_keys`, `json`,
         `ifexists`, `layout`), `jobs` and `display`
@@ -155,13 +159,40 @@ def roast(root, *, subs=(), exclude_subs=(), discs=None, **options):
     -------
     RoastReport
         See `roast.run_roast`
+
+    Raises
+    ------
+    UsageError
+        If a disc is not one of 1 to 12
     """
+    if discs:
+        check_discs(discs)
     return roast_dataset(
         roast_oasis1, root, KEYS, templates=TEMPLATES,
-        subs=as_list(subs, "{:04d}"),
-        exclude_subs=as_list(exclude_subs, "{:04d}"),
+        subs=sorted(subject_labels(subs, WIDTH)),
+        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
         options={"discs": sorted(discs)} if discs else None, **options,
     )
+
+
+def check_discs(discs) -> None:
+    """
+    Check disc numbers.
+
+    Parameters
+    ----------
+    discs : list[int]
+        Values of `--discs`
+
+    Raises
+    ------
+    UsageError
+        If a disc is not one of 1 to 12
+    """
+    wrong = sorted(set(discs) - set(DISCS["raw"]))
+    if wrong:
+        raise UsageError(f"--discs: no disc {', '.join(map(str, wrong))} "
+                         f"(discs are 1 to 12)")
 
 
 def roast_oasis1(ctx: RoastContext) -> Iterator:
@@ -314,11 +345,11 @@ def raw_scan(name: str) -> tuple[str, str, int] | None:
         of `<folder>/RAW/OAS1_<sub>_MR1_mpr-<run>_anon.img`
     """
     match = re.fullmatch(
-        r"(?:(.*)/)?RAW/OAS1_(\d+)_MR1_mpr-(\d+)_anon\.img", name)
+        r"(.+)/RAW/OAS1_(\d+)_MR1_mpr-(\d+)_anon\.img", name)
     if not match:
         return None
     folder, sub, run = match.groups()
-    return f"{int(sub):04d}", folder or "", int(run)
+    return f"{int(sub):04d}", folder, int(run)
 
 
 def fs_subject(name: str, everything: bool = False) -> str | None:
@@ -373,11 +404,15 @@ def roast_image_disc(ctx: RoastContext, path: Path) -> Iterator[Action]:
     """
     try:
         archive = TarArchive(path)
-        infos = archive.getmembers()
     except READ_ERRORS as e:
         yield unreadable(path, e)
         return
-    with archive:
+    with archive:               # (closed on errors: Windows locks files)
+        try:
+            infos = archive.getmembers()
+        except READ_ERRORS as e:
+            yield unreadable(path, e)
+            return
         offsets = {info.name: info.offset for info in infos}
         subjects = {}       # {sub: (folder, [runs])}, in archive order
         for info in infos:
@@ -438,6 +473,8 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         """Conversion of `<stem>.{hdr,img}`, or a `Fail` if missing."""
         members = [f"{stem}{ext}" for ext in (".hdr", ".img")]
         missing = [m for m in members if m not in offsets]
+        if missing and ctx.json == "only":
+            return              # (no data written: nothing is missing)
         if missing:
             out.append(([], Fail(f"{', '.join(missing)} not found in "
                                  f"{path.name}", name=Path(dst).name,
@@ -452,6 +489,8 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         for bias in ("n4", "n3"):
             if f"{stem.format(bias=bias)}.img" in offsets:
                 return bias, stem.format(bias=bias)
+        if ctx.json == "only":
+            return None, None   # (no data written: nothing is missing)
         stem = stem.format(bias="{n4,n3}")
         out.append(([], Fail(f"{stem}.img not found in {path.name}",
                              tag=tag)))
@@ -516,7 +555,7 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
             dst = proc / f"sub-{sub}_space-Talairach_res-1mm_dseg"
             flags = "space-Talairach_res-1mm_desc-skullstripped"
             meta = {
-                "Manual": "False",
+                "Manual": False,
                 "Resolution": "In the space of the 1mm Talairach T1w "
                               "scan (1mm, isotropic)",
                 "Sources": [f"bids::sub-{sub}/anat/"
@@ -589,6 +628,11 @@ def roast_freesurfer_disc(ctx: RoastContext,
     converted. With `--sidecars only` (and not `fs-all`), the sidecars
     are written from the member names, and nothing is unpacked.
 
+    The raw runs that a tree was made from (its `Sources`) are its input
+    volumes `mri/orig/<NNN>.mgz` (run N, the order of `recon-all -i`),
+    seen in the same pass; for a tree without them, the runs of the
+    subject in the image disc of the same number (listed only then).
+
     Parameters
     ----------
     ctx : RoastContext
@@ -604,9 +648,15 @@ def roast_freesurfer_disc(ctx: RoastContext,
     drv = ctx.layout.derivative(FS_NAME)
     everything = ctx.wants("fs-all")
     subjects = set()
+    runs = {}               # {sub: {run}} from `mri/orig/<NNN>.mgz`
 
     def rename(member: str) -> Path | None:
         """Path of an unpacked member (None: not unpacked)."""
+        match = re.fullmatch(r"[^/]+/OAS1_(\d+)_MR1/mri/orig/(\d{3})\.mgz",
+                             member)
+        if match:
+            runs.setdefault(f"{int(match[1]):04d}", set()).add(
+                int(match[2]))
         sub = fs_subject(member, everything)
         if sub is None or not ctx.selection.keeps_subject(sub):
             return None
@@ -630,14 +680,51 @@ def roast_freesurfer_disc(ctx: RoastContext,
                              staging=True)
     # (converted once unpacked: the engine runs each action before
     # asking for the next one)
+    if any(sub not in runs for sub in subjects):
+        for sub, found in image_runs(ctx, path).items():
+            runs.setdefault(sub, set(found))
     for sub in sorted(subjects):
+        if sub not in runs:
+            lg.warning(f"sub-{sub}: raw runs unknown ({path.name} has no "
+                       f"mri/orig/ volumes, no image disc lists them)")
         t1w = [f"bids:raw:sub-{sub}/anat/sub-{sub}_run-{run}_T1w.nii.gz"
-               for run in (1, 2, 3, 4)]
+               for run in sorted(runs.get(sub, ()))]
         for action in fs.bidsify(drv.source / f"sub-{sub}",
                                  drv.root / f"sub-{sub}", t1w,
                                  json=ctx.json, exists=exists):
             action.tag = "fs"
             yield action
+
+
+def image_runs(ctx: RoastContext, fs_disc: Path) -> dict[str, list[int]]:
+    """
+    Return the raw runs of the subjects of an image disc.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    fs_disc : Path
+        A FreeSurfer disc: the image disc of the same number is listed
+
+    Returns
+    -------
+    dict[str, list[int]]
+        `{sub: [runs]}` (empty if the image disc is missing or
+        unreadable)
+    """
+    disc = int(re.search(r"disc(\d+)\.tar\.gz$", fs_disc.name)[1])
+    path = disc_path(ctx, "raw", disc)
+    out = {}
+    try:
+        with TarArchive(path) as archive:
+            names = archive.getnames()
+    except (FileNotFoundError, *READ_ERRORS):
+        return out
+    for scan in map(raw_scan, names):
+        if scan is not None:
+            out.setdefault(scan[0], []).append(scan[2])
+    return out
 
 
 # ----------------------------------------------------------------------

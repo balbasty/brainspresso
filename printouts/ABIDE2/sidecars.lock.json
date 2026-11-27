@@ -479,6 +479,26 @@
                 "commit": "198706288dedb5c415a60516044ce1f09c352deb"
             }
         },
+        "KKI/1/T1w.json": {
+            "common": [
+                "KKI/1/acq-rc8chan_T1w.json",
+                "KKI/1/acq-rc32chan_T1w.json"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
+        "KKI/1/bold.json": {
+            "common": [
+                "KKI/1/acq-rc8chan_bold.json",
+                "KKI/1/acq-rc32chan_bold.json"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            }
+        },
         "NYU/1/fieldmap.json": {
             "printout": "NYU_1/fieldmap.pdf",
             "sha256": "b3b82d9d8f52f7ae5cbc66fa1a0bf361b802e1b21c52d29ab4514513fe6a851a",

@@ -302,9 +302,11 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   decision, step 5).
 - ABIDE-II follows `convert_ABIDE2.sh`, except that the richer vendor
   exports (`*.txt`) are kept over the scantable for BNI_1, ETH_1, KUL_3 and
-  TCD_1 (more keys: parallel imaging, readout, slice timing). New templates
-  `KKI/1/acq-rc{8,32}chan_{T1w,bold}.json`, `NYU/{1,2}/fieldmap.json` and
-  `ONRC/2/{T1w,bold}.json` are not read by the roast yet. `UCLA/2` and
+  TCD_1 (more keys: parallel imaging, readout, slice timing). The roast
+  reads `ONRC/2/{T1w,bold}.json` and, for KKI, `KKI/1/{T1w,bold}.json`:
+  the keys that `KKI/1/acq-rc{8,32}chan_{T1w,bold}.json` share (`common`;
+  the NITRC tarballs do not tell the head coil). The `acq-rc*` templates
+  and `NYU/{1,2}/fieldmap.json` are not read by the roast yet. `UCLA/2` and
   `UPSM/1` have no printout and are `manual`.
 - CoRR follows `convert_CoRR.sh` for BMB_1, BNU_1-3, IACAS, IPCAS_5,
   NKI_TRT, NYU_2, UM, Utah_1-2 and XHCUMS (scantables elsewhere). Several

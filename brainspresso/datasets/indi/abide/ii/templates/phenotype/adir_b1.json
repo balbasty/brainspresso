@@ -1,0 +1,20 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item B1"
+    },
+    "pointing_express_interest": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B1_POINTING_EXPRESS_INTEREST"
+    },
+    "nodding": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B1_NODDING"
+    },
+    "head_shaking": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B1_HEAD_SHAKING"
+    },
+    "conventional_gestures": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B1_CONVENTIONAL_GESTURES"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B1_TOTAL"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Wechsler Individual Achievement Test, Second Edition (WIAT-II)"
+    },
+    "word": {
+        "Description": "ABIDE-II phenotypic column A_WORD_T"
+    },
+    "numerical": {
+        "Description": "ABIDE-II phenotypic column A_NUMERICAL_T"
+    },
+    "spelling": {
+        "Description": "ABIDE-II phenotypic column A_SPELLING_T"
+    },
+    "total_composite": {
+        "Description": "ABIDE-II phenotypic column A_TOTAL_COMPOSITE_S"
+    }
+}

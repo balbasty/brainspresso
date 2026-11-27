@@ -21,6 +21,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Callable
 
+from brainspresso.datasets.indi.abide.scans import TemplateError
+
 lg = getLogger(__name__)
 
 __all__ = [
@@ -57,10 +59,6 @@ SAMPLES: dict[str, tuple[str, ...]] = {
 PARTS: dict[str, tuple[str, ...]] = {
     'NYU': ('a', 'b', 'c', 'd', 'e'),
 }
-
-
-class TemplateError(LookupError):
-    """No sidecar template for a (site, template) pair."""
 
 
 def parse_site(site: str) -> tuple[str, str | None]:

@@ -11,7 +11,7 @@ import csv
 import io
 import operator
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 _OPS = {
@@ -129,6 +129,10 @@ def trim_tables(
             base = Path(subjects) if subjects is not None else folder
             rows = [r for r in rows
                     if (base / r.get("participant_id", "")).is_dir()]
+        elif is_phenotype(relpath):
+            base = Path(subjects) if subjects is not None else folder.parent
+            rows = [r for r in rows
+                    if (base / r.get("participant_id", "")).is_dir()]
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
                     if (folder / r.get("session_id", "")).is_dir()]
@@ -141,6 +145,28 @@ def trim_tables(
         write_tsv(root / relpath, header, rows)
         written.append(relpath)
     return written
+
+
+def is_phenotype(relpath: str) -> bool:
+    """
+    Whether a table is a phenotype table (`[<raw>/]phenotype/<name>.tsv`).
+
+    Its rows are trimmed to the subjects on disk, as those of the
+    participants table, when a roaster writes a pristine copy of it
+    (`.brainspresso/orig/`): the phenotype tables of hosted datasets
+    are never trimmed.
+
+    Parameters
+    ----------
+    relpath : str
+        Path of the table (POSIX), relative to a dataset
+
+    Returns
+    -------
+    bool
+    """
+    path = PurePosixPath(relpath)
+    return path.suffix == ".tsv" and path.parent.name == "phenotype"
 
 
 def is_trimmable(relpath: str) -> bool:

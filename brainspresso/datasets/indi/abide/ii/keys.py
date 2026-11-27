@@ -1,4 +1,4 @@
-from brainspresso.utils.keys import get_leaves
+"""Keys of ABIDE-II (`--keys`; the roast keys are `roaster.KEYS`)."""
 
 allkeys: dict = {
     "all": {
@@ -12,5 +12,3 @@ allkeys: dict = {
         },
     }
 }
-
-allleaves: set[str] = get_leaves(allkeys)

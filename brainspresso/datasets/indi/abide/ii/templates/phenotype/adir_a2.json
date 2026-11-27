@@ -1,0 +1,26 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item A2"
+    },
+    "imaginative_play": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_IMAGINATIVE_PLAY"
+    },
+    "interest_in_children": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_INTEREST_IN_CHILDREN"
+    },
+    "response_to_approaches": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_RESPONSE_TO_APPROACHES"
+    },
+    "group_play": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_GROUP_PLAY"
+    },
+    "higher": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_HIGHER"
+    },
+    "friendships": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_FRIENDSHIPS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A2_TOTAL"
+    }
+}

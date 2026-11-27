@@ -1,0 +1,77 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Child Behavior Checklist (CBCL), ages 6 to 18"
+    },
+    "activities": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_ACTIVITIES_T"
+    },
+    "social": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SOCIAL_T"
+    },
+    "school": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SCHOOL_T"
+    },
+    "total_competence": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_TOTAL_COMPETENCE_T"
+    },
+    "anxious": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_ANXIOUS_T"
+    },
+    "withdrawn": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_WITHDRAWN_T"
+    },
+    "somatic_complaint": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SOMATIC_COMPLAINT_T"
+    },
+    "social_problem": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SOCIAL_PROBLEM_T"
+    },
+    "thought": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_THOUGHT_T"
+    },
+    "attention": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_ATTENTION_T"
+    },
+    "rule": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_RULE_T"
+    },
+    "aggressive": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_AGGRESSIVE_T"
+    },
+    "internal": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_INTERNAL_T"
+    },
+    "external": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_EXTERNAL_T"
+    },
+    "total_problem": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_TOTAL_PROBLEM_T"
+    },
+    "affective": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_AFFECTIVE_T"
+    },
+    "anxiety": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_ANXIETY_T"
+    },
+    "somatic_problem": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SOMATIC_PROBLEM_T"
+    },
+    "attention_deficit": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_ATTENTION_DEFICIT_T"
+    },
+    "oppositional": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_OPPOSITIONAL_T"
+    },
+    "conduct": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_CONDUCT_T"
+    },
+    "sluggish": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_SLUGGISH_T"
+    },
+    "obsessive": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_OBSESSIVE_T"
+    },
+    "post_traumatic": {
+        "Description": "ABIDE-II phenotypic column CBCL_6-18_POST_TRAUMATIC_T"
+    }
+}

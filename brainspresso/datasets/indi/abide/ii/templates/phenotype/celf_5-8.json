@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Clinical Evaluation of Language Fundamentals (CELF), ages 5 to 8"
+    },
+    "edition": {
+        "Description": "ABIDE-II phenotypic column CELF_EDITION"
+    },
+    "core": {
+        "Description": "ABIDE-II phenotypic column CELF_5-8_CORE_S"
+    },
+    "receptive": {
+        "Description": "ABIDE-II phenotypic column CELF_5-8_RECEPTIVE_S"
+    },
+    "expressive": {
+        "Description": "ABIDE-II phenotypic column CELF_5-8_EXPRESSIVE_S"
+    }
+}

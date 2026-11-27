@@ -1,0 +1,14 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item B2"
+    },
+    "social_verbalization": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B2_SOCIAL_VERBALIZATION"
+    },
+    "reciprocal_conversation": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B2_RECIPROCAL_CONVERSATION"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B2_TOTAL"
+    }
+}

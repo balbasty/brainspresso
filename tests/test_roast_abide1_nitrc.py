@@ -13,7 +13,7 @@ from roast_utils import (
     read_tsv,
 )
 
-from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
+from brainspresso.datasets.indi.abide.i.bidsifier_nitrc import Bidsifier
 
 PHENOS = Bidsifier.PHENOTYPES
 COLS = list(dict.fromkeys(

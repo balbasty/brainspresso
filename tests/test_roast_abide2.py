@@ -13,7 +13,7 @@ from roast_utils import (
     read_tsv,
 )
 
-from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier
+from brainspresso.datasets.indi.abide.ii.bidsifier import Bidsifier
 
 PHEADER = Bidsifier.ParticipantsMapper.header
 SRS = list(Bidsifier.SRSMapper.header.values())

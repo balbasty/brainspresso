@@ -104,7 +104,7 @@ Harvest: images from NITRC-IR (no login needed; the original tarballs of
 brain-development.org with --source imperial), saved in
 IXI/sourcedata/IXI-{T1,T2,PD,MRA,DTI}/ with the file names of the original tarballs.
 NITRC-IR does not host IXI.xls (demographics): roast uses the copy shipped with
-brainspresso if there is none in sourcedata/. Roast: see IXI/roaster.py.
+brainspresso if there is none in sourcedata/. Roast: see datasets/ixi/roaster.py.
 
 ╭─ Commands ───────────────────────────────────────────────────────────────────────────╮
 │ compost  Delete source data, or BIDS data outside a filter.                          │
@@ -288,6 +288,11 @@ bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
 bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
 ```
 
+`bx <project> info` also shows the INDI sharing category of the project
+(`retro`, `pro` or `enhanced`, as on the INDI website), as does `bx
+<dataset> info` for the other INDI datasets (ABIDE, ADHD-200, CoRR,
+COBRE).
+
 Multi-site datasets (`fcon1000`, `hbn`, `acpi`) can be harvested in two
 ways:
 
@@ -307,7 +312,7 @@ ways:
   (`--sites`: only these).
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
-curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
+curated (see `brainspresso/datasets/indi/<project>/`): FCON1000's per-site folders
 are merged with site-prefixed labels (`sub-AnnArborA04111`), runs and
 typos in file names are fixed and repetition times read from the NIfTI
 headers; multi-site participant tables are merged with a `site` column;
@@ -316,7 +321,7 @@ put in BIDS order; and common metadata defects (numbers stored as text,
 slice timing in milliseconds, invalid JSON, sessions tables without
 `session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
 are repaired when the metadata is roasted (`brainspresso/bids/repair.py`).
-Sidecar templates listed in `templates/<project>/_fill.json` (e.g. scan
+Sidecar templates listed in `indi/<project>/templates/_fill.json` (e.g. scan
 parameters from protocol printouts) add the keys that the bucket's
 sidecars lack, never changing a key the bucket gives.
 Each dataset's `README` lists what was changed.

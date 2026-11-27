@@ -417,6 +417,10 @@ class Dataset:
         `arguments` ("OpenNeuro/{dataset}")
     title, help : str
         Title, and markdown help (its first line is the catalog summary)
+    indi_category : str | None
+        INDI sharing category ("retro", "pro" or "enhanced": the folder
+        of the dataset's page under `fcon_1000.projects.nitrc.org/indi/`),
+        shown by `info`; None outside INDI
     keys : KeySpec | None
         Keys of the commands (see `keys_for`); None: no `--keys`
     subject_width : int | None
@@ -467,6 +471,7 @@ class Dataset:
     folder: ClassVar[str] = ""
     title: ClassVar[str] = ""
     help: ClassVar[str] = ""
+    indi_category: ClassVar[str | None] = None
     keys: ClassVar[KeySpec | None] = None
     subject_width: ClassVar[int | None] = None
     sessions: ClassVar[bool] = False
@@ -1350,6 +1355,8 @@ class Dataset:
         args : Args, optional
         """
         print(self.title or self.summary)
+        if self.indi_category:
+            print(f"  INDI category: {self.indi_category}")
         for command in ("harvest", "roast"):
             spec = self.keys_for(command)
             if spec is None or (command == "roast" and not self.has_roast()):

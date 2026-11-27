@@ -2,7 +2,7 @@
 # Run `python scripts/make_sidecars.py MPI-LEMON` to regenerate the sidecars.
 #
 # Each [[sidecar]] entry has:
-#   output    path of the sidecar, relative to brainspresso/datasets/INDI/templates/mpi-lemon/
+#   output    path of the sidecar, relative to brainspresso/datasets/indi/mpi_lemon/templates/
 #   printout  path of the protocol printout, relative to printouts/MPI-LEMON
 #   select    (optional) protocol selector: 0-based index or name glob
 #             (see `p2b list <printout>`); must match exactly one protocol

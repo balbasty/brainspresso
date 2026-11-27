@@ -82,7 +82,7 @@ def test_known_paths():
     assert any(e["printout"] == "../SLIM/anat.pdf"
                for e in ms.load_table("SALD"))
     assert ms.template_dir("NKI-RS").as_posix().endswith(
-        "brainspresso/datasets/INDI/templates/nki-rs")
+        "brainspresso/datasets/indi/nki_rs/templates")
 
 
 @pytest.mark.parametrize("dataset", INDI)
@@ -566,7 +566,7 @@ def test_lemon_mp2rage_keeps_preparation_only():
 @pytest.mark.parametrize("dataset", INDI)
 def test_fill_index_matches_table(dataset):
     """The fill marker the INDI engine reads (it ships; the lock does not)."""
-    from brainspresso.datasets.INDI import engine  # noqa: PLC0415  test only
+    from brainspresso.datasets.indi import engine  # noqa: PLC0415  test only
     assert engine.FILL_INDEX == ms.FILL_INDEX
     index = ms.template_dir(dataset) / ms.FILL_INDEX
     assert json.loads(index.read_text(encoding="utf-8")) == {
@@ -644,7 +644,7 @@ def test_printouts_not_packaged():
     assert all(p.startswith("brainspresso") for p in include)
     data = cfg["options.package_data"]["*"]
     assert "printouts" not in data and "PDFs" not in data
-    assert "datasets/*/templates/*/*" in data
+    assert "templates/*/*" in data
     # protocol2bids (a git URL, which PyPI rejects in package metadata)
     # is only in requirements-maint.txt, pinned to the locked commit
     assert "maint" not in cfg["options.extras_require"]
@@ -667,7 +667,7 @@ def test_printouts_not_packaged():
     assert not (ROOT / "printouts" / "__init__.py").exists()
     assert not (ROOT / "MANIFEST.in").exists() or "printouts" not in (
         ROOT / "MANIFEST.in").read_text()
-    for ds in ("ABIDE/II", "CoRR"):
+    for ds in ("indi/abide/ii", "indi/corr"):
         assert not (ROOT / "brainspresso/datasets" / ds / "templates/PDFs"
                     ).exists()
 

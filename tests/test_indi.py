@@ -24,14 +24,14 @@ from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
 from brainspresso.datasets.base import Dataset
-from brainspresso.datasets.INDI import harvest as indi
-from brainspresso.datasets.INDI.engine import (
+from brainspresso.datasets.indi import harvest as indi
+from brainspresso.datasets.indi.engine import (
     Site,
     complete_participants,
     relabel,
     reorder_entities,
 )
-from brainspresso.datasets.INDI.projects import SLIM
+from brainspresso.datasets.indi.slim.dataset import SLIM
 from brainspresso.sources import fcp
 from brainspresso.sources.s3 import S3Bucket
 

@@ -14,8 +14,8 @@ from roast_utils import (
     read_tsv,
 )
 
-from brainspresso.datasets.OASIS.III import roaster
-from brainspresso.datasets.OASIS.III.roaster import roast
+from brainspresso.datasets.oasis.iii import roaster
+from brainspresso.datasets.oasis.iii.roaster import roast
 
 DEMO = (
     "OASISID,GENDER,HAND,AgeatEntry,AgeatDeath,EDUC,SES,racecode,AIAN,NHPI,"

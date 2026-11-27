@@ -26,7 +26,7 @@ A dataset may ship sidecar templates that **add** the keys its hosted
 sidecars lack (e.g. scan parameters from protocol printouts), and
 **never** change a key that the host (or a generated file) gives. For
 the INDI projects they live in
-`brainspresso/datasets/INDI/templates/<project>/[<site>/]<name>.json`
+`brainspresso/datasets/indi/<project>/templates/[<site>/]<name>.json`
 and are listed in `_fill.json`, next to them (written by
 `scripts/make_sidecars.py` from the printouts, checked by its `--check`
 and shipped with the package)::
@@ -271,7 +271,7 @@ def read_fill_templates(
     Parameters
     ----------
     folder : path
-        Template folder of a dataset (`templates/<project>/`)
+        Template folder of a dataset (`indi/<project>/templates/`)
     sites : iterable of str, optional
         Names of the sites of the dataset (a site folder must be one of
         them; None: not checked)

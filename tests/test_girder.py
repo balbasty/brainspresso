@@ -292,7 +292,7 @@ def test_mirror_verifies_sha512(server, tmp_path):
 
 @pytest.fixture
 def uncwisc(server, monkeypatch):
-    from brainspresso.datasets.UNCWisconsin import harvest as dl
+    from brainspresso.datasets.unc_wisconsin import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", server.api)
     monkeypatch.setattr(dl, "SCAN_DATA", server.root)
     return Harvest("unc-wisconsin", dl)
@@ -325,7 +325,7 @@ def test_uncwisc_harvest_keys(uncwisc, tmp_path):
 def test_uncwisc_roast(uncwisc, tmp_path, layout):
     import nibabel as nib
 
-    from brainspresso.datasets.UNCWisconsin.roaster import roast
+    from brainspresso.datasets.unc_wisconsin.roaster import roast
     uncwisc.download(tmp_path, layout=layout)   # raw + meta, all subjects
     root = tmp_path / "UNC-Wisconsin"
     roast(root)                                 # layout from the manifest
@@ -400,7 +400,7 @@ def _folder_path(server, fid):
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_uncwisc_roast_derivatives(uncwisc, tmp_path, layout):
-    from brainspresso.datasets.UNCWisconsin.roaster import (
+    from brainspresso.datasets.unc_wisconsin.roaster import (
         SPACE,
         _age_months,
         roast,
@@ -499,14 +499,14 @@ def bullitt_server():
 
 @pytest.fixture
 def bullitt(bullitt_server, monkeypatch):
-    from brainspresso.datasets.Bullitt import harvest as dl
+    from brainspresso.datasets.bullitt import harvest as dl
     monkeypatch.setattr(dl, "KITWARE", bullitt_server.api)
     monkeypatch.setattr(dl, "ROOT", bullitt_server.root)
     return Harvest("bullitt", dl)
 
 
 def test_bullitt_subject_labels():
-    from brainspresso.datasets.Bullitt.harvest import _labels, subject_label
+    from brainspresso.datasets.bullitt.harvest import _labels, subject_label
     assert subject_label("Normal-042") == "042"
     assert subject_label("Administration") is None
     assert _labels(["1", "sub-2", "003"], "sub-") == {"001", "002", "003"}
@@ -551,7 +551,7 @@ def test_bullitt_harvest_keys(bullitt, tmp_path):
 def test_bullitt_roast(bullitt, tmp_path, layout):
     import nibabel as nib
 
-    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
     bullitt.download(tmp_path, exclude_subs=["003"], layout=layout)
     root = tmp_path / "Bullitt"
     Bidsifier(root, layout=layout).run()
@@ -595,7 +595,7 @@ def test_bullitt_roast(bullitt, tmp_path, layout):
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_roast_keys(bullitt, tmp_path, layout):
-    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
     bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     Bidsifier(root, keys=["T2w"], json="no").run()
@@ -616,7 +616,7 @@ def test_compost_commands():
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_compost_sourcedata(bullitt, tmp_path, layout):
     from brainspresso.bids.compost import compost
-    from brainspresso.datasets.Bullitt.bidsifier import Bidsifier
+    from brainspresso.datasets.bullitt.bidsifier import Bidsifier
     bullitt.download(tmp_path, subs=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     Bidsifier(root).run()

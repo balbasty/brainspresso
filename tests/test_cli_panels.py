@@ -1,6 +1,7 @@
 """Help panels of the dataset commands (cyclopts groups, not rendered help)."""
 import pytest
 
+from brainspresso.datasets.base import Dataset, KeySpec, tree_keys, tree_lines
 from brainspresso.datasets.catalog import CATALOG, load
 from brainspresso.datasets.options import (
     HarvestOptions,
@@ -12,6 +13,9 @@ from brainspresso.datasets.register import (
     config_options,
     register,
 )
+from brainspresso.sources.base import CompositeSource
+from brainspresso.sources.nitrc import NITRC
+from brainspresso.sources.xnat import XNAT
 
 
 def panels(name: str, command: str) -> dict[str, set[str]]:
@@ -134,3 +138,52 @@ def test_help_of_shared_source_options():
     helps = HarvestOptions.helps(load("hbn"), "harvest")
     assert helps["jobs"] == "Number of parallel downloads"
     assert helps["insecure"] == "Do not verify TLS certificates"
+
+
+def test_tree_keys_follow_tree_lines():
+    # a list-valued node (sorted, as the help lists it) and a key under
+    # two groups (listed under each by the help, once as a choice)
+    tree = {"all": {"raw": ["T2w", "T1w"], "derivatives": {"T1w", "fs"},
+                    "": {"meta"}}}
+    lines = [line.strip()[2:] for line in tree_lines(tree)]
+    assert lines == ["all", "raw", "T1w", "T2w", "derivatives", "T1w", "fs",
+                     "meta"]
+    assert tree_keys(tree) == ("all", "raw", "T1w", "T2w", "derivatives",
+                               "fs", "meta")
+    assert tree_keys(tree) == tuple(dict.fromkeys(lines))
+    assert KeySpec(tree).all_choices() == tree_keys(tree)
+
+
+def test_sources_without_login_read_no_credentials():
+    assert NITRC({}).reads("user")
+    assert not NITRC({}, login=False).reads("user")
+    assert not NITRC({}, login=False).reads("password")
+    assert NITRC({}, login=False).reads("sites") is False   # (no such option)
+    assert not XNAT("P", login=False).reads("password")
+    assert not CompositeSource(XNAT("P", login=False),
+                               NITRC({}, login=False)).reads("user")
+
+    class Public(Dataset):
+        name = "public"
+        credentials = "login"
+
+        def sources(self, args=None):
+            return {"nitrc": NITRC({}, login=False), "xnat": XNAT("P")}
+
+    assert [g.name for g in source_panels(Public(), ["user"])] == [
+        "XNAT (--source xnat)"]
+
+
+def test_jobs_help_lists_default_of_download_manager():
+    helps = HarvestOptions.helps(load("oasis1"), "harvest")
+    assert helps["jobs"].endswith("(default: that of the source: wustl 4)")
+    # (bundled files: no downloads, not listed)
+    helps = HarvestOptions.helps(load("ixi"), "harvest")
+    assert helps["jobs"].endswith("nitrc 4, imperial 4)")
+
+    class Bare(Dataset):
+        name = "bare"
+
+    helps = HarvestOptions.helps(Bare(), "harvest")
+    assert helps == {"jobs": "Number of parallel downloads",
+                     "insecure": "Do not verify TLS certificates"}

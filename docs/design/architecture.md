@@ -991,14 +991,16 @@ break under `from __future__ import annotations`.
 the hosted `--trim`, `--list`, `--sidecars`, `--repair` too);
 "Sources" (`--source`, and the options of harvest that every source
 reads, `--jobs`, `--packet`, `--insecure`, whose help gives the
-defaults of each source of the dataset); one panel per source that
+defaults of each source of the dataset, `DEFAULT_JOBS` of the
+`DownloadManager` for a source without `jobs`); one panel per source that
 reads options of its own, "NITRC (--source nitrc)" ("NITRC" for a
 dataset of one source), in the order of `sources()`; then a collection
 ("INDI": `info --derivatives`) and one dataset ("OASIS-1": `--discs`,
 whichever command has them); "Logging" last. Credentials
 (`by_source` groups: `--user`/`--password`, `--token`) are shown in
 the panel of each source that reads them (`Source.reads(option)`,
-the per-run options that `configure` keeps; a `CompositeSource` reads
+the per-run options that `configure` keeps, but no `user`/`password`
+for a NITRC or XNAT source with `login = False`; a `CompositeSource` reads
 those of its parts, titled "XNAT + NITRC"), so a login shared by two
 sources is repeated in both panels (one parameter, two groups), and
 each panel says all that its `--source` needs; options that every
@@ -1014,7 +1016,8 @@ group=panels)]`, `register.command_panels`; cyclopts 3.17 replaces,
 rather than merges, the `Parameter` of the class, hence `name="*"`
 again) and on fields (`Parameter(group=)`), both supported from 3.17.
 `--keys` choices follow the hierarchy (`KeySpec.all_choices`, the order
-of the help) when they are its keys.
+of the help: `tree_keys` lists the keys of `tree_lines` once, leaves of
+sets and lists sorted) when they are its keys.
 
 Every command but `info` also takes `path` (root of all datasets,
 `BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an

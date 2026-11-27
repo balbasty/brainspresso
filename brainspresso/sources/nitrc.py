@@ -51,6 +51,12 @@ class NITRC(StaticURLs):
     user: str | None = None
     password: str | None = None
 
+    def reads(self, option: str) -> bool:
+        """`user` and `password` only with `login` (see `Source.reads`)."""
+        if option in ("user", "password") and not self.login:
+            return False
+        return super().reads(option)
+
     def auth(self):
         """Return the NITRC login hook (None if `login` is false)."""
         if not self.login:

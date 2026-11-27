@@ -27,8 +27,9 @@ from humanize import naturalsize
 
 from brainspresso.actions.action import IfExists
 from brainspresso.download import CHUNK_SIZE
+from brainspresso.download.manager import DEFAULT_JOBS
 from brainspresso.errors import UsageError
-from brainspresso.sources.base import DownloadOptions
+from brainspresso.sources.base import DownloadOptions, LocalSource
 from brainspresso.utils.ui import human2bytes
 
 lg = logging.getLogger(__name__)
@@ -671,19 +672,20 @@ class HarvestOptions(OptionGroup):
         out = {}
         defaults = {**cls.defaults(dataset, command),
                     **dict(dataset.option_defaults.get(command, {}))}
-        jobs = _per_source(dataset, "jobs")
-        # a default of the dataset replaces those of the sources
-        if defaults.get("jobs") is not None:
+        jobs = _per_source(dataset, "jobs", DEFAULT_JOBS)
+        # a default of the dataset replaces those of the sources (and
+        # without sources, there is nothing to list)
+        if defaults.get("jobs") is not None or not jobs:
             out["jobs"] = "Number of parallel downloads"
-        elif jobs:
+        else:
             out["jobs"] = ("Number of parallel downloads (default: that "
                            "of the source: " + ", ".join(
                                f"{name} {'/'.join(map(str, values))}"
                                for name, values in jobs.items()) + ")")
-        if defaults.get("insecure") is not None:
+        insecure = _per_source(dataset, "insecure", False)
+        if defaults.get("insecure") is not None or not insecure:
             out["insecure"] = "Do not verify TLS certificates"
         else:
-            insecure = _per_source(dataset, "insecure")
             names = [name + ("" if values == [True] else " (some files)")
                      for name, values in insecure.items() if True in values]
             out["insecure"] = (
@@ -781,7 +783,7 @@ class RoastOptions(OptionGroup):
         return values.pop() if values else "yes"
 
 
-def _per_source(dataset, attr: str) -> dict[str, list]:
+def _per_source(dataset, attr: str, default) -> dict[str, list]:
     """
     Values of an attribute of the sources of a dataset (help).
 
@@ -790,19 +792,25 @@ def _per_source(dataset, attr: str) -> dict[str, list]:
     dataset : Dataset
     attr : str
         Attribute of the sources (`jobs`, `insecure`)
+    default
+        Value that None stands for (`DEFAULT_JOBS`: that of the
+        `DownloadManager`)
 
     Returns
     -------
     dict[str, list]
-        Source name -> distinct values of its parts (a `CompositeSource`)
-        that are not None; sources without one are left out
+        Source name -> distinct values of its parts (a `CompositeSource`);
+        sources that download nothing (`LocalSource`) are left out
     """
     out = {}
     for name, source in dataset.sources().items():
         values = []
         for part in getattr(source, "parts", None) or [source]:
+            if isinstance(part, LocalSource):
+                continue
             value = getattr(part, attr, None)
-            if value is not None and value not in values:
+            value = default if value is None else value
+            if value not in values:
                 values.append(value)
         if values:
             out[name] = values

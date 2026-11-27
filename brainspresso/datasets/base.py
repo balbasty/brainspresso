@@ -86,6 +86,9 @@ def tree_lines(tree, indent: int = 0) -> list[str]:
     """
     Lines of a key hierarchy (nested dicts and sets), for the help.
 
+    Groups in their order, the leaves of a set or list sorted; a key
+    under two groups is listed under each (`tree_keys` lists it once).
+
     Parameters
     ----------
     tree : dict | set | list | str
@@ -121,8 +124,9 @@ def tree_keys(tree) -> tuple[str, ...]:
     Returns
     -------
     tuple[str]
-        Each key once (a group before its children; an unnamed group,
-        e.g. OASIS-III's "", is not a key)
+        The keys of `tree_lines`, in its order, each once: a key under
+        two groups where `tree_lines` first lists it (a group before its
+        children; an unnamed group, e.g. OASIS-III's "", is not a key)
     """
     out = []
 
@@ -130,8 +134,7 @@ def tree_keys(tree) -> tuple[str, ...]:
         if isinstance(node, str):
             out.append(node)
         elif not isinstance(node, Mapping):
-            out.extend(sorted(node) if isinstance(node, (set, frozenset))
-                       else node)
+            out.extend(sorted(node))        # (as `tree_lines`)
         else:
             for name, sub in node.items():
                 out.append(name)

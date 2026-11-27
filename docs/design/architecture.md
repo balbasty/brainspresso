@@ -15,7 +15,8 @@ One command line tool that, for many public neuroimaging datasets:
 | **grind**   | `bx <ds> grind`  | raw BIDS dataset → `derivatives/<pipeline>/` |
 | **compost** | `bx <ds> compost`| deletes source data, or BIDS data outside a filter |
 
-Plus cross-dataset commands (`bx grind --datasets ...`), see §7.
+Plus cross-dataset commands (`bx grind --datasets ...`) and `bx
+percolate PLAN`, which runs or tracks a saved roast or grind plan, see §7.
 
 ### Things the design must allow (seen in merged and pending work)
 
@@ -808,13 +809,18 @@ roasters get numbers (`Dataset.numbers`).
   lock file per deleted file, and `File` writers would nest with the
   writers of `bids.tables`).
 
-### Grind seam (open items for 4g, not decisions)
+### Grind seam (decided in step 4g, §7)
 
-`grind` would be one more builder in `register.COMMANDS` (`bx <ds>
-grind <pipeline>`; `LOCKS` in `datasets/base.py` gives its lock mode). Open: naming a bound dataset in `--datasets`
-(`openneuro/ds000224`); grind iterating `layout.datasets()` for sites
-layouts; whether one lock domain per dataset is too coarse for long
-grind jobs. Ports must not assume that grind units take the run lock.
+`grind` will be one more builder in `register.COMMANDS` (`bx <ds>
+grind <pipeline>`, step 7). Decided in §7: a bound dataset is named
+`<name>/<argument>` in `--datasets` (`openneuro/ds000224`, then an
+optional site); a sites layout is ground site by site
+(`layout.datasets()`), group outputs in the parent; grind does not take
+`<state>/run` (too coarse for long jobs) but a second lock file,
+`<state>/grind`, per running process: `LOCKS` in `datasets/base.py`
+gives each command its lock name and mode (`"grind": ("grind",
+"shared")`), which `Dataset.run` passes to `run_lock`. Ports must not assume that grind
+units take the run lock (§7, "What the ports must and must not assume").
 
 ### Migration
 
@@ -886,74 +892,703 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 
 ## 7. Grind
 
-* A **pipeline** is dataset-agnostic: it consumes a raw BIDS dataset (plus
-  outputs of the pipelines it requires) and writes
-  `derivatives/<pipeline>/` with `GeneratedBy` provenance.
-* Configuration is a pydantic model with documented fields (CLI help and
-  config files generated from it), as prototyped for SPM Segment in
-  `wiip-grind`. Output paths are BIDS entity templates (with `ses`).
-* A pipeline is made of **stages**, each with its own unit level
-  (`session`, `subject`, `group`) and declared inputs from earlier stages
-  (fan-in), e.g. FreeSurfer longitudinal: cross (session) → base (subject) →
-  long (session). Pipelines declare `requires=(...)` on other pipelines.
-  Everything stays declarative; no wiring syntax.
-* Skip/redo: per-unit **done-marker + config hash** (BIDS-App outputs
-  cannot be enumerated; outputs depend on config). Roast shards already
-  do this with the task state below (`config_hash`: their input
-  signature).
-* Partial failures: a group stage runs on the units that succeeded, unless
-  the pipeline requires all; the failure list is recorded.
-* Cross-dataset group outputs live outside any dataset, in a
-  `<root>/derivatives/<pipeline>/` collection with `SourceDatasets` pointing
-  at each input dataset.
-* `BidsAppPipeline` wraps any BIDS App
-  (`app bids_dir out_dir participant --participant_label X`).
-* Execution: a thin `submit(task, resources) -> handle` protocol
-  (`resources`: CPUs, memory, GPU, walltime, container), implemented over
-  `concurrent.futures` (local pool), `submitit` (SLURM/SGE/PBS, job arrays,
-  `afterok` dependencies) and optionally Dask/Ray. Profiles in a user config
-  file. Containers: Docker locally, Apptainer on HPC. The local backend
-  exists (`actions.engine.LocalExecutor.submit(task, resources=None) ->
-  Future`, used by roast; `task` is a picklable callable).
-* State: **one state file per task** under `.brainspresso/` (concurrent jobs
-  never write the same file); the manifest is an index rebuilt from them.
-  Format (defined in step 2b-i, written by roast shards since 2b-ii-fix):
-  `<state>/tasks/<task id>.json`, the task id URL-quoted into the file
-  name, written atomically:
+The grind **contract** (step 4g): what step 7 implements and what the
+ports of step 5 may rely on. Every name below is a stub of
+`brainspresso/grind/` or, for what roast shares (plans, execution
+options, cluster jobs, `bx percolate`), of `brainspresso/percolate/`
+(interfaces and docstrings, no behaviour).
+Decisions are marked **D** or "decided" (the owner's); the last
+subsection lists them; no question is left open. The `wiip-grind` prototype is the reference for configs
+(pydantic models with documented fields, SPM Segment); its paths
+(`{sub:d}`, no `ses`), its missing execution, state and selection are
+what this contract replaces.
 
-  ```json
-  {"schema": 1, "task": "grind/fs/sub-01/ses-1",
-   "stage": "roast | grind", "pipeline": "<name> | null",
-   "unit": {"sub": "01", "ses": "1"},
-   "status": "pending | running | done | failed | skipped",
-   "config_hash": "<hex> | null",
-   "started": "<ISO 8601> | null", "finished": "<ISO 8601> | null",
-   "error": "<message> | null",
-   "outputs": ["<path relative to <DS>>"]}
-  ```
+### Model (`grind/model.py`)
 
-  Roast shards add `run` (id of the roast that wrote it), `counts`
-  (`{tag: {outcome: n}}`), `progress` (`{tag: [total, advance]}`) and
-  `children` (shards it yielded); they write it when they start, on
-  every progress event, at most every 0.5 s on outcomes, and when done
-  (`done` without errors, else `failed`). Shards without an id that run
-  in a worker use a temporary `roast/.auto/...` id, removed once
-  collected.
-* Grind builds on the stage-agnostic engine (`actions.engine`, step
-  2b-iv) as roast does: its own `Context` (`stage = "grind"`, a
-  `pipeline` attribute, which task records pick up) and its own
-  `Policy` (units to run; config hash in `fingerprint`, part of the
-  input signature of shards), with the same producers and shards,
-  reporting, task state, `submit` seam and `File` locks (outputs of
-  concurrent units on shared storage are protected by the dataset's
-  `.brainspresso/locks/`). Whether BIDS-App units are actions (a claim
-  on their output folder, or a done-marker action) or plain shards is
-  decided in step 4g.
-* `bx <ds> grind <pipeline>` applies dataset defaults/overrides (which T1w,
-  species/template, excluded subjects). `bx grind <pipeline> --datasets ...
-  --where ...` resolves each dataset and submits **one** task graph.
-* A cross-dataset index (all subjects, with a `dataset` column) is built
-  from each raw dataset's `participants.tsv`.
+* **Pipeline** (`Pipeline`): dataset-agnostic and declarative. `name`
+  (also the derivative folder), `version`, `stages`, `config` (a model
+  class), `requires=("<pipeline>", ...)`, default `container`. Found by
+  name (`register_pipeline`, `get_pipeline`; a lazy catalog like the
+  datasets').
+* **Config**: a pydantic v2 model with documented fields; CLI options,
+  `--config` files and hashes derive from it. The contract only needs
+  the `Config` protocol (`model_dump`, `model_validate`,
+  `model_json_schema`), so `grind/` imports no pydantic (step 7 adds it
+  to a `grind` extra). The **effective** config of a dataset is: model
+  defaults < dataset overrides < `--config` file < command line.
+* **Stage** (`Stage`, abstract): `name`, `level`, `inputs`
+  (`Requirement`s), `outputs` (`Output`s), `resources`, `container`,
+  `fingerprint(config)` (what of the config decides its outputs;
+  default: all) and `run(ctx, work)`, a producer of the action engine
+  that receives a `Work` (unit, resolved inputs, output paths, scratch
+  folder). Kinds: `FunctionStage` (a Python function that yields
+  actions), `CommandStage` (an argv, run through the container
+  runtime), `BidsAppStage`; other kinds (MATLAB batch, QC report,
+  table aggregation) subclass `Stage`. There is no wiring syntax: the
+  order of stages follows from their requirements.
+* **Level** and **Unit**: a level is a name and the entities that key
+  its units (`LEVELS`: `session` = `sub`+`ses`, `subject` = `sub`,
+  `dataset` = one unit per dataset, `group` = one unit per run; more
+  can be added, e.g. `run`). A `Unit` is `(level, dataset, sub, ses,
+  extra)`; its `label` is `sub-01/ses-1`, `sub-01`, `dataset` or
+  `group`. A dataset without sessions has one `session` unit per
+  subject (no `ses`).
+* **Requirement**: a named input of a stage. `query` (a `Query`:
+  datatypes, suffixes, extensions, entities, reserved sidecar
+  conditions), from the raw dataset (default), from an earlier `stage`
+  of the pipeline, or from a `pipeline` listed in `requires`; `min` and
+  `max` matches per unit (`max=1`, the default, with several candidates
+  is an error unless `pick` or a dataset override decides); `need`
+  ("any", "all" or a count) for fan-in. The levels give the mapping:
+  same level, unit to unit; a finer upstream level fans **in** (all
+  upstream units inside the unit: sessions of a subject, everything
+  for `group`); a coarser one **broadcasts** (the subject's base to
+  each session). Example, FreeSurfer longitudinal: `cross` (session,
+  raw T1w) → `base` (subject, `cross` with `need="all"`) → `long`
+  (session, `cross` and `base`).
+* **Output**: `name` and a `template` relative to the derivative root.
+  Templates are `str.format` strings over the unit entities, `{base}`
+  and `{suffix}` of a named input, and config fields; a bracketed
+  segment is dropped when one of its fields is missing
+  (`sub-{sub}[/ses-{ses}]/anat/{base}_label-{label}_probseg.nii.gz`).
+  Labels are strings, never `:d` (`format_output`). `claim=True`
+  marks a folder whose content is only known once the stage has run.
+  Templates are fixed per pipeline (decided); a config field `paths`
+  stays reserved and is not read.
+
+### Units and selection (`grind/graph.py`)
+
+* `enumerate_units(layout, level, selection, overrides)` walks the
+  `sub-*/[ses-*]` folders of `layout.raw` (what is on disk, not
+  `participants.tsv`), filtered by the `Selection` of the command line
+  (`--subs`, `--exclude-subs`, `--sessions`, later `entities`) and by
+  the dataset's exclusions. Tables are only read for `--where` (below).
+* A unit of a stage is planned if each raw requirement finds between
+  `min` and `max` files; otherwise it is **blocked**, with the reason.
+  Upstream requirements are resolved when the task **starts**: the plan
+  only needs the upstream task to be planned, queued or done.
+* **D**: the graph is static, planned before anything runs (needed
+  for saved plans and scheduler dependencies). A stage may still yield
+  shards of its own inside its task.
+
+### State and skip (`grind/graph.py`, `actions/state.py`)
+
+One task per (stage, unit): id
+`grind/<pipeline>[@<variant>]/<stage>/<unit label>` (`task_id`;
+`derivative_name` gives the folder), state file `<state>/tasks/<id>.json` in the state folder
+of the unit's dataset (group units: that of the run's home, below).
+The id is unique in one dataset only: wherever a plan refers to a task
+(`after`, jobs, `--task`, status reports, `requires`) it uses the
+**plan key** `<dataset ref>:<id>` (`PlanTask.key`; the bare id for a
+task of the home). The
+record is the **done marker** (decided: no other marker file, also
+not inside the derivative) and uses the
+schema of `actions/state.py` (schema 1, fields added, none changed):
+
+```json
+{"schema": 1, "task": "grind/fs-long/cross/sub-01/ses-1",
+ "stage": "grind", "pipeline": "fs-long",
+ "pipeline_stage": "cross", "variant": null, "dataset": "IXI",
+ "unit": {"sub": "01", "ses": "1"},
+ "status": "pending | running | waiting | done | failed | skipped",
+ "config_hash": "<hex> | null",
+ "started": "<ISO 8601> | null", "finished": "<ISO 8601> | null",
+ "error": "<message> | null",
+ "outputs": ["<path relative to <DS>>"],
+ "requires": {"<upstream task key>": "<its config_hash>"},
+ "version": "<pipeline version>", "container": "<image@digest> | null",
+ "plan": "<plan id> | null",
+ "job": {"backend": "slurm", "id": "1234_5", "host": "n1", "pid": 1},
+ "staged": "none | inputs | all", "scratch": "$SLURM_TMPDIR | null"}
+```
+
+(Roast shards write `stage: "roast"`, `pipeline: null` and the fields
+up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
+`actions.engine`. Grind adds the fields from `pipeline_stage` on.)
+
+* `config_hash` is the task **signature** (`signature`): SHA-256 of the
+  pipeline name and version, `stage.fingerprint(effective config)`, the
+  image reference, the raw inputs (path relative to the dataset root,
+  size, mtime) and the canonical key and `config_hash` of each
+  upstream task (so a change propagates downstream), plus the member
+  list of a fan-in. The **canonical key** of an upstream task
+  (`canonical_key`) does not depend on how a reference was typed or on
+  where the run's home is: the bare id for a task of the same dataset,
+  else `<canonical reference>:<id>` (`str(DatasetRef)`: lower case,
+  arguments and site as the catalog spells them), `@home:<id>` for a
+  task of the home. `requires` uses the same keys. Grind inputs are
+  always inside their dataset, so `root` is required and a signature
+  holds no absolute path.
+* The image **digest** is not in the signature: it is recorded
+  (`container`) and compared apart. `plan(..., runtime=)` asks
+  `ContainerRuntime.inspect` (local store, image cache; never a pull)
+  and a done task is stale only if both digests are known and differ.
+  An unknown digest never makes a task stale; the plan records it as
+  null (unchecked). The digest is the **registry manifest digest** of
+  the image, whatever the runtime (Docker reports it; Apptainer keeps
+  it next to the image file it converts; for a local image file, the
+  SHA-256 of the file), so records made under Docker and Apptainer
+  compare. The signature holds the image reference as declared, never
+  a local path: an image declared as a file (`Container.image` a path
+  to an Apptainer image) enters it as `file:<SHA-256 of the file>`,
+  which `inspect` computes (and caches by size and mtime); the plan
+  refuses a file that is missing. Images are pulled only when a plan
+  is run, and the plan is never rewritten. **One image per plan**:
+  when percolate first runs a plan it pulls its images once, under the
+  plan lock (`StagePlanner.prepare`), and writes the resolved digests
+  in a sidecar next to the plan (`<plan>.images.json`,
+  `write_images`; kept with the plan in memory for a local run without
+  a file). Later runs of the plan reuse the sidecar; every task reads
+  it (`read_images`), records the digest (`container`) and refuses to
+  run an image whose digest differs from the sidecar or from one the
+  plan records, so a tag that moves between jobs cannot give two
+  builds in one plan.
+* Plan verdicts (`PlanTask.verdict`): **done** (record `done`, same
+  signature, recorded outputs exist: not run); **todo** (no record, or
+  `failed`/`skipped`/`waiting`: a waiting record holds no job, whatever
+  plan wrote it, so a new plan runs the task and never counts it as
+  queued); **queued** (recorded `pending`/`running`, by
+  another plan or an earlier run: not run by this plan, whose
+  dependents check its record when they start); **stale** (`done`
+  with another signature); **blocked**. `--redo [STAGE]` forces a
+  stage and what depends on it.
+* A stale unit stops the command (`--if-stale error`); `redo`
+  recomputes it, `keep` leaves it and marks dependents blocked. The
+  choice is made when planning and recorded in the plan.
+  A derivative folder with content but no grind record of this
+  pipeline is refused: foreign outputs are never adopted as done
+  units (decided).
+* **Variants**: two configurations side by side use `--variant NAME`
+  (letters and digits). The variant is part of the task id
+  (`grind/fs-long@hires/...`), of the record (`variant`), of the plan,
+  `Scope` and `GrindContext`, and of the folder
+  (`derivatives/<pipeline>-<NAME>/`; refused if that is the name of a
+  registered pipeline), so variants never share records. It is not
+  part of `Unit`: the same unit is ground under each variant. A
+  required pipeline is read in its **default** (unnamed) variant unless
+  `--with <pipeline>=<variant>` says otherwise (`Scope.variants`,
+  recorded in the plan); the run's own variant is never inherited. `GrindContext.required`
+  returns that choice, which enters the signature through the upstream
+  task ids.
+* **D**: actions of a task that runs use `IfExists` "overwrite" (the
+  skip decision is per unit; the roast default "skip" would keep stale
+  files under a new hash).
+* `pending` is written when a job is submitted, with its id; the
+  task writes its own `job` (scheduler id, host, pid) when it starts,
+  and `staged`/`scratch` (the option as given, never a full path).
+  `skipped` means
+  "requirements not met when it started" (`error` names them).
+* Records are updated, not replaced: the engine keeps the fields it
+  does not own and merges the extra fields of the shard
+  (`Shard(record={...})`, how grind passes the `GRIND_FIELDS`), so the
+  `pending` record survives the start of the task. Updates are
+  read-merge-write under a short `FileLock` on the record.
+
+### Plans and percolate (`percolate/plan.py`, `percolate/run.py`)
+
+Owner decisions; roast and grind share all of this.
+
+* `plan(pipeline, scope, configs, ...) -> Plan` (`grind/graph.py`):
+  `PlanTask`s in dependency order (those of required pipelines
+  included), each with `after` (must succeed), `after_any` (must
+  finish), `resources` and its verdict. A requirement on a `pipeline`
+  without `stage` depends on every terminal stage of that pipeline.
+  Each dataset ends with a `finalize` task (descriptions, manifest run
+  entry, failure list), `after_any` all its tasks.
+* **Default: no plan file.** `bx <ds> roast` and `bx <ds> grind
+  <pipeline>` plan in memory and run on the local pool. `--plan PATH`
+  (both commands) writes the plan and runs nothing: the persisted
+  `--dry-run`. `--detach`, and any scheduler backend (its jobs must
+  read the plan), save it under `<state>/plans/` first. A local roast
+  without a plan keeps today's single engine run (decided); step 7
+  tests that it gives the same dataset as its plan run task by task.
+* **`--wait` / `--detach`**: one option with two spellings, on roast,
+  grind and percolate. Default: wait on the local backend, detach on
+  SLURM, SGE and PBS; a profile may set `detach = true|false`; the
+  command line wins. Detaching prints the `bx percolate <plan>
+  --status` command and returns. `--wait` on a scheduler behaves like
+  `sbatch --wait`: it shows progress and exits non-zero if any task
+  failed. Waiting is monitoring only: it is never needed for
+  correctness, and killing it never affects the jobs.
+* **A plan task is a scoped re-invocation, not a serialised
+  callable.** The plan records the stage (`roast`, or `grind` with
+  pipeline name, version and variant), the datasets (reference, root
+  and id), a snapshot of the command options and of the effective
+  configs, and per task its scope (`TaskScope`: subject, session,
+  dataset or group), dependencies and resources. Plan-time choices
+  are in it too: `if_stale`, the variants of required pipelines, image
+  references and digests. To run a task, percolate calls the planner
+  of its stage (`StagePlanner.run`, found in `PLANNERS`) restricted to
+  the scope:
+  * grind (`GrindPlanner`): one stage on one unit. The pipeline is
+    found by name (`get_pipeline`) and must have the plan's version,
+    else the task refuses. So pipelines run from plans are registered,
+    and stage callables (`FunctionStage.fn`, `CommandStage.command`)
+    are importable as `module:qualname`; `Pipeline.validate` refuses
+    lambdas and closures. The task builds its own `GrindContext`
+    (`stage = "grind"`; `pipeline`: the **name**, which records pick
+    up; `spec`: the `Pipeline`) and runs `stage.run` as one shard of
+    the action engine, with `GrindPolicy`.
+  * roast: one top-level shard that has an id (a subject, as
+    `subject_shards` yields them); nested shards are found when it
+    runs, as today. A `head` task runs the actions of the top-level
+    roaster itself, and `finalize` the hooks, trimmed tables and
+    manifest. The roaster is driven again with a scope filter (step 7,
+    engine): only the shard of the scope runs.
+* Every task re-checks its inputs, its requirements (upstream
+  records) and its signature when it starts, and applies the failure
+  policy itself. A plan that no longer matches (pipeline version,
+  image digest, signature recorded in the plan) raises `PlanError`:
+  reported as a **stale plan**, never followed blindly.
+* **`waiting`**: a task that finds an upstream record `pending`,
+  `running` or `waiting` when it starts records itself `waiting`
+  ("upstream not over", naming it) and exits; it is neither `pending`
+  (no job holds it) nor `skipped`. Reconciliation never turns it into
+  `failed` for its job being gone. A plain `bx percolate PLAN` submits
+  `waiting` tasks again, like tasks without a record. When percolate
+  or `--status` reconciles, a `waiting` task whose upstream ended
+  without success is settled by the failure policy: `skipped` (plan
+  verdict blocked) if a `need="all"` requirement, or fewer upstream
+  units than it needs, can no longer be met; else it stays `waiting`
+  and runs at the next submission on what succeeded. For `--wait` and
+  `--status --watch` a `waiting` task is unfinished only while one of
+  its upstream tasks is `pending` or `running`; when none is, waiting
+  percolate submits it again, and a watch ends with the plan
+  `incomplete` and says to run `bx percolate PLAN`.
+* **Plan files** are YAML, `<state>/plans/<timestamp>-<hash>.yaml`
+  (`<root>/.brainspresso/plans/` for a collection), with `schema: 1`
+  (`PLAN_SCHEMA`; format in `percolate/plan.py`). They are written
+  once and never changed: state lives in the task records, which stay
+  JSON (written often, atomically) and name their `plan`.
+* **YAML and strings**: plans are read with `yaml.safe_load` and
+  written (`write_plan`) with a `SafeDumper` subclass that quotes every
+  string scalar (`plan_dumper`), so `1e3`, `01`, `no` and `on` (`YAML_PITFALLS`)
+  round-trip as strings for any reader; nothing is refused when
+  writing. Labels are still written with their BIDS prefix (`sub-01`),
+  and `read_plan` checks that every field that must be a string is one
+  (`check_strings`; a plan edited by hand with `sub: 01` is an error
+  that names the field): nothing is converted back. Pinned in
+  `tests/test_grind_contract.py`. PyYAML is a **core** dependency from
+  step 7 (decided; roast plans need it; imported only when a plan is
+  read or written).
+* **`bx percolate PLAN`** (`percolate`; a top-level command, since
+  the plan fixes dataset, pipeline, options and scope) runs the tasks
+  that are not done. `--retry failed` also reruns `failed` and
+  `skipped` tasks; `--status` prints a snapshot of the tasks from
+  their records, reconciled with the scheduler (`plan_status`: a
+  `pending`/`running` record whose job is gone becomes `failed`, or
+  `skipped` if it never started and the record of a task it requires
+  (`after`) is `failed` or `skipped`: the upstream records decide,
+  not the scheduler, which reports the same state for a job it drops
+  for its dependency and for one a user cancels; `waiting` records are
+  left; stale run records of
+  jobs that are over are removed; a local run on another host cannot
+  be checked and is listed as unknown); `--status --watch` refreshes it until the plan finishes
+  (`watch_plan`: read-only, it writes no record and takes no lock;
+  `--follow` is not used, it is kept for a future `--logs <task>
+  --follow`); `--cancel` cancels
+  the jobs and records their tasks `failed`, unknown ones included
+  (`cancel_plan`). Without argument it lists the plans of the dataset
+  that contains the current folder, else of `--out` (`list_plans`).
+  A plan written by another brainspresso version is run with a
+  warning: the pipeline version and the signatures decide. One lock per plan: all forms but `--task`, `--array`
+  and a read-only `--status` hold an exclusive lock on the plan file.
+
+### Execution and cluster jobs (`percolate/options.py`, `percolate/jobs.py`)
+
+* **`ExecutionOptions`**: one option group on roast, grind and
+  percolate, so a cluster run is one command: `--profile NAME`,
+  `--backend local|slurm|sge|pbs`, `--jobs` (local), `--partition`
+  (`--queue`), `--account`, `--time`, `--mem`, `--cpus`, `--gpus`,
+  `--max-array`, `--max-running`, `--directive` (repeatable raw
+  scheduler lines), `--container-runtime docker|apptainer|none`, `--wait`/`--detach`,
+  `--path-map SRC=DST`, `--stage none|inputs|all`, `--scratch PATH`,
+  `--keep-scratch-on-failure`.
+* **`Profile`**: a `[profiles.<name>]` section of the config file
+  (separate PR; `~/.brainspresso/config.toml`, then the root and
+  dataset files, `--config FILE`, environment and the command line,
+  later ones winning). Beyond the
+  options: resource defaults, overrides per task id pattern, `setup`
+  lines (modules, environment), the `bx` executable on the nodes,
+  `detach`, `lock_wait` and image cache.
+* **Fixed in the plan**: tasks, dependencies, the resources stages
+  declare (`PlanTask.resources`) and those datasets override
+  (`PlanTask.overrides`). **Chosen at percolate time**: backend,
+  profile, runtime, limits, overrides, path map and staging (neither
+  is in the signature). Precedence (`resolve_resources`): stage
+  declaration < profile < dataset overrides < command line.
+* **Local**: the pool of `actions.engine` (`LocalExecutor.submit`, as
+  it is); each worker runs one task (`run_task`: a plan and a task id,
+  nothing else is pickled) and percolate holds a task until the tasks
+  in its `after` are over; a task counts `cpus` slots of `--jobs`.
+  A task that needs more CPUs than `--jobs` could never start:
+  percolate refuses the plan before anything runs, naming the task,
+  its stage and both numbers (lower `--cpus` or raise `--jobs`).
+* **Schedulers**: percolate creates and submits the jobs
+  (`make_jobs`, `submit_jobs`). The payload of a job is plain data: a
+  batch script that runs `bx percolate PLAN --task <key>`, or for an
+  array `--array <job> --index <n>`. Backends are native templates
+  (`Scheduler`: `script`, `submit_command` with `sbatch --parsable` or
+  `qsub`, `query`, `cancel_command`) for SLURM, SGE and PBS.
+* **Job dependencies wait for the end of the upstream job, not for its
+  success** (`Job.after_any`): tasks re-check their requirements when
+  they start, and a "must succeed" dependency on an array would leave
+  every dependent queued forever after one failed element. A job only
+  gets a must-succeed dependency (`Job.after`) in two cases: on a
+  whole job, when each of its tasks requires **every** task of that
+  job (`need="all"`; a required input between two single tasks); or
+  element-wise on an aligned array, when element `n` requires element
+  `n` (a required unit-to-unit input). A dependency of either shape
+  that does not have to succeed is `Job.after_any`. What each
+  scheduler gets (`submit_command` receives the four kinds apart:
+  `any`, `ok`, `pairwise_any`, `pairwise_ok`):
+
+  | | `any` | `ok` | `pairwise_any` | `pairwise_ok` |
+  |---|---|---|---|---|
+  | SLURM | `afterany` | `afterok`, with `--kill-on-invalid-dep=yes` | whole array, `afterany` (SLURM has no element-wise form that ignores failure) | `aftercorr`, with `--kill-on-invalid-dep=yes` |
+  | SGE | `-hold_jid` | `-hold_jid`, the task checks | `-hold_jid_ad` | `-hold_jid_ad`, the task checks |
+  | PBS | `depend=afterany` | `depend=afterok` between single jobs; arrays: `afterany` | whole array, `afterany` | whole array, `afterany` |
+
+  A job that the scheduler drops because its dependency can no longer
+  be met leaves a `pending` record, which reconciliation settles from
+  the upstream records (above).
+* **No submitit**: its value is pickling callables and fetching their
+  results; jobs here are command lines and results are task records.
+  It also only covers SLURM well. Dask and Ray are not backends.
+* **Arrays**: tasks of one stage with equal resources form one array,
+  split at `--max-array`. Element-wise dependencies (`Job.pairwise`,
+  SLURM `aftercorr`) are only used between arrays that `make_jobs`
+  built together from one ordered list of scopes and split at the same
+  places; equal lengths are not enough. Anything else, and schedulers
+  without them, wait for the whole array.
+* **`--write-jobs DIR`** (`write_jobs`) submits nothing: it writes the
+  batch scripts, `manifest.json` and a `submit.sh` that submits them
+  in order, feeds captured job ids into the dependencies and logs them
+  in `submitted.tsv`. Tasks write their own records when they run, so
+  `--status` works after a submission by hand. `submit_jobs` is the
+  same, run by percolate, which also writes `pending` records with
+  the job ids.
+* Scheduler dependencies only order the jobs; correctness comes from
+  tasks re-checking their requirements when they start.
+* **Path translation**: login node, compute nodes and containers may
+  mount the same data elsewhere. A plan holds no path but roots
+  (`Plan.home`, `PlanDataset.root`, next to the reference and the
+  dataset id); everything else is relative to a root. A profile
+  carries an ordered path map (`[[profiles.<name>.paths]]` with `from`
+  and `to`; `--path-map`), applied (`translate`) when job scripts are
+  written (plan file, config file, files named by options) and when a
+  job reads the plan. `resolve_roots` then checks that each translated
+  root exists and that its manifest has the dataset id of the plan
+  (decided: a UUID that `ensure_state` writes once in the manifest; a
+  dataset without one, made earlier, is accepted with a warning), and
+  fails naming the root and the map otherwise. Lock files and signatures use
+  dataset-relative paths, so they do not depend on the mount point.
+* **Staging** (`grind/staging.py`; grind tasks only, decided: roast
+  ignores `--stage` with a warning): `--stage none` (default) runs in
+  place. With `inputs` or `all`, the task resolves
+  its inputs and computes its signature from the originals, then
+  copies them (`stage_in`: the raw query and upstream outputs of each
+  `Requirement`, with inherited metadata) into a minimal tree under
+  scratch that mirrors dataset-relative paths, holding read locks only
+  while copying, and gives the tool the scratch paths. With `all`,
+  commands also write under scratch and `stage_out` commits what they
+  wrote through the action layer (declared files through `File` under
+  exclusive locks, renamed into place; claimed folders through
+  `CommitTree`, below; never a raw copy), so locks and recorded
+  outputs stay correct; actions that already write through
+  `File` write to the dataset directly. Scratch (`--scratch`, else
+  `$SLURM_TMPDIR`, `$TMPDIR`, `$TMP`) is removed afterwards, unless
+  the task failed and `--keep-scratch-on-failure` is set. Containers
+  get the staged folders bound in place of the originals, at the same
+  paths inside. For a BIDS App, stage-in builds a minimal BIDS dataset
+  (`dataset_description.json` and the participant's selected files),
+  which becomes its `bids_dir`.
+* Engine changes of step 7, all additive and stage-agnostic
+  (`actions/` imports neither `percolate/`, `grind/` nor `roast/`): a
+  signature given by the shard; input signatures hashed on relative
+  paths (`_signature` hashes `str(path)` today: on translated roots no
+  roast shard would ever be skipped). An input is hashed relative to
+  the first root that contains it, with the name of that root: the
+  dataset (`ctx.root`), the source folder (`ctx.source`, which a
+  `LocalSource` or `--source` may put outside the dataset), the sites
+  parent; an input under none of them keeps its absolute path, and
+  its shard is then only skipped where that path is the same. This
+  changes every signature: `_SIGNATURE_VERSION` is bumped, so every
+  roast shard runs once more after the upgrade (its inputs are read
+  again; outputs that exist are kept by `IfExists`). Also: a
+  `CommitTree` action (below); extra record fields merged
+  into the existing record (`Shard(record=)`, `update_task_state`);
+  the `waiting` status; a scope filter on top-level shards (roast
+  tasks); an `Adopt` action (below); named run locks with their own
+  records and a liveness hook (below). Outside `actions/`: a
+  `collection` layout kind in `bids/layout.py` (below). No
+  change to the pool, to `submit` or to how shards are collected.
+
+### Locks
+
+* **D** (§6): one run-lock domain per dataset *is* too coarse. Grind
+  tasks read BIDS data only, never `sourcedata/`, and run for hours on
+  other nodes: with the `<state>/run` lock, composting source data
+  would wait for days, and a detached submitter cannot hold a lock for
+  its jobs (locks belong to processes).
+* So grind uses a second lock file, `<state>/grind`, with the same
+  mechanism, `run_lock(..., name="grind")`: held **shared** by the
+  process that plans (a local run: until it ends) and by each task
+  while it runs, with the `lock_wait` of the profile;
+  **exclusive** for a compost whose plan deletes BIDS data or anything
+  under `derivatives/`. A compost of `sourcedata/` only does not take
+  it. Grind never takes `<state>/run`; roast and harvest never take
+  `<state>/grind` (a roast that rewrites an input is caught by the
+  signature, and files are replaced atomically under `File` locks).
+  Order: `run` before `grind`, parents before sites. Queued jobs hold
+  nothing: they re-check their inputs when they start.
+* **Records per lock** (step 7, `actions/runlock.py`): today every
+  holder writes `<state>/runs/<host>-<pid>.json` and an exclusive
+  `<state>/run` refuses while any live record exists, so grind records
+  would block a compost of `sourcedata/`. Each lock name gets its own
+  records folder (`run`: `<state>/runs/`, unchanged; `grind`:
+  `<state>/runs-grind/`, with the task id and job), and
+  `read_records`/`_check_records` only read those of the lock being
+  taken. `_held` is keyed by (state, name); `held_states` and
+  `hold_shared` carry (state, name) pairs, so pool workers take the
+  locks their parent holds, not always `<state>/run`.
+* **Stale grind records**: a job killed by its scheduler (walltime,
+  memory) leaves its record in `runs-grind/`, on another host, which
+  would block compost until `--ignore-runs`. Grind records carry the
+  plan, the task key and the job id, and the record check of an
+  exclusive lock takes a liveness hook (`run_lock(..., alive=)`, step
+  7; `actions/` imports no scheduler). A record is stale, and removed,
+  only when the scheduler says its job is over (same host: when its
+  process is dead), or when the task record names the **same** job id
+  and is final. A final task record alone proves nothing: a job that
+  runs a task again (`--redo`, `--retry`) writes its run record before
+  it sets the task `running`, while the task record still shows the
+  job before it; and a record whose job id differs from the task
+  record's may be that new job, so it is left to the scheduler check.
+  A local percolate (and each of its pool workers) writes one record
+  per process, with the plan and no task or job: it covers every task
+  the process runs, and is live while its pid is, on its host; from
+  another host it cannot be checked and is kept. `plan_status`
+  reconciliation removes stale records too. Where nothing can be
+  asked, the message names `bx percolate <plan> --status`.
+* **`Dataset.run`**: `LOCKS` (`datasets/base.py`) maps a command to a
+  lock name and mode: `"grind": ("grind", "shared")`; the other
+  commands keep the `run` lock. `Dataset.run` passes the name to
+  `run_lock` over `lock_states(layout)` unchanged (parent shared first,
+  then the dataset and its sites), so `bx <ds> grind` never takes
+  `<state>/run`. Compost takes `("grind", "exclusive")` itself, after
+  planning, when its plan needs it. `grind_collection` takes the locks
+  of every dataset the same way, datasets sorted.
+* **Tasks** hold `<state>/grind` shared in every dataset whose data or
+  derivatives they read (`GrindPlanner.locks`, `GrindContext.locks`):
+  their
+  own dataset (and its sites parent) for unit tasks; for a group task
+  the home and each site or each dataset of the collection, parents
+  before sites.
+* A running task holds an **exclusive** `FileLock` on
+  `<state>/tasks/<id>.run` (fail at once: the unit is already running
+  elsewhere; the record itself is locked only while updated), then
+  writes its outputs through `File` (exclusive per file, renamed into
+  place). Tools that write directly (BIDS Apps) are covered by the unit
+  lock and a claim on their output folder.
+
+### Failures
+
+* A failed task is recorded (`failed`, `error`) and the run goes on.
+* A requirement with `need="all"` blocks its task when any upstream
+  unit failed or is missing; "any" (default) or a count runs it on the
+  units that succeeded: `Work.members` and `Work.failed` list both,
+  and the record keeps the members in `requires`.
+* A blocked task is recorded `skipped`; its dependents follow the same
+  rule. `GrindReport` gives counts per stage and the failure list
+  (also in the manifest run entry); the exit status is non-zero if
+  anything failed. Failed and skipped tasks are retried by the next run.
+
+### BIDS Apps (`grind/bidsapp.py`)
+
+`BidsAppPipeline` wraps any BIDS App: one `participant` stage (level
+`subject`, or `session` when the app has a session flag) that runs
+`<app> <bids_dir> <out_dir> participant --participant_label <sub>
+[args]` in the app's container, and an optional `group` stage (level
+`dataset`: an app takes one `bids_dir`). `bids_dir` is `layout.raw`
+(read-only mount). Each participant task runs with **its own
+`out_dir`** (scratch under `--stage all`, else a folder of the task
+under `<state>/work/`), never the derivative root: concurrent apps
+would race on `dataset_description.json`, `logs/` and shared
+reference data, and overwrite grind's provenance. Outputs cannot be
+listed beforehand: the stage is one **claim action** on the `claims`
+templates
+(default `sub-{sub}/` and `sub-{sub}.html`; with a session flag
+`sub-{sub}/ses-{ses}/` only). `Pipeline.validate` refuses a claim that
+does not use every entity of the level of its stage: session tasks
+would overwrite each other's `sub-{sub}/`. An app that writes
+per-subject files whatever the session runs at the subject level.
+Once the app has exited, the claim yields one `CommitTree` action per
+claimed path found in its `out_dir` (step 7, `actions/`), which
+commits it to the derivative under an exclusive lock on that path:
+one rename of the folder when `out_dir` is on the filesystem of the
+derivative (`<state>/work/`), else a copy of the tree into a
+temporary sibling, renamed into place. Either way symbolic links are
+recreated as links (never followed; a link that leaves the folder is
+kept and reported) and empty folders are kept, which per-file writes
+would lose and FreeSurfer subjects need. The claimed path is the
+recorded output; a claim that commits nothing is an error (the engine
+alone would count it "empty"). What else the app wrote is handled by
+kind: `dataset_description.json` is not committed to the derivative
+but saved as `<state>/grind/<derivative name>/descriptions/<unit
+label>.json` (through `File`), where the `finalize` task reads the
+copies after the apps to write the description: `GeneratedBy` from
+grind, plus the fields that the app's copies add;
+`logs/` goes to `logs/<unit label>/`; paths listed in
+`BidsAppPipeline.shared` (reference data that every participant
+writes alike, e.g. `sourcedata/freesurfer/fsaverage/`) are committed
+once, under an exclusive lock, first writer wins; anything else stays
+in `out_dir`, is reported and is removed with it. The `group` stage
+is one task per dataset and writes to the derivative root. A
+`CommandStage` whose command writes a claimed folder in place
+(`--stage none`) yields an `Adopt` action per claimed path instead
+(step 7, `actions/`): it writes nothing, fails if the path is
+missing, and declares it as an output. Selection is
+by subject (and session). Finer filters ("which T1w") go through
+staging, which gives the app a minimal BIDS dataset with only the
+selected files (above), or through the app's own filter file when
+`BidsAppConfig.bids_filter` is set; with neither they are refused
+(decided), with a message that names `--stage inputs`.
+
+### Containers (`grind/containers.py`)
+
+`Container` (image reference, digest, environment); `ContainerRuntime`
+(`pull`, `command(container, argv, mounts=, env=, workdir=)`) with
+runtimes `docker` (local default), `apptainer` (HPC; images converted
+once into a cache) and `none` (tools installed on the host), chosen by
+the profile. Mounts (`Mount`) derive from the translated roots, or
+from the staged folders in their place; raw data is mounted read-only,
+the derivative and scratch folders read-write; containers run as the calling user. The image
+reference is part of the signature; the registry digest (`inspect`, `pull`) is
+recorded, compared when known, and written in `GeneratedBy`. Python stages run
+in the job's own environment (brainspresso must be importable there).
+
+### Dataset overrides (`grind/overrides.py`)
+
+`GrindOverrides` is data that a `Dataset` may declare as its `grind`
+attribute: `exclude_subs`, `exclude` (globs never used as inputs),
+`inputs` (`{requirement name or suffix: Query}` that narrows a
+requirement, i.e. "which T1w"), `species`, `template`, `config`
+(`{pipeline: {field: value}}`) and `resources`. The same fields may
+come from `[<name>.grind]` and
+`[<name>.grind.<pipeline>]` sections (`[abide1.grind.fs]`) of
+the config file (separate PR), which win over the declaration. They apply in `bx <ds>
+grind` and per dataset in a cross-dataset run, and enter the signature
+through the effective config and the resolved inputs.
+
+### Commands, datasets and the index (`grind/run.py`, `grind/index.py`)
+
+* `bx <ds> grind <pipeline>` (`grind_dataset`; a builder in
+  `register.COMMANDS`): selection options, the options of the
+  pipeline's config (generated from its fields, over the sections of
+  the config file, separate PR, which owns `--config`: there is no
+  second config option), the execution options, `--redo`, `--if-stale`, `--variant`, `--with`, `--plan`,
+  `--detach`, `--dry-run` (prints the plan; pulls nothing).
+* **D** (§6): a sites layout is ground site by site
+  (`layout.datasets()`): session, subject and dataset units, state and
+  `derivatives/<pipeline>/` belong to each site; `group` units belong
+  to the parent, which acts as the home of a small collection.
+* `bx grind <pipeline> --datasets REF... --where EXPR...`
+  (`grind_collection`) makes **one** plan over all datasets. Per-dataset
+  tasks keep their ids and state in their dataset (a later `bx <ds>
+  grind` sees them done); `group` tasks and outputs live in the
+  **home**: `<root>/derivatives/<pipeline>/` with state in
+  `<root>/.brainspresso/` (manifest `"layout": "collection"`).
+  `bids/layout.py` does not know that kind today: `Layout.detect`
+  would ignore it, find datasets below `<root>` and return a
+  `SitesLayout`, and every dataset command would then lock `<root>` as
+  a sites parent. Step 7 adds a `collection` kind (`CollectionLayout`:
+  `derivatives`, `state`, no raw data, `datasets()` empty), read by
+  `_from_manifest`, never guessed from the tree, and not a sites
+  layout, so `Dataset.lock_states` takes no parent lock for it. The
+  state stays at `<root>/.brainspresso/` rather than moving elsewhere:
+  plans (`<root>/.brainspresso/plans/`) and the config file (separate
+  PR) live there anyway, so that folder must not read as a sites
+  parent in any case (to settle with #24: a root that only holds a
+  config file has no manifest).
+* **D** (§6): a dataset reference (`DatasetRef`) is
+  `<name>[/<argument>...][/<site>]`, case-insensitive: the
+  dataset's CLI name (`ixi`, `abide1`, `openneuro`, `fcon1000`: the
+  catalog key, also used for the sections of the config file, separate
+  PR `claude/feat/config-file`), then the dataset's positional
+  `arguments`, then at most one site (`openneuro/ds000224`,
+  `abide1/NYU`). `*` globs match what is on disk (`openneuro/*`); a path names a BIDS dataset outside the
+  catalog. The reference is the `dataset` of units, records and the
+  index.
+* The index (`build_index`): one row per subject (and session) on
+  disk, with `dataset`, `participant_id`, `session_id` and the columns
+  of each `participants.tsv`/`sessions.tsv`. `--where` takes
+  `<column> <op> <value>` conditions (`== != < <= > >= in ~`), ANDed;
+  a missing value never matches.
+
+### Provenance (`grind/provenance.py`)
+
+* `<DS>/derivatives/<pipeline>/dataset_description.json`, written when
+  the run is planned and completed by `finalize`: `DatasetType`
+  "derivative", `GeneratedBy` (the pipeline: `Name`, `Version`,
+  `CodeURL`, `Container {Type, Tag, URI}`; then brainspresso), and
+  `SourceDatasets`: the raw dataset (`DerivativeLayout.source_url`)
+  and the derivative of each required pipeline.
+* The home of a cross-dataset run lists every input dataset in
+  `SourceDatasets` (relative URL, DOI when known).
+* The effective config is saved once per signature under
+  `<state>/grind/<pipeline>/` and named in the manifest run entry.
+  Stages written in Python add `Sources` (BIDS URIs) to sidecars.
+
+### What the ports (step 5) must and must not assume
+
+Must: write valid BIDS at `layout.raw` through `Layout` and `File`
+(atomic writes); `participant_id` with `sub-`, a sessions table when
+there are sessions, `age`/`sex` in BIDS form where known; keep task ids
+under `roast/` (`grind/` belongs to grind).
+
+Must not: take or expect a lock on behalf of grind, or assume grind
+holds `<state>/run`; add `grind` to `Dataset.commands`, define a
+`grind` method or import `brainspresso.grind` (except to declare
+`grind = GrindOverrides(...)`, optional, data only); name a roasted
+derivative after a pipeline (`derivatives/<provider-specific name>/`);
+assume one state folder per run, numeric labels, that every subject has
+sessions, or that `Shard` keeps exactly today's arguments (keywords
+will be added); yield subject shards without `id` and `unit` (use
+`subject_shards`), or make them depend on outputs of the top-level
+roaster's own actions (a roast task runs one shard alone); read or write `derivatives/<pipeline>/` of a
+grind pipeline.
+
+### Decisions (owner) and open questions
+
+Decided, and built into the text above and the stubs: `--if-stale
+error` by default, recorded in the plan; the task record is the only
+done marker; the second lock file `<state>/grind`, which a compost of
+BIDS data waits for; `dataset` and `group` both stay levels; `--where`
+uses raw column names (a harmonised set may be added later, as new
+columns); output templates are fixed per pipeline; a BIDS App with a
+file-level selection needs staging or its filter file, else it is
+refused; foreign outputs are never adopted; required pipelines are
+read in their unnamed variant unless `--with`; PyYAML is a core
+dependency; `bx percolate` alone lists the plans of the dataset of the
+current folder; a plan of another brainspresso version runs with a
+warning; local roast keeps its single engine run; pipeline options
+come from the config file and generated options, with no second
+`--config`; staging is for grind; datasets get a UUID in their
+manifest; SPM runs as compiled standalone SPM in a container;
+`--wait`/`--detach` and `--status --watch` as above.
+
+The run-lock option becomes `--lock-wait SECONDS` (profile field
+`lock_wait`); `--wait SECONDS` stays as a deprecated alias **only** on
+harvest and compost, which have no execution options. On roast and
+grind, `--wait`/`--detach` is only the execution flag: it takes no
+value. **Breaking change**: roast gets no alias, so `bx <ds> roast
+--wait 600` is an error (the command line parser suggests
+`--lock-wait`); use `bx <ds> roast --lock-wait 600`. The "dataset is in
+use" message of `RunLocked` names `--lock-wait`. The rename is done in
+the config PR (#24).
+
+Open: none.
 
 ## 8. Implementation steps
 
@@ -971,10 +1606,10 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
-| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan | |
+| 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
-| 7 | Grind implementation: local backend, one BIDS-App pipeline, submitit; then SPM Segment from `wiip-grind` | High-Effort Opus | |
+| 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
 
 ### Conventions
@@ -989,9 +1624,11 @@ Each step lands as commits on the refactor branch with its tests green.
 * Enforced by `ruff check .` (pydocstyle `D` rules, `convention =
   "numpy"`) in `brainspresso/actions/`, `brainspresso/roast/`,
   `brainspresso/bids/` (step 2b-iv), `brainspresso/sources/` and
-  `brainspresso/download/` (step 3); other packages are exempt through
+  `brainspresso/download/` (step 3), `brainspresso/grind/` and
+  `brainspresso/percolate/` (step 4g); other packages are exempt through
   one negated `per-file-ignores` pattern in `pyproject.toml`
-  (`!brainspresso/{actions,bids,download,roast,sources}/**`; two
+  (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
+  and the ported modules; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Imports are at the top level of modules (ruff `PLC0415`, step 4). A
@@ -1003,8 +1640,11 @@ Each step lands as commits on the refactor branch with its tests green.
 * Wording: the stage is "roast" (roasters); "bidsify" only survives in
   the names of the legacy roasters (`Bidsifier` classes, `bidsifier*.py`,
   rewritten in step 5) and of pre-existing helpers (`freesurfer.bidsify`).
-* Layering: `actions/` (stage-agnostic) imports neither `bids/` nor
-  `roast/`; `roast/` builds on both; BIDS knowledge lives in `bids/`.
+* Layering: `actions/` (stage-agnostic) imports neither `bids/`,
+  `roast/`, `percolate/` nor `grind/`; `percolate/` (plans, execution,
+  stage-agnostic) builds on `actions/` and `bids/` and imports neither
+  `roast/` nor `grind/`; `roast/` and `grind/` build on all three;
+  BIDS knowledge lives in `bids/`.
 * Platforms: Linux, macOS and Windows (CI runs the tests on all three).
   No `fcntl`, `os.pread`/`pwrite`, `os.getuid`, `os.kill` probe or
   signal without a portable path or an explicit guard; replace files
@@ -1078,7 +1718,8 @@ up as an XPASS failure once fixed (then drop the marker).
   (`DEFAULT_LAYOUT`, one constant in `bids/layout.py`).
 * Validator/tooling support for `DatasetType: "study"` and `rawbids/` (new
   in BIDS 1.11.2): to check; `rawbids/` itself is a plain raw dataset.
-* Grind runtime for SPM (MATLAB, compiled standalone SPM, or Python port).
+* ~~Grind runtime for SPM.~~ Decided: compiled standalone SPM in a
+  container (§7).
 * ABIDE-II from S3 (planned default for raw data): roast the bucket's
   BIDS-like copy as a hosted-BIDS source (INDI-style project with
   hybrid placement, 2b-iii), or keep the NITRC tarballs as the default.
@@ -1177,3 +1818,74 @@ up as an XPASS failure once fixed (then drop the marker).
   below them (`fs` stays `fs`); deprecated flags are logged warnings;
   `--subs` names a file before a range (`C:\subs.txt`); ABIDE-I XNAT and
   NITRC roast bugs listed for step 5.
+* r15: step 4g. §7 rewritten as the grind contract (model, units,
+  state and skip by signature, graph and backends, failures, BIDS
+  Apps, containers, overrides, cross-dataset index, provenance, what
+  ports may assume, open questions); interface stubs in
+  `brainspresso/grind/` (no behaviour). Decided: grind takes a second
+  lock file `<state>/grind` per running process instead of
+  `<state>/run`; dataset references `<name>/<argument>[/<site>]`;
+  sites layouts ground site by site with group outputs in the parent;
+  static graph, scheduler dependencies as hints (tasks re-check their
+  requirements); stale units stop the run by default.
+* r16: review of the grind contract (PR #23). Variants in task ids,
+  records, `Task`, `Scope` and `GrindContext`, required pipelines read
+  in their default variant unless `--with`; run records per lock name
+  and `_held`/`hold_shared` keyed by (state, name); `LOCKS["grind"]`
+  names the grind lock; `GrindContext.pipeline` is the name (`spec` the
+  object) and records are merged, not replaced; `Executor.attach`,
+  `NotReady` and job liveness for detached runs; pairwise dependencies
+  only between arrays built together (`TaskArray`); the engine polls
+  `Handle.done()` (`TaskLost`, `Executor.local`); per-session claims
+  for BIDS Apps with a session flag, `Adopt` actions record claimed
+  paths; tasks lock every dataset they read; image digests compared
+  apart from the signature (`ContainerRuntime.inspect`, no pull in dry
+  runs); a requirement on a pipeline depends on its terminal stages.
+* r17: owner decisions on plans. Roast and grind plan in memory by
+  default; `--plan PATH` writes a YAML plan (`<state>/plans/`) and
+  runs nothing; `bx percolate PLAN` runs, retries, cancels or reports
+  it (one lock per plan). A plan task is a scoped re-invocation
+  (`StagePlanner`), not a pickled callable; plan-time choices (stale
+  policy, variants, images, configs) are recorded. New stage-agnostic
+  stubs in `brainspresso/percolate/` (`Plan`, `ExecutionOptions`,
+  `Profile`, `Scheduler`, `Job`). Cluster jobs are native batch
+  scripts that run `bx percolate PLAN --task <id>` (`--write-jobs`);
+  no submitit, Dask or Ray. Path maps (`translate`, `resolve_roots`)
+  and staging to node-local scratch (`grind/staging.py`). Removed:
+  `grind/execution.py` (`Executor`, `Handle`, `After`, `attach`,
+  `NotReady`, `TaskLost`, requeues) and `Task`/`Graph`/`TaskArray`.
+  Profiles and dataset overrides also come from the config file
+  (separate PR).
+  Dataset references use the CLI name (`abide1/NYU`).
+* r18: final owner decisions. The open questions of §7 become
+  decisions; plans are written with a `SafeDumper` subclass that
+  quotes every string (no writer refusal); `--wait`/`--detach` (wait
+  locally, detach on schedulers, profile `detach`, CLI wins);
+  `--status --watch` (read-only); the run-lock option becomes
+  `--lock-wait SECONDS` (`Profile.lock_wait`; renamed in PR #24), so
+  no question is left open.
+* r19: final review of the grind contract (PR #23). Plan keys
+  `<ref>:<id>`; the `waiting` status; job dependencies wait for the
+  end (`afterany`, `-hold_jid`), must-succeed only where every element
+  requires it; a `collection` layout kind; input signatures relative
+  to the dataset root; registry digests, never written back into the
+  plan; ~~`roast --wait <number>` kept as deprecated `--lock-wait`~~
+  (withdrawn in r21);
+  BIDS-App tasks get their own `out_dir` and commit claimed paths;
+  stale grind run records reconciled; a local plan whose task needs
+  more CPUs than `--jobs` is refused.
+* r20: second round of the final review. Pairwise dependencies split
+  into `pairwise_ok` (`aftercorr`) and `pairwise_any` (whole-array
+  `afterany` on SLURM); a `waiting` record is a `todo` verdict;
+  canonical upstream keys in signatures and `requires`; one image per
+  plan (digest sidecar, `StagePlanner.prepare`); reconciliation
+  decides `skipped` from upstream records; BIDS-App descriptions kept
+  for `finalize`; `CommitTree` keeps links and empty folders; run
+  records stale only by scheduler, pid or the same final job; input
+  signatures relative to the dataset, source or sites-parent root
+  (`_SIGNATURE_VERSION` bumped); image files enter signatures by
+  content.
+* r21: correction of r19. `--wait SECONDS` stays a deprecated alias
+  only on harvest and compost; roast gets none, so `bx <ds> roast
+  --wait 600` is an error (breaking change: use `--lock-wait`), and
+  `--wait`/`--detach` on roast and grind is only the execution flag.

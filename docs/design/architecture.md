@@ -942,7 +942,6 @@ def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def roast_options(self, args) -> dict       # RoastContext.options
                                   #   (OASIS-I: --discs); default {}
-def legacy_keys(self, command, args) -> set  # legacy roasters
 def check(self, command, args) -> None      # keys, sites, subjects
 def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
 def run(self, command, layout, args)         # check, lock, then the body
@@ -987,9 +986,8 @@ default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
 `KeyAliases.expand`) before anything is written, and the hierarchy is
-listed in the help of the command and in `info`. Legacy roasters
-(`legacy_subjects`) got numbers: `--subs` is expanded first (files,
-`start:stop`); since the ABIDE-II port (step 5) no dataset uses them. A roast of a missing dataset folder is refused before
+listed in the help of the command and in `info`. Every roast is on the
+engine: roast `--subs` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
 anything is created. The command functions return nothing (cyclopts >=
 4 prints a return value; the cyclopts 3 console script would print it
 and exit 1); `execute` returns it.
@@ -1066,8 +1064,7 @@ match nothing are warned about by the hosted harvests (INDI, OpenNeuro;
 an error if none matches); their format is not validated. `subject_width`
 is set where subjects are numbers (IXI 3, Bullitt 3, OASIS-III 4,
 ABIDE-I 5, ABIDE-II 5, ADHD-200 7, CoRR 0: host `0003001` is BIDS
-`3001`); legacy roasters got numbers (`Dataset.numbers`, unused since
-step 5).
+`3001`).
 
 ### `register`, the catalog and `cli.main`
 
@@ -1414,7 +1411,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * ABIDE-I `download-nitrc`/`download-xnat` removed (`harvest --source`).
 * Missing optional dependencies: stub commands instead of none.
 * Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--lock-wait`,
-  `--exclude-keys` (harvests; legacy roasts: set difference),
+  `--exclude-keys` (harvests),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
   `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
   UNC-Wisconsin roast, compost `--sites` (sites layouts).
@@ -1472,8 +1469,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   records catch the cases where the lock is not shared; without a lock
   backend every command refuses unless `BRAINSPRESSO_LOCKS=0`. Windows
   releases the locks of a crashed process with a short delay.
-* Over-generalising: legacy roasts stay overrides, `cli()` is an escape
-  hatch.
+* Over-generalising: `cli()` is an escape hatch.
 
 ## 7. Grind
 
@@ -2256,8 +2252,7 @@ Each step lands as commits on the refactor branch with its tests green.
   share one roaster (ABIDE-I s3 and nitrc), so that `roast --source`
   exists only where the layouts differ. The module has a `roast(root,
   *, subs=, exclude_subs=, **options)` Python API whose subjects go
-  through `subject_labels(values, width)`, as on the command line (no
-  `legacy_subjects`, `legacy_keys` or `numbers`). Keys a roaster must
+  through `subject_labels(values, width)`, as on the command line. Keys a roaster must
   tell apart are sibling leaves of a `KeyAliases`, never a group and its
   only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
   missing input that the selection needs is a counted `Fail` (one per
@@ -2276,8 +2271,7 @@ Each step lands as commits on the refactor branch with its tests green.
   `# noqa: PLC0415` and the reason (`# lazy: optional dependency`).
   Tests written before step 4 are exempt.
 * Wording: the stage is "roast" (roasters); "bidsify" only survives in
-  the names of the legacy roasters (`Bidsifier` classes, `bidsifier*.py`,
-  rewritten in step 5) and of pre-existing helpers (`freesurfer.bidsify`).
+  the names of pre-existing helpers (`freesurfer.bidsify`).
 * Layering: `actions/` (stage-agnostic) imports neither `bids/`,
   `roast/`, `percolate/` nor `grind/`; `percolate/` (plans, execution,
   stage-agnostic) builds on `actions/` and `bids/` and imports neither
@@ -2964,3 +2958,10 @@ up as an XPASS failure once fixed (then drop the marker).
   `SITE_ID` spellings, the column names of the CSV files and the
   scan folder of UCLA's high-resolution anatomical. Not done: the
   roast of the bucket copy (§9).
+* r43: engine follow-ups (PR 1). Dead legacy helpers removed: every
+  roast is on the engine since r42, so `Dataset.legacy_subjects`,
+  `legacy_keys`, `numbers`, `legacy_roast()` and `KeySpec.expand` (the
+  only user of which was `legacy_keys`) are gone; `Dataset.check` reads
+  roast `--subs` as labels, as every command does, and
+  `KeyOptions.helps` gives the engine texts of `--keys`/`--exclude-keys`
+  to every roast.

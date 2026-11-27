@@ -1224,7 +1224,6 @@ def test_cli_subject_ranges(tmp_path):
 
 def test_dataset_declares_the_roaster():
     abide = ABIDE2()
-    assert not abide.legacy_roast() and not abide.legacy_subjects
     sources = abide.sources()
     assert sources["nitrc"].roaster is roaster.roast_nitrc
     assert sources["s3"].roaster is roaster.roast_nitrc

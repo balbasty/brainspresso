@@ -380,6 +380,5 @@ def test_cli_if_exists(tmp_path):
 
 def test_dataset_declares_the_roaster():
     cobre = COBRE()
-    assert not cobre.legacy_roast() and not cobre.legacy_subjects
     assert cobre.sources()["nitrc"].roaster is roaster.roast_cobre
     assert cobre.labels(["40000", "sub-0040001"]) == {"0040000", "0040001"}

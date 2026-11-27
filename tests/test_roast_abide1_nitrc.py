@@ -445,7 +445,6 @@ def test_cli_keys_subjects_sidecars(tmp_path, source):
 
 def test_dataset_declares_the_roasters():
     abide = ABIDE1()
-    assert not abide.legacy_roast() and not abide.legacy_subjects
     sources = abide.sources()
     assert sources["s3"].roaster is roaster.roast_nitrc
     assert sources["nitrc"].roaster is roaster.roast_nitrc

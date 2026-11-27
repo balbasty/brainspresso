@@ -202,27 +202,6 @@ class KeySpec:
             return ordered
         return None
 
-    def expand(self, names: Iterable[str]) -> set:
-        """
-        Return the names given and the leaves below them.
-
-        Parameters
-        ----------
-        names : list[str]
-
-        Returns
-        -------
-        set[str]
-        """
-        names = _names(names)
-        if not isinstance(self.tree, Mapping):
-            return set(names)
-        every = get_leaves(self.tree)
-        out = set()
-        for name in names:
-            out |= (lower_keys(name, self.tree) & every) | {name}
-        return out
-
     def leaves(self, names: Iterable[str]) -> set:
         """
         Return the leaves selected by keys (groups expanded).
@@ -558,9 +537,6 @@ class Dataset:
         Hosted as BIDS: harvest takes the BIDS filters
     harvest_subjects : bool
         Whether harvest takes `--subs` (its sources can prune subjects)
-    legacy_subjects : bool
-        Whether roast takes subject numbers (a legacy roaster, see
-        `numbers`)
     requires : dict[str, tuple[str]]
         Optional modules of each command
     extra : str | None
@@ -593,7 +569,6 @@ class Dataset:
     folder_choices: ClassVar[tuple] = ()
     hosted: ClassVar[bool] = False
     harvest_subjects: ClassVar[bool] = True
-    legacy_subjects: ClassVar[bool] = False
     requires: ClassVar[Mapping[str, tuple]] = EMPTY
     extra: ClassVar[str | None] = None
     commands: ClassVar[tuple] = ("harvest", "roast", "compost", "info")
@@ -875,10 +850,6 @@ class Dataset:
             return ""
         return "\n".join(tree_lines(tree))
 
-    def legacy_roast(self) -> bool:
-        """Whether `roast` is overridden (not the roast engine)."""
-        return type(self).roast is not Dataset.roast
-
     def has_roast(self) -> bool:
         """Whether the dataset can be roasted."""
         if type(self).roast is not Dataset.roast or self.hosted:
@@ -995,58 +966,6 @@ class Dataset:
         keys, exclude = spec.effective(keys, exclude_keys)
         return Wants(keys or None, spec.resolve(), exclude=exclude)
 
-    def legacy_keys(self, command: str, args: Args) -> set:
-        """
-        Keys of a legacy roaster: `--keys` (else all) minus excluded.
-
-        The names given stay, with the leaves below them (`fs` is not
-        `fs-all`: a group with one leaf can mean something of its own to
-        a legacy roaster).
-
-        Parameters
-        ----------
-        command : str
-        args : Args
-
-        Returns
-        -------
-        set[str]
-        """
-        spec = self.keys_for(command) or KeySpec()
-        keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
-        keys = spec.expand(keys or spec.all_choices() or ())
-        # excluded keys, and the groups that hold an excluded leaf, go
-        excluded = spec.leaves(exclude)
-        return {k for k in keys
-                if k not in exclude and not spec.leaves([k]) & excluded}
-
-    def numbers(self, values: Iterable[str]) -> list:
-        """
-        Subject numbers of a legacy roaster (`--subs 1 002 3:5 subs.txt`).
-
-        Values are expanded as for the other commands (`labels`: files
-        and `start:stop` ranges), then converted to numbers.
-
-        Parameters
-        ----------
-        values : list[str]
-
-        Returns
-        -------
-        list[int]
-
-        Raises
-        ------
-        UsageError
-            If a value is not a number
-        """
-        out = []
-        for value in sorted(subject_labels(values, self.subject_width or 0)):
-            if not value.isdigit():
-                raise UsageError(f"Subjects are numbers here: {value!r}")
-            out.append(int(value))
-        return sorted(out)
-
     def select_roaster(self, ctx, override=None) -> tuple:
         """
         Choose the roaster of `sourcedata/`.
@@ -1138,10 +1057,8 @@ class Dataset:
             args.roast.sidecar_policy      # sidecar flags that conflict
         args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
-        subjects = self.numbers if command == "roast" and \
-            self.legacy_subjects else self.labels
-        subjects(args.select.subs)
-        subjects(args.select.exclude_subs)
+        self.labels(args.select.subs)
+        self.labels(args.select.exclude_subs)
 
     @staticmethod
     def lock_states(layout) -> tuple[list, list]:

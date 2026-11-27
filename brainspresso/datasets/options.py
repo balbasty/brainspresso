@@ -395,8 +395,8 @@ class KeyOptions(OptionGroup):
 
     @classmethod
     def helps(cls, dataset, command):
-        """Roast (on the roast engine): what `--exclude-keys` alone does."""
-        if command != "roast" or dataset.legacy_roast():
+        """Roast: what `--exclude-keys` alone does."""
+        if command != "roast":
             return {}
         spec = dataset.keys_for(command)
         off = f" ({', '.join(spec.off)}: only if asked for with `--keys`)" \

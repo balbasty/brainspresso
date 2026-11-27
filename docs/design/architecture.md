@@ -595,7 +595,19 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   tarball that holds every subject (COBRE) is read by one shard (id and
   `inputs`: skipped by signature), not by one shard per subject, each
   of which would decompress it up to its own members (step 5).
-  Generally (ABIDE-I, step 5): one shard per gz archive (NITRC
+* A gz tarball that holds many subjects (OASIS-I discs) is read by one
+  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc and
+  the templates its actions read, so an unchanged disc is skipped by
+  signature), not one shard per subject: each of those would
+  decompress the disc again, up to its own members. The shard lists
+  the disc once, then extracts in archive order (actions sorted by the
+  offset of their first member, each reading its members in order: a
+  backward seek in a gz `TarFile` restarts decompression from byte
+  0); a FreeSurfer disc is unpacked by one `ExtractMembers` pass. Cost:
+  2 decompressions per image disc, 1 per FreeSurfer disc (plus a
+  listing of the image disc of the same number if a tree lacks the
+  `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
+* Several gz archives (ABIDE-I, step 5): one shard per gz archive (NITRC
   `<Site>.tgz`, id `roast/raw/<name>`), or per folder that stands for
   one (a site folder of a bucket copy, `RawData/<Site>/`, its files as
   `inputs`), or per subject where each subject's scans are small
@@ -907,6 +919,8 @@ def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
               ) -> Selection
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
+def roast_options(self, args) -> dict       # RoastContext.options
+                                  #   (OASIS-I: --discs); default {}
 def legacy_keys(self, command, args) -> set  # legacy roasters
 def check(self, command, args) -> None      # keys, sites, subjects
 def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
@@ -1312,7 +1326,8 @@ units take the run lock (§7, "What the ports must and must not assume").
 | ABIDE-I | declared (sites, login) | declared (source roasters, step 5: `roast_nitrc` for s3 and nitrc, `roast_xnat`) | width 5; `download-nitrc/xnat` dropped; roast `--source` (default s3) |
 | ABIDE-II, CoRR | declared (sites, login) | ABIDE-II: override, legacy code (step 5) | |
 | COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
-| Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
+| OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
+| Bullitt, OASIS-II | declared (OASIS: `parts` group) | override, legacy code; own `keys_for("roast")` | |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
@@ -2117,7 +2132,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires`, the XNAT bugs fixed; 1614 passed, 2 skipped, 22 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires`, the XNAT bugs fixed; with OASIS-I: 1688 passed, 2 skipped, 12 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2138,8 +2153,8 @@ Each step lands as commits on the refactor branch with its tests green.
   `brainspresso/percolate/` (step 4g); other packages are exempt through
   one negated `per-file-ignores` pattern in `pyproject.toml`
   (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
-  and the ported modules and datasets, `datasets/indi/cobre/**` and
-  `datasets/indi/abide/i/**` in step 5; two
+  and the ported modules and datasets, `datasets/indi/cobre/**`,
+  `datasets/oasis/i/**` and `datasets/indi/abide/i/**` in step 5; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2234,10 +2249,28 @@ up as an XPASS failure once fixed (then drop the marker).
   (fixed in its port, step 5)
 * `participant_id` without `sub-` prefix: ~~ABIDE-I~~, ABIDE-II,
   ~~COBRE~~ (COBRE and ABIDE-I fixed in their ports, step 5).
-* OASIS-I: missing comma in `PARTICIPANTS_HEADER` (`'handednessage'`);
+* ~~OASIS-I: missing comma in `PARTICIPANTS_HEADER` (`'handednessage'`);
   `do_tal` looks up members without `.img` (Talairach never written);
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
-  relabel saved to `dst` instead of the action's path.
+  relabel saved to `dst` instead of the action's path.~~ Fixed in the
+  port of OASIS-I (step 5, `datasets/oasis/i/roaster.py`; xfails
+  removed). Also fixed there: `fs-all` crashed on the directory members
+  of a FreeSurfer disc; a truncated disc aborted the roast; blank
+  trailing spreadsheet rows crashed the participants table. The FSL
+  segmentation keeps the lookup `{1: 2, 2: 3, 3: 1}` of the legacy
+  roaster, which `utils.vol.relabel` reads as `{new: old}`: FAST's
+  1 = CSF, 2 = GM, 3 = WM become GM = 1, WM = 2, CSF = 3 (SPM order,
+  confirmed on review; the xfail of step 1 expected `{old: new}`),
+  described by `derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv`.
+* ~~FreeSurfer (`freesurfer/bidsify.py`, OASIS-I/III, ABIDE-I XNAT):
+  the lookup tables `atlas-AsegDesikanKillian_dseg.tsv` and
+  `atlas-Desikan-Killian_dseg.tsv` did not match the `atlas-` of the
+  images (`AsegDesikanKilliany`, `DesikanKilliany`), so they did not
+  apply by inheritance.~~ Renamed in the review of #32 (tables of an
+  earlier roast keep their old names; delete them by hand). OASIS-I
+  also listed raw runs 1 to 4 as the `Sources` of every FreeSurfer
+  tree (now its `mri/orig/` volumes, else the runs of its image disc),
+  and wrote `"Manual": "False"` (a string) in the FSL `dseg` sidecar.
 * OASIS-II `_raw_skip_path`: `if skip_subject(id): True` lacks `return`.
 * ~~ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
@@ -2590,7 +2623,23 @@ up as an XPASS failure once fixed (then drop the marker).
   is an error only when sidecars are written. Open: the shard
   signature includes the whole selection, so toggling `meta` re-reads
   the tarball (a per-shard fingerprint needs an engine hook).
-* r37: step 5, ABIDE-I ported to the roast engine
+* r37: step 5, OASIS-I on the roast engine: one shard per disc (§5),
+  participants table through `.brainspresso/orig/` and trim,
+  FreeSurfer lookup tables with the `fs` keys, a `dseg.tsv` for the
+  relabelled FSL segmentation; missing discs are skipped with a warning
+  unless named with `--discs`; `Dataset.roast_options(args)` passes
+  dataset options (`--discs`) to `RoastContext.options`;
+  `legacy_subjects`, `legacy_keys` and the `Bidsifier` class no longer
+  used by OASIS-I (`subject_width = 4`); its known bugs fixed (§8).
+  Open, as for COBRE: the shard signature includes the whole
+  selection, so a changed `--subs` or key re-reads every disc (once).
+  Review round 2 of #32: `roast(subs=)` takes the values of `--subs`
+  (`subject_labels`); a named `--discs` (even all 12) makes missing
+  discs errors, values outside 1 to 12 are a `UsageError`; missing
+  members are not errors under `--sidecars only`; FreeSurfer lookup
+  tables renamed to match the images; FreeSurfer `Sources` from the
+  runs of the tree; `"Manual": false`.
+* r38: step 5, ABIDE-I ported to the roast engine
   (`datasets/indi/abide/i/roaster.py`: `roast_nitrc`, the roaster of the
   s3 and nitrc sources, and `roast_xnat`; `sites.py` for site names and
   per-sample templates, `tables.py` for the participants and phenotype

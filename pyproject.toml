@@ -32,7 +32,7 @@ convention = "numpy"
 # would exempt every file): docs/design/architecture.md, "Conventions".
 # (tests written before PLC0415 was enforced)
 "tests/test_{compost,download,fcp,girder,ixi,locks,roast_cobre,roast_oasis3,runner,sources}.py" = ["PLC0415"]
-"!brainspresso/{actions/**,bids/**,download/**,grind/**,percolate/**,roast/**,sources/**,datasets/indi/cobre/**,datasets/indi/abide/i/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,cli.py,config.py,errors.py,__main__.py}" = ["D"]
+"!brainspresso/{actions/**,bids/**,download/**,grind/**,percolate/**,roast/**,sources/**,datasets/indi/cobre/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,datasets/oasis/i/**,datasets/indi/abide/i/**,cli.py,config.py,errors.py,__main__.py}" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

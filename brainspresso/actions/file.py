@@ -36,6 +36,11 @@ __all__ = [
 ]
 
 
+def _folder_in_the_way(src: Path, dst: Path) -> bool:
+    """Whether a rename of file `src` failed because `dst` is a folder."""
+    return src.is_file() and dst.is_dir() and not dst.is_symlink()
+
+
 def _is_writer(mode: str) -> bool:
     """Whether a mode writes (`w`, `a`, `x` or `+`)."""
     return any(c in mode for c in "wax+")
@@ -254,7 +259,11 @@ class File:
             ):
                 try:
                     self.tempname.replace(self.filename)
-                except IsADirectoryError:
+                except OSError:
+                    # a folder in the way of a file: IsADirectoryError
+                    # (POSIX), PermissionError (Windows)
+                    if not _folder_in_the_way(self.tempname, self.filename):
+                        raise
                     rmtree(self.filename)
                     self.tempname.replace(self.filename)
         finally:

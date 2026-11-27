@@ -260,11 +260,18 @@ class IncompleteFile:
         hold it too long.
         """
         with FileLock(self.filename, exclusive=True):
+            # `os.replace`: `os.rename` onto an existing file fails on
+            # Windows
             try:
-                os.rename(self.tempname, self.filename)
-            except IsADirectoryError:
+                os.replace(self.tempname, self.filename)
+            except OSError:
+                # a folder in the way: IsADirectoryError (POSIX),
+                # PermissionError (Windows)
+                if not (self.tempname.is_file() and self.filename.is_dir()
+                        and not self.filename.is_symlink()):
+                    raise
                 rmtree(self.filename)
-                os.rename(self.tempname, self.filename)
+                os.replace(self.tempname, self.filename)
 
     async def append(self, blob: bytes) -> "IncompleteFile":
         """Append bytes to the file and update its digest.

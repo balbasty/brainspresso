@@ -418,22 +418,42 @@ layer in 2b-iv):
   ancestor with `.brainspresso/`) they are
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, `h` the SHA-256 of the
   dataset-relative path, on the dataset's filesystem (also across
-  cluster nodes where `fcntl` locks work, whatever the mount point);
+  cluster nodes where the filesystem shares locks, whatever the mount
+  point; the path is lowercased and NFC-normalised first on Windows and
+  macOS, whose filesystems ignore case by default);
   outside datasets (package templates, other source folders) in a
   private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
   `<tmp>/brainspresso-<uid>/locks`), which protects one user's
   processes on one machine. A reader that cannot create or open its
   lock file (read-only state folder) reads without a lock; a writer
-  raises `LockError`, as does a filesystem that refuses `fcntl` locks
-  (`$BRAINSPRESSO_LOCKS=0` disables locks: an unsafe escape hatch).
-  POSIX locks belong to a process and closing any descriptor drops
-  them all, so each process opens a lock file once and arbitrates its
-  own holders (nested readers of an archive and its members, threads);
+  raises `LockError`, as does a filesystem that refuses locks. Only
+  `$BRAINSPRESSO_LOCKS=0` disables locks (an unsafe escape hatch): no
+  platform runs unlocked silently, and without a lock backend every
+  `FileLock` raises `LockError` naming that variable. The OS lock is
+  the reader/writer mechanism of `fasteners` (`>= 0.18, < 0.21`: its
+  non-blocking shared/exclusive try-lock is private, so one adapter,
+  `locks._OSLock`, wraps it and the range is pinned): `fcntl.lockf` on
+  the whole lock file on POSIX (Linux, macOS; advisory, per process,
+  dropped when *any* descriptor of the file is closed), `LockFileEx` on
+  its first byte on Windows (per handle, mandatory on that byte,
+  released by the OS when the handle closes or the process dies). So
+  each process opens a lock file once and arbitrates its own holders
+  (nested readers of an archive and its members, threads); an
+  exclusive holder signs the lock file ("pid N on host", after byte 0,
+  which Windows keeps unreadable while it is locked), and a timed-out
+  writer probes for readers with a shared try-lock. A writer released
+  inside its own reader keeps a shared lock without a gap (POSIX:
+  `lockf` converts it; Windows: a shared lock stacks on the exclusive
+  one, which one unlock removes). Across machines: NFSv4, or NFSv3 with
+  `lockd`, share `fcntl` locks (not `nolock` / `local_lock=all`
+  mounts); SMB servers enforce `LockFileEx` locks between Windows
+  clients, and POSIX clients of a share map `fcntl` locks to SMB locks
+  unless mounted `nobrl` (Linux `cifs`; macOS `smbfs` unchecked);
   a lock upgrade (write a file the thread reads) or a nested writer of
   one file raises `LockError` at once instead of deadlocking. Not
   handled: cross-process cycles (A reads X, writes Y; B reads Y, writes
-  X) end in a `LockTimeout`; `fcntl` locks are not fair (steady readers
+  X) end in a `LockTimeout`; the locks are not fair (steady readers
   can delay a writer up to its timeout); lock files accumulate (delete
   `locks/` only when nothing runs). `run_roast` creates the state
   folder first so that all locks of a roast are in the dataset.
@@ -755,7 +775,8 @@ roasters get numbers (`Dataset.numbers`).
   first (`Dataset.lock_states`): two commands that took a site and its
   parent in opposite orders would wait on each other. All three
   commands fail at once by default (`--wait SECONDS`). Locks disabled
-  (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
+  (`BRAINSPRESSO_LOCKS=0`, only explicitly): no lock, no record; no lock
+  backend: `LockError`.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
   would go on unlocked).
 * Run records: every holder writes `<state>/runs/<host>-<pid>.json`
@@ -768,7 +789,9 @@ roasters get numbers (`Dataset.numbers`).
   that does not seem roasted") while a record from another host exists
   ("locks may not be shared on this filesystem, or a run crashed on
   <host>") or one from this host with a live pid; records of dead local
-  pids are removed.
+  pids are removed. `pid_alive`: `os.kill(pid, 0)` on POSIX,
+  `OpenProcess` + `GetExitCodeProcess` (`STILL_ACTIVE`) through
+  `ctypes` on Windows (no dependency); invalid pids count as alive.
 * Deletions and rewritten tables take no per-file lock: they run under
   the exclusive run lock (a per-file lock would leave one never-deleted
   lock file per deleted file, and `File` writers would nest with the
@@ -844,8 +867,9 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   the server, then delete the stale record); NFSv4 can drop the lock of
   a partitioned node; Lustre `localflock` and some FUSE mounts do not
   share locks between nodes; a stopped (SIGSTOP) job keeps its lock. Run
-  records catch the cases where the lock is not shared; without `fcntl`
-  compost refuses unless `BRAINSPRESSO_LOCKS=0`.
+  records catch the cases where the lock is not shared; without a lock
+  backend every command refuses unless `BRAINSPRESSO_LOCKS=0`. Windows
+  releases the locks of a crashed process with a short delay.
 * Over-generalising: legacy roasts stay overrides, `cli()` is an escape
   hatch.
 
@@ -970,6 +994,16 @@ Each step lands as commits on the refactor branch with its tests green.
   rewritten in step 5) and of pre-existing helpers (`freesurfer.bidsify`).
 * Layering: `actions/` (stage-agnostic) imports neither `bids/` nor
   `roast/`; `roast/` builds on both; BIDS knowledge lives in `bids/`.
+* Platforms: Linux, macOS and Windows (CI runs the tests on all three).
+  No `fcntl`, `os.pread`/`pwrite`, `os.getuid`, `os.kill` probe or
+  signal without a portable path or an explicit guard; replace files
+  with `os.replace` (`os.rename` fails onto an existing file on
+  Windows, and a folder in the way raises `PermissionError` there, not
+  `IsADirectoryError`); path keys (lock files, task ids) are POSIX
+  strings (`as_posix()`), never `os.sep`-joined. A test is skipped on
+  Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
+  feature the platform lacks (POSIX permissions, symbolic links
+  without privileges), never to hide a bug.
 
 ### Known bugs to fix while porting (step 5)
 

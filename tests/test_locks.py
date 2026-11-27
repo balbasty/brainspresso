@@ -6,6 +6,7 @@ Processes are started with the "spawn" method, as the engine does.
 import hashlib
 import multiprocessing
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -34,6 +35,8 @@ from brainspresso.actions.locks import (
 from brainspresso.bids.layout import STATE_DIR as LAYOUT_STATE_DIR
 
 SPAWN = multiprocessing.get_context("spawn")
+# platforms whose lock keys ignore case (`locks._CASELESS`)
+CASELESS = sys.platform in ("win32", "darwin")
 # generous bound for things that must happen (slow CI machines)
 SOON = 60
 
@@ -69,8 +72,10 @@ def test_lock_file_inside_a_dataset(tmp_path):
     path = ds / "rawbids" / "sub-01" / "anat" / "sub-01_T1w.nii.gz"
     lockfile, found = lock_file(path)
     assert found == ds
-    digest = hashlib.sha256(
-        b"rawbids/sub-01/anat/sub-01_T1w.nii.gz").hexdigest()
+    key = "rawbids/sub-01/anat/sub-01_T1w.nii.gz"
+    if CASELESS:                        # (lock keys ignore case there)
+        key = key.lower()
+    digest = hashlib.sha256(key.encode()).hexdigest()
     assert lockfile == ds / STATE_DIR / "locks" / digest[:2] / \
         f"{digest}.lock"
     # same lock file through a symbolic link to the dataset
@@ -690,3 +695,163 @@ def test_state_folder_created_later_is_found(tmp_path):
     assert find_dataset(path) == tmp_path / "DS" / "site-a"
     assert lock_file(path)[0].is_relative_to(
         tmp_path / "DS" / "site-a" / STATE_DIR)
+
+
+# ----------------------------------------------------------------------
+#   The OS layer on every platform (fasteners: lockf / LockFileEx)
+# ----------------------------------------------------------------------
+
+def hold_lock(path, exclusive, acquired, release, failed=None, timeout=None):
+    """Hold a `FileLock` until `release` is set (in another process)."""
+    try:
+        with FileLock(path, exclusive=exclusive, timeout=timeout) as lock:
+            assert lock.locked
+            acquired.set()
+            release.wait(SOON)
+    except LockError as e:
+        if failed is None:
+            raise
+        failed.put(f"{type(e).__name__}: {e}")
+
+
+def holder(path, exclusive, timeout=None, failed=None):
+    """Start a process that holds a lock: (process, acquired, release)."""
+    acquired, release = events()
+    proc = start(hold_lock, path, exclusive, acquired, release,
+                 failed=failed, timeout=timeout)
+    return proc, acquired, release
+
+
+def finish(*procs):
+    for proc in procs:
+        proc.join(SOON)
+        assert proc.exitcode == 0
+
+
+@pytest.mark.parametrize("where", ["dataset", "outside"])
+def test_shared_readers_and_an_exclusive_writer_across_processes(
+    tmp_path, where,
+):
+    root = dataset(tmp_path / "DS") if where == "dataset" else tmp_path
+    path = root / "data.txt"
+    # two readers in two processes hold the file at once
+    r1, r1_in, r1_out = holder(path, False)
+    r2, r2_in, r2_out = holder(path, False)
+    assert r1_in.wait(SOON) and r2_in.wait(SOON)
+    # a writer waits for both
+    w, w_in, w_out = holder(path, True)
+    assert not w_in.wait(1.0)
+    r1_out.set()
+    finish(r1)
+    assert not w_in.wait(0.5)
+    r2_out.set()
+    finish(r2)
+    assert w_in.wait(SOON)
+    # then a reader waits for the writer
+    r3, r3_in, r3_out = holder(path, False)
+    assert not r3_in.wait(1.0)
+    w_out.set()
+    finish(w)
+    assert r3_in.wait(SOON)
+    r3_out.set()
+    finish(r3)
+
+
+def test_writer_downgraded_to_its_reader(tmp_path):
+    """A writer released inside its own reader leaves a shared lock."""
+    path = tmp_path / "data.txt"
+    failed = SPAWN.Queue()
+    writer = FileLock(path, exclusive=True).acquire()
+    reader = FileLock(path).acquire()               # (nested in it)
+    writer.release()
+    try:
+        # other readers share it now, writers still wait (no gap)
+        proc, acquired, release = holder(path, False)
+        assert acquired.wait(SOON)
+        release.set()
+        finish(proc)
+        proc, acquired, _ = holder(path, True, timeout=0.3, failed=failed)
+        message = failed.get(timeout=SOON)
+        finish(proc)
+        assert message.startswith("LockTimeout")
+        assert "held by readers" in message
+    finally:
+        reader.release()
+    with FileLock(path, exclusive=True, timeout=SOON):  # free again
+        pass
+
+
+def test_timeout_of_a_file_lock(tmp_path, monkeypatch):
+    path = tmp_path / "data.txt"
+    failed = SPAWN.Queue()
+    proc, acquired, release = holder(path, True)
+    try:
+        assert acquired.wait(SOON)
+        # the argument
+        tic = time.monotonic()
+        with pytest.raises(LockTimeout) as e:
+            FileLock(path, timeout=0.4).acquire()
+        elapsed = time.monotonic() - tic
+        assert 0.4 <= elapsed < SOON
+        assert isinstance(e.value, TimeoutError)
+        assert e.value.timeout == 0.4 and not e.value.exclusive
+        # the signature of the writer, read past its locked byte
+        assert f"held by a writer (pid {proc.pid} on" in str(e.value)
+        # the environment, for writers too
+        monkeypatch.setenv(TIMEOUT_ENV, "0.2")
+        with pytest.raises(LockTimeout, match="after 0.2 s"):
+            FileLock(path, exclusive=True).acquire()
+        # 0: a single attempt
+        with pytest.raises(LockTimeout, match="after 0 s"):
+            FileLock(path, timeout=0).acquire()
+    finally:
+        release.set()
+        finish(proc)
+    assert failed.empty()
+    with FileLock(path, exclusive=True, timeout=0):     # released
+        pass
+
+
+def test_locks_are_taken_on_this_platform(tmp_path, monkeypatch):
+    """No platform runs unlocked unless `$BRAINSPRESSO_LOCKS` says so."""
+    import brainspresso.actions.locks as locks
+    monkeypatch.delenv(locks.ENABLE_ENV, raising=False)
+    assert locks._MECHANISM is not None, locks._NO_BACKEND
+    assert locks.locks_enabled()
+    for value in ("", "1", "yes", "on"):
+        monkeypatch.setenv(locks.ENABLE_ENV, value)
+        assert locks.locks_enabled()
+        with FileLock(tmp_path / "x.txt") as lock:
+            assert lock.locked and lock.lockfile.exists()
+    for value in ("0", "no", "OFF", "false"):
+        monkeypatch.setenv(locks.ENABLE_ENV, value)
+        assert not locks.locks_enabled()
+        with FileLock(tmp_path / "x.txt", exclusive=True) as lock:
+            assert not lock.locked and lock.lockfile is None
+
+
+def test_no_backend_raises_unless_locks_are_disabled(tmp_path, monkeypatch):
+    import brainspresso.actions.locks as locks
+    monkeypatch.delenv(locks.ENABLE_ENV, raising=False)
+    monkeypatch.setattr(locks, "_MECHANISM", None)
+    monkeypatch.setattr(locks, "_NO_BACKEND", "no module named fcntl")
+    path = tmp_path / "x.txt"
+    path.write_text("x")
+    for exclusive in (False, True):         # readers too
+        with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0") as e:
+            FileLock(path, exclusive=exclusive).acquire()
+        assert "No file lock backend" in str(e.value)
+        assert "no module named fcntl" in str(e.value)
+    with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0"):
+        with File(path, "r"):
+            pass
+    monkeypatch.setenv(locks.ENABLE_ENV, "0")
+    with File(path, "r") as f:
+        assert f.safename.read_text() == "x"
+
+
+def test_lock_keys_ignore_case_where_filesystems_do(tmp_path):
+    ds = dataset(tmp_path / "DS")
+    upper, lower = lock_file(ds / "Sub-01_T1w.nii")[0], \
+        lock_file(ds / "sub-01_t1w.nii")[0]
+    assert (upper == lower) == CASELESS

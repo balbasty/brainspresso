@@ -9,7 +9,7 @@ engine:
   raw dataset, the subject/session filters only outside of it; outputs
   in the folder of a category that is not wanted, e.g.
   `derivatives/<pipeline>/`, are dropped), and if its `kind` passes the
-  JSON policy (`--no-sidecars` drops sidecars, `--sidecars-only` data;
+  JSON policy (`--sidecars no` drops sidecars, `--sidecars only` data;
   tables and `meta` files (bval/bvec) always pass; so do `staging`
   actions, whose outputs are inputs of later actions).
 * The kind of an action that does not set one is that of its outputs

@@ -131,11 +131,11 @@ roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 * **Harvest** / **Roast** / **Compost** (`--if-exists`, `--jobs`,
   `--dry-run`...), **Dataset** (`path`, `--out`, `--layout`) and
   **Logging** (`--log`, `--level`; `--level debug` prints tracebacks).
-* Roast writes the JSON sidecars of the data files unless
-  `--no-sidecars` is given, and `--sidecars-only` writes only them (and
-  the other metadata), not the images; tables and bval/bvec files are
-  always written. These replace `--json yes|no|only` and `--no-json`,
-  which still work, with a deprecation warning.
+* Roast `--sidecars yes|no|only` (default `yes`): `yes` writes the
+  sidecars; `no` skips the JSON sidecars (bval/bvec and tables are still
+  written); `only` writes the sidecars and metadata only, not the
+  images. It replaces `--json yes|no|only` and `--no-json` (`--sidecars
+  no`), which still work, with a deprecation warning.
 
 A dataset cannot be composted while it is harvested or roasted (also from
 other machines that share its filesystem), and the other way round: the
@@ -382,16 +382,17 @@ The same values as environment variables: `BRAINSPRESSO_OPT_<KEY>`
 (`[defaults]`), `BRAINSPRESSO_OPT_<SECTION>__<KEY>`, with `__` between the
 parts of a section and `_` for `-`, case-insensitive:
 `BRAINSPRESSO_OPT_HARVEST__JOBS=4`,
-`BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"` (several values
-are split as a shell does: `BRAINSPRESSO_OPT_COMPOST__WHERE='"age >= 60"
-sex==F'`), `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`.
+`BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`,
+`BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS=2`. Several values are separated
+by spaces; a value that holds spaces goes in quotes, which are removed
+(`BRAINSPRESSO_OPT_COMPOST__WHERE='"age >= 60" sex==F'`); backslashes
+and quotes inside a value are kept (`sub-0\d*`, `C:\data`, `O'Brien`).
 
 Some options are never read from a config file: confirmations of
 deletions (`--yes`, compost `--force`, `--ignore-runs`), secrets
 (`--password`, `--token`: use their environment variables or the prompt)
 and `--config`, nor the deprecated `--site-layout`, `--bidsify`, `--wait`
-and `--json` (use `layout`, `bids`, `lock-wait`, `sidecars` and
-`sidecars-only`). `path` and `out` go together: when the command line
+and `--json` (use `layout`, `bids`, `lock-wait` and `sidecars`). `path` and `out` go together: when the command line
 gives either, neither comes from a config file. A root or dataset file
 cannot set them (they locate it), and `out` only goes in the section of
 one dataset. An unknown section or key, or a value of the wrong type, is

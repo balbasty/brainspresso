@@ -283,11 +283,27 @@ class OptionInfo:
 
     def fits(self, value) -> bool:
         """Whether a value (or each value of a list) is a choice."""
-        if self.choices is None:
-            return True
+        return not self.split(value)[1]
+
+    def split(self, value) -> tuple[list, list]:
+        """
+        Values that are choices, and those that are not.
+
+        Parameters
+        ----------
+        value : Any
+            A value, or a list
+
+        Returns
+        -------
+        kept, dropped : list
+        """
         values = value if isinstance(value, list) else [value]
-        return all((isinstance(v, bool) and self.is_bool)
-                   or str(v) in self.choices for v in values)
+        if self.choices is None:
+            return list(values), []
+        kept = [v for v in values if (isinstance(v, bool) and self.is_bool)
+                or str(v) in self.choices]
+        return kept, [v for v in values if v not in kept]
 
 
 #: `path` and `out` of the commands that take them
@@ -448,27 +464,60 @@ def _entry(table: Mapping, parts: tuple, command: str | None,
                             f"{raw!r}: unsupported value {value!r}")
         if key in values:
             raise _fail(source, section, f"{raw!r} is set twice")
-        if not parts and not _fits_some(command, key, value):
-            lg.warning(f"Config {source} [{section}]: {raw} = {value!r} is "
-                       f"not a choice of any dataset: ignored")
+        bad = _fits_none(command, key, value) \
+            if not parts and kind != "dataset" else []
+        if bad:
+            lg.warning(f"Config {source} [{section}]: {raw} = {value!r}: "
+                       f"{', '.join(map(repr, bad))} not a choice of any "
+                       f"dataset: ignored")
         values[key] = (value, raw, negated)
     return Entry(parts, command, section, source, values)
 
 
-def _fits_some(command: str | None, key: str, value) -> bool:
-    """Whether a value is a choice of a dataset (`catalog.CHOICES`)."""
+def _fits_none(command: str | None, key: str, value) -> list:
+    """Values that are a choice of no dataset (`catalog.CHOICES`)."""
     commands = [command] if command else list(COMMANDS)
     found = [f"{c}:{key}" for c in commands if key in KEYS.get(c, ())]
     if not found or any(name not in CHOICES for name in found):
-        return True         # (free text for some dataset)
+        return []           # (free text for some dataset)
     if isinstance(value, EnvValue):
         try:
-            value = shlex.split(value)
+            value = split_env(value)
         except ValueError:
-            return True     # (an error later, for the datasets)
+            return []       # (an error later, for the datasets)
     values = value if isinstance(value, list) else [value]
-    return any(all(str(v) in CHOICES[name] for v in values)
-               for name in found)
+    return [v for v in values
+            if not any(str(v) in CHOICES[name] for name in found)]
+
+
+def split_env(value: str) -> list[str]:
+    r"""
+    Split the value of a variable into several values.
+
+    On whitespace; a value that holds spaces is quoted, `"age >= 60"` or
+    `'age >= 60'` (the pair of quotes is removed). Backslashes are kept
+    (`sub-0\d*`, `C:\data`), and so is a quote inside a value
+    (`O'Brien`), so no value can start and end with the same quote.
+
+    Parameters
+    ----------
+    value : str
+
+    Returns
+    -------
+    list[str]
+
+    Raises
+    ------
+    ValueError
+        A quote that is not closed at the start of a value
+    """
+    out = []
+    for token in shlex.split(value, posix=False):
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in "'\"":
+            token = token[1:-1]
+        out.append(token)
+    return out
 
 
 def parse(data: Mapping, source: str, kind: str = "file") -> list[Entry]:
@@ -600,7 +649,7 @@ def located_file(folder) -> Path:
 
 
 def env_data(environ: Mapping[str, str]) -> list[tuple[str, dict]]:
-    """
+    r"""
     Sections of the `BRAINSPRESSO_OPT_*` variables.
 
     `BRAINSPRESSO_OPT_[<SECTION>__...]<KEY>`: parts separated by `__`,
@@ -609,8 +658,9 @@ def env_data(environ: Mapping[str, str]) -> list[tuple[str, dict]]:
     `BRAINSPRESSO_OPT_ABIDE1__ROAST__EXCLUDE_KEYS`:
     `[abide1.roast] exclude-keys`; `_` stands for `-` in dataset names
     and keys, `BRAINSPRESSO_OPT_NKI_RS__HARVEST__JOBS`). Values of
-    options that take several values are split as a shell does
-    (`shlex.split`: `"age >= 60" "sex == F"`).
+    options that take several values are split on whitespace, a value
+    with spaces in quotes, backslashes kept (`split_env`:
+    `"age >= 60" sex==F`, `C:\data`, `sub-0\d*`).
 
     Parameters
     ----------
@@ -703,13 +753,39 @@ def _value(option: OptionInfo, entry: Entry, key: str):
         return plain_value(entry, key)
     if isinstance(value, EnvValue) and option.is_list:
         try:
-            return shlex.split(value)
+            return split_env(value)
         except ValueError as e:
             raise _fail(entry.source, entry.section, f"{raw!r}: {e}") from e
     if isinstance(value, list) and not option.is_list:
         raise _fail(entry.source, entry.section,
                     f"{raw!r} takes one value, not a list")
     return value
+
+
+_SKIP = object()
+
+
+def _fitting(option: OptionInfo, entry: Entry, key: str, value, parts):
+    """
+    Keep the part of a shared value that a dataset can take.
+
+    A scalar that is not a choice: `_SKIP` (a debug log). A list: the
+    elements that are choices (a warning names the others: the
+    selection would be wider without them); none: `_SKIP`.
+    """
+    kept, dropped = option.split(value)
+    if not dropped:
+        return value
+    where = f"Config {entry.source} [{entry.section}]"
+    name = parts[0] if parts else "this dataset"
+    if not isinstance(value, list):
+        lg.debug(f"{where}: {key} = {value!r} is not a choice of {name} "
+                 f"({', '.join(option.choices)}): ignored there")
+        return _SKIP
+    lg.warning(f"{where}: {key} {dropped!r} are not choices of {name}: "
+               f"ignored there" + (f", {kept!r} kept" if kept else
+                                   f" ({key} is not set from it)"))
+    return kept if kept else _SKIP
 
 
 def resolve(layers: Iterable[Layer], parts: tuple, command: str,
@@ -773,12 +849,12 @@ def resolve(layers: Iterable[Layer], parts: tuple, command: str,
                                 f"{entry.values[key][1]!r} is also set in "
                                 f"[{previous[1]}]")
                 value = _value(option, entry, key)
-                if not entry.parts and not option.fits(value):
-                    # a shared section: not a choice of this dataset
-                    lg.debug(f"Config {entry.source} [{entry.section}]: "
-                             f"{key} = {value!r} is not a choice here "
-                             f"({', '.join(option.choices)}): ignored")
-                    continue
+                if layer.kind != "dataset" and not entry.parts:
+                    # a section shared by every dataset (not in the file
+                    # of this dataset): only the choices of this dataset
+                    value = _fitting(option, entry, key, value, parts)
+                    if value is _SKIP:
+                        continue
                 ranks[key] = (entry.rank, entry.section)
                 out[key] = (value,
                             Origin(layer.kind, entry.source, entry.section))

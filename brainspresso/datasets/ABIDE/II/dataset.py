@@ -70,6 +70,6 @@ class ABIDE2(Dataset):
             exclude_keys=set(args.keys.exclude_keys),
             subs=self.numbers(args.select.subs),
             exclude_subs=self.numbers(args.select.exclude_subs),
-            json=args.roast.json_policy, layout=layout.kind,
+            json=args.roast.sidecar_policy, layout=layout.kind,
             ifexists=args.roast.if_exists,
         ).run()

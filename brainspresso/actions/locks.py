@@ -7,8 +7,9 @@ itself, and lock files are never deleted by the processes that hold them
 processes "hold" it at once):
 
 * inside a dataset (the nearest ancestor folder that has a
-  `.brainspresso/` state folder, `is_state_folder`: not one that only
-  holds a config file, `config.toml`), the lock file is
+  `.brainspresso/` state folder, `is_state_folder`: one that holds
+  lock files, a manifest, run records..., not only a config file), the
+  lock file is
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, with `h` the SHA-256 of
   the path of the file relative to `<DS>`. It is on the filesystem of
   the dataset, so it also protects processes on other machines that
@@ -122,10 +123,15 @@ __all__ = [
 STATE_DIR = ".brainspresso"
 #: Folder of the lock files, in the state folder of a dataset
 LOCKS_DIR = "locks"
-#: A config file (`brainspresso.config.FILENAME`): a `.brainspresso/`
-#: folder that holds only this file is a config folder, not a state
-#: folder (`~`, the root of all datasets)
-CONFIG_FILE = "config.toml"
+#: Entries that make a `.brainspresso/` folder a state folder: lock
+#: files, manifest (`bids.layout.MANIFEST`), run lock and records
+#: (`actions.runlock`), task states, pristine tables. Anything else (a
+#: config file, `config.toml`, with its backup or swap files) does not:
+#: `~/.brainspresso/` and `<root>/.brainspresso/` are config folders
+STATE_ENTRIES = frozenset({LOCKS_DIR, "manifest.json", "run", "runs",
+                           "tasks", "orig"})
+#: Seconds a folder found outside any dataset is remembered
+_NEGATIVE_TTL = 2.0
 #: Seconds to wait for a lock before `LockTimeout`
 DEFAULT_TIMEOUT = 600.0
 #: Environment variable that overrides `DEFAULT_TIMEOUT` (seconds)
@@ -226,10 +232,12 @@ def is_state_folder(folder: str | os.PathLike) -> bool:
     """
     Whether a folder is a dataset: it has a state folder.
 
-    A `.brainspresso/` folder that holds only a config file
-    (`config.toml`: the user's `~`, the root of all datasets) is not a
-    state folder; an empty one is (`Layout.ensure_state` creates it
-    empty, and adds `locks/` to a config-only one).
+    A state folder is a `.brainspresso/` folder that holds one of the
+    `STATE_ENTRIES` (`Layout.ensure_state` creates `locks/` in it), or
+    nothing (one created by an older version, or by hand before a run
+    lock: its lock files must not move once they exist). One that holds
+    other files only (a config file, its backup or swap files,
+    `.DS_Store`: the user's `~`, the root of all datasets) is not.
 
     Parameters
     ----------
@@ -240,19 +248,38 @@ def is_state_folder(folder: str | os.PathLike) -> bool:
     bool
     """
     state = os.path.join(folder, STATE_DIR)
-    if not os.path.isdir(state):
-        return False
-    if not os.path.isfile(os.path.join(state, CONFIG_FILE)):
-        return True
     try:
-        return any(name != CONFIG_FILE for name in os.listdir(state))
-    except OSError:
-        return True
+        names = os.listdir(state)
+    except OSError:                 # (none, or not a folder)
+        return False
+    return not names or any(name in STATE_ENTRIES for name in names)
+
+
+# Config folders (a `.brainspresso/` that is not a state folder, e.g.
+# `~/.brainspresso/`): folder -> time. Remembered for `_NEGATIVE_TTL`
+# seconds, so that locking the files outside datasets (templates,
+# sources) does not list them each time. `forget_datasets` drops them (a
+# state folder created in this process). A folder without
+# `.brainspresso/` costs one `stat` and is not remembered: a state folder
+# created there later is seen at once.
+_outside: dict = {}
 
 
 def _is_state_dir(folder: Path) -> bool:
-    """Whether a folder has a state folder (`is_state_folder`)."""
-    return is_state_folder(folder)
+    """Whether a folder has a state folder (`is_state_folder`, cached)."""
+    if not os.path.isdir(os.path.join(folder, STATE_DIR)):
+        return False
+    now = time.monotonic()
+    seen = _outside.get(folder)
+    if seen is not None and now - seen < _NEGATIVE_TTL:
+        return False
+    if is_state_folder(folder):
+        _outside.pop(folder, None)
+        return True
+    if len(_outside) > _DATASET_CACHE_SIZE:
+        _outside.clear()
+    _outside[folder] = now
+    return False
 
 
 # Dataset of each (resolved) folder that holds locked files. Only hits
@@ -272,6 +299,7 @@ def forget_datasets() -> None:
     """Forget the cached dataset of every folder (`find_dataset`)."""
     with _datasets_lock:
         _datasets.clear()
+        _outside.clear()
 
 
 def _dataset_of(folder: Path) -> Path | None:

@@ -455,12 +455,21 @@ def lock_wait(group) -> float:
     -------
     float
         The deprecated `--wait` (logged) if given, else `--lock-wait`
+
+    Raises
+    ------
+    UsageError
+        `--wait` and `--lock-wait` with different values
     """
     old = getattr(group, "wait", None)
-    if old is not None:
-        deprecated("--wait", "--lock-wait")
-        return float(old)
-    return float(getattr(group, "lock_wait", 0) or 0)
+    new = float(getattr(group, "lock_wait", 0) or 0)
+    if old is None:
+        return new
+    deprecated("--wait", "--lock-wait")
+    if new and float(old) != new:
+        raise UsageError(f"--wait {old:g} and --lock-wait {new:g} "
+                         f"contradict each other")
+    return float(old)
 
 
 @option_group("Harvest", 40)
@@ -518,28 +527,25 @@ class RoastOptions(OptionGroup):
     """
     Options of a roast.
 
-    `--sidecars/--no-sidecars` and `--sidecars-only` replace `--json
-    yes|no|only` (an option of zero or one value, `Literal | bool`, that
-    cyclopts only parses from 5.1); `--json VALUE` and `--no-json` are
-    hidden deprecated aliases. `json_policy` maps them to the value the
-    roasters take.
+    `--sidecars yes|no|only` replaces `--json [yes|no|only]` (a `Literal |
+    bool` field, an option of zero or one value, which cyclopts only
+    parses from 5.1); `--json VALUE` and `--no-json` (`--sidecars no`) are
+    hidden deprecated aliases. `sidecar_policy` is the value the roasters
+    take.
     """
 
-    sidecars: Annotated[bool, Parameter(
-        help="Write the JSON sidecars of the data files (tables and other "
-        "metadata, bval/bvec, are always written)"
-    )] = True
-    sidecars_only: Annotated[bool, Parameter(
-        negative="", help="Only write the sidecars and metadata, not the "
-        "images"
-    )] = False
+    sidecars: Annotated[Literal["yes", "no", "only"] | None, Parameter(
+        help="Sidecars: \"yes\" writes them; \"no\" skips the JSON "
+        "sidecars (bval/bvec and tables are still written); \"only\" "
+        "writes the sidecars and metadata only, not the images. Default: "
+        "\"yes\""
+    )] = None
     json: Annotated[Literal["yes", "no", "only"] | None, Parameter(
-        show=False, help="Deprecated: use `--sidecars`, `--no-sidecars` "
-        "or `--sidecars-only`"
+        show=False, help="Deprecated: use `--sidecars`"
     )] = None
     no_json: Annotated[bool, Parameter(
         name="--no-json", negative="", show=False,
-        help="Deprecated: use `--no-sidecars`"
+        help="Deprecated: use `--sidecars no`"
     )] = False
     if_exists: Annotated[IfExists.Choice, Parameter(
         help="Behaviour when a file already exists"
@@ -548,50 +554,38 @@ class RoastOptions(OptionGroup):
     lock_wait: Annotated[float, _LOCK_WAIT] = 0
 
     deprecated = {
-        "json": (("sidecars", "sidecars_only"),
-                 "--sidecars/--no-sidecars/--sidecars-only"),
-        "no_json": (("sidecars", "sidecars_only"), "--no-sidecars"),
+        "json": ("sidecars", "--sidecars"),
+        "no_json": ("sidecars", "--sidecars no"),
     }
 
     @functools.cached_property
-    def json_policy(self) -> str:
+    def sidecar_policy(self) -> str:
         """
         The sidecar policy of the roasters: "yes", "no" or "only".
 
-        `--sidecars` (default): "yes"; `--no-sidecars`: "no";
-        `--sidecars-only`: "only". The deprecated `--json VALUE` and
-        `--no-json` give it directly (logged once).
+        `--sidecars` (default "yes"), else the deprecated `--json VALUE`
+        or `--no-json` ("no"), logged once.
 
         Raises
         ------
         UsageError
-            `--sidecars-only` with `--no-sidecars`, `--json` with
-            `--no-json`, or an alias that contradicts a new flag
+            Two of them with different values
         """
-        if self.sidecars_only and not self.sidecars:
-            raise UsageError("--sidecars-only writes sidecars: it cannot go "
-                             "with --no-sidecars")
-        policy = "only" if self.sidecars_only else (
-            "yes" if self.sidecars else "no")
-        old = None
+        given = []
+        if self.sidecars is not None:
+            given.append(("--sidecars", str(self.sidecars)))
         if self.json is not None:
-            deprecated("--json", "--sidecars, --no-sidecars or "
-                       "--sidecars-only")
-            old = str(self.json).lower()
+            deprecated("--json", "--sidecars")
+            given.append(("--json", str(self.json)))
         if self.no_json:
-            deprecated("--no-json", "--no-sidecars")
-            if old not in (None, "no"):
-                raise UsageError(f"--no-json contradicts --json {old}")
-            old = "no"
-        if old is None:
-            return policy
-        changed = self.sidecars_only or not self.sidecars
-        if changed and old != policy:
-            flag = "--sidecars-only" if self.sidecars_only \
-                else "--no-sidecars"
-            alias = f"--json {old}" if self.json is not None else "--no-json"
-            raise UsageError(f"{alias} contradicts {flag}")
-        return old
+            deprecated("--no-json", "--sidecars no")
+            given.append(("--no-json", "no"))
+        values = {value for _, value in given}
+        if len(values) > 1:
+            raise UsageError(" and ".join(
+                f"{flag} {value}" if flag != "--no-json" else flag
+                for flag, value in given) + " contradict each other")
+        return values.pop() if values else "yes"
 
 
 @option_group("Compost", 40)

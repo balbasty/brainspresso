@@ -389,7 +389,7 @@ layer in 2b-iv):
   "meta", non-JSON metadata as in `bids.select`; else "data"); outputs
   of several default kinds (`[nii, json]`, `[nii, bval, bvec]`) need an
   explicit `kind`, else the roast policy counts the action as an error.
-  JSON policy: `--no-sidecars` drops sidecars, `--sidecars-only` drops data (formerly `--json no|only`); tables and "meta" always pass;
+  JSON policy: `--sidecars no` drops sidecars, `--sidecars only` drops data (formerly `--json no|only`); tables and "meta" always pass;
   `staging=True` actions (intermediate files, e.g. an unpacked
   FreeSurfer tree in `derivatives/<fs>/sourcedata/`) and the
   sub-actions of a staging claim are exempt (there is no implicit
@@ -669,7 +669,7 @@ break under `from __future__ import annotations`.
 | `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (several roasters) |
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
 | `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--lock-wait` (`--wait`, hidden, deprecated) | harvest |
-| `RoastOptions` | `--sidecars/--no-sidecars`, `--sidecars-only` (`--json VALUE`, `--no-json`: hidden, deprecated), `--if-exists`, `--jobs`, `--lock-wait` | roast |
+| `RoastOptions` | `--sidecars yes\|no\|only` (`--json VALUE`, `--no-json`: hidden, deprecated), `--if-exists`, `--jobs`, `--lock-wait` | roast |
 | `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--lock-wait` (`--wait`, hidden, deprecated) | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
@@ -722,17 +722,18 @@ roasters get numbers (`Dataset.numbers`).
   field only parses from cyclopts 5.1 (3.17 to 4.25 refuse the union of
   token counts 1 and 0 on any value, 5.0 a bare flag). Roast's old
   `--json [yes|no|only]` / `--no-json` was such a field and never parsed
-  below 5.1 (no test parsed it, r16), so it became two booleans (r18):
-  `--sidecars/--no-sidecars` (default on: the JSON sidecars of the data
-  files; tables and bval/bvec are always written, as with `--json no`)
-  and `--sidecars-only` (default off: sidecars and metadata, no images,
-  `--json only`); together with `--no-sidecars` it is a `UsageError`.
-  `RoastOptions.json_policy` maps them to the "yes"/"no"/"only" policy of
-  the roasters, which do not change. `--json VALUE` (a `Literal` that
-  always takes a value) and `--no-json` (a separate hidden bool,
+  below 5.1 (no test parsed it, r16), so it became `--sidecars
+  yes|no|only` (r18 tried two booleans; r19, owner: one option): a plain
+  `Literal["yes", "no", "only"]` that always takes a value, default
+  "yes". "yes" writes the sidecars; "no" skips the JSON sidecars of the
+  data files (bval/bvec and tables are still written, as with `--json
+  no`); "only" writes the sidecars and metadata only, no images.
+  `RoastOptions.sidecar_policy` is the value the roasters already take
+  (the identity). `--json VALUE` (a `Literal` that always takes a
+  value) and `--no-json` (`--sidecars no`; a separate hidden bool,
   `Parameter(name="--no-json", negative="")`) are hidden deprecated
-  aliases, logged once; an alias that contradicts a new flag (`--json
-  yes --no-sidecars`, `--no-json --sidecars-only`) is a `UsageError`,
+  aliases, logged once; two of them with different values (`--json yes
+  --sidecars no`, `--no-json --sidecars only`) are a `UsageError`,
   checked before anything is written (`Dataset.check`). A bare `--json`
   (a no-op: the default) is no longer accepted.
 * Later: an entry-point group for third-party datasets, merged into the
@@ -763,15 +764,20 @@ environment variables. Layers, later wins (`Loader.layers`):
    read as that;
 
    A `.brainspresso/` folder that holds only `config.toml` (`~`, the
-   root of all datasets) is a config folder, not a state folder: it does
+   root of all datasets), or other files that are not state entries
+   (its backup and swap files, `.DS_Store`), is a config folder, not a
+   state folder: a state folder holds a state entry (`locks/`,
+   `manifest.json`, `run`, `runs/`, `tasks/`, `orig/`) or nothing
+   (`actions.locks.STATE_ENTRIES`). A config folder does
    not make its folder a dataset for the file locks
    (`actions.locks.is_state_folder`) nor a sites parent whose run lock
    every dataset under it would take (`bids.layout.is_sites_parent`,
    used by `Dataset.lock_states`: the manifest, else the tree of a real
    state folder). The first command on a dataset whose `.brainspresso/`
    only holds `config.toml` adds `locks/` to it (`Layout.ensure_state`)
-   before it takes a lock. `bx config` only reads: it creates no
-   manifest, state or lock file;
+   before it takes a lock. Config folders are remembered for 2 s (a
+   folder without `.brainspresso/` costs one `stat`, as before). `bx
+   config` only reads: it creates no manifest, state or lock file;
 5. the files of `bx --config FILE`: a global option, before the dataset
    name, repeatable, applied in order (`cli.global_options`; TOML, or
    YAML if PyYAML is importable);
@@ -795,19 +801,23 @@ importing a dataset. The same section written twice in one file
 
 Keys are the long flags without `--` (`exclude-keys`, or
 `exclude_keys`; OpenNeuro's `--source` is `source`, whatever the field
-name), `no-<flag> = true` for a boolean flag (`no-bids`,
-`no-sidecars`).
+name), `no-<flag> = true` for a boolean flag (`no-bids`).
 Lists are TOML arrays (a scalar is a list of one, `[]` the empty list,
 which replaces a non-empty default); values become cyclopts tokens
 (`config.tokens`), so lists, `Literal` choices (per dataset, from
 `for_dataset`), `int | str`, `bool | None` and `Literal | bool`
 (`json`) convert and fail as on the command line, and the error names
 the file and the section (`Invalid value for --jobs from <file>
-[ixi.harvest]`). A value of a shared section (`[defaults]`,
-`[<command>]`) that is not one of a dataset's choices (`[harvest]
-layout = "sites"` for IXI, `keys` of another dataset) is ignored for
-that dataset (a debug log; a lower value, or the built-in, applies);
-in a section of the dataset it is an error. A shared value that fits
+[ixi.harvest]`). A value of a shared section (`[defaults]` or
+`[<command>]` of the user, root or `--config` file, or of a variable)
+that is not one of a dataset's choices (`[harvest] layout = "sites"`
+for IXI) is ignored for that dataset (a debug log; a lower value, or
+the built-in, applies). A list keeps its elements that are choices
+(`[harvest] keys = ["T1w", "bold"]`: IXI takes `T1w`), and a warning
+names the dropped elements, the dataset and the section (dropping
+them silently would widen the selection). In a section of the dataset,
+and in every section of its own file (`<DS>/.brainspresso/config.toml`,
+whose `[harvest]` is that dataset's), it is an error. A shared value that fits
 no dataset at all (not a choice of any dataset that has the option, the
 generated `catalog.CHOICES`) is also ignored, with a warning naming the
 file, section and key.
@@ -817,7 +827,7 @@ Deprecated aliases (`site-layout`, `bidsify`, `wait`:
 refused in config ("use layout (--layout sites:<layout>)", "use bids
 (--bids/--no-bids)", "use lock-wait (--lock-wait)", also in `[roast]`,
 whose `--wait` is reserved for grind; `json` and `no-json`: "use
-sidecars / sidecars-only"): an alias from a
+sidecars"): an alias from a
 file would beat, or break, the current flag given on the command line.
 An alias and its option are one option (`OptionInfo.aliases`): when the
 command line gives either (`--no-bidsify`, `--site-layout`), the other
@@ -846,8 +856,12 @@ for the execution profiles and pipelines of §7 and ignored
 Environment: `BRAINSPRESSO_OPT_[<SECTION>__...]<KEY>`, `__` between
 the parts, case-insensitive, `_` for `-` in dataset names and keys
 (`BRAINSPRESSO_OPT_JOBS`: `[defaults]`; `..._HARVEST__JOBS`;
-`..._ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`, lists split as a shell
-does, `shlex.split`: `..._COMPOST__WHERE='"age >= 60" sex==F'`;
+`..._ABIDE1__ROAST__EXCLUDE_KEYS="rest anat"`; lists are split on
+whitespace by `config.split_env` (`shlex.split(posix=False)`, then a
+pair of quotes around a value removed): `..._COMPOST__WHERE='"age >=
+60" sex==F'`; backslashes and quotes inside a value are kept
+(`sub-0\d*`, `C:\data`, `O'Brien`), so a value can neither start and
+end with the same quote nor hold an unbalanced quote at its start;
 `..._NKI_RS__HARVEST__JOBS`; `..._OPENNEURO__DS000224__HARVEST__TAG`;
 `..._ADHD200__HARVEST__NO_BIDS=1`). Two variables for one key of one
 section (`..._JOBS` and `..._DEFAULTS__JOBS`, case variants, `BIDS` and
@@ -995,9 +1009,13 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
   UNC-Wisconsin roast, compost `--sites` (sites layouts).
 * `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
-* Roast `--json [yes|no|only]` / `--no-json` became `--sidecars/--no-sidecars`
-  and `--sidecars-only` (r18); `--json VALUE` and `--no-json` are hidden
-  deprecated aliases (a bare `--json` is refused).
+* Roast `--json [yes|no|only]` / `--no-json` became `--sidecars
+  yes|no|only` (r18, r19); `--json VALUE` and `--no-json` (`--sidecars
+  no`) are hidden deprecated aliases (a bare `--json` is refused).
+* Breaking: roast has no `--wait SECONDS` (its `--wait` is the future
+  execution flag `--wait`/`--detach` of §7): use `--lock-wait` (cyclopts
+  suggests it); harvest and compost keep `--wait` as a deprecated
+  alias.
 * `--wait SECONDS` (step 4) renamed `--lock-wait SECONDS`; `--wait` is a
   hidden deprecated alias on harvest and compost, none on roast (r17).
 * Added: `bx config show|paths`, the global `--config FILE`, and config
@@ -1355,3 +1373,15 @@ up as an XPASS failure once fixed (then drop the marker).
   A `.brainspresso/` folder with only `config.toml` (`~`, the root of
   all datasets) is no longer a dataset for the file locks nor a sites
   parent for the run lock (`is_state_folder`, `is_sites_parent`).
+* r19: review of f852f46 and owner correction. `--sidecars yes|no|only`
+  (one option, a value always required) replaces the two booleans of
+  r18; config key `sidecars`. Values of a dataset's own file are never
+  dropped as shared ones; a shared list keeps the elements that are
+  choices of the dataset (a warning names the others). A state folder
+  is one with a state entry (`locks/`, manifest, `run`, `runs/`,
+  `tasks/`, `orig/`) or an empty one, so that backup and swap files of a
+  config file do not make one; config folders are remembered for 2 s.
+  Env lists: `split_env` (`shlex.split(posix=False)`, quotes removed,
+  backslashes kept). `--wait` with a different `--lock-wait` is a
+  `UsageError`; `bx config show` hides deprecated aliases and, without
+  the arguments of a dataset, reads `--path`/`--out`.

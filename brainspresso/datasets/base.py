@@ -998,8 +998,8 @@ class Dataset:
         """
         Check the options of a command before anything is written.
 
-        Keys (against the key hierarchy), sites, subjects and the sidecar
-        flags of roast.
+        Keys (against the key hierarchy), sites, subjects, the sidecar
+        flags of roast and `--lock-wait`.
 
         Parameters
         ----------
@@ -1015,7 +1015,8 @@ class Dataset:
         if spec is not None and command in ("harvest", "roast"):
             spec.check(args.keys.keys, args.keys.exclude_keys)
         if command == "roast":
-            args.roast.json_policy      # sidecar flags that conflict
+            args.roast.sidecar_policy      # sidecar flags that conflict
+        args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
         subjects = self.numbers if command == "roast" and \
             self.legacy_subjects else self.labels
@@ -1167,7 +1168,7 @@ class Dataset:
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
         ctx = make_context(
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
-            json=args.roast.json_policy, ifexists=args.roast.if_exists,
+            json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
             templates=self.template_dir,
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),

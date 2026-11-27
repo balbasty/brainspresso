@@ -13,6 +13,7 @@ import pytest
 from cyclopts import CycloptsError
 
 from brainspresso import cli, config
+from brainspresso.actions import locks
 from brainspresso.actions.locks import find_dataset, is_state_folder
 from brainspresso.bids.layout import is_sites_parent, make_layout
 from brainspresso.cli import build_app, global_options, main
@@ -22,7 +23,6 @@ from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
 from brainspresso.datasets.IXI.dataset import IXI
-from brainspresso.errors import UsageError
 
 # ----------------------------------------------------------------------
 #   Helpers
@@ -465,7 +465,7 @@ def test_shared_value_outside_choices(tmp_path, home, caplog):
     assert value(args, "keys", "keys") == ("PDw",)
     assert value(args, "layout", "layout") == "flat"     # from [defaults]
     assert origin(report, "layout").section == "defaults"
-    assert "'sites' is not a choice here" in caplog.text
+    assert "layout = 'sites' is not a choice of ixi" in caplog.text
     args, report = parse("cobre", "harvest", tmp_path)
     assert origin(report, "keys").kind == "built-in"
     assert value(args, "harvest", "jobs") == 2
@@ -525,39 +525,45 @@ def test_bool_or_none_and_literals(tmp_path, home):
 
 def _policy(args):
     roast = args.get("roast")
-    return roast.json_policy if roast is not None else "yes"
+    return roast.sidecar_policy if roast is not None else "yes"
 
 
 @pytest.mark.parametrize("text,policy", [
-    ("sidecars = true", "yes"), ("sidecars = false", "no"),
-    ("no-sidecars = true", "no"), ("sidecars-only = true", "only"),
-    ("sidecars_only = true\nsidecars = true", "only"),
-    ("sidecars-only = false", "yes"),
+    ("sidecars = 'yes'", "yes"), ("sidecars = 'no'", "no"),
+    ("sidecars = 'only'", "only"),
 ])
-def test_sidecars_keys(tmp_path, home, text, policy):
+def test_sidecars_key(tmp_path, home, text, policy):
     user(home, f"[roast]\n{text}\n")
-    args, _ = parse("ixi", "roast", tmp_path)
+    args, report = parse("ixi", "roast", tmp_path)
     assert _policy(args) == policy
+    assert origin(report, "sidecars").kind == "user"
 
 
-def test_sidecars_conflict_in_config(tmp_path, home):
-    user(home, "[roast]\nsidecars = false\nsidecars-only = true\n")
-    args, _ = parse("ixi", "roast", tmp_path)
-    with pytest.raises(UsageError, match="--sidecars-only"):
-        _policy(args)
+@pytest.mark.parametrize("text", ["sidecars = true", "sidecars = 'maybe'"])
+def test_sidecars_key_bad(tmp_path, home, text):
+    user(home, f"[ixi.roast]\n{text}\n")
+    with pytest.raises(CycloptsError):
+        parse("ixi", "roast", tmp_path)
+
+
+@pytest.mark.parametrize("text", ["sidecars-only = true",
+                                  "no-sidecars = true"])
+def test_old_sidecar_keys_are_unknown(home, text):
+    user(home, f"[roast]\n{text}\n")
+    with pytest.raises(ConfigError):
+        parse("ixi", "roast")
 
 
 @pytest.mark.parametrize("cli,policy", [
-    (["--no-sidecars"], "no"), (["--json", "yes"], "yes"),
-    (["--no-json"], "no"), (["--sidecars"], "yes"),
+    (["--sidecars", "no"], "no"), (["--json", "yes"], "yes"),
+    (["--no-json"], "no"),
 ])
 def test_sidecars_from_the_command_line(tmp_path, home, cli, policy):
-    # one option: a sidecar flag (or alias) on the command line keeps the
-    # others out of config
-    user(home, "[roast]\nsidecars-only = true\n")
+    # one option: `--sidecars` or an alias on the command line keeps
+    # `sidecars` out of config
+    user(home, "[roast]\nsidecars = 'only'\n")
     args, report = parse("ixi", "roast", tmp_path, *cli)
     assert _policy(args) == policy
-    assert origin(report, "sidecars-only").kind in ("built-in", "CLI")
 
 
 @pytest.mark.parametrize("text", [
@@ -565,7 +571,7 @@ def test_sidecars_from_the_command_line(tmp_path, home, cli, policy):
 ])
 def test_json_key_is_refused(home, text):
     user(home, f"[roast]\n{text}\n")
-    with pytest.raises(ConfigError, match="use sidecars / sidecars-only"):
+    with pytest.raises(ConfigError, match=r"use sidecars \(--sidecars"):
         parse("ixi", "roast")
 
 
@@ -922,7 +928,8 @@ def test_shared_value_of_no_dataset(tmp_path, home, caplog, text, warns):
     path = user(home, text)
     caplog.set_level(logging.DEBUG, logger="brainspresso.config")
     parse("cobre", "harvest", tmp_path)
-    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING
+                and "not a choice of any dataset" in r.getMessage()]
     assert bool(warnings) is warns
     if warns:
         message = warnings[0].getMessage()
@@ -984,3 +991,162 @@ def test_dataset_with_only_a_config_file(tmp_path):
     assert is_state_folder(ds)
     assert find_dataset(ds / "sub-002" / "x.nii.gz") == ds
     assert (ds / ".brainspresso" / "config.toml").exists()
+
+
+def test_dataset_file_values_are_not_shared(tmp_path, home):
+    # the sections of a dataset's own file are that dataset's: a value
+    # that is not one of its choices is an error, never ignored
+    located(tmp_path / "IXI", "[harvest]\nkeys = ['bold']\n")
+    with pytest.raises(CycloptsError, match="bold"):
+        parse("ixi", "harvest", tmp_path)
+    located(tmp_path / "IXI", "[defaults]\nlayout = 'sites'\n")
+    with pytest.raises(CycloptsError, match="sites"):
+        parse("ixi", "harvest", tmp_path)
+    located(tmp_path / "IXI", "[harvest]\nkeys = ['T1w']\n")
+    args, _ = parse("ixi", "harvest", tmp_path)
+    assert value(args, "keys", "keys") == ("T1w",)
+
+
+@pytest.mark.parametrize("kind", ["user", "root", "file", "env"])
+def test_shared_list_keeps_what_fits(tmp_path, home, caplog, kind):
+    # `[harvest] keys = ["T1w", "bold"]`: IXI takes T1w (not every key)
+    text = "[harvest]\nkeys = ['T1w', 'bold']\n"
+    files, environ = [], {}
+    if kind == "user":
+        path = str(user(home, text))
+    elif kind == "root":
+        path = str(located(tmp_path, text))
+    elif kind == "file":
+        files = [write(tmp_path / "x.toml", text)]
+        path = str(files[0])
+    else:
+        environ = {"BRAINSPRESSO_OPT_HARVEST__KEYS": "T1w bold"}
+        path = "$BRAINSPRESSO_OPT_HARVEST__KEYS"
+    caplog.set_level(logging.WARNING, logger="brainspresso.config")
+    args, _ = parse("ixi", "harvest", tmp_path, files=files,
+                    environ=environ)
+    assert value(args, "keys", "keys") == ("T1w",)
+    message = [r.getMessage() for r in caplog.records
+               if "not choices of ixi" in r.getMessage()]
+    assert message and path in message[0] and "'bold'" in message[0]
+    assert "[harvest]" in message[0] and "'T1w'" in message[0]
+    # none fits: not set from it (a warning too)
+    caplog.clear()
+    user(home, "[harvest]\nkeys = ['bold']\n")
+    args, report = parse("ixi", "harvest", tmp_path / "elsewhere")
+    assert origin(report, "keys").kind == "built-in"
+    assert "not choices of ixi" in caplog.text
+
+
+@pytest.mark.parametrize("raw,values", [
+    (r"sub-0\d* C:\data\x", (r"sub-0\d*", r"C:\data\x")),
+    ("O'Brien sex==F", ("O'Brien", "sex==F")),
+    ('"age >= 60" sex==F', ("age >= 60", "sex==F")),
+    ("'age >= 60'", ("age >= 60",)),
+    (r'"C:\My data"', (r"C:\My data",)),
+])
+def test_env_list_quoting(tmp_path, raw, values):
+    env = {"BRAINSPRESSO_OPT_COMPOST__KEEP": raw}
+    args, _ = parse("ixi", "compost", tmp_path, environ=env)
+    assert value(args, "compost", "keep") == values
+
+
+def test_show_unbound_with_location(tmp_path, home, capsys):
+    # `--path`/`--out` without the accession: the root file of `--path`,
+    # the dataset file of `--out`
+    root, out = tmp_path / "root", tmp_path / "out"
+    located(root, "[openneuro.harvest]\ntag = '1.0.0'\n")
+    located(out, "[harvest]\njobs = 3\n")
+    for tokens, expected in (
+        (["--path", str(root)], ['tag = "1.0.0"', f'path = "{root}"  # CLI']),
+        ([f"--out={out}"], ["jobs = 3", f'out = "{out}"  # CLI']),
+    ):
+        try:
+            main(["config", "show", "openneuro", "harvest", *tokens])
+        except SystemExit as e:
+            assert not e.code
+        text = capsys.readouterr().out
+        assert "# without DATASET" in text
+        for line in expected:
+            assert line in text
+
+
+@pytest.mark.parametrize("tokens", [
+    ["ixi", "harvest", "--jobs"],
+    ["openneuro", "harvest", "ds1", "--tag"],
+    ["ixi", "harvest", "--nope"],
+])
+def test_show_errors_are_cyclopts_errors(capsys, tokens):
+    with pytest.raises(SystemExit) as e:
+        main(["config", "show", *tokens])
+    assert e.value.code
+    captured = capsys.readouterr()
+    assert "Traceback" not in captured.out + captured.err
+    assert "without DATASET" not in captured.out
+
+
+def test_show_hides_deprecated_aliases(capsys):
+    for tokens in (["ixi", "roast"], ["adhd200", "harvest"],
+                   ["nki-rs", "harvest"]):
+        try:
+            main(["config", "show", *tokens])
+        except SystemExit as e:
+            assert not e.code
+    out = capsys.readouterr().out
+    for key in ("json", "no-json", "wait", "site-layout", "bidsify"):
+        assert f"\n{key} = " not in out
+    assert "\nsidecars = " in out and "\nlock-wait = " in out
+
+
+@pytest.mark.parametrize("names", [
+    ["config.toml~"], [".config.toml.swp"], [".DS_Store"],
+    ["config.toml.bak", "notes.txt"],
+])
+def test_config_folder_with_other_files(tmp_path, names):
+    # only state entries make a state folder (not backups, swap files)
+    located(tmp_path, "[harvest]\njobs = 2\n")
+    for name in names:
+        (tmp_path / ".brainspresso" / name).write_text("x")
+    assert not is_state_folder(tmp_path)
+    (tmp_path / "IXI" / "sub-002").mkdir(parents=True)
+    assert not is_sites_parent(tmp_path)
+
+
+@pytest.mark.parametrize("entry", ["locks", "runs", "tasks", "orig"])
+def test_state_entries(tmp_path, entry):
+    (tmp_path / ".brainspresso" / entry).mkdir(parents=True)
+    assert is_state_folder(tmp_path)
+
+
+def test_state_file_entries(tmp_path):
+    for entry in ("manifest.json", "run"):
+        folder = tmp_path / entry
+        (folder / ".brainspresso").mkdir(parents=True)
+        (folder / ".brainspresso" / entry).write_text("{}")
+        assert is_state_folder(folder)
+    # an empty one too (created by an older version, or by hand)
+    (tmp_path / "empty" / ".brainspresso").mkdir(parents=True)
+    assert is_state_folder(tmp_path / "empty")
+
+
+def test_config_folders_are_cached(tmp_path, monkeypatch):
+    # an ancestor with a config folder (`~/.brainspresso/`) is not listed
+    # every time a file outside datasets is locked
+    located(tmp_path, "[harvest]\njobs = 2\n")
+    locks.forget_datasets()
+    calls = []
+    original = locks.is_state_folder
+
+    def counting(folder):
+        calls.append(Path(folder))
+        return original(folder)
+
+    monkeypatch.setattr(locks, "is_state_folder", counting)
+    target = tmp_path / "a" / "b" / "file.txt"
+    assert find_dataset(target) is None
+    assert calls == [tmp_path]
+    assert find_dataset(target) is None
+    assert calls == [tmp_path]          # (remembered)
+    # a state folder created in this process is seen at once
+    make_layout("flat", tmp_path / "a").ensure_state()
+    assert find_dataset(target) == tmp_path / "a"

@@ -217,11 +217,14 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
             _, bound, _ = app.parse_args([name, command, *tokens],
                                          exit_on_error=False,
                                          print_error=False)
-        except MissingArgumentError:
-            if not dataset.arguments:
-                raise
-            show_unbound(loader, dataset, command)
-            continue
+        except MissingArgumentError as e:
+            missing = getattr(getattr(e.argument, "field_info", None),
+                              "name", None)
+            if missing in {a.name for a in dataset.arguments}:
+                show_unbound(loader, dataset, command, tokens)
+                continue
+            app.parse_args([name, command, *tokens])    # prints, exits
+            raise
         except CycloptsError:
             app.parse_args([name, command, *tokens])    # prints, exits
             raise
@@ -230,6 +233,8 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
         section = ".".join((*report.get("parts", (name,)), command))
         print(f"[{section}]")
         for key, option in config_options(dataset, command).items():
+            if option.deprecated is not None:
+                continue                # (hidden aliases)
             if option.group is None:
                 value = bound.arguments.get(option.field, option.default)
             else:
@@ -241,36 +246,58 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
         print()
 
 
-def show_unbound(loader: Loader, dataset, command: str) -> None:
+def _location(tokens) -> dict[str, str]:
+    """`--path` and `--out` of command-line tokens (`--path=X` too)."""
+    out, tokens = {}, list(tokens)
+    for i, token in enumerate(tokens):
+        for key in ("path", "out"):
+            if token == f"--{key}" and i + 1 < len(tokens):
+                out[key] = tokens[i + 1]
+            elif token.startswith(f"--{key}="):
+                out[key] = token.partition("=")[2]
+    return out
+
+
+def show_unbound(loader: Loader, dataset, command: str, tokens=()) -> None:
     """
     Print the options of a dataset whose arguments are not given.
 
     Only the built-in values and the sections that apply to every value
     of the arguments (`[openneuro.harvest]`, not
-    `[openneuro.ds000224.harvest]`), without the dataset file.
+    `[openneuro.ds000224.harvest]`), and the dataset file of `--out`.
+    Nothing is parsed but `--path` and `--out`.
 
     Parameters
     ----------
     loader : config.Loader
     dataset : Dataset
     command : str
+    tokens : list[str]
+        What follows the command (`--path`, `--out` are used)
     """
     from brainspresso.datasets.register import (  # noqa: PLC0415
         config_options,  # lazy: startup time (`bx --help`)
     )
     options = config_options(dataset, command)
     parts, own = config.dataset_parts(dataset)
-    root, _ = loader.locate(parts, command)
-    found = config.resolve(loader.layers(root), parts, command, options,
-                           own=own, everywhere=lambda: loader.everywhere(
-                               dataset))
+    location = _location(tokens)
+    root, folder = loader.locate(parts, command, **location)
+    found = config.resolve(loader.layers(root, folder), parts, command,
+                           options, own=own,
+                           everywhere=lambda: loader.everywhere(dataset))
     names = " ".join(a.name.upper() for a in dataset.arguments)
     print(f"[{'.'.join((*parts, command))}]")
     print(f"# without {names}: `bx config show {dataset.name} {command} "
           f"{names}` also reads [{dataset.name}.<{names}>] sections and "
           f"the dataset file")
     for key, option in options.items():
-        value, origin = found.get(key, (option.default, Origin("built-in")))
+        if option.deprecated is not None:
+            continue                    # (hidden aliases)
+        if key in location:
+            value, origin = location[key], Origin("CLI")
+        else:
+            value, origin = found.get(key, (option.default,
+                                            Origin("built-in")))
         print(f"{key} = {_toml(value)}  # {origin}")
     print()
 

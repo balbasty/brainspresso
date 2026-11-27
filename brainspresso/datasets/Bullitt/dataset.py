@@ -53,6 +53,6 @@ class Bullitt(Dataset):
             layout.root, keys=self.legacy_keys("roast", args),
             subs=self.labels(args.select.subs),
             exclude_subs=self.labels(args.select.exclude_subs),
-            json=args.roast.json_policy, layout=layout.kind,
+            json=args.roast.sidecar_policy, layout=layout.kind,
             ifexists=args.roast.if_exists,
         ).run()

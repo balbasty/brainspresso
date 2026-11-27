@@ -281,14 +281,12 @@ class Layout:
             The state folder
         """
         state = Path(self.state)
-        if not state.is_dir():
-            state.mkdir(parents=True, exist_ok=True)
+        if not is_state_folder(self.root):
+            # new, or only a config file (`.brainspresso/config.toml`):
+            # `locks/` makes it a dataset (`actions.locks.is_state_folder`)
+            # before any lock is taken
+            (state / LOCKS_DIR).mkdir(parents=True, exist_ok=True)
             # a nearer dataset for the folders already cached
-            forget_datasets()
-        elif not is_state_folder(self.root):
-            # only a config file (`.brainspresso/config.toml`): now a
-            # dataset, before any lock is taken
-            (state / LOCKS_DIR).mkdir(exist_ok=True)
             forget_datasets()
         return state
 

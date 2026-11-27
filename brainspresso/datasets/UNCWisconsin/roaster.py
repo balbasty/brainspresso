@@ -234,7 +234,7 @@ def _convert(src: Path, stem: Path, tag: str, dwi=None) -> Action:
                       input="path", tag=tag)
     dwi = stem if dwi is True else dwi
     # one conversion writes the three files: a data action
-    # (`--sidecars-only` writes none of them)
+    # (`--sidecars only` writes none of them)
     return Action(
         src, [nii, Path(f"{dwi}.bval"), Path(f"{dwi}.bvec")],
         lambda nii, bval, bvec: nrrd_to_nifti(src, nii, bval=bval,

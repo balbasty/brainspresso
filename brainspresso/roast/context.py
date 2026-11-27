@@ -23,8 +23,7 @@ from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
 
 __all__ = ["JsonPolicy", "RoastContext", "as_list", "make_context"]
 
-#: Sidecar policies: `--sidecars` (yes), `--no-sidecars` (no),
-#: `--sidecars-only` (only)
+#: Sidecar policies (`--sidecars yes|no|only`)
 JsonPolicy = Literal["yes", "no", "only"]
 
 
@@ -148,8 +147,8 @@ class RoastContext(Context):
         Returns
         -------
         bool
-            False for sidecars under `--no-sidecars` and data under
-            `--sidecars-only`
+            False for sidecars under `--sidecars no` and data under
+            `--sidecars only`
         """
         if self.json == "no":
             return kind != "sidecar"
@@ -255,7 +254,7 @@ def make_context(
     select_keys, exclude_keys : list[str]
         `--keys`, `--exclude-keys`
     json : {"yes", "no", "only"} | bool
-        Sidecar policy (`RoastOptions.json_policy`)
+        Sidecar policy (`RoastOptions.sidecar_policy`)
     ifexists : {"skip", "overwrite", "different", "refresh", "error"}
         Default `IfExists`
     templates : path

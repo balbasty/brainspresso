@@ -2,6 +2,7 @@
 import gzip
 import json
 import logging
+from pathlib import Path, PurePosixPath
 
 import nibabel as nib
 import numpy as np
@@ -19,8 +20,11 @@ from roast_utils import (
 )
 
 from brainspresso.datasets.indi.abide.i import roaster, sources, tables
+from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.i.roaster import FS_NAME, roast
 from brainspresso.datasets.indi.abide.i.sites import TEMPLATES
+from brainspresso.sources.base import RemoteEntry
+from brainspresso.utils.archive import TarArchive
 
 COLS = list(dict.fromkeys(
     c for t in [tables.PARTICIPANTS, *tables.PHENOTYPES.values()]
@@ -191,12 +195,99 @@ def test_meta(root):
     ]
 
 
+FS_OUT = {
+    f"sub-{sub}/anat/sub-{sub}_atlas-Aseg_dseg.{ext}"
+    for sub in ("51456", "50003") for ext in ("nii.gz", "json")
+} | {f"atlas-{name}_dseg.tsv" for name in (
+    "Aseg", "AsegDesikanKilliany", "DesikanKilliany", "Destrieux")}
+
+
+def fs_tree(root):
+    """Files of the FreeSurfer derivatives (not its `sourcedata/`)."""
+    drv = layout_of(root).derivative(FS_NAME).root
+    return {p.relative_to(drv).as_posix() for p in drv.rglob("*")
+            if p.is_file() and p.relative_to(drv).parts[0] not in (
+                "sourcedata", "dataset_description.json")}
+
+
 def test_all(root):
     report = xnat(root)
     assert not report.errors, report.errors
+    assert report.status == "complete"
     assert raw_tree(root) == RAW | META | PHENO
     rows = read_tsv(raw_file(root, "participants.tsv"))
     assert len(rows) == 6
+    assert fs_tree(root) == FS_OUT
+    # `fs-all` only when named: only the files that BIDS describes
+    unpacked = layout_of(root).derivative(FS_NAME).source
+    assert {p.relative_to(unpacked).as_posix()
+            for p in unpacked.rglob("*") if p.is_file()} == {
+        "sub-51456/mri/aseg.mgz", "sub-50003/mri/aseg.mgz"}
+
+
+def test_default_keys_sidecars_only(root):
+    """Default keys, `--sidecars only`: nothing is unpacked"""
+    report = xnat(root, json="only")
+    assert not report.errors, report.errors
+    assert not layout_of(root).derivative(FS_NAME).source.exists()
+    assert fs_tree(root) == {p for p in FS_OUT
+                             if not p.endswith(".nii.gz")}
+    report = xnat(root, keys={"fs-all"}, json="only", subs=[51456])
+    assert not report.errors
+    assert not layout_of(root).derivative(FS_NAME).source.exists()
+
+
+@pytest.mark.parametrize("exclude", [["fs"], ["fs", "fs-all"],
+                                     ["derivatives"]])
+def test_exclude_freesurfer(root, exclude):
+    """`--exclude-keys fs` also excludes its add-on `fs-all`"""
+    report = xnat(root, exclude_keys=exclude)
+    assert not report.errors
+    assert not layout_of(root).derivative(FS_NAME).root.exists()
+    assert raw_tree(root) == RAW | META | PHENO
+
+
+def test_exclude_freesurfer_cli(tmp_path):
+    root = make_source(tmp_path / "ABIDE-1")
+    bx("abide1", "roast", "--out", root, "--source", "xnat",
+       "--exclude-keys", "fs", "--subs", "50003")
+    assert not layout_of(root).derivative(FS_NAME).root.exists()
+    assert "sub-50003/anat/sub-50003_T1w.nii.gz" in raw_tree(root)
+    # `fs-all` alone implies `fs`
+    bx("abide1", "roast", "--out", root, "--source", "xnat",
+       "--keys", "fs-all", "--subs", "50003")
+    unpacked = layout_of(root).derivative(FS_NAME).source / "sub-50003"
+    assert (unpacked / "stats" / "aseg.stats").exists()
+    assert (layout_of(root).derivative(FS_NAME).root / "sub-50003/anat/"
+            "sub-50003_atlas-Aseg_dseg.nii.gz").exists()
+
+
+@pytest.mark.parametrize("keys, exclude, fetched", [
+    ((), (), True), ((), ("fs",), False), ((), ("fs-all",), True),
+    (("fs",), (), True), (("fs-all",), (), True), (("raw",), (), False),
+    ((), ("derivatives",), False),
+])
+def test_harvest_exclude_freesurfer(keys, exclude, fetched):
+    """The harvest follows the same rule (`fs-all` goes with `fs`)"""
+    wants = ABIDE1().wants("harvest", keys, exclude)
+    record = {"label": "Caltech_0051456-freesurfer"}
+    assert sources.XNATImages().keep_assessor({}, {}, record, wants) \
+        is fetched
+
+
+def test_no_freesurfer_archive_completes(root, caplog):
+    """A default roast of a harvest without FreeSurfer archives is
+    complete; naming `fs` makes the missing archives an error. Only the
+    selected subjects are looked at."""
+    with caplog.at_level(logging.INFO):
+        report = xnat(root, subs=[51330])
+    assert report.status == "complete" and not report.errors
+    assert "no FreeSurfer archive" in caplog.text
+    assert not layout_of(root).derivative(FS_NAME).root.exists()
+    for keys in ({"fs"}, {"fs-all"}, {"T1w", "fs"}):
+        report = xnat(root, keys=keys, subs=[51330])
+        assert len(report.errors) == 1, keys
+        assert "FreeSurfer" in report.errors[0][2]
 
 
 @pytest.mark.parametrize("label", ["Caltech_0051456", "Pitt_0050003"])
@@ -264,6 +355,106 @@ def test_subject_folders():
         assert found and found["site"] == site
         assert tables.participant_label(found["id"]) == label
     assert not match("Leuven-1") and not match("UCLA1")
+    for name in ("x_123456", "20240101", "0051456", "NYU_0051456_2",
+                 "Caltech_005145", "backup_2024-01-01"):
+        assert not match(name), name
+
+
+def test_other_folders_skipped(root, caplog):
+    """Folders with archives that are not ABIDE-I subjects are skipped,
+    with a warning (unknown site, id of another width, experiments)"""
+    for name in ("x_123456", "20240101", "NYU_0051456_2", "Nowhere_0051111"):
+        add_scan(root / "sourcedata", name, "anat", nii_bytes())
+    with caplog.at_level(logging.WARNING):
+        report = xnat(root, keys={"T1w"}, json="no")
+    assert not report.errors
+    assert {p.split("/")[0] for p in raw_tree(root)} == {
+        "sub-51456", "sub-51330", "sub-51201", "sub-50003"}
+    for name in ("x_123456", "20240101", "NYU_0051456_2", "Nowhere_0051111"):
+        assert f"{name}/: not a NITRC-IR subject folder" in caplog.text
+    assert "Leuven-1/" not in caplog.text       # (no archive)
+
+
+def test_freesurfer_names_agree(tmp_path):
+    """The harvest saves FreeSurfer assessors under names that the roast
+    recognises (a label known by its type only gets a marker)"""
+    images = sources.XNATImages()
+    for record, name in [
+        ({"label": "Caltech_0051456-freesurfer"},
+         "Caltech_0051456-freesurfer"),
+        ({"label": "Caltech_0051456_fs"}, "Caltech_0051456_fs"),
+        ({"label": "Caltech_0051456-fs"}, "Caltech_0051456-fs"),
+        ({"label": "Caltech_0051456_v51", "xsiType": "fs:fsData"},
+         "Caltech_0051456_v51-freesurfer"),
+    ]:
+        assert sources.assessor_keys(record) == ("fs", "fs-all")
+        entry = RemoteEntry(path=f"x/{record['label']}.tar.gz", meta={
+            "subject": "Caltech_0051456", "id": record["label"],
+            "type": "assessor", "record": record})
+        path = images.local_path(entry)
+        assert path == f"Caltech_0051456/{name}.tar.gz"
+        assert roaster.is_freesurfer(path)
+    for label in ("Caltech_0051456-man_qa", "x-fsfast", "x_fsl"):
+        assert not roaster.is_freesurfer(label)
+        assert sources.assessor_keys({"label": label}) != ("fs", "fs-all")
+    scan = RemoteEntry(path="x/anat.tar.gz", meta={
+        "subject": "Caltech_0051456", "id": "anat", "type": "scan",
+        "record": {"ID": "anat"}})
+    assert images.local_path(scan) == "Caltech_0051456/anat.tar.gz"
+
+
+def test_freesurfer_tree_root(tmp_path, caplog):
+    """Wrapper folders named like FreeSurfer folders do not re-root the
+    tree; a second tree, a template subject and `..` are skipped"""
+    root = tmp_path / "ABIDE-1"
+    src = root / "sourcedata"
+    label = "Pitt_0050003"
+    lead = f"{label}/assessors/stats/tmp/label/files/{label}"
+    make_tar(src / label / f"{label}-fs.tar.gz", {
+        f"{label}/assessors/stats/files/fsaverage/mri/aseg.mgz":
+            mgz_bytes(5),
+        f"{lead}/mri/aseg.mgz": mgz_bytes(),
+        f"{lead}/stats/aseg.stats": b"stats",
+        f"{lead}/mri/orig/001.mgz": mgz_bytes(),
+        f"{lead}/mri/../../../../../../EVIL.txt": b"evil",
+        f"{label}/other/{label}/surf/lh.white": b"x",
+    })
+    with caplog.at_level(logging.WARNING):
+        report = xnat(root, keys={"fs-all"})
+    assert not report.errors, report.errors
+    unpacked = layout_of(root).derivative(FS_NAME).source / "sub-50003"
+    assert {p.relative_to(unpacked).as_posix()
+            for p in unpacked.rglob("*") if p.is_file()} == {
+        "mri/aseg.mgz", "stats/aseg.stats", "mri/orig/001.mgz"}
+    assert nib.load(unpacked / "mri/aseg.mgz").get_fdata().max() == 1
+    assert not list(tmp_path.rglob("EVIL.txt"))
+    assert caplog.text.count("FreeSurfer tree") == 2    # fsaverage, other
+    tree = roaster.FreeSurferTree
+    assert tree.split("a/stats/sub/mri/x.mgz") == (
+        ("a", "stats", "sub"), PurePosixPath("mri/x.mgz"))
+    assert tree.split("/abs/sub/mri/x.mgz") is None
+    assert tree.split("sub/mri.2mm/x.mgz") is None
+
+
+def test_freesurfer_rerun_skipped(root, monkeypatch):
+    """A re-run skips the subjects whose archives did not change, those
+    with a FreeSurfer archive too (its own shard)"""
+    xnat(root)
+    opened = []
+    real = TarArchive.__init__
+
+    def spy(self, path):
+        opened.append(Path(path).name)
+        real(self, path)
+
+    monkeypatch.setattr(TarArchive, "__init__", spy)
+    report = xnat(root)
+    assert not report.errors
+    assert opened == []
+    # a new FreeSurfer archive re-runs its shard only
+    add_freesurfer(root / "sourcedata", "Pitt_0050003", "Pitt_0050003-fs")
+    xnat(root)
+    assert opened == ["Pitt_0050003-fs.tar.gz"]
 
 
 def test_subjects_filters_and_shards(root, monkeypatch):

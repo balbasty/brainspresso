@@ -129,12 +129,17 @@ class KeySpec:
     off : tuple[str]
         Keys only selected when asked for (`--keys` names them): with the
         default `--keys`, they are excluded (IXI roast: `trace`)
+    implies : tuple[tuple[str, str]]
+        `(add_on, key)` pairs: an add-on implies its key (`--keys add_on`
+        also selects `key`) and goes with it (`--exclude-keys key` also
+        excludes `add_on`). ABIDE-I: `("fs-all", "fs")`.
     """
 
     tree: Any = None
     choices: tuple | None = None
     default: tuple = ()
     off: tuple = ()
+    implies: tuple = ()
 
     def resolve(self) -> Any:
         """Return the key hierarchy (calls `tree` if it is a function)."""
@@ -213,7 +218,7 @@ class KeySpec:
         spec whose default is "all but `off`", counts as no `--keys`, so
         that `--exclude-keys` alone means "all but" (and, in a roast,
         keeps the files that match no key). With the default `--keys`,
-        the `off` keys are excluded.
+        the `off` keys are excluded. Add-ons follow their key (`implies`).
 
         Parameters
         ----------
@@ -225,7 +230,18 @@ class KeySpec:
             Empty: all keys
         exclude : tuple[str]
         """
-        keys, exclude = _names(keys), _names(exclude)
+        keys, exclude = self._effective(*_names(keys), exclude=exclude)
+        for add_on, key in self.implies:
+            if add_on in keys and key not in keys:
+                keys += (key,)
+            if key in exclude and add_on not in exclude:
+                exclude += (add_on,)
+        return keys, exclude
+
+    def _effective(self, *keys: str, exclude: Iterable[str] = ()
+                   ) -> tuple[tuple, tuple]:
+        """Return `effective` before the add-ons (`implies`)."""
+        keys, exclude = tuple(keys), _names(exclude)
         choices = self.all_choices()
         if not keys or set(keys) == set(self.default):
             covers = choices is None or not self.default or (

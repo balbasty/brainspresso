@@ -1,7 +1,11 @@
 """`bx abide1`: ABIDE-I (autism spectrum disorders)."""
 from brainspresso.datasets.base import Dataset, KeySpec
 from brainspresso.datasets.indi.abide.i.keys import allkeys
-from brainspresso.datasets.indi.abide.i.roaster import KEYS as ROAST_KEYS
+from brainspresso.datasets.indi.abide.i.roaster import (
+    FS_ADD_ON,
+    ROAST_SPEC,
+    roast_options,
+)
 from brainspresso.datasets.indi.abide.i.sites import SITES, TEMPLATES
 from brainspresso.datasets.indi.abide.i.sources import DEFAULTS, sources
 from brainspresso.utils.keys import flatten_keys
@@ -27,7 +31,8 @@ class ABIDE1(Dataset):
     indi_category = "retro"
     title = "ABIDE-I"
     help = HELP
-    keys = KeySpec(allkeys, tuple(flatten_keys(allkeys)), ("all",))
+    keys = KeySpec(allkeys, tuple(flatten_keys(allkeys)), ("all",),
+                   implies=FS_ADD_ON)
     subject_width = 5
     site_names = SITES
     credentials = "login"
@@ -37,8 +42,12 @@ class ABIDE1(Dataset):
     def keys_for(self, command):
         """Roast keys: those of the roasters (the same hierarchy)."""
         if command == "roast":
-            return KeySpec(ROAST_KEYS)
+            return ROAST_SPEC
         return self.keys
+
+    def roast_options(self, args):
+        """Options of the roasters (`roaster.roast_options`)."""
+        return roast_options(args.keys.keys)
 
     @property
     def defaults(self):
@@ -57,9 +66,13 @@ class ABIDE1(Dataset):
                 "`--source s3` (default) or `nitrc`: the bucket copy or "
                 "the NITRC tarballs (T1w, rest, phenotypes). `--source "
                 "xnat`: the NITRC-IR archives (T1w, rest, phenotypes, and "
-                "FreeSurfer outputs: `fs`, the files that BIDS describes, "
-                "`fs-all`, every file); other derivatives are not "
-                "converted. `participants.tsv` lists the subjects whose "
+                "FreeSurfer outputs: `fs`, the files that BIDS describes; "
+                "`fs-all`, an add-on of `fs` selected only when named, "
+                "also unpacks every other file, and `--exclude-keys fs` "
+                "excludes both); other derivatives are not converted. A "
+                "missing FreeSurfer archive is an error only when "
+                "`--keys` names `fs` or `fs-all`. "
+                "`participants.tsv` lists the subjects whose "
                 "folder is on disk (all of them are in the pristine copy, "
                 "`.brainspresso/orig/`)."
             )

@@ -67,6 +67,7 @@ from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail, WriteJSON
 from brainspresso.actions.action import Claim
 from brainspresso.actions.archive import ExtractMember, ExtractMembers
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide.i.keys import allkeys
 from brainspresso.datasets.indi.abide.i.sites import (
     TEMPLATES,
@@ -105,7 +106,8 @@ RAWDATA = "RawData"
 # Keys: those of the harvest (`keys.py`), where "meta" is also the
 # category of the dataset files and participants table (`--keys pheno`:
 # phenotypes only). `fs` and `fs-all` are siblings: `fs` converts the
-# files that BIDS describes, `fs-all` also unpacks every other file.
+# files that BIDS describes; `fs-all`, an add-on of `fs` (`FS_ADD_ON`),
+# also unpacks every other file, only when named (`ROAST_SPEC`).
 KEYS = KeyAliases(
     {"all": {**allkeys["all"], "meta": {"meta", "pheno"}}},
     bids={
@@ -118,6 +120,12 @@ KEYS = KeyAliases(
         "fs-all": [f"derivatives/{FS_NAME}"],
     },
 )
+
+#: `fs-all` implies `fs`; excluding `fs` excludes `fs-all`
+FS_ADD_ON = (("fs-all", "fs"),)
+
+#: Keys of the roast (`--keys`): `fs-all` only when named
+ROAST_SPEC = KeySpec(KEYS, off=("fs-all",), implies=FS_ADD_ON)
 
 #: Sidecar templates of a site (`templates/<Site>[_<sample>]/`)
 TEMPLATE_NAMES = ("T1w.json", "acq-hires_T1w.json", "bold.json")
@@ -132,8 +140,8 @@ NIFTI = (".nii.gz", ".nii")
 #   Python API
 # ----------------------------------------------------------------------
 
-def roast(root, *, source: str = "s3", subs=(), exclude_subs=(),
-          **options) -> RoastReport:
+def roast(root, *, source: str = "s3", keys=(), exclude_keys=(), subs=(),
+          exclude_subs=(), **options) -> RoastReport:
     """
     Roast `<root>` (the `ABIDE-1` folder).
 
@@ -146,9 +154,12 @@ def roast(root, *, source: str = "s3", subs=(), exclude_subs=(),
     subs, exclude_subs : list[int | str]
         Subjects: numbers (`51456` is `sub-51456`), labels with or
         without `sub-`, ranges, files (as `--subs`)
+    keys, exclude_keys : list[str]
+        `--keys`, `--exclude-keys` (`fs-all` only when named, see
+        `ROAST_SPEC`)
     **options
-        Those of the command line (`keys`, `exclude_keys`, `json`,
-        `ifexists`, `layout`), `jobs` and `display`
+        Those of the command line (`json`, `ifexists`, `layout`), `jobs`
+        and `display`
 
     Returns
     -------
@@ -157,12 +168,33 @@ def roast(root, *, source: str = "s3", subs=(), exclude_subs=(),
     if source not in ROASTERS:
         raise ValueError(f"Unknown source {source!r}: "
                          f"{', '.join(ROASTERS)}")
+    select, exclude = ROAST_SPEC.effective(keys, exclude_keys)
     return roast_dataset(
         ROASTERS[source], root, KEYS, templates=TEMPLATES,
+        keys=select, exclude_keys=exclude,
         subs=sorted(subject_labels(subs, WIDTH)),
         exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        **options,
+        options=roast_options(keys), **options,
     )
+
+
+def roast_options(keys) -> dict:
+    """
+    Return the options of the roasters (`RoastContext.options`).
+
+    Parameters
+    ----------
+    keys : list[str]
+        `--keys`, as given
+
+    Returns
+    -------
+    dict
+        `fs_named`: whether `--keys` names `fs` or `fs-all` (then a
+        missing FreeSurfer archive is an error)
+    """
+    names = {str(getattr(k, "value", k)) for k in keys or ()}
+    return {"fs_named": bool(names & {"fs", "fs-all"})}
 
 
 # ----------------------------------------------------------------------
@@ -631,16 +663,48 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
 #   NITRC-IR (source `xnat`)
 # ----------------------------------------------------------------------
 
-#: XNAT subject folder: `<site>[_<sample>]_<id>` (id of 5 or 7 digits)
-SUBJECT_FOLDER = re.compile(r"(?:(?P<site>.+?)[_-])?(?P<id>\d{5,})")
+#: XNAT subject folder: `<site>[_<sample>]_<id>` (id of 5 or 7 digits;
+#: the site must be one of ABIDE-I, `parse_site`)
+SUBJECT_FOLDER = re.compile(r"(?P<site>.+?)[_-](?P<id>\d{5}|\d{7})")
 
 #: XNAT scan id (archive name): `anat`, `mprage`, `anat_2`, `rest`...
 SCAN_ID = re.compile(r"(?P<mod>anat|mprage|hires|anat_hires|rest)"
                      r"(?:[_-]?(?P<n>\d+))?", re.IGNORECASE)
 
-#: Folders of a FreeSurfer subject (they mark where its tree starts)
-FS_DIRS = frozenset({"mri", "surf", "label", "stats", "scripts", "touch",
-                     "tmp", "trash", "bem", "src"})
+#: Top-level folders of a FreeSurfer subject (they mark its root)
+FS_DIRS = frozenset({"mri", "surf", "label", "stats", "scripts", "touch"})
+
+#: FreeSurfer template subjects (never the subject's tree)
+FS_TEMPLATES = re.compile(r"fsaverage\d*|[lr]h\.EC_average|bert",
+                          re.IGNORECASE)
+
+#: Name of a FreeSurfer archive or assessor (`...freesurfer...`,
+#: `..._fs`, `...-fs`)
+FS_NAME_PATTERN = re.compile(r"freesurfer|(^|[-_.])fs($|[-_.])",
+                             re.IGNORECASE)
+
+
+def is_freesurfer(name: str | Path) -> bool:
+    """
+    Whether an archive or XNAT assessor holds FreeSurfer outputs.
+
+    The harvest (`sources.assessor_keys`) and the roast share it: the
+    harvest saves a FreeSurfer assessor whose label it does not match
+    under a name that it matches (`sources.XNATImages.local_path`).
+
+    Parameters
+    ----------
+    name : str | Path
+        Archive (`<label>.tar.gz`) or assessor label
+
+    Returns
+    -------
+    bool
+    """
+    name = Path(name).name
+    if name.endswith(".tar.gz"):
+        name = name[:-len(".tar.gz")]
+    return bool(FS_NAME_PATTERN.search(name))
 
 
 def roast_xnat(ctx: RoastContext) -> Iterator:
@@ -655,40 +719,84 @@ def roast_xnat(ctx: RoastContext) -> Iterator:
     Yields
     ------
     Action | Shard
-        Metadata actions, the FreeSurfer lookup tables, then one shard
-        per subject
+        Metadata actions, then one shard per subject (its scans) and one
+        per FreeSurfer archive, and the FreeSurfer lookup tables
     """
     csv = ctx.source / PHENOTYPES_XNAT
     yield from roast_meta(ctx, [csv] if csv.is_file() else [],
                           PHENOTYPES_XNAT)
-    wants_fs = ctx.wants("fs") or ctx.wants("fs-all")
-    if not (wants_raw(ctx) or wants_fs):
+    raw, freesurfer = wants_raw(ctx), wants_fs(ctx)
+    if not (raw or freesurfer):
         return
-    subjects = xnat_subjects(ctx)
+    subjects = {label: folders for label, folders in xnat_subjects(ctx)
+                .items() if ctx.selection.keeps_subject(label)}
     if not subjects:
         yield Fail("no NITRC-IR subject folder (<site>_<id>/*.tar.gz) "
-                   "found", name="raw", tag="raw")
+                   "found for the selected subjects", name="raw", tag="raw")
         return
-    if wants_fs:
-        archives = [a for folders in subjects.values() for f in folders
-                    for a in f.glob("*.tar.gz") if is_freesurfer(a)]
-        if not archives:
-            yield Fail("no FreeSurfer archive found in the subject "
-                       "folders", name=FS_NAME, tag="fs")
+    if raw:
+        ctx.progress(total=len(subjects), tag="subjects")
+        for label, folders in subjects.items():
+            yield Shard(
+                roast_xnat_subject, label, folders, tag="subjects",
+                advance="subjects", id=f"roast/subjects/sub-{label}",
+                unit={"sub": label},
+                inputs=[a for f in folders for a in scan_archives(f)],
+                config=[template_config(ctx, folder_site(f))
+                        for f in folders],
+            )
+    if freesurfer:
+        yield from freesurfer_shards(ctx, subjects)
+
+
+def freesurfer_shards(ctx: RoastContext,
+                      subjects: dict[str, list[Path]]) -> Iterator:
+    """
+    Yield the FreeSurfer work of the selected subjects.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    subjects : dict[str, list[Path]]
+        Selected subjects and their folders
+
+    Yields
+    ------
+    Shard | Fail
+        One shard per subject that has a FreeSurfer archive (siblings of
+        the scan shards, so that each is skipped by its own signature),
+        the lookup tables; if there is no archive, a `Fail` when `--keys`
+        names `fs` or `fs-all`, else an info line only
+    """
+    archives = {}
+    for label, folders in subjects.items():
+        found = [a for f in folders for a in sorted(f.glob("*.tar.gz"))
+                 if is_freesurfer(a)]
+        if len(found) > 1:
+            lg.warning(f"sub-{label}: {len(found)} FreeSurfer archives: "
+                       f"{found[0].name} converted, the others skipped")
+        if found:
+            archives[label] = found[0]
+    if not archives:
+        message = ("no FreeSurfer archive found in the folders of the "
+                   "selected subjects")
+        if ctx.options.get("fs_named"):
+            yield Fail(message, name=FS_NAME, tag="fs")
         else:
-            yield Shard(roast_freesurfer_tables, tag="fs")
-    labels = [label for label in subjects
-              if ctx.selection.keeps_subject(label)]
-    ctx.progress(total=len(labels), tag="subjects")
-    for label in labels:
-        folders = subjects[label]
-        yield Shard(
-            roast_xnat_subject, label, folders, tag="subjects",
-            advance="subjects", id=f"roast/subjects/sub-{label}",
-            unit={"sub": label},
-            inputs=[a for f in folders for a in sorted(f.glob("*.tar.gz"))],
-            config=[template_config(ctx, folder_site(f)) for f in folders],
-        )
+            lg.info(f"{message}: FreeSurfer not converted")
+        return
+    yield Shard(roast_freesurfer_tables, tag="fs")
+    ctx.progress(total=len(archives), tag="fs")
+    for label, archive in archives.items():
+        yield Shard(roast_freesurfer, label, archive, tag="fs",
+                    advance="fs", id=f"roast/fs/sub-{label}",
+                    unit={"sub": label}, inputs=[archive])
+
+
+def wants_fs(ctx: RoastContext) -> bool:
+    """Whether FreeSurfer outputs are wanted (`fs`, or `fs-all`)."""
+    return ctx.wants("fs") or ctx.wants("fs-all")
 
 
 def xnat_subjects(ctx: RoastContext) -> dict[str, list[Path]]:
@@ -705,15 +813,26 @@ def xnat_subjects(ctx: RoastContext) -> dict[str, list[Path]]:
     dict[str, list[Path]]
         `{label: [folders]}`, sorted: folders `<site>[_<sample>]_<id>`
         (`Caltech_0051456`, `MaxMun_a_0051330`, `UCLA1_51201`, ids of 5
-        or 7 digits) that hold `*.tar.gz` archives
+        or 7 digits, sites of ABIDE-I) that hold `*.tar.gz` archives;
+        other folders with archives are skipped with a warning
     """
     out = {}
     if not ctx.source.is_dir():
         return out
     for folder in sorted(ctx.source.iterdir()):
+        if not folder.is_dir() or not any(folder.glob("*.tar.gz")):
+            continue
         match = SUBJECT_FOLDER.fullmatch(folder.name)
-        if not (match and folder.is_dir()
-                and any(folder.glob("*.tar.gz"))):
+        site = match["site"] if match else None
+        try:
+            if site is not None:
+                parse_site(site)
+        except TemplateError:
+            site = None
+        if site is None:
+            lg.warning(f"{folder.name}/: not a NITRC-IR subject folder "
+                       f"(<site>[_<sample>]_<id>, an id of 5 or 7 "
+                       f"digits): skipped")
             continue
         out.setdefault(participant_label(match["id"]), []).append(folder)
     return dict(sorted(out.items()))
@@ -721,14 +840,13 @@ def xnat_subjects(ctx: RoastContext) -> dict[str, list[Path]]:
 
 def folder_site(folder: Path) -> str:
     """Site of a subject folder (`MaxMun_a_0051330` -> `MaxMun_a`)."""
-    return SUBJECT_FOLDER.fullmatch(folder.name)["site"] or ""
+    return SUBJECT_FOLDER.fullmatch(folder.name)["site"]
 
 
-def is_freesurfer(archive: Path) -> bool:
-    """Whether an archive holds FreeSurfer outputs (from its name)."""
-    stem = archive.name[:-len(".tar.gz")].lower()
-    return "freesurfer" in stem or bool(re.search(r"(^|[-_])fs($|[-_])",
-                                                  stem))
+def scan_archives(folder: Path) -> list[Path]:
+    """Return the archives of a subject folder but FreeSurfer outputs."""
+    return [a for a in sorted(folder.glob("*.tar.gz"))
+            if not is_freesurfer(a)]
 
 
 def xnat_scan(site: str, archive: Path) -> tuple | None:
@@ -763,9 +881,9 @@ def xnat_scan(site: str, archive: Path) -> tuple | None:
 
 
 def roast_xnat_subject(ctx: RoastContext, sub: str,
-                       folders: list[Path]) -> Iterator:
+                       folders: list[Path]) -> Iterator[Action]:
     """
-    Convert the archives of one subject (a shard).
+    Convert the scan archives of one subject (a shard).
 
     Parameters
     ----------
@@ -778,19 +896,13 @@ def roast_xnat_subject(ctx: RoastContext, sub: str,
 
     Yields
     ------
-    Action | Shard
-        Per wanted scan: its image, then its sidecar; FreeSurfer
-        outputs (unpacked, then converted by a shard)
+    Action
+        Per wanted scan: its image, then its sidecar
     """
-    wants_fs = ctx.wants("fs") or ctx.wants("fs-all")
     seen = set()
     for folder in folders:
         site = folder_site(folder)
-        for archive in sorted(folder.glob("*.tar.gz")):
-            if is_freesurfer(archive):
-                if wants_fs:
-                    yield from roast_freesurfer(ctx, sub, archive)
-                continue
+        for archive in scan_archives(folder):
             scan = xnat_scan(site, archive)
             if scan is None:
                 continue
@@ -856,27 +968,106 @@ def roast_xnat_scan(ctx: RoastContext, sub: str, site: str, archive: Path,
 #   FreeSurfer (keys `fs`, `fs-all`)
 # ----------------------------------------------------------------------
 
+class FreeSurferTree:
+    """
+    Locate the FreeSurfer subject in the members of an archive.
+
+    Members may sit under any number of wrapper folders
+    (`<exp>/assessors/<label>/<resource>/files/<subject>/mri/...`). The
+    root of a member is the folder just before its deepest FreeSurfer
+    folder (`mri`, `surf`, `label`, `stats`, `scripts`, `touch`), so a
+    wrapper named like one does not re-root the tree. Members are read
+    in archive order (one pass): the first root is the subject's;
+    members of another root (a second tree, e.g. `fsaverage/`) are
+    skipped with a warning, as are template subjects, absolute paths and
+    paths with `..`.
+
+    Parameters
+    ----------
+    archive : str
+        Name of the archive (for the warnings)
+    """
+
+    def __init__(self, archive: str = ""):
+        self.archive = archive
+        self.root: tuple | None = None
+        self.others: set = set()
+
+    @staticmethod
+    def split(member: str) -> tuple[tuple, PurePosixPath] | None:
+        """
+        Split a member into its root and its path in the tree.
+
+        Parameters
+        ----------
+        member : str
+            Name of the member
+
+        Returns
+        -------
+        (root, relpath) | None
+            None if the member is in no FreeSurfer folder, or its path is
+            absolute or has `..`
+        """
+        path = PurePosixPath(member)
+        parts = path.parts
+        if path.is_absolute() or ".." in parts:
+            return None
+        anchors = [i for i, part in enumerate(parts[:-1]) if part in FS_DIRS]
+        if not anchors:
+            return None
+        i = anchors[-1]
+        return parts[:i], PurePosixPath(*parts[i:])
+
+    def relpath(self, member: str) -> PurePosixPath | None:
+        """
+        Path of a member in the subject's tree.
+
+        Parameters
+        ----------
+        member : str
+            Name of the member
+
+        Returns
+        -------
+        PurePosixPath | None
+            None for members outside it (warned once per other tree)
+        """
+        split = self.split(member)
+        if split is None:
+            return None
+        root, rel = split
+        if root == self.root:
+            return rel
+        template = bool(root) and FS_TEMPLATES.fullmatch(root[-1])
+        if self.root is None and not template:
+            self.root = root
+            return rel
+        if root not in self.others:
+            self.others.add(root)
+            lg.warning(f"{self.archive}: FreeSurfer tree "
+                       f"{'/'.join(root) or '.'}/ skipped (the subject's "
+                       f"is {'/'.join(self.root or ()) or '.'}/)")
+        return None
+
+
 def fs_relpath(member: str) -> PurePosixPath | None:
     """
-    Path of a member in its FreeSurfer subject (`.../mri/aseg.mgz`).
+    Path of a member in its FreeSurfer subject (`mri/aseg.mgz`).
 
     Parameters
     ----------
     member : str
         Member of a FreeSurfer archive, under any number of folders
-        (`<exp>/assessors/<label>/<resource>/files/<subject>/mri/...`)
 
     Returns
     -------
     PurePosixPath | None
-        From the first FreeSurfer folder (`mri`, `surf`, `label`...)
-        on; None if there is none
+        From its deepest FreeSurfer folder on (`FreeSurferTree.split`);
+        None if there is none
     """
-    parts = PurePosixPath(member).parts
-    for i, part in enumerate(parts[:-1]):
-        if part in FS_DIRS:
-            return PurePosixPath(*parts[i:])
-    return None
+    split = FreeSurferTree.split(member)
+    return None if split is None else split[1]
 
 
 def fs_source(ctx: RoastContext, sub: str) -> Path:
@@ -903,11 +1094,13 @@ def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
 
 
 def roast_freesurfer(ctx: RoastContext, sub: str,
-                     archive: Path) -> Iterator:
+                     archive: Path) -> Iterator[Action]:
     """
-    Unpack a FreeSurfer subject, then convert it.
+    Unpack a FreeSurfer subject, then convert it (a shard).
 
-    Only the files that BIDS describes are unpacked, unless `fs-all`.
+    Only the files that BIDS describes are unpacked, unless `fs-all`;
+    with `--sidecars only`, nothing is unpacked: the sidecars are
+    written from the names of the members.
 
     Parameters
     ----------
@@ -920,14 +1113,33 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
 
     Yields
     ------
-    Action | Shard
-        The unpacking (`staging`), then the shard that converts it
+    Action
+        The unpacking (`staging`), then the converted files
     """
+    drv = ctx.layout.derivative(FS_NAME)
     src = fs_source(ctx, sub)
+    tree = FreeSurferTree(f"{archive.parent.name}/{archive.name}")
+    t1 = f"bids:raw:sub-{sub}/anat/sub-{sub}_T1w.nii.gz"
+    dst = drv.root / f"sub-{sub}"
+    if ctx.json == "only":
+        # sidecars only: the names of the members are enough
+        try:
+            with TarArchive(archive) as tar:
+                names = tar.getnames()
+        except ARCHIVE_ERRORS as e:
+            yield Fail(f"{archive.parent.name}/{archive.name}: cannot be "
+                       f"read ({type(e).__name__}: {e})", name=archive.name,
+                       tag="fs")
+            return
+        members = {src.joinpath(*rel.parts) for rel in
+                   map(tree.relpath, names) if rel is not None}
+        yield from fs.bidsify(src, dst, [t1], json=ctx.json,
+                              exists=members.__contains__)
+        return
     everything = ctx.wants("fs-all")
 
     def rename(member: str) -> Path | None:
-        rel = fs_relpath(member)
+        rel = tree.relpath(member)
         if rel is None:
             return None
         if not everything and not rel.as_posix().endswith(
@@ -935,50 +1147,13 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
             return None
         return src.joinpath(*rel.parts)
 
-    if ctx.json == "only" and not everything:
-        # sidecars only: the names of the members are enough
-        yield Shard(bidsify_freesurfer, sub, archive, tag="fs")
-        return
     # unpacked files are inputs of the conversion (`staging`: the JSON
     # policy does not apply to them)
     yield ExtractMembers(archive, Claim(src), rename, tag="fs",
                          staging=True)
-    # (the shard runs after the tree is unpacked: the engine runs each
-    # action before asking for the next item)
-    yield Shard(bidsify_freesurfer, sub, tag="fs")
-
-
-def bidsify_freesurfer(ctx: RoastContext, sub: str,
-                       archive: Path | None = None) -> Iterator[Action]:
-    """
-    Convert an unpacked FreeSurfer subject to BIDS derivatives.
-
-    Parameters
-    ----------
-    ctx : RoastContext
-        Context of the roast
-    sub : str
-        Subject label
-    archive : Path, optional
-        Its archive: only the sidecars are written, from the names of its
-        members (nothing is unpacked)
-
-    Yields
-    ------
-    Action
-        Images, surfaces and their sidecars (`freesurfer.bidsify`)
-    """
-    drv = ctx.layout.derivative(FS_NAME)
-    src = fs_source(ctx, sub)
-    exists = None
-    if archive is not None:
-        with TarArchive(archive) as tar:
-            members = {src.joinpath(*rel.parts) for rel in
-                       map(fs_relpath, tar.getnames()) if rel is not None}
-        exists = members.__contains__
-    t1 = f"bids:raw:sub-{sub}/anat/sub-{sub}_T1w.nii.gz"
-    yield from fs.bidsify(src, drv.root / f"sub-{sub}", [t1],
-                          json=ctx.json, exists=exists)
+    # (converted once the tree is unpacked: the engine runs each action
+    # before asking for the next one)
+    yield from fs.bidsify(src, dst, [t1], json=ctx.json)
 
 
 #: Roaster of each source

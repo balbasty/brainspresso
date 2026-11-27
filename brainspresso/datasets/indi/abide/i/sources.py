@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from brainspresso.datasets.indi.abide.i.roaster import (
     SCAN_ID,
+    is_freesurfer,
     roast_nitrc,
     roast_xnat,
 )
@@ -211,10 +212,10 @@ def assessor_keys(assessor: dict) -> tuple[str, ...]:
     """
     Keys of an XNAT assessor record.
 
-    FreeSurfer outputs are `fs` and `fs-all` (label `...freesurfer...`
-    or `...-fs`, or type `fs:*`: the exact label on NITRC-IR is not
-    confirmed), the others are named by the suffix of their label
-    (`ASSESSOR_KEYS`).
+    FreeSurfer outputs are `fs` and `fs-all` (`is_freesurfer`: label
+    `...freesurfer...`, `..._fs`, `...-fs`; or type `fs:*`; the exact
+    label on NITRC-IR is not confirmed), the others are named by the
+    suffix of their label (`ASSESSOR_KEYS`).
 
     Parameters
     ----------
@@ -225,13 +226,17 @@ def assessor_keys(assessor: dict) -> tuple[str, ...]:
     -------
     tuple[str]
     """
-    label = str(assessor.get("label", ""))
-    kind = str(assessor.get("xsiType", assessor.get("type", "")))
-    suffix = label.split("-")[-1]
-    if "freesurfer" in label.lower() or suffix.lower() == "fs" \
-            or kind.lower().startswith("fs:"):
+    if is_freesurfer_assessor(assessor):
         return ("fs", "fs-all")
+    suffix = str(assessor.get("label", "")).split("-")[-1]
     return (ASSESSOR_KEYS.get(suffix, suffix),)
+
+
+def is_freesurfer_assessor(assessor: dict) -> bool:
+    """Whether an XNAT assessor record holds FreeSurfer outputs."""
+    kind = str(assessor.get("xsiType", assessor.get("type", "")))
+    return is_freesurfer(str(assessor.get("label", ""))) \
+        or kind.lower().startswith("fs:")
 
 
 class XNATImages(XNAT):
@@ -260,9 +265,19 @@ class XNATImages(XNAT):
         return any(wants(key) for key in assessor_keys(assessor))
 
     def local_path(self, entry: RemoteEntry) -> str:
-        """Path `<subject>/<scan or assessor>.tar.gz`."""
-        # <subject>/<scan or assessor>.tar.gz (experiment = subject)
-        return f"{entry.meta['subject']}/{entry.meta['id']}.tar.gz"
+        """
+        Path `<subject>/<scan or assessor>.tar.gz` (experiment = subject).
+
+        A FreeSurfer assessor whose label the roast would not recognise
+        (`is_freesurfer`, e.g. one known by its type only) is saved as
+        `<subject>/<label>-freesurfer.tar.gz`.
+        """
+        name = str(entry.meta["id"])
+        record = entry.meta.get("record") or {}
+        if entry.meta.get("type") == "assessor" and \
+                is_freesurfer_assessor(record) and not is_freesurfer(name):
+            name += "-freesurfer"
+        return f"{entry.meta['subject']}/{name}.tar.gz"
 
 
 class XNATMeta(NITRC):

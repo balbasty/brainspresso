@@ -525,7 +525,8 @@ def test_adhd200_bids_flag(tmp_path, monkeypatch, caplog, flags, value):
 def test_group_defaults_cover_all():
     # ("all",) and groups that cover every key count as "no --keys"
     abide = ABIDE1().keys_for("harvest")
-    assert abide.effective(("all",), ["fs"]) == ((), ("fs",))
+    # (excluding `fs` excludes its add-on `fs-all`)
+    assert abide.effective(("all",), ["fs"]) == ((), ("fs", "fs-all"))
     adhd = ADHD200().keys_for("harvest")
     assert adhd.effective(("all",), ["mriqc"]) == ((), ("mriqc",))
     # Bullitt's default leaves `phantoms` out: it stays a selection

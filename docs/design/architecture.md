@@ -620,9 +620,15 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   in a gz stream decompresses from the start again. The templates a
   shard may use (path, sha256) are its `Shard.config`; a corrupt
   archive is a `Fail` of its own shard (the others run). FreeSurfer
-  trees packed under any number of wrapper folders are found by their
-  first FreeSurfer folder (`mri`, `surf`, `label`...), not by a fixed
-  number of leading parts.
+  trees packed under any number of wrapper folders are rooted just
+  before the deepest FreeSurfer folder of each member (`mri`, `surf`,
+  `label`, `stats`, `scripts`, `touch`), not by a fixed number of
+  leading parts; the first root seen is the subject's, other trees
+  (`fsaverage/`), absolute paths and `..` are skipped with a warning.
+  Work that a shard would hand to a child shard (FreeSurfer conversion
+  after unpacking) is yielded as a sibling shard by the roaster, or as
+  actions after the unpacking: a shard that yields shards is never
+  skipped by signature.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
@@ -958,7 +964,10 @@ choice, or the default `--keys` of a spec whose default is "all but
 `off`" (groups expanded to their leaves, `KeySpec.leaves`: `all`),
 counts as no `--keys` (so `--exclude-keys` alone means "all but" and,
 in a roast, keeps the files of no key), and the default
-excludes `off` (IXI roast: `trace` only when named in `--keys`); a
+excludes `off` (IXI roast: `trace` only when named in `--keys`);
+`implies=((add_on, key),)` makes an add-on follow its key (ABIDE-I
+`fs-all`: `--keys fs-all` also selects `fs`, `--exclude-keys fs` also
+excludes `fs-all`, in harvest and roast); a
 default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
@@ -2195,7 +2204,10 @@ Each step lands as commits on the refactor branch with its tests green.
   tell apart are sibling leaves of a `KeyAliases`, never a group and its
   only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
   missing input that the selection needs is a counted `Fail` (one per
-  missing file, not one per output it would feed); a missing sidecar
+  missing file, not one per output it would feed; for optional inputs
+  such as derivatives, only when `--keys` names them, as OASIS-I discs
+  and ABIDE-I FreeSurfer archives; otherwise an info line); a missing
+  sidecar
   template is one only when sidecars are written; tables are written
   complete to `<state>/orig/` (participants) with `n/a` for missing
   values, `participant_id` with its `sub-` prefix, blank rows skipped and
@@ -2281,6 +2293,11 @@ up as an XPASS failure once fixed (then drop the marker).
   (all fixed in the port, step 5)
 * ~~ABIDE-I NITRC: `acq-hires_T1w.json` (UCLA `anat_2`) is never
   used.~~ (step 5: `sub-<label>_acq-hires_T1w`)
+  Open (owner decision): the template `UCLA_{1,2}/acq-hires_T1w.json`
+  describes a "Matched Bandwidth HiRes" 2D spin-echo EPI
+  (`ep_seg_se`, `SliceTiming`, `PhaseEncodingDirection`), probably not
+  a T1w: the suffix (`T1w`, `T2w` or another) is to be decided; the name
+  is kept until then.
 * ~~`set(*map(lower_keys, exclude_keys))` raises with more than one
   exclude key: ABIDE-I/II~~ (fixed in OASIS-III, step 2b-ii, with its
   sessions table name; in ABIDE-I/II in step 4, where `--exclude-keys`
@@ -2663,3 +2680,16 @@ up as an XPASS failure once fixed (then drop the marker).
   assessors and the members of the server-built archives are not
   confirmed (login needed): names with `freesurfer`, `-fs` or type
   `fs:*` are accepted, FreeSurfer trees found under any wrapper folders.
+  Review round 1 of #33: `fs-all` is off by default (only when named;
+  `--sidecars only` never unpacks) and an add-on of `fs` (`KeySpec(
+  implies=)`: `--exclude-keys fs` excludes both, `--keys fs-all` implies
+  `fs`, harvest and roast); a missing FreeSurfer archive is an error
+  only when `--keys` names `fs`/`fs-all` (`Dataset.roast_options`),
+  looked for in the selected subjects only; one FreeSurfer predicate
+  for harvest and roast (`roaster.is_freesurfer`; an assessor known by
+  its type only is saved as `<label>-freesurfer.tar.gz`); FreeSurfer
+  trees rooted at the deepest FreeSurfer folder, other trees and `..`
+  skipped; subject folders need an ABIDE-I site and an id of 5 or 7
+  digits (others warned); FreeSurfer work is one sibling shard per
+  subject (`roast/fs/sub-<label>`), so re-runs skip it. Open: the
+  suffix of UCLA `acq-hires` (§8, known bugs).

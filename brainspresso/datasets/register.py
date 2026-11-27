@@ -17,17 +17,20 @@ User errors (`USER_ERRORS`) are printed without a traceback (exit
 status 1); other exceptions keep theirs. Tracebacks always go to the
 log files (`--log`), and are printed with `--level debug`.
 """
+import dataclasses
 import functools
 import inspect
 import logging
 import sys
 import traceback
+import typing
 from typing import Annotated, Callable
 
 from cyclopts import App, Parameter
 
 from brainspresso.actions.locks import LockError
 from brainspresso.bids.layout import LayoutError
+from brainspresso.config import OUT, PATH, OptionInfo
 from brainspresso.datasets import options as opt
 from brainspresso.datasets.base import Dataset
 from brainspresso.errors import UsageError
@@ -107,6 +110,117 @@ def _docstring(dataset: Dataset, command: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def command_groups(dataset: Dataset, command: str) -> dict[str, type]:
+    """
+    Option groups of a command, with the choices of the dataset.
+
+    Parameters
+    ----------
+    dataset : Dataset
+    command : str
+
+    Returns
+    -------
+    dict[str, type]
+        Parameter name -> group (`OptionGroup.for_dataset`)
+    """
+    groups = {name: opt.STANDARD[name] for name in dataset.groups(command)}
+    groups.update(dataset.options(command))
+    return {name: group.for_dataset(dataset, command)
+            for name, group in groups.items()}
+
+
+def command_names(dataset: Dataset) -> tuple[str, ...]:
+    """
+    Return the standard commands that `register` builds.
+
+    Parameters
+    ----------
+    dataset : Dataset
+
+    Returns
+    -------
+    tuple[str]
+    """
+    return tuple(c for c in dataset.commands if c in COMMANDS and (
+        c != "roast" or dataset.has_roast()))
+
+
+def _flag_names(hint) -> tuple[str, ...]:
+    """Long names of a field (`Parameter(name=...)`), without `--`."""
+    names = ()
+    for meta in getattr(hint, "__metadata__", ()):
+        if isinstance(meta, Parameter) and meta.name:
+            names = (meta.name,) if isinstance(meta.name, str) \
+                else tuple(meta.name)
+    return tuple(n[2:] for n in names if n.startswith("--"))
+
+
+def config_options(dataset: Dataset, command: str
+                   ) -> dict[str, OptionInfo]:
+    """
+    Options of a command as config keys (`brainspresso.config`).
+
+    Parameters
+    ----------
+    dataset : Dataset
+    command : str
+
+    Returns
+    -------
+    dict[str, OptionInfo]
+        Key (the long flag without `--`) -> option; empty if `register`
+        does not build the command
+    """
+    if command not in command_names(dataset):
+        return {}
+    out = {} if command == "info" else {"path": PATH, "out": OUT}
+    for name, group in command_groups(dataset, command).items():
+        hints = opt.field_hints(group)
+        fields = {}
+        for f in dataclasses.fields(group):
+            hint = hints[f.name]
+            base = hint.__origin__ if hasattr(hint, "__metadata__") \
+                else hint
+            fields[f.name] = (_flag_names(hint) or (
+                f.name.replace("_", "-"),))[0]
+            args = typing.get_args(base)
+            is_list = typing.get_origin(base) in (tuple, list)
+            fields[f.name] = OptionInfo(
+                fields[f.name], f.name, name, f.default, is_list=is_list,
+                is_bool=base is bool or bool in args,
+                choices=_choices(args[0] if is_list and args else base),
+            )
+        # an alias and the fields it stands for are one option
+        pairs = []
+        for old, (new, instead) in group.deprecated.items():
+            new = (new,) if isinstance(new, str) else tuple(new)
+            fields[old] = dataclasses.replace(
+                fields[old], deprecated=instead,
+                instead=tuple(fields[n].key for n in new))
+            members = {old, *new}
+            for other in [p for p in pairs if p & members]:
+                pairs.remove(other)
+                members |= other
+            pairs.append(members)
+        for members in pairs:
+            for name in members:
+                fields[name] = dataclasses.replace(
+                    fields[name], aliases=tuple(sorted(
+                        fields[m].key for m in members if m != name)))
+        out.update({o.key: o for o in fields.values()})
+    return out
+
+
+def _choices(hint) -> tuple[str, ...] | None:
+    """Values of a `Literal` (in a union too), else None."""
+    if typing.get_origin(hint) is typing.Literal:
+        return tuple(str(v) for v in typing.get_args(hint))
+    values = [_choices(a) for a in typing.get_args(hint)
+              if typing.get_origin(a) is typing.Literal]
+    return tuple(v for vs in values for v in vs) if values else None
+
+
 def build_command(dataset: Dataset, command: str) -> Callable:
     """
     Build the function of a standard command (harvest, roast...).
@@ -130,10 +244,7 @@ def build_command(dataset: Dataset, command: str) -> Callable:
               annotation=str | None),
             P("out", P.KEYWORD_ONLY, default=None, annotation=str | None),
         ]
-    groups = {name: opt.STANDARD[name] for name in dataset.groups(command)}
-    groups.update(dataset.options(command))
-    for name, group in groups.items():
-        group = group.for_dataset(dataset, command)
+    for name, group in command_groups(dataset, command).items():
         params.append(P(name, P.KEYWORD_ONLY, default=None,
                         annotation=group | None))
     signature = inspect.Signature(params)

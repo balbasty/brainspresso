@@ -229,7 +229,7 @@ class Action:
       policy of the layer that runs the action (`actions.engine.Policy`;
       roast computes it from the names of the outputs with
       `bids.kinds.default_kind` when it is not given, for its
-      `--json yes|no|only` policy);
+      sidecar policy, `--sidecars yes|no|only`);
     * `tag` groups actions in the progress display;
     * `staging=True` marks intermediate files (e.g. a FreeSurfer tree
       unpacked to `derivatives/<fs>/sourcedata/`, input of later

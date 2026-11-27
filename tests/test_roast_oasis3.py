@@ -156,7 +156,7 @@ def test_freesurfer(root):
     assert raw_tree(root) == set()                  # no raw key
 
     roast(root, keys={"fs-all"}, json="only")
-    # unpacked files are inputs: --json only does not drop them
+    # unpacked files are inputs: --sidecars only does not drop them
     assert (unpacked / "stats" / "aseg.stats").exists()
 
 
@@ -179,7 +179,7 @@ def test_sessions_from_sourcedata_trimmed(root):
 
 
 def test_freesurfer_sidecars_only(root):
-    """`--json only --keys fs`: sidecars from the member names, nothing
+    """`--sidecars only --keys fs`: sidecars from the member names, nothing
     unpacked (fs-all unpacks the whole tree, see `test_freesurfer`)"""
     add_freesurfer(root)
     report = roast(root, keys={"fs"}, json="only", display=False)

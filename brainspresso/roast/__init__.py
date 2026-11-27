@@ -3,7 +3,7 @@ Roast: convert source data into a BIDS dataset.
 
 The roast layer of the action engine (`actions.engine`):
 
-* `context`: `RoastContext` (layout, key selection, `--json`, templates,
+* `context`: `RoastContext` (layout, key selection, sidecars, templates,
   source folder), `make_context`, `as_list`;
 * `policy`: `RoastPolicy`, the acceptance policy (selection, JSON
   policy, category folders, kinds from `bids.kinds`, `IfExists` of

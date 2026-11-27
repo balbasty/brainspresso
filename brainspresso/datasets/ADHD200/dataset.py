@@ -28,6 +28,8 @@ ADHD-200 dataset (attention deficit hyperactivity disorder)
 class BidsCopyOptions(OptionGroup):
     """`--bids/--no-bids` (deprecated alias: `--bidsify/--no-bidsify`)."""
 
+    deprecated = {"bidsify": ("bids", "--bids/--no-bids")}
+
     bids: Annotated[bool, Parameter(
         help="Place the files of the BIDS-like copy of the bucket in the "
         "raw BIDS dataset (else in `sourcedata/`)"

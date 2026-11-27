@@ -44,7 +44,11 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator, Literal
 
-from brainspresso.actions.locks import forget_datasets
+from brainspresso.actions.locks import (
+    LOCKS_DIR,
+    forget_datasets,
+    is_state_folder,
+)
 
 lg = getLogger(__name__)
 
@@ -277,8 +281,11 @@ class Layout:
             The state folder
         """
         state = Path(self.state)
-        if not state.is_dir():
-            state.mkdir(parents=True, exist_ok=True)
+        if not is_state_folder(self.root):
+            # new, or only a config file (`.brainspresso/config.toml`):
+            # `locks/` makes it a dataset (`actions.locks.is_state_folder`)
+            # before any lock is taken
+            (state / LOCKS_DIR).mkdir(parents=True, exist_ok=True)
             # a nearer dataset for the folders already cached
             forget_datasets()
         return state
@@ -680,6 +687,31 @@ class SitesLayout(Layout):
 
 
 _KINDS = {"study": StudyLayout, "flat": FlatLayout}
+
+
+def is_sites_parent(root: str | os.PathLike) -> bool:
+    """
+    Whether a folder is the parent of one dataset per site.
+
+    From its manifest, else from its tree if it has a real state folder
+    (`actions.locks.is_state_folder`): a `.brainspresso/` folder that
+    only holds a config file (the root of all datasets) does not make
+    the datasets under it sites.
+
+    Parameters
+    ----------
+    root : path
+
+    Returns
+    -------
+    bool
+    """
+    root = _path(root)
+    found = _from_manifest(root)
+    if found is not None:
+        return isinstance(found, SitesLayout)
+    return is_state_folder(root) and isinstance(_from_tree(root),
+                                                SitesLayout)
 
 
 def make_layout(kind: str | None, root: str | os.PathLike, **kwargs) -> Layout:

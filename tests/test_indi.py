@@ -789,8 +789,10 @@ def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
     assert (raw(root, "ICBM") / "sub-11111").is_dir()
 
 
-def test_fcon1000_site_lock_waits(tmp_path, monkeypatch):
-    # the run lock of a new site takes the `--wait` of the command
+@pytest.mark.parametrize("flag", ["--lock-wait", "--wait"])
+def test_fcon1000_site_lock_waits(tmp_path, monkeypatch, caplog, flag):
+    # the run lock of a new site takes the `--lock-wait` of the command
+    # (or of the deprecated `--wait`, logged)
     waits = []
     original = indi.run_lock
 
@@ -800,5 +802,8 @@ def test_fcon1000_site_lock_waits(tmp_path, monkeypatch):
 
     monkeypatch.setattr(indi, "run_lock", spy)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "--wait", 3)
+       "--sites", "ICBM", flag, 3)
     assert waits == [3]
+    deprecated = "--wait is deprecated: use --lock-wait"
+    assert (deprecated in caplog.text) is (flag == "--wait")
+    assert caplog.text.count(deprecated) <= 1

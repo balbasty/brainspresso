@@ -702,7 +702,7 @@ def test_pristine_tables_follow_new_harvests(layout):
 
 def test_kinds_and_json_policy(layout):
     """bval/bvec are metadata written under every policy; nothing hides
-    a `Fail`; tables ignore --json"""
+    a `Fail`; tables ignore the sidecar policy"""
     from brainspresso.actions import Fail
     from brainspresso.bids.kinds import default_kind
     raw = layout.raw

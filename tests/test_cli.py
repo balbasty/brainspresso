@@ -15,7 +15,7 @@ from typing import Annotated
 
 import pytest
 from cli_utils import bx
-from cyclopts import Parameter
+from cyclopts import CycloptsError, Parameter
 
 from brainspresso import cli
 from brainspresso.bids.harvest import record_run
@@ -76,6 +76,9 @@ EXCEPTIONS = {
     ("*", "harvest", "--site-layout"): "hidden",
     # renamed `--bids/--no-bids` (hidden deprecated alias)
     ("adhd200", "harvest", "--bidsify"): "hidden",
+    # `--sidecars yes|no|only`; `--json VALUE` (always a value) and
+    # `--no-json`: hidden deprecated aliases
+    ("*", "roast", "--json"): "hidden",
 }
 
 
@@ -570,3 +573,162 @@ def test_subject_file_with_colon(tmp_path):
     subs = tmp_path / "a:b.txt"
     subs.write_text("2\n12\n")
     assert IXI().labels([str(subs)]) == {"002", "012"}
+
+
+# ----------------------------------------------------------------------
+#   Roast --sidecars (`--json VALUE`, `--no-json`: deprecated aliases)
+# ----------------------------------------------------------------------
+
+def _roast(tmp_path, *tokens, dataset=IXI):
+    """`Args` of `bx <dataset> roast <tokens>` (parsed, nothing runs)."""
+    app = register(dataset())
+    _, bound, _ = app.parse_args(["roast", str(tmp_path), *tokens],
+                                 exit_on_error=False, print_error=False)
+    groups = {k: v for k, v in bound.arguments.items()
+              if k not in ("path", "out") and v is not None}
+    return Args.of(dataset(), "roast", **groups)
+
+
+#: tokens -> policy of the roasters, and the old `--json` that meant it
+SIDECARS = [
+    ([], "yes", []),
+    (["--sidecars", "yes"], "yes", ["--json", "yes"]),
+    (["--sidecars", "no"], "no", ["--json", "no"]),
+    (["--sidecars", "only"], "only", ["--json", "only"]),
+    (["--json", "yes"], "yes", ["--json", "yes"]),
+    (["--json", "no"], "no", ["--json", "no"]),
+    (["--json", "only"], "only", ["--json", "only"]),
+    (["--no-json"], "no", ["--no-json"]),
+    (["--json", "no", "--sidecars", "no"], "no", ["--json", "no"]),
+    (["--json", "only", "--sidecars", "only"], "only", ["--json", "only"]),
+    (["--no-json", "--sidecars", "no"], "no", ["--no-json"]),
+    (["--json", "no", "--no-json"], "no", ["--no-json"]),
+]
+
+#: the old `--json` forms -> their policy (step 3: `Literal | bool`)
+OLD_JSON = {("--json", "yes"): "yes", ("--json", "no"): "no",
+            ("--json", "only"): "only", ("--no-json",): "no", (): "yes"}
+
+
+@pytest.mark.parametrize("tokens,policy,old", SIDECARS)
+def test_sidecars(tmp_path, tokens, policy, old):
+    args = _roast(tmp_path, *tokens)
+    assert args.roast.sidecar_policy == policy
+    # the policy of the old `--json` that meant the same
+    assert OLD_JSON[tuple(old)] == policy
+
+
+@pytest.mark.parametrize("tokens", [
+    ["--json", "yes", "--sidecars", "no"],
+    ["--json", "only", "--sidecars", "no"],
+    ["--json", "no", "--sidecars", "only"],
+    ["--no-json", "--sidecars", "only"],
+    ["--no-json", "--sidecars", "yes"],
+    ["--json", "only", "--no-json"],
+    ["--json", "yes", "--no-json"],
+])
+def test_sidecars_conflict(tmp_path, tokens):
+    args = _roast(tmp_path, *tokens)
+    with pytest.raises(UsageError, match="contradict"):
+        args.roast.sidecar_policy
+    # checked before anything is written
+    with pytest.raises(UsageError):
+        IXI().check("roast", args)
+
+
+@pytest.mark.parametrize("tokens", [
+    ["--sidecars"], ["--sidecars", "maybe"], ["--json"],
+    ["--json", "maybe"], ["--no-sidecars"], ["--sidecars-only"],
+    ["--no-no-json"],
+])
+def test_sidecars_bad(tmp_path, tokens):
+    with pytest.raises(CycloptsError):
+        _roast(tmp_path, *tokens)
+
+
+def test_json_aliases_are_deprecated(tmp_path, caplog):
+    args = _roast(tmp_path, "--json", "only")
+    assert args.roast.sidecar_policy == "only"
+    assert args.roast.sidecar_policy == "only"
+    assert caplog.text.count("--json is deprecated: use --sidecars") == 1
+    args = _roast(tmp_path, "--no-json")
+    assert args.roast.sidecar_policy == "no"
+    assert caplog.text.count(
+        "--no-json is deprecated: use --sidecars no") == 1
+    snapshot = snapshot_of(register(IXI()), "roast")
+    assert "--json" not in snapshot and "--no-json" not in snapshot
+    assert snapshot["--sidecars"]["names"] == ["--sidecars"]
+    assert sorted(snapshot["--sidecars"]["choices"]) == ["no", "only",
+                                                         "yes"]
+
+
+@pytest.mark.parametrize("name,dataset", [
+    ("cobre", COBRE), ("abide1", ABIDE1), ("abide2", ABIDE2),
+    ("bullitt", Bullitt), ("oasis3", OASIS3),
+])
+def test_sidecars_of_every_roast(tmp_path, name, dataset):
+    # legacy roasters (`json=args.roast.sidecar_policy`) and the engine
+    for tokens, policy in ((["--sidecars", "only"], "only"),
+                           (["--no-json"], "no")):
+        assert _roast(tmp_path, *tokens, dataset=dataset
+                      ).roast.sidecar_policy == policy
+
+
+# ----------------------------------------------------------------------
+#   --lock-wait (`--wait SECONDS`: deprecated on harvest and compost)
+# ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("command,group", [
+    ("harvest", "harvest"), ("roast", "roast"), ("compost", "compost"),
+])
+def test_lock_wait(tmp_path, command, group):
+    app = register(IXI())
+    _, bound, _ = app.parse_args([command, str(tmp_path), "--lock-wait",
+                                  "2.5"], exit_on_error=False,
+                                 print_error=False)
+    args = Args.of(IXI(), command, **{group: bound.arguments[group]})
+    assert args.lock_wait == 2.5
+
+
+@pytest.mark.parametrize("command", ["harvest", "compost"])
+def test_wait_is_a_deprecated_alias(tmp_path, caplog, command):
+    app = register(IXI())
+    _, bound, _ = app.parse_args([command, str(tmp_path), "--wait", "3"],
+                                 exit_on_error=False, print_error=False)
+    args = Args.of(IXI(), command, **{command: bound.arguments[command]})
+    assert args.lock_wait == 3
+    assert args.lock_wait == 3
+    assert caplog.text.count("--wait is deprecated: use --lock-wait") == 1
+    assert "--wait" not in snapshot_of(app, command)    # hidden
+
+
+def test_roast_has_no_wait(tmp_path):
+    # reserved for the execution flag `--wait/--detach` (grind, §7)
+    app = register(IXI())
+    with pytest.raises(CycloptsError):
+        app.parse_args(["roast", str(tmp_path), "--wait", "3"],
+                       exit_on_error=False, print_error=False)
+
+
+@pytest.mark.parametrize("command", ["harvest", "compost"])
+@pytest.mark.parametrize("tokens,expected", [
+    (["--wait", "3", "--lock-wait", "3"], 3),
+    (["--wait", "3", "--lock-wait", "4"], None),
+    (["--wait", "0", "--lock-wait", "4"], None),
+])
+def test_wait_and_lock_wait(tmp_path, command, tokens, expected):
+    app = register(IXI())
+    _, bound, _ = app.parse_args([command, str(tmp_path), *tokens],
+                                 exit_on_error=False, print_error=False)
+    args = Args.of(IXI(), command, **{command: bound.arguments[command]})
+    if expected is None:
+        with pytest.raises(UsageError, match="contradict"):
+            IXI().check(command, args)
+    else:
+        assert args.lock_wait == expected
+
+
+def test_roast_wait_suggests_lock_wait(tmp_path):
+    with pytest.raises(CycloptsError, match="--lock-wait"):
+        register(IXI()).parse_args(["roast", str(tmp_path), "--wait", "3"],
+                                   exit_on_error=False, print_error=False)

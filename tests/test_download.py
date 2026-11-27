@@ -34,6 +34,8 @@ class Server:
     Behaviour of each file is controlled through `self.rules[name]`:
     - "drop_after": int      close the connection after N body bytes
                              (only for the first `drop_times` GETs)
+    - "drop_when": Event     ... once this event is set (`appended`: the
+                             client wrote a chunk), then clear it
     - "fail_status": int     answer this status for the first
                              `fail_times` GETs
     - "retry_after": str     Retry-After header sent with failures
@@ -121,6 +123,15 @@ class Server:
                 k = min(block, len(body) - sent)
                 if drop is not None and sent + k > drop:
                     await resp.write(body[sent:drop])
+                    event = rule.get("drop_when")
+                    if event is not None:
+                        # aiohttp raises the error of a dropped
+                        # connection before it hands over the bytes it
+                        # has buffered: without this, a client that is
+                        # slow to start reading gets none of them
+                        await asyncio.get_running_loop().run_in_executor(
+                            None, event.wait, 30)
+                        event.clear()
                     request.transport.close()
                     return resp
                 await resp.write(body[sent:sent+k])
@@ -205,6 +216,20 @@ async def collect(downloader):
         return [status async for status in downloader]
 
 
+def appended(monkeypatch) -> threading.Event:
+    """An event set each time a download writes a chunk."""
+    from brainspresso.download.incomplete import IncompleteFile
+    event, append = threading.Event(), IncompleteFile.append
+
+    async def spy(self, blob):
+        out = await append(self, blob)
+        event.set()
+        return out
+
+    monkeypatch.setattr(IncompleteFile, "append", spy)
+    return event
+
+
 def fast_retries(monkeypatch):
     import brainspresso.download.downloader as dl
     monkeypatch.setattr(dl, "_retry_delay", lambda exc, attempt: 0.01)
@@ -247,7 +272,8 @@ def test_jobs_limit(srv, tmp_path):
 def test_resume_after_dropped_connection(srv, tmp_path, monkeypatch):
     fast_retries(monkeypatch)
     srv.rules["a"] = {
-        "drop_after": 2**20, "drop_times": 2, "rate": 16 * 2**20
+        "drop_after": 2**20, "drop_times": 2, "rate": 16 * 2**20,
+        "drop_when": appended(monkeypatch),
     }
     statuses = asyncio.run(collect(
         Downloader(f"{srv.url}/a", tmp_path / "a", ifexists="overwrite")
@@ -281,7 +307,7 @@ def test_restart_when_remote_changed(srv, tmp_path, monkeypatch):
     # first attempt gets v0 and is interrupted
     srv.rules["c"] = {
         "drop_after": 2**20, "drop_times": 1, "version": 0,
-        "rate": 16 * 2**20,
+        "rate": 16 * 2**20, "drop_when": appended(monkeypatch),
     }
     dl = Downloader(
         f"{srv.url}/c", tmp_path / "c", ifexists="overwrite", max_attempts=1

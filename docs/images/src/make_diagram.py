@@ -7,7 +7,7 @@ import math
 import sys
 from pathlib import Path
 
-from make_logos import CREAM, CREMA, INK, brainspresso, glyph
+from make_logos import CREAM, CREMA, INK, brainspresso_latte, glyph
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).parent.parent)
 SANS = "Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -131,13 +131,15 @@ def stage(x, n, name, metaphor, cmd, desc, out, icon):
 parts = []
 parts.append(f'<rect width="{W}" height="{H}" rx="24" fill="{BG}"/>')
 # header with the (unthemed) brainspresso mark
-mark = brainspresso(themed=False)
-mark = mark.replace('width="512" height="512"', 'x="40" y="26" width="64" height="64"', 1)
-mark = mark.replace('id="saucer-gap"', 'id="dg-saucer-gap"').replace('url(#saucer-gap)', 'url(#dg-saucer-gap)')
+mark = brainspresso_latte(themed=False)
+mark = mark.replace('width="512" height="512"', 'x="30" y="14" width="96" height="96"', 1)
+for ref in ('saucer-gap', 'poured', 'latte'):    # ids of the nested logo
+    mark = mark.replace(f'id="{ref}"', f'id="dg-{ref}"')
+    mark = mark.replace(f'url(#{ref})', f'url(#dg-{ref})')
 mark = mark.replace('id="title"', 'id="mark-title"').replace('aria-labelledby="title"', 'aria-hidden="true"')
 parts.append(mark)
-parts.append(text(116, 62, 'brainspresso', 28, 800))
-parts.append(text(116, 86, 'From a public dataset to preprocessed derivatives, one command per step.', 16, 400, MUTED))
+parts.append(text(132, 62, 'brainspresso', 28, 800))
+parts.append(text(132, 86, 'From a public dataset to preprocessed derivatives, one command per step.', 16, 400, MUTED))
 
 stages = [
     (40, 1, 'HARVEST', 'pick the cherries', 'bx <ds> harvest',

@@ -1047,3 +1047,40 @@ def test_explicit_lock_file_excludes_plain_lockf_clients(tmp_path):
         assert proc.stdout.readline().strip() == "busy"
         proc.wait(SOON)
     assert lockname.read_bytes() == b""             # (not signed)
+
+
+def child_sleeps(seconds) -> int:
+    time.sleep(seconds)
+    return 0
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="no fork on Windows")
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_fork_closes_retired_entries_that_still_have_users(tmp_path,
+                                                          monkeypatch):
+    """
+    An entry retired while held (as by a failed unlock after a stale
+    verification; simulated) still has its descriptors: the child closes
+    its copies, so the lock goes away when the parent closes its own
+    (a copy kept by the child would keep an OFD lock alive).
+    """
+    path = dataset(tmp_path / "DS") / "x.nii"
+    lock = FileLock(path, exclusive=True).acquire()
+    with locks._registry_lock:
+        entry_of(lock).retired = True       # (retired, users 1)
+    pid = os.fork()
+    if pid == 0:                            # pragma: no cover (child)
+        os._exit(child_sleeps(3))
+    try:
+        # the parent's unlock fails: only closing its descriptor (the
+        # last holder leaves) drops the lock
+        def fails(self, fd):
+            raise OSError(errno.EIO, "I/O error")
+
+        monkeypatch.setattr(type(locks._MECHANISMS[0]), "unlock", fails)
+        with pytest.raises(OSError):
+            lock.release()
+        monkeypatch.undo()
+        assert other_process_gets(path)     # (while the child lives)
+    finally:
+        assert wait_child(pid) == 0

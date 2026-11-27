@@ -564,3 +564,96 @@ def test_download_lock_released_when_closing_fails(tmp_path):
     with pytest.raises(OSError, match="close failed"):
         asyncio.run(go())
     assert_download_lock_free(dst)
+
+
+class _ClosedFile:
+    async def close(self):
+        pass
+
+
+def test_download_lock_released_when_cancelled_while_releasing(tmp_path):
+    """The release, queued in a saturated executor, still runs."""
+    from concurrent.futures import ThreadPoolExecutor
+    dst = tmp_path / "x"
+    busy = threading.Event()
+
+    async def go():
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(1))
+        partial = IncompleteFile(dst)
+        await partial.__aenter__()
+        await partial.file.close()
+        partial.file = _ClosedFile()
+        blocker = loop.run_in_executor(None, busy.wait, 30)  # (saturated)
+        exiting = asyncio.ensure_future(partial.__aexit__(
+            RuntimeError, RuntimeError("interrupted"), None))
+        await asyncio.sleep(0.2)        # (the release is queued)
+        exiting.cancel()
+        busy.set()
+        with pytest.raises(asyncio.CancelledError):
+            await exiting
+        await blocker
+
+    asyncio.run(go())               # (waits for the executor)
+    assert_download_lock_free(dst)
+
+
+def test_download_lock_held_until_the_rename_is_done(tmp_path, monkeypatch):
+    """A cancellation during the rename waits for it before releasing."""
+    dst = tmp_path / "x"
+    install, state = IncompleteFile._install, {}
+
+    def slow_install(self):
+        state["started"] = True
+        time.sleep(0.5)
+        install(self)
+        state["done"] = True
+
+    monkeypatch.setattr(IncompleteFile, "_install", slow_install)
+
+    async def download():
+        async with IncompleteFile(dst) as partial:
+            await partial.append(b"data")
+
+    async def go():
+        task = asyncio.ensure_future(download())
+        while not state.get("started"):
+            await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        # the cancellation arrives once the rename is done, lock released
+        state["at_cancel"] = state.get("done", False)
+        state["free"] = not locks._entries()
+
+    asyncio.run(go())
+    assert state["at_cancel"] and state["free"]
+    assert dst.read_bytes() == b"data"
+    assert not dst.with_name("x.download").exists()
+
+
+def test_release_errors_never_replace_the_original_one(tmp_path,
+                                                       monkeypatch):
+    dst = tmp_path / "x"
+    real_open, real_release = incomplete.aiofiles.open, FileLock.release
+
+    def fail(path, *args, **kwargs):
+        if str(path).endswith(".download"):
+            raise OSError(errno.EIO, "boom")
+        return real_open(path, *args, **kwargs)
+
+    def failing_release(self):
+        real_release(self)
+        raise OSError(errno.EIO, "release failed")
+
+    monkeypatch.setattr(incomplete.aiofiles, "open", fail)
+    monkeypatch.setattr(FileLock, "release", failing_release)
+
+    async def go():
+        async with IncompleteFile(dst):
+            raise AssertionError("not reached")
+
+    with pytest.raises(OSError, match="boom"):
+        asyncio.run(go())
+    monkeypatch.undo()
+    assert_download_lock_free(dst)

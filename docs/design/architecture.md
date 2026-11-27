@@ -410,13 +410,13 @@ layer in 2b-iv):
   holds a **shared** lock for its whole context (any number of readers;
   every reopen inside it sees the same content), a writer an
   **exclusive** one while it writes `<dst>.tmp/<name>` and renames it
-  into place (writers of one file are serialised; `a`/`r+` copy the
-  file under the exclusive lock only). Acquisition polls up to a
-  timeout (`timeout=`, else `$BRAINSPRESSO_LOCK_TIMEOUT`, else 10 min)
-  and raises `LockTimeout` naming the file and its holder (readers, or
-  a writer with its pid and host). Lock files are never created next to
-  files nor deleted by their holders: inside a dataset (nearest
-  ancestor with `.brainspresso/`) they are
+  into place (writers of one file are serialised; `a`/`r+` copy the file
+  under the exclusive lock only). Acquisition polls up to a timeout
+  (`timeout=`, else `$BRAINSPRESSO_LOCK_TIMEOUT`, else 10 min) and
+  raises `LockTimeout` naming the file and its holder (readers, or a
+  writer with its pid and host). Lock files are never created next to
+  files nor deleted by their holders: inside a dataset (nearest ancestor
+  with `.brainspresso/`) they are
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, `h` the SHA-256 of the
   dataset-relative path, on the dataset's filesystem (also across
   cluster nodes where the filesystem shares locks, whatever the mount
@@ -425,15 +425,15 @@ layer in 2b-iv):
   (macOS, Windows) and the Linux, macOS and Windows clients of one
   shared dataset agree on its lock file, at the price of files that
   differ only by case sharing one; lock files of earlier versions were
-  named from the path as given, so runs of an older and a newer
-  version do not exclude each other during an upgrade);
-  outside datasets (package templates, other source folders) in a
-  private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
+  named from the path as given, so runs of an older and a newer version
+  do not exclude each other during an upgrade); outside datasets
+  (package templates, other source folders) in a private per-user local
+  folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
-  `<tmp>/brainspresso-<uid>/locks`), which protects one user's
-  processes on one machine. A reader that cannot create or open its
-  lock file (read-only state folder) reads without a lock; a writer
-  raises `LockError`, as does a filesystem that refuses locks. Only
+  `<tmp>/brainspresso-<uid>/locks`), which protects one user's processes
+  on one machine. A reader that cannot create or open its lock file
+  (read-only state folder) reads without a lock; a writer raises
+  `LockError`, as does a filesystem that refuses locks. Only
   `$BRAINSPRESSO_LOCKS=0` disables locks (an unsafe escape hatch): no
   platform runs unlocked silently, and without a lock backend every
   `FileLock` raises `LockError` naming that variable. Two layers, so
@@ -441,10 +441,12 @@ layer in 2b-iv):
   `struct`, `ctypes`; fasteners is no longer used, the per-download lock
   of `download/incomplete.py` included, which is a `FileLock` of the
   partial file: it does not exclude the `<name>.lock` of earlier
-  versions, which is never deleted). A lock taken before a `fork` is
-  dead in the child (no descriptor; `release` there is a no-op). Layer A, the registry of a process: one `_Entry` per
-  lock file, which owns its descriptor for life, found by path
-  (`str(lockfile)`, not folded) and by identity, `(st_dev, st_ino,
+  versions, which is never deleted; outside datasets it is in the
+  per-user local lock folder, so it does not exclude other machines). A
+  lock taken before a `fork` is dead in the child (no descriptor;
+  `release` there is a no-op). Layer A, the registry of a process: one
+  `_Entry` per lock file, which owns its descriptor for life, found by
+  path (`str(lockfile)`, not folded) and by identity, `(st_dev, st_ino,
   alias key)` from `fstat` of a held descriptor, the alias key being the
   resolved path, NFC-normalised and casefolded (a symbolic link or a
   case alias merges; two distinct files with equal inodes do not);
@@ -459,28 +461,28 @@ layer in 2b-iv):
   locks (`F_OFD_SETLK`, per descriptor, the lock space of classic
   `fcntl` locks), then `lockf`; macOS `lockf` (per process), then
   `flock`; Windows `LockFileEx` on byte 0 (per handle; the writer's
-  signature "pid N on host" follows at byte 1). A timed-out writer probes
-  for readers with a shared try-lock; a writer released inside its own
-  reader keeps a shared lock without a gap where the primitive converts
-  (OFD, `lockf`, Windows stacking), else stays exclusive until the last
-  reader leaves. Lock files keep their names: earlier commits and this
-  one exclude each other on all platforms. Not handled (documented in
-  `actions/locks.py`): a per-process primitive plus an identity split
-  (two mounts of one export, `st_ino` 0); two lock files with equal
-  inodes and paths that differ only by case on a case-sensitive
-  filesystem; a lock file or state folder replaced while held (split
-  across processes; the next acquisition retires the entry). Across
-  machines: NFSv4, or NFSv3 with `lockd`, share the locks (not `nolock`
-  / `local_lock=all` mounts); Lustre with `-o flock`; SMB servers enforce
-  `LockFileEx` between Windows clients; CIFS clients unless `nobrl`;
-  none verified here;
-  a lock upgrade (write a file the thread reads) or a nested writer of
-  one file raises `LockError` at once instead of deadlocking. Not
-  handled: cross-process cycles (A reads X, writes Y; B reads Y, writes
-  X) end in a `LockTimeout`; the locks are not fair (steady readers
-  can delay a writer up to its timeout); lock files accumulate (delete
-  `locks/` only when nothing runs). `run_roast` creates the state
-  folder first so that all locks of a roast are in the dataset.
+  signature "pid N on host" follows at byte 1). A timed-out writer
+  probes for readers with a shared try-lock; a writer released inside
+  its own reader keeps a shared lock without a gap where the primitive
+  converts (OFD, `lockf`, Windows stacking), else stays exclusive until
+  the last reader leaves. Lock files keep their names: earlier commits
+  and this one exclude each other on all platforms. Not handled
+  (documented in `actions/locks.py`): a per-process primitive plus an
+  identity split (two mounts of one export, `st_ino` 0); two lock files
+  with equal inodes and paths that differ only by case on a
+  case-sensitive filesystem; a lock file or state folder replaced while
+  held (split across processes; the next acquisition retires the entry).
+  Across machines: NFSv4, or NFSv3 with `lockd`, share the locks (not
+  `nolock` / `local_lock=all` mounts); Lustre with `-o flock`; SMB
+  servers enforce `LockFileEx` between Windows clients; CIFS clients
+  unless `nobrl`; none verified here; a lock upgrade (write a file the
+  thread reads) or a nested writer of one file raises `LockError` at
+  once instead of deadlocking. Not handled: cross-process cycles (A
+  reads X, writes Y; B reads Y, writes X) end in a `LockTimeout`; the
+  locks are not fair (steady readers can delay a writer up to its
+  timeout); lock files accumulate (delete `locks/` only when nothing
+  runs). `run_roast` creates the state folder first so that all locks of
+  a roast are in the dataset.
 * `run_roast(roaster, ctx, *, jobs=1, display=True | callable,
   executor=None) -> RoastReport` (counts per tag, errors, outputs,
   progress, `status`). `RoastContext(layout, selection, aliases, json,

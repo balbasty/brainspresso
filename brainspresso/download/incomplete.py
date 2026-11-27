@@ -47,6 +47,57 @@ async def run_async(func, *args, **kwargs):
     return await loop.run_in_executor(None, partial(func, **kwargs), *args)
 
 
+async def run_to_completion(func, *args):
+    """
+    Run a blocking function in the executor, and wait until it is done.
+
+    A cancellation of the task does not stop the function, nor this wait
+    (the call is shielded, and still queued or running): once the
+    function is done, the cancellation propagates (`CancelledError`).
+    For steps that must finish once started, or must run at all (the
+    rename of a download into place, the release of its lock).
+    """
+    future = asyncio.get_running_loop().run_in_executor(None, func, *args)
+    cancelled = False
+    while not future.done():
+        try:
+            await asyncio.shield(future)
+        except asyncio.CancelledError:
+            if future.cancelled():          # pragma: no cover
+                raise
+            cancelled = True
+        except BaseException:               # (the function raised)
+            break
+    if cancelled:
+        raise asyncio.CancelledError()
+    return future.result()
+
+
+async def release_lock(lock: FileLock, quiet: bool = False) -> None:
+    """
+    Release a lock, always (one helper for every release path).
+
+    The release runs in the executor (it may block: an unlock or a close
+    on a network filesystem), shielded: it runs even if the task is
+    cancelled, and this waits for it (`run_to_completion`). An `OSError`
+    of the release is logged, never raised. With `quiet` (an exception
+    is already propagating: the caller re-raises it), a cancellation
+    during the wait is not raised either, so that the original
+    exception is not replaced.
+    """
+    def release():
+        try:
+            lock.release()
+        except OSError as e:
+            lg.warning(f"Could not release the lock of {lock.path}: {e}")
+
+    try:
+        await run_to_completion(release)
+    except asyncio.CancelledError:
+        if not quiet:
+            raise
+
+
 class IncompleteFile:
     """
     A file being downloaded, in its incomplete state.
@@ -176,20 +227,30 @@ class IncompleteFile:
         except BaseException:
             with guard:
                 state["cancelled"] = True
-                if state["acquired"]:
-                    lock.release()
+                acquired = state["acquired"]
+            if acquired:
+                await release_lock(lock, quiet=True)
             raise
 
     async def _close_and_release(self) -> None:
-        """Close the partial file (if open) and release the lock."""
+        """Close the partial file (if open) and release the lock.
+
+        On an error path (the caller re-raises): errors of the close are
+        logged, the lock is always released, and the original exception
+        is never replaced.
+        """
+        file, self.file = self.file, None
+        lock, self.lock = self.lock, None
         try:
-            if self.file is not None:
-                await self.file.close()
+            if file is not None:
+                await file.close()
+        except Exception as e:      # (not a cancellation: see below)
+            lg.warning(f"Could not close {self.tempname}: {e}")
+        except asyncio.CancelledError:
+            pass                    # (the original exception propagates)
         finally:
-            self.file = None
-            lock, self.lock = self.lock, None
             if lock is not None:
-                lock.release()
+                await release_lock(lock, quiet=True)
 
     async def _enter(self) -> "IncompleteFile":
         """Open the partial file (resuming if possible), lock held."""
@@ -273,6 +334,7 @@ class IncompleteFile:
         # the context was not interrupted by an exception)
         success = exc_type is None and not self._discard
         installed = False
+        lock, self.lock = self.lock, None
         try:
             # Close file
             lg.debug(f"closing file...  {self.tempname}")
@@ -284,36 +346,48 @@ class IncompleteFile:
                 lg.debug(
                     f"renaming file...  {self.tempname} -> {self.filename}"
                 )
-                await run_async(self._install)
+                # (to completion, also if the task is cancelled: the lock
+                # is released only once the rename is done)
+                await run_to_completion(self._install)
                 installed = True
                 lg.debug(f"renamed file:  {self.tempname} -> {self.filename}")
                 if self.digester:
                     lg.debug(f"saving digest...  {self.filename}")
                     self._digest = await run_async(self.digester.hexdigest)
                     lg.debug(f"saved digest:  {self.filename}")
+        except BaseException:
+            await self._finish(lock, installed, error=True)
+            raise
+        await self._finish(lock, installed, error=False)
+
+    async def _finish(self, lock, installed: bool, error: bool) -> None:
+        """
+        Delete the partial files, then release the lock.
+
+        The partial files (a complete file that could not be renamed is
+        kept, to be resumed) are deleted while the lock is held. A
+        `<name>.lock` of an earlier version is left alone (module
+        docstring).
+        """
+        try:
+            if installed or self._discard:
+                def delete():
+                    for path in (self.tempname, self.checkname,
+                                 self.validname):
+                        lg.debug(f"deleting file...  {path}")
+                        path.unlink(missing_ok=True)
+                await run_to_completion(delete)
+        except BaseException:
+            error = True
+            raise
         finally:
-            # Delete the partial files (a complete file that could not be
-            # renamed is kept, to be resumed) while the lock is held,
-            # then release it. A `<name>.lock` of an earlier version is
-            # left alone (module docstring).
-            lock, self.lock = self.lock, None
-            try:
-                if installed or self._discard:
-                    lg.debug(f"deleting file...  {self.tempname}")
-                    await run_async(self.tempname.unlink, missing_ok=True)
-                    lg.debug(f"deleted file:  {self.tempname}")
-                    lg.debug(f"deleting file...  {self.checkname}")
-                    await run_async(self.checkname.unlink, missing_ok=True)
-                    lg.debug(f"deleted file:  {self.checkname}")
-                    await run_async(self.validname.unlink, missing_ok=True)
-            finally:
-                if lock is not None:
-                    lg.debug(f"releasing lock...  {self.tempname}")
-                    await run_async(lock.release)
-                    lg.debug(f"released lock:  {self.tempname}")
-                self.file = None
-                self.offset = None
-                self._discard = False
+            self.file = None
+            self.offset = None
+            self._discard = False
+            if lock is not None:
+                lg.debug(f"releasing lock...  {self.tempname}")
+                await release_lock(lock, quiet=error)
+                lg.debug(f"released lock:  {self.tempname}")
 
     def _install(self) -> None:
         """

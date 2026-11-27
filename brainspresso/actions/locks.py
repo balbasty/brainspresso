@@ -133,7 +133,10 @@ platforms (same lock space; same byte on Windows; whole file on POSIX).
 Not the download locks: earlier versions locked `<name>.lock` next to
 the destination with `fasteners`, this one locks the partial file
 through the dataset's lock folder (`download.incomplete`): do not
-download one file with both versions at once.
+download one file with both versions at once. A download outside any
+dataset is locked in the per-user local lock folder: it excludes the
+same user's downloads on this machine only, not other machines (nor
+other users).
 
 * Linux local filesystems (ext4, xfs, btrfs): OFD locks.
 * Linux NFS: OFD (else classic) locks are shared between clients with
@@ -954,15 +957,18 @@ def _after_fork() -> None:              # pragma: no cover
     # The child does not hold the locks of its parent. Every entry dies
     # (descriptor -1, no spares, retired, `forked`): the `FileLock`s
     # that still name one never touch a descriptor in the child, whose
-    # numbers may be reused. The copies of the descriptors of live
-    # entries are closed *without unlocking* (an unlock would release
-    # the OFD locks shared with the parent); those of retired entries
-    # may be closed already (and their numbers reused): left alone.
+    # numbers may be reused. The copies of the descriptors of every
+    # entry that still has users (live, or retired but not yet closed:
+    # its descriptors are open) are closed *without unlocking* (an
+    # unlock would release the OFD locks shared with the parent; a copy
+    # kept would keep them alive after the parent drops them). Entries
+    # without users are being closed by their last holder: their
+    # numbers may be closed already, and reused: left alone.
     # The locks of the module are recreated: another thread of the
     # parent may have held one at the fork.
     global _registry_lock, _datasets_lock
     for entry in {*_by_path.values(), *_by_id.values()}:
-        if not entry.retired:
+        if entry.users > 0:
             for fd in entry.descriptors():
                 try:
                     os.close(fd)

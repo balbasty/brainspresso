@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/brainspresso-logo.svg" alt="brainspresso logo" width="160">
+  <img src="docs/images/brainspresso-logo.svg" alt="brainspresso logo" width="200">
 </p>
 
 # Brainspresso

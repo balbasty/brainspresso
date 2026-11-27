@@ -81,7 +81,7 @@ def style(extra='', themed=True):
     {DARK if themed else ''}{extra}
   </style>'''
 
-# ---------------------------------------------------------------- brainspresso
+# ------------------------------------------- brainspresso (espresso, alternate)
 def brainspresso(themed=True):
     cx = 230                    # cup axis (handle adds weight on the right)
     top, bot = 176, 410         # rim line / cup bottom
@@ -189,7 +189,7 @@ def brainfilter(themed=True):
 '''
 
 
-# ---------------------------------------------------------- brainspresso (latte)
+# ------------------------------------------------- brainspresso (latte): the logo
 def brainspresso_latte(themed=True, wobble=16, soft=1.0):
     """
     A cappuccino seen from above, the BIDS mark poured in the foam.
@@ -319,8 +319,8 @@ def brainfilter_icon(themed=True):
     return _glyph_svg('brainfilter', shapes, themed)
 
 if __name__ == '__main__':
-  open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso())
+  open(f'{OUT}/brainspresso-logo.svg', 'w').write(brainspresso_latte())
   open(f'{OUT}/brainfilter-logo.svg', 'w').write(brainfilter())
-  open(f'{OUT}/brainspresso-logo-latte.svg', 'w').write(brainspresso_latte())
+  open(f'{OUT}/brainspresso-logo-espresso.svg', 'w').write(brainspresso())
   open(f'{OUT}/brainspresso-icon.svg', 'w').write(brainspresso_icon())
   open(f'{OUT}/brainfilter-icon.svg', 'w').write(brainfilter_icon())

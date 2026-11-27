@@ -51,7 +51,7 @@ Verdict = Literal["todo", "done", "queued", "stale", "blocked"]
 #: requirement cannot be met)
 VERDICTS = ("todo", "done", "queued", "stale", "blocked")
 #: What to do with stale tasks: stop, recompute, or leave them (their
-#: dependants are then blocked)
+#: dependents are then blocked)
 IfStale = Literal["error", "redo", "keep"]
 
 

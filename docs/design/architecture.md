@@ -994,11 +994,11 @@ up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
   signature, recorded outputs exist: not run); **todo** (no record, or
   `failed`/`skipped`); **queued** (recorded `pending`/`running`, by
   another plan or an earlier run: not run by this plan, whose
-  dependants check its record when they start); **stale** (`done`
+  dependents check its record when they start); **stale** (`done`
   with another signature); **blocked**. `--redo [STAGE]` forces a
   stage and what depends on it.
 * A stale unit stops the command (`--if-stale error`); `redo`
-  recomputes it, `keep` leaves it and marks dependants blocked. The
+  recomputes it, `keep` leaves it and marks dependents blocked. The
   choice is made when planning and recorded in the plan.
   A derivative folder with content but no grind record of this
   pipeline is refused: foreign outputs are never adopted as done
@@ -1175,7 +1175,7 @@ Owner decisions; roast and grind share all of this.
 * **Job dependencies wait for the end of the upstream job, not for its
   success** (`Job.after_any`): tasks re-check their requirements when
   they start, and a "must succeed" dependency on an array would leave
-  every dependant queued forever after one failed element. A job only
+  every dependent queued forever after one failed element. A job only
   gets a must-succeed dependency (`Job.after`) when each of its tasks
   requires every task of the upstream job (`need="all"`, or a required
   unit-to-unit input between two single tasks or two aligned arrays).
@@ -1319,7 +1319,7 @@ Owner decisions; roast and grind share all of this.
   unit failed or is missing; "any" (default) or a count runs it on the
   units that succeeded: `Work.members` and `Work.failed` list both,
   and the record keeps the members in `requires`.
-* A blocked task is recorded `skipped`; its dependants follow the same
+* A blocked task is recorded `skipped`; its dependents follow the same
   rule. `GrindReport` gives counts per stage and the failure list
   (also in the manifest run entry); the exit status is non-zero if
   anything failed. Failed and skipped tasks are retried by the next run.

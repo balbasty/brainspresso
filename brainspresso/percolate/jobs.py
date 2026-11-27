@@ -14,7 +14,7 @@ which this design does not use, and it does not cover SGE and PBS.
 
 Dependencies. A job waits for the **end** of the jobs it depends on,
 not for their success: tasks check their requirements when they start,
-and a must-succeed dependency on an array would leave every dependant
+and a must-succeed dependency on an array would leave every dependent
 queued forever after one failed element. A must-succeed dependency
 (`Job.after`) is only used when each task of the job requires every
 task of the upstream job. What schedulers get:

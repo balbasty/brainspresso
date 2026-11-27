@@ -380,8 +380,12 @@ project ported, since they share `Project.entries`):
   what is present), so trimming always starts from the base and
   `--no-trim` (`trim=False` in the same render) restores the full
   table (owner, Q5); hosted datasets have no `<state>/orig/` (the
-  roast passes `run_roast(trim=False)`, and compost does not re-trim
-  them: the roast after the deletion does). No INDI project remaps
+  roast passes `run_roast(trim=False)`; compost re-trims only the
+  tables without a rendered entry, e.g. of datasets harvested before
+  this step, and leaves the others to the roast after the deletion,
+  which `compost --no-trim` tells to leave tables alone). `trim_rows`
+  matches `participant_id` with or without `sub-` and keeps, with a
+  warning, rows too short to have the column. No INDI project remaps
   session labels (checked: only subject labels, runs, typos and
   entities), so `session_id` columns are not relabelled. It runs after the images are
   placed, on its own (`bx <ds> roast`, everything the manifest records,
@@ -446,9 +450,13 @@ Interactions (decided):
   copies: their next harvest fetches them. A roasted entry whose remote
   file disappeared from the listing keeps its stale pristine copy and
   visible file (nothing deletes them).
-* Pristine copies are refreshed against the listing (size, digests:
-  "different") whatever `--if-exists` says; `--if-exists` governs the
-  visible files (and the data files).
+* Pristine copies are refreshed against the listing whatever
+  `--if-exists` says: by digest (S3 single-part ETags, OpenNeuro annex
+  keys), else by size and mtime ("refresh": S3 listings), else
+  downloaded again (OpenNeuro GraphQL, files not annexed), an identical
+  copy keeping its mtime (shard signatures); `--if-exists` governs the
+  visible files (and the data files). An entry that becomes roasted
+  clears the `size`/`digests` of an older, direct one.
 * Harvests merge their entries into the manifest (a None clears a
   field); only the roast writes the hashes of roasted files.
 * Compost keeps the pristine copies (`source` of `roasted` entries,
@@ -485,10 +493,19 @@ authoritative copy first):
   `--if-exists different|overwrite` replaces it.
 * No recorded hash (an older dataset): a file equal to the render is
   adopted; any other follows `MIGRATION_RULE` ("keep": kept, with a
-  warning; "replace": moved to `<state>/replaced/<path>`, then written,
-  with a warning naming the backup). Default "keep" (owner to decide).
+  warning; "replace": copied to `<state>/replaced/<path>` as the action
+  writes it, which replaces it atomically; nothing is copied or lost if
+  no action writes). Default "keep" (owner to decide; "replace" is
+  recommended by the review).
 * Only `_record` writes the hashes of roasted files: that of a file
-  holding the render (never an edit, never a replayed output).
+  holding the render, whatever its state was (an edit replaced with
+  `--if-exists overwrite` is ours again; a merged field map or a
+  replayed output is not). The harvest records the hashes of earlier
+  versions of a template as `previous`, never as `sha256`.
+* A file the shard leaves as it is (an edit, a file without a hash, a
+  frozen one) is not a recorded output: whether it exists is in the
+  shard config, so that deleting it runs the shard (re-rendered, or a
+  `Fail` for a frozen one).
 * Fill-in push-down reads the keys of a top-level sidecar from its base
   (repaired as the running roast repairs), else from the visible file;
   if neither can be read, no fill-in of that suffix is pushed down.
@@ -2073,7 +2090,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1447 passed, 2 skipped, 28 xfailed) |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1459 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -2473,3 +2490,8 @@ up as an XPASS failure once fixed (then drop the marker).
   `write_inline` locked and atomic; `RENDER_VERSION` and `.bidsignore`
   in shard signatures; a restricted roast leaves the files of
   unselected data alone.
+* r34: Fable follow-up of #27. Hashes recorded whenever the file holds
+  the render; the existence of kept and frozen files in the shard
+  config; "replace" copies as the action writes; compost re-trims
+  tables without a rendered entry, `--no-trim` reaches the roast;
+  pristine refresh by digest, size and mtime, or content.

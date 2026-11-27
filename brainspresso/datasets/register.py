@@ -10,7 +10,8 @@ Each command is a function whose `__signature__` is synthesised: the
 dataset's positional `arguments`, `path` and `--out` (except `info`),
 then one keyword-only parameter per option group (`Dataset.groups`
 and `Dataset.options`), each a flattened dataclass
-(`datasets.options`). Its body sets up the file log and calls
+(`datasets.options`), shown in its help panels (`command_panels`: those
+of the sources for credentials). Its body sets up the file log and calls
 `Dataset.execute`.
 
 User errors (`USER_ERRORS`) are printed without a traceback (exit
@@ -26,7 +27,7 @@ import traceback
 import typing
 from typing import Annotated, Callable
 
-from cyclopts import App, Parameter
+from cyclopts import App, Group, Parameter
 
 from brainspresso.actions.locks import LockError
 from brainspresso.bids.layout import LayoutError
@@ -128,6 +129,27 @@ def command_groups(dataset: Dataset, command: str) -> dict[str, type]:
     groups.update(dataset.options(command))
     return {name: group.for_dataset(dataset, command)
             for name, group in groups.items()}
+
+
+def command_panels(dataset: Dataset, command: str
+                   ) -> dict[str, tuple[Group, ...]]:
+    """
+    Help panels of the option groups of a command.
+
+    Parameters
+    ----------
+    dataset : Dataset
+    command : str
+
+    Returns
+    -------
+    dict[str, tuple[cyclopts.Group]]
+        Parameter name -> panels (`datasets.options.group_panels`); a
+        field with a panel of its own (`--folders`, `--jobs`...) stays in
+        it
+    """
+    return {name: opt.group_panels(dataset, name, group)
+            for name, group in command_groups(dataset, command).items()}
 
 
 def command_names(dataset: Dataset) -> tuple[str, ...]:
@@ -236,17 +258,28 @@ def build_command(dataset: Dataset, command: str) -> Callable:
         A function with a synthesised `__signature__`, for cyclopts
     """
     P = inspect.Parameter
-    params = [P(a.name, P.POSITIONAL_OR_KEYWORD, annotation=a.type)
+    # the arguments, `path` and `--out` are in the panel of `--layout`
+    where = Parameter(group=opt.panel(*opt.LayoutOptions.panel))
+    params = [P(a.name, P.POSITIONAL_OR_KEYWORD,
+                annotation=Annotated[a.type, where])
               for a in dataset.arguments]
     if command != "info":
         params += [
             P("path", P.POSITIONAL_OR_KEYWORD, default=None,
-              annotation=str | None),
-            P("out", P.KEYWORD_ONLY, default=None, annotation=str | None),
+              annotation=Annotated[str | None, where]),
+            P("out", P.KEYWORD_ONLY, default=None,
+              annotation=Annotated[str | None, where]),
         ]
+    panels = command_panels(dataset, command)
     for name, group in command_groups(dataset, command).items():
+        own = (opt.panel(*group.panel),)
+        hint = group | None
+        if panels[name] != own:
+            # (`name="*"` again: cyclopts 3 does not merge it with that
+            # of the class)
+            hint = Annotated[hint, Parameter(name="*", group=panels[name])]
         params.append(P(name, P.KEYWORD_ONLY, default=None,
-                        annotation=group | None))
+                        annotation=hint))
     signature = inspect.Signature(params)
     names = [a.name for a in dataset.arguments]
 

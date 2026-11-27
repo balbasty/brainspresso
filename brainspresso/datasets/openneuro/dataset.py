@@ -9,7 +9,7 @@ from humanize import naturalsize
 from brainspresso.bids.harvest import format_summary, summarize
 from brainspresso.bids.select import Selection
 from brainspresso.datasets.base import Argument, Dataset
-from brainspresso.datasets.options import OptionGroup, option_group
+from brainspresso.datasets.options import OptionGroup, Panel, option_group
 from brainspresso.sources.openneuro import (
     APIUnavailable,
     OpenNeuro,
@@ -28,7 +28,7 @@ Any OpenNeuro dataset (BIDS)
 """  # noqa: E501
 
 
-@option_group("OpenNeuro", 30)
+@option_group("OpenNeuro", Panel.OWN)
 class OpenNeuroOptions(OptionGroup):
     """`--tag`, `--source` (listing route)."""
 
@@ -42,7 +42,7 @@ class OpenNeuroOptions(OptionGroup):
     )] = "auto"
 
 
-@option_group("OpenNeuro", 30)
+@option_group("OpenNeuro", Panel.OWN)
 class RouteOptions(OptionGroup):
     """`--source` (listing route) of `info`."""
 
@@ -65,6 +65,8 @@ class OpenNeuroDataset(Dataset):
     credentials = "token"
     harvest_jobs = 8
     option_defaults = {"harvest": {"insecure": False}}
+    # (no `sources()`: `--token` is read by the OpenNeuro API)
+    panels = {"token": ("OpenNeuro", Panel.OWN)}
     folder_choices = ("derivatives", "sourcedata", "code", "stimuli")
     commands = ("harvest", "roast", "compost", "info")
 

@@ -261,6 +261,7 @@ class GirderSource(Source):
     """
 
     name = "girder"
+    title = "Girder"
     api: str = KITWARE
     rtype: ResourceType = "folder"
     rid: str = ""

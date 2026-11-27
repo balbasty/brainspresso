@@ -888,6 +888,8 @@ class Dataset:
     download: Mapping[str, Any] = {} # fixed DownloadOptions (on_error...)
     option_defaults: Mapping[str, Mapping[str, Any]] = {}
                                   # {command: {field: default}}
+    panels: Mapping[str, tuple[str, float]] = {}   # help panel of a
+                                  #   standard group (OpenNeuro: token)
     requires: Mapping[str, tuple[str, ...]] = {}   # {"roast": ("xlrd",)}
     extra: str | None = None      # pip extra that installs `requires`
     commands: tuple[str, ...] = ("harvest", "roast", "compost", "info")
@@ -1006,6 +1008,43 @@ break under `from __future__ import annotations`.
 | `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--lock-wait` (`--wait`, hidden, deprecated) | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
+
+**Help panels** (r38). The flags of a command are shown in panels
+(cyclopts `Group`s, one per title, `options.panel`), in one order
+(`options.Panel`): the options of every dataset first, "Dataset"
+(`path`, `--out`, the arguments, `--layout`), "Selection" (`--subs`,
+`--sessions`, `--sites`), "Filters" (BIDS filters, `--folders`),
+"Keys"; then the panel of the command ("Harvest", "Roast", "Compost":
+the hosted `--trim`, `--list`, `--sidecars`, `--repair` too);
+"Sources" (`--source`, and the options of harvest that every source
+reads, `--jobs`, `--packet`, `--insecure`, whose help gives the
+defaults of each source of the dataset, `DEFAULT_JOBS` of the
+`DownloadManager` for a source without `jobs`); one panel per source that
+reads options of its own, "NITRC (--source nitrc)" ("NITRC" for a
+dataset of one source), in the order of `sources()`; then a collection
+("INDI": `info --derivatives`) and one dataset ("OASIS-1": `--discs`,
+whichever command has them); "Logging" last. Credentials
+(`by_source` groups: `--user`/`--password`, `--token`) are shown in
+the panel of each source that reads them (`Source.reads(option)`,
+the per-run options that `configure` keeps, but no `user`/`password`
+for a NITRC or XNAT source with `login = False`; a `CompositeSource` reads
+those of its parts, titled "XNAT + NITRC"), so a login shared by two
+sources is repeated in both panels (one parameter, two groups), and
+each panel says all that its `--source` needs; options that every
+source reads stay in "Sources", once, since repeating them would
+duplicate that panel for every source. A source titles its panel with
+`Source.title`. `Dataset.panels` moves a standard group to another
+panel when no declared source reads it (OpenNeuro: `--token` in
+"OpenNeuro"). The groups of a dataset name their own panel
+(`option_group("OASIS-1", Panel.OWN)`). Help only: names, defaults,
+config keys and parsing are unchanged; the panels are set on the
+signature (`Annotated[group | None, Parameter(name="*",
+group=panels)]`, `register.command_panels`; cyclopts 3.17 replaces,
+rather than merges, the `Parameter` of the class, hence `name="*"`
+again) and on fields (`Parameter(group=)`), both supported from 3.17.
+`--keys` choices follow the hierarchy (`KeySpec.all_choices`, the order
+of the help: `tree_keys` lists the keys of `tree_lines` once, leaves of
+sets and lists sorted) when they are its keys.
 
 Every command but `info` also takes `path` (root of all datasets,
 `BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an
@@ -2141,7 +2180,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I: 1688 passed, 2 skipped, 12 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2656,7 +2695,15 @@ up as an XPASS failure once fixed (then drop the marker).
   members are not errors under `--sidecars only`; FreeSurfer lookup
   tables renamed to match the images; FreeSurfer `Sources` from the
   runs of the tree; `"Manual": false`.
-* r38: step 5, ABIDE-I ported to the roast engine
+* r38: help panels by source, collection and dataset (§6, "Help
+  panels"): one order (`options.Panel`), one panel per source that reads
+  credentials (`Source.title`, `Source.reads`), "Sources" for the
+  options that every source reads (with the defaults of each source),
+  `Dataset.panels`; the hosted options move to "Filters" (`--folders`)
+  and to the command panels, `path`/`--out` to "Dataset". `--keys`
+  choices in the order of the hierarchy. No change of names, defaults
+  or parsing.
+* r39: step 5, ABIDE-I ported to the roast engine
   (`datasets/indi/abide/i/roaster.py`: `roast_nitrc`, the roaster of the
   s3 and nitrc sources, and `roast_xnat`; `sites.py` for site names and
   per-sample templates, `tables.py` for the participants and phenotype
@@ -2680,11 +2727,13 @@ up as an XPASS failure once fixed (then drop the marker).
   assessors and the members of the server-built archives are not
   confirmed (login needed): names with `freesurfer`, `-fs` or type
   `fs:*` are accepted, FreeSurfer trees found under any wrapper folders.
-  Review round 1 of #33: `fs-all` is off by default (only when named;
+  Review round 1 of #33: `fs-all` is off by default (only when it or
+  a group above it is named;
   `--sidecars only` never unpacks) and an add-on of `fs` (`KeySpec(
   implies=)`: `--exclude-keys fs` excludes both, `--keys fs-all` implies
   `fs`, harvest and roast); a missing FreeSurfer archive is an error
-  only when `--keys` names `fs`/`fs-all` (`Dataset.roast_options`),
+  only when `--keys` names `fs`/`fs-all` or a group above them
+  (`Dataset.roast_options`),
   looked for in the selected subjects only; one FreeSurfer predicate
   for harvest and roast (`roaster.is_freesurfer`; an assessor known by
   its type only is saved as `<label>-freesurfer.tar.gz`); FreeSurfer
@@ -2694,3 +2743,10 @@ up as an XPASS failure once fixed (then drop the marker).
   subject (`roast/fs/sub-<label>`), so re-runs skip it. Decision
   (owner): UCLA `anat_2` is `acq-hires_T2w` (a spin-echo EPI, not a
   T1w; key `T2w`, templates renamed).
+  Review round 2 of #33: key names matched through the hierarchy, in
+  any case (`KeySpec.selects`: the add-on rule, `fs_named`), so
+  `--keys FS-ALL` implies `fs` and `--keys all`/`derivatives`/`proc`
+  name FreeSurfer; `roast(keys="fs")` is one key; `fs-all` unpacks
+  every member under the subject's root (`tmp/`, `bem/`, root files),
+  once the root is known (members before it are skipped: one pass); a
+  root that does not name the subject's id is warned about.

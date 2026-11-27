@@ -81,6 +81,7 @@ class NitrcIR(Source):
     """
 
     name = "nitrc"
+    title = "NITRC-IR"
     provides = frozenset(IMAGES)
     labels = LabelMap(_label)
     roaster = staticmethod(roast_ixi)

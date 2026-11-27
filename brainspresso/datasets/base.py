@@ -63,7 +63,7 @@ from brainspresso.sources.base import (
     select_roaster,
     subject_labels,
 )
-from brainspresso.utils.keys import flatten_keys, get_leaves, lower_keys
+from brainspresso.utils.keys import get_leaves, lower_keys
 from brainspresso.utils.path import get_tree_path
 
 lg = logging.getLogger(__name__)
@@ -85,6 +85,9 @@ def _names(keys) -> tuple:
 def tree_lines(tree, indent: int = 0) -> list[str]:
     """
     Lines of a key hierarchy (nested dicts and sets), for the help.
+
+    Groups in their order, the leaves of a set or list sorted; a key
+    under two groups is listed under each (`tree_keys` lists it once).
 
     Parameters
     ----------
@@ -108,6 +111,38 @@ def tree_lines(tree, indent: int = 0) -> list[str]:
         if sub:
             out += tree_lines(sub, indent + 2)
     return out
+
+
+def tree_keys(tree) -> tuple[str, ...]:
+    """
+    Keys of a hierarchy, in the order of `tree_lines`.
+
+    Parameters
+    ----------
+    tree : dict | set | list | str
+
+    Returns
+    -------
+    tuple[str]
+        The keys of `tree_lines`, in its order, each once: a key under
+        two groups where `tree_lines` first lists it (a group before its
+        children; an unnamed group, e.g. OASIS-III's "", is not a key)
+    """
+    out = []
+
+    def walk(node):
+        if isinstance(node, str):
+            out.append(node)
+        elif not isinstance(node, Mapping):
+            out.extend(sorted(node))        # (as `tree_lines`)
+        else:
+            for name, sub in node.items():
+                out.append(name)
+                if sub:
+                    walk(sub)
+
+    walk(tree)
+    return tuple(k for k in dict.fromkeys(out) if k)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -150,12 +185,21 @@ class KeySpec:
         return tree
 
     def all_choices(self) -> tuple | None:
-        """Return the values of `--keys` (None: any text)."""
+        """
+        Return the values of `--keys` (None: any text).
+
+        In the order of the hierarchy (that of the help) when they are
+        its keys, else in the order of `choices`.
+        """
+        tree = self.static_tree()
+        ordered = tree_keys(tree) if isinstance(tree, Mapping) else None
         if self.choices is not None:
-            return tuple(self.choices)
+            choices = tuple(self.choices)
+            if ordered is not None and set(choices) == set(ordered):
+                return ordered
+            return choices
         if isinstance(self.tree, Mapping):
-            # (an unnamed group, e.g. OASIS-III's "", is not a key)
-            return tuple(sorted(k for k in flatten_keys(self.tree) if k))
+            return ordered
         return None
 
     def expand(self, names: Iterable[str]) -> set:
@@ -264,7 +308,7 @@ class KeySpec:
         if hasattr(tree, "expand"):
             return leaf in tree.expand(names)
         if isinstance(tree, Mapping):
-            known = {k.lower(): k for k in flatten_keys(tree) if k}
+            known = {k.lower(): k for k in tree_keys(tree)}
             names = [known.get(n.lower(), n) for n in names]
         return leaf in self.leaves(names) or leaf in names
 
@@ -494,6 +538,10 @@ class Dataset:
         Fixed `DownloadOptions` of harvest (`on_error`, `path`)
     option_defaults : dict[str, dict[str, Any]]
         Other defaults: `{command: {field: default}}`
+    panels : dict[str, tuple[str, float]]
+        Help panel (title, sort key) of standard groups, by `Args` field,
+        instead of their own or that of the sources that read them
+        (`datasets.options.group_panels`; OpenNeuro: `--token`)
     folder_choices : tuple[str]
         Values of `--folders` (hosted harvests)
     hosted : bool
@@ -531,6 +579,7 @@ class Dataset:
     harvest_jobs: ClassVar[int | None] = None
     download: ClassVar[Mapping[str, Any]] = EMPTY
     option_defaults: ClassVar[Mapping[str, Mapping[str, Any]]] = EMPTY
+    panels: ClassVar[Mapping[str, tuple]] = EMPTY
     folder_choices: ClassVar[tuple] = ()
     hosted: ClassVar[bool] = False
     harvest_subjects: ClassVar[bool] = True
@@ -729,8 +778,10 @@ class Dataset:
         if command == "harvest":
             hosted = ("filters", "hosted") if self.hosted else ()
             select = ("select",) if self.harvest_subjects else ()
-            return (*keys, *select, *sessions, *sites, *hosted, *source,
-                    *creds, "harvest", "layout", "log")
+            # (the order of the options in their panels)
+            filters, hosted = hosted[:1], hosted[1:]
+            return (*keys, *select, *sessions, *sites, *filters, *source,
+                    *creds, "harvest", *hosted, "layout", "log")
         if command == "roast":
             roasters = {id(s.roaster) for s in self.sources().values()
                         if getattr(s, "roaster", None) is not None}

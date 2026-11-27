@@ -103,6 +103,7 @@ def repetition_times() -> tuple[dict[str, float], dict[str, float]]:
 class FCON1000(Project):
     name = "fcon1000"
     folder = "FCON1000"
+    category = "fcp"
     title = "1000 Functional Connectomes Project (FCON1000)"
     help = """
 1000 Functional Connectomes Project (FCON1000, "F1000")

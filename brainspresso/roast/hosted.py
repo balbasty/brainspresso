@@ -127,7 +127,7 @@ RENDER_VERSION = 1
 #: A file without a recorded hash (an older dataset) that differs from
 #: the render: "keep" it (with a warning), or "replace" it (moved to
 #: `<state>/replaced/<path>` first)
-MIGRATION_RULE: Literal["keep", "replace"] = "keep"
+MIGRATION_RULE: Literal["keep", "replace"] = "replace"
 #: Backups of the files replaced by the migration rule, in the state
 REPLACED_DIR = "replaced"
 

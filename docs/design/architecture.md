@@ -2630,4 +2630,11 @@ up as an XPASS failure once fixed (then drop the marker).
   IDs (the folders of the scans); member names are matched with and
   without the top folder `OAS2_RAW_PART<N>/` (not checked on the real
   tarballs). Open, as for OASIS-I: the shard signature includes the
-  whole selection.
+  whole selection. Review round 1 of #34: member names normalised
+  (`./`, any prefix before `OAS2_<n>_MR<m>/RAW/`), a part without any
+  recognised scan is an error; the spreadsheet is read without
+  `read_only` (which trusts a stale `<dimension>`), short rows padded,
+  columns found by name (else by position, with a warning), an MRI ID
+  of another subject skipped, the visit used (with a warning) when the
+  MRI ID cannot be parsed; a missing openpyxl is an error with the
+  install hint; `--sessions` for roast (`Dataset.sessions`).

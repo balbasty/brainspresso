@@ -1,6 +1,8 @@
 """Tests of the OASIS-II roast step."""
 import json
 import os
+import sys
+import zipfile
 
 import nibabel as nib
 import numpy as np
@@ -112,6 +114,37 @@ def test_part_without_top_folder(root):
     part(root / "sourcedata", top=False, scans=[(1, 1, 1)])
     roast(root, keys={"raw"})
     assert raw_tree(root) == scans(1, 1, 1)
+
+
+@pytest.mark.parametrize("prefix", ["./", "./data/OASIS2/", "/"])
+def test_member_prefixes(root, prefix):
+    """Any prefix before `OAS2_<sub>_MR<n>/RAW/` (`./` included)"""
+    hdr, img = analyze_pair()
+    base = f"{prefix}OAS2_0001_MR1/RAW/mpr-1.nifti"
+    make_tar(root / "sourcedata" / "OAS2_RAW_PART1.tar.gz",
+             {base + ".hdr": hdr, base + ".img": img})
+    report = roast(root, keys={"raw"}, display=False)
+    assert not report.errors
+    assert raw_tree(root) == scans(1, 1, 1)
+
+
+def test_part_without_scans(root):
+    """A part without any recognised scan is an error"""
+    make_tar(root / "sourcedata" / "OAS2_RAW_PART1.tar.gz",
+             {"OAS2_RAW_PART1/README.txt": b"hello"})
+    report = roast(root, keys={"raw"}, display=False)
+    assert report.counts == {"parts": {"error": 1}}
+    # (no scan of the selected subjects: not an error)
+    part(root / "sourcedata")
+    report = roast(root, keys={"raw"}, subs=[9], display=False)
+    assert not report.errors and raw_tree(root) == set()
+
+
+def test_sessions(root):
+    roast(root, keys={"raw", "meta"}, sessions=["1"])
+    assert raw_tree(root) == META | SESSIONS | (RAW - scans(1, 2, 1))
+    rows = read_tsv(raw_file(root, "sub-0001/sub-0001_sessions.tsv"))
+    assert [r[0] for r in rows] == ["session_id", "ses-1"]
 
 
 def test_json_only_and_exclude(root):
@@ -235,14 +268,96 @@ def test_bad_rows(root, caplog):
     assert "subject ID 'OAS2_0003_MR2' (skipped)" in caplog.text
     assert "no session in MRI ID 'bad'" in caplog.text
 
-    # a sheet with fewer columns
+
+
+def test_short_rows_padded(root, caplog):
+    """A sheet with fewer columns: rows padded with n/a"""
+    src = root / "sourcedata"
     wb = openpyxl.Workbook()
     wb.active.append(HEADER[:3])
     wb.active.append(["OAS2_0001", "OAS2_0001_MR1", "Demented"])
     wb.save(src / XLSX)
     report = roast(root, keys={"meta"}, display=False)
     assert not report.errors
-    assert "3 columns, 15 expected (skipped)" in caplog.text
+    assert "columns not found by name, read by position: 'Visit'" \
+        in caplog.text
+    rows = read_tsv(layout_of(root).original(
+        raw_file(root, "sub-0001/sub-0001_sessions.tsv")))
+    assert rows[1] == ["ses-1", "n/a", "n/a", "D", *["n/a"] * 8]
+
+
+def test_trailing_empty_cells_and_stale_dimension(root):
+    """Empty trailing cells are n/a; rows past a stale `<dimension>`
+    are read"""
+    src = root / "sourcedata"
+    write_xlsx(src, [
+        *ROWS,
+        ["OAS2_0003", "OAS2_0003_MR1", "Demented", 1, 0, "F", "L", 70,
+         12, 2, 28, 1, None, None, None],
+    ])
+    path = src / XLSX
+    with zipfile.ZipFile(path) as z:
+        files = {n: z.read(n) for n in z.namelist()}
+    sheet = "xl/worksheets/sheet1.xml"
+    assert b"<dimension ref=" in files[sheet]
+    files[sheet] = files[sheet].replace(b'<dimension ref="A1:O5"/>',
+                                        b'<dimension ref="A1:C2"/>')
+    assert b'<dimension ref="A1:C2"/>' in files[sheet]
+    with zipfile.ZipFile(path, "w") as z:
+        for name, data in files.items():
+            z.writestr(name, data)
+    report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = read_tsv(layout_of(root).original(
+        raw_file(root, "participants.tsv")))
+    assert [r[0] for r in rows[1:]] == ["sub-0001", "sub-0002", "sub-0003"]
+    rows = read_tsv(layout_of(root).original(
+        raw_file(root, "sub-0003/sub-0003_sessions.tsv")))
+    assert rows[1] == ["ses-1", "1", "0", "D", "70", "12", "2", "28", "1",
+                       "n/a", "n/a", "n/a"]
+
+
+def test_columns_by_name(root):
+    """Columns are found by name (case and spaces ignored)"""
+    order = [1, 0, *range(2, 15)][::-1]
+    write_xlsx(root / "sourcedata", [[row[i] for i in order]
+                                     for row in ROWS])
+    book = openpyxl.load_workbook(root / "sourcedata" / XLSX)
+    for cell, i in zip(book.active[1], order):
+        cell.value = HEADER[i].upper().replace(" ", "  ")
+    book.save(root / "sourcedata" / XLSX)
+    roast(root, keys={"meta"})
+    rows = read_tsv(layout_of(root).original(
+        raw_file(root, "sub-0002/sub-0002_sessions.tsv")))
+    assert rows[1] == ["ses-1", "1", "0", "D", "75", "12", "n/a", "n/a",
+                       "0.5", "1678", "0.736", "1.046"]
+
+
+def test_mri_id_checks(root, caplog):
+    """An MRI ID of another subject is skipped; an MRI ID that cannot
+    be parsed: the session is the visit (with a warning)"""
+    write_xlsx(root / "sourcedata", [
+        ["OAS2_0001", "OAS2_0002_MR1", "Demented", 1, 0, "F", "R", 70, 12,
+         2, 28, 1, 1500, 0.7, 1.1],
+        ["OAS2_0001", "??", "Demented", 2, 300, "F", "R", 71, 12,
+         2, 28, 1, 1500, 0.7, 1.1],
+    ])
+    report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    assert "MRI ID 'OAS2_0002_MR1' is not of subject 'OAS2_0001' " \
+        "(skipped)" in caplog.text
+    assert "MRI ID '??': session from the visit (ses-2)" in caplog.text
+    rows = read_tsv(layout_of(root).original(
+        raw_file(root, "sub-0001/sub-0001_sessions.tsv")))
+    assert [r[0] for r in rows] == ["session_id", "ses-2"]
+
+
+def test_missing_openpyxl(root, monkeypatch):
+    monkeypatch.setitem(sys.modules, "openpyxl", None)
+    report = roast(root, keys={"meta"}, display=False)
+    assert report.counts["meta"]["error"] == 1
+    assert any("pip install brainspresso[oasis2]" in str(e)
+               for e in report.errors)
 
 
 def test_missing_spreadsheet(root):
@@ -474,6 +589,11 @@ def test_cli_sidecars(root):
     assert raw_tree(root) == {p for p in RAW if p.endswith(".nii.gz")}
     cli(root, "--keys", "raw", "--sidecars", "only")
     assert raw_tree(root) == RAW
+
+
+def test_cli_sessions(root):
+    cli(root, "--keys", "raw", "--sessions", "ses-2")
+    assert raw_tree(root) == scans(1, 2, 1)
 
 
 def test_cli_parts(root):

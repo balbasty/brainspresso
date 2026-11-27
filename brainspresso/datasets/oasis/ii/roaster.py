@@ -34,7 +34,7 @@ trimmed to the subjects and sessions on disk.
 """
 import re
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterator
 
 from brainspresso.actions import Action, CopyJSON, Fail, WriteTSV
@@ -92,8 +92,8 @@ def roast(root, *, subs=(), exclude_subs=(), parts=None, **options):
         is not in `sourcedata/` is an error, other missing parts are
         skipped)
     **options
-        Those of the command line (`keys`, `exclude_keys`, `json`,
-        `ifexists`, `layout`), `jobs` and `display`
+        Those of the command line (`keys`, `exclude_keys`, `sessions`,
+        `json`, `ifexists`, `layout`), `jobs` and `display`
 
     Returns
     -------
@@ -217,6 +217,23 @@ def unreadable(path: Path, error: Exception) -> Fail:
                 f"{error})", name=path.name, tag="parts")
 
 
+def member_name(name: str) -> str:
+    """
+    Normalise the name of a member.
+
+    Parameters
+    ----------
+    name : str
+        As stored in the tarball (`./a/b`, `/a/b`, `a//b`)
+
+    Returns
+    -------
+    str
+        Relative POSIX path, without `.` parts (`a/b`)
+    """
+    return PurePosixPath(name).as_posix().lstrip("/")
+
+
 def raw_scan(name: str) -> tuple[str, int, int, str] | None:
     """
     Parse the name of a raw scan.
@@ -224,9 +241,10 @@ def raw_scan(name: str) -> tuple[str, int, int, str] | None:
     Parameters
     ----------
     name : str
-        Member of a part: `[<top>/]OAS2_<sub>_MR<ses>/RAW/mpr-<run>.nifti.img`
-        (the top folder `OAS2_RAW_PART<N>/` of the legacy roaster is
-        optional: not confirmed on the real tarballs)
+        Member of a part (normalised, `member_name`):
+        `[<prefix>/]OAS2_<sub>_MR<ses>/RAW/mpr-<run>.nifti.img`, with any
+        prefix (the top folder `OAS2_RAW_PART<N>/` of the legacy roaster
+        is not confirmed on the real tarballs)
 
     Returns
     -------
@@ -234,7 +252,7 @@ def raw_scan(name: str) -> tuple[str, int, int, str] | None:
         Subject label, session, run and stem (member without `.img`)
     """
     match = re.fullmatch(
-        r"((?:[^/]+/)?OAS2_(\d+)_MR(\d+)/RAW/mpr-(\d+)\.nifti)\.img", name)
+        r"((?:.+/)?OAS2_(\d+)_MR(\d+)/RAW/mpr-(\d+)\.nifti)\.img", name)
     if not match:
         return None
     stem, sub, ses, run = match.groups()
@@ -277,20 +295,28 @@ def roast_part(ctx: RoastContext, path: Path) -> Iterator[Action]:
         except READ_ERRORS as e:
             yield unreadable(path, e)
             return
-        offsets = {info.name: info.offset for info in infos}
+        members = {member_name(info.name): info for info in infos
+                   if info.isfile()}
+        found = list(filter(None, map(raw_scan, members)))
+        if not found:
+            yield Fail(f"{path.name}: no scan found (members "
+                       f"`OAS2_<sub>_MR<n>/RAW/mpr-<run>.nifti.img`)",
+                       name=path.name, tag="parts")
+            return
         actions = []            # [(position, action)]
-        for name in offsets:
-            scan = raw_scan(name)
-            if scan is not None and ctx.selection.keeps_subject(scan[0]):
+        sessions = ctx.selection.base.sessions
+        for scan in found:
+            if ctx.selection.keeps_subject(scan[0]) and (
+                    not sessions or str(scan[1]) in sessions):
                 actions += scan_actions(ctx, archive, path, *scan,
-                                        offsets=offsets)
+                                        members=members)
         for _, action in sorted(actions, key=lambda item: item[0]):
             yield action
 
 
 def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
                  sub: str, ses: int, run: int, stem: str, *,
-                 offsets: dict[str, int]) -> list:
+                 members: dict) -> list:
     """
     Return the actions of a raw scan.
 
@@ -307,9 +333,9 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
     ses, run : int
         Session and run
     stem : str
-        Member of the scan, without `.img`/`.hdr`
-    offsets : dict[str, int]
-        `{member: offset}` of the part
+        Member of the scan (normalised), without `.img`/`.hdr`
+    members : dict[str, TarInfo]
+        `{normalised name: member}` of the part
 
     Returns
     -------
@@ -325,17 +351,18 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
     elif ctx.accepts("sidecar"):
         out.append((-1, Fail(f"{SIDECAR} not found", name=f"{dst.name}.json",
                              tag="raw")))
-    members = [f"{stem}{ext}" for ext in (".hdr", ".img")]
-    missing = [m for m in members if m not in offsets]
+    names = [f"{stem}{ext}" for ext in (".hdr", ".img")]
+    missing = [m for m in names if m not in members]
     if missing:
         if ctx.accepts("data"):
             out.append((-1, Fail(f"{', '.join(missing)} not found in "
                                  f"{path.name}", name=f"{dst.name}.nii.gz",
                                  tag="raw")))
         return out
-    members.sort(key=offsets.__getitem__)
-    out.append((offsets[members[0]], analyze_action(
-        archive, path, members, f"{dst}.nii.gz", AFFINE_RAW, tag="raw")))
+    infos = sorted((members[m] for m in names), key=lambda m: m.offset)
+    out.append((infos[0].offset, analyze_action(
+        archive, path, [m.name for m in infos], f"{dst}.nii.gz", AFFINE_RAW,
+        tag="raw")))
     return out
 
 
@@ -403,6 +430,13 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
                    name="participants.tsv", tag="meta")
         return
     try:
+        import openpyxl  # noqa: F401, PLC0415  (lazy: optional dependency)
+    except ImportError:
+        yield Fail("openpyxl is needed to read the spreadsheet: pip install "
+                   "brainspresso[oasis2]", name="participants.tsv",
+                   tag="meta")
+        return
+    try:
         participants, sessions = read_demographics(xlsx)
     except Exception as e:      # (openpyxl raises many kinds of errors)
         yield Fail(f"{XLSX} cannot be read ({type(e).__name__}: {e})",
@@ -459,17 +493,55 @@ def number(value) -> int | None:
     return int(value) if value.is_integer() else None
 
 
+def column_index(header) -> list[int]:
+    """
+    Find the columns of `XLSX_HEADER` in the header of the spreadsheet.
+
+    Names are compared without case and spaces; a column that is not
+    found is read at its position in `XLSX_HEADER` (with a warning).
+
+    Parameters
+    ----------
+    header : sequence
+        First row of the spreadsheet
+
+    Returns
+    -------
+    list[int]
+        Index of each column of `XLSX_HEADER`
+    """
+    def norm(name) -> str:
+        """Name without case and spaces."""
+        return re.sub(r"\s+", "", str(name or "")).lower()
+
+    names = {}
+    for i, name in enumerate(header):
+        names.setdefault(norm(name), i)
+    index, missing = [], []
+    for i, name in enumerate(XLSX_HEADER):
+        if norm(name) in names:
+            index.append(names[norm(name)])
+        else:
+            index.append(i)
+            missing.append(f"{name!r} (column {i + 1}: "
+                           f"{header[i] if i < len(header) else None!r})")
+    if missing:
+        lg.warning(f"{XLSX}: columns not found by name, read by position: "
+                   f"{', '.join(missing)}")
+    return index
+
+
 def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     """
     Read the participants and sessions tables from the spreadsheet.
 
-    Columns are those of `XLSX_HEADER`, in that order. Rows without a
-    subject ID (blank or formatted rows) are skipped; short rows and
-    rows whose IDs cannot be parsed are skipped with a warning. The
-    session of a row is the number of its MRI ID (`OAS2_0001_MR2` is
-    `ses-2`, the folder of its scans), else its visit. Participants
-    are described by their first session. Empty and `N/A` cells are
-    `n/a`.
+    Columns are found by name (`XLSX_HEADER`, else by position). Rows
+    without a subject ID (blank or formatted rows) are skipped; rows
+    whose IDs cannot be parsed, or whose MRI ID is of another subject,
+    are skipped with a warning. The session of a row is the number of
+    its MRI ID (`OAS2_0001_MR2` is `ses-2`, the folder of its scans),
+    else (with a warning) its visit. Participants are described by
+    their first visit. Empty and `N/A` cells are `n/a`.
 
     Parameters
     ----------
@@ -485,55 +557,66 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     """
     import openpyxl  # noqa: PLC0415  (lazy: optional dependency)
 
-    book = openpyxl.load_workbook(path_xlsx, data_only=True, read_only=True)
+    # (not `read_only`: it trusts the stored dimension of the sheet)
+    book = openpyxl.load_workbook(path_xlsx, data_only=True)
     try:
         sheet = book[book.sheetnames[0]]
-        rows = list(sheet.iter_rows(min_row=2, values_only=True))
+        rows = [list(row) for row in sheet.iter_rows(values_only=True)]
     finally:
         book.close()
+    if not rows:
+        raise ValueError("empty sheet")
+    index = column_index(rows[0])
+    width = max(index) + 1
 
-    found = {}          # {sub: {ses: row}}
-    for nrow, row in enumerate(rows, 2):
-        row = list(row or ())
-        if not row or not str(row[0] or "").strip():
+    found = {}          # {sub: {ses: (visit, row)}}
+    for nrow, row in enumerate(rows[1:], 2):
+        row = row + [None] * (width - len(row))     # (empty trailing cells)
+        (sid, mri, group, visit, delay, sex, hand, age, educ, socio, mmse,
+         cdr, etiv, nwbv, asf) = (row[i] for i in index)
+        if not str(sid or "").strip():
             continue                    # blank or formatted row
-        if len(row) < len(XLSX_HEADER):
-            lg.warning(f"{XLSX}, row {nrow}: {len(row)} columns, "
-                       f"{len(XLSX_HEADER)} expected (skipped)")
-            continue
-        match = re.fullmatch(r"OAS2_(\d+)", str(row[0]).strip())
+        match = re.fullmatch(r"OAS2_(\d+)", str(sid).strip())
         if not match:
-            lg.warning(f"{XLSX}, row {nrow}: subject ID {row[0]!r} "
-                       f"(skipped)")
+            lg.warning(f"{XLSX}, row {nrow}: subject ID {sid!r} (skipped)")
             continue
         sub = f"{int(match[1]):0{WIDTH}d}"
-        visit = number(row[3])
-        mri = re.fullmatch(r"OAS2_\d+_MR(\d+)", str(row[1] or "").strip())
-        ses = int(mri[1]) if mri else visit
-        if ses is None:
+        visit = number(visit)
+        match = re.fullmatch(r"OAS2_(\d+)_MR(\d+)", str(mri or "").strip())
+        if match and int(match[1]) != int(sub):
+            lg.warning(f"{XLSX}, row {nrow}: MRI ID {mri!r} is not of "
+                       f"subject {sid!r} (skipped)")
+            continue
+        if match:
+            ses = int(match[2])
+        elif visit is not None:
+            ses = visit
+            lg.warning(f"{XLSX}, row {nrow}: MRI ID {mri!r}: session from "
+                       f"the visit (ses-{ses})")
+        else:
             lg.warning(f"{XLSX}, row {nrow}: no session in MRI ID "
-                       f"{row[1]!r} or visit {row[3]!r} (skipped)")
+                       f"{mri!r} or visit {row[index[3]]!r} (skipped)")
             continue
         if ses in found.get(sub, {}):
             lg.warning(f"{XLSX}, row {nrow}: sub-{sub} ses-{ses} is listed "
                        f"twice (skipped)")
             continue
-        found.setdefault(sub, {})[ses] = (visit, row)
+        group = str(group or "").strip()
+        pathology = PATHOLOGY_MAP.get(group.lower(), "n/a")
+        if group and pathology == "n/a":
+            lg.warning(f"{XLSX}, row {nrow}: unknown group {group!r} (n/a)")
+        found.setdefault(sub, {})[ses] = (visit, [
+            [sex, hand, age],
+            [visit, delay, pathology, age, educ, socio, mmse, cdr, etiv,
+             nwbv, asf]])
 
     participants = [PARTICIPANTS_HEADER]
     sessions = {}
     for sub, rows in sorted(found.items()):
         first = min(rows, key=lambda ses: (
             rows[ses][0] if rows[ses][0] is not None else ses, ses))
-        row = rows[first][1]
-        participants.append([f"sub-{sub}", *map(cell, row[5:8])])
-        table = sessions[sub] = [SESSIONS_HEADER]
-        for ses, (_, row) in sorted(rows.items()):
-            group = str(row[2] or "").strip()
-            pathology = PATHOLOGY_MAP.get(group.lower(), "n/a")
-            if group and pathology == "n/a":
-                lg.warning(f"{XLSX}: sub-{sub} ses-{ses}: unknown group "
-                           f"{group!r} (n/a)")
-            table.append([f"ses-{ses}", cell(row[3]), cell(row[4]),
-                          pathology, *map(cell, row[7:15])])
+        participants.append([f"sub-{sub}", *map(cell, rows[first][1][0])])
+        sessions[sub] = [SESSIONS_HEADER] + [
+            [f"ses-{ses}", *map(cell, values[1])]
+            for ses, (_, values) in sorted(rows.items())]
     return participants, sessions

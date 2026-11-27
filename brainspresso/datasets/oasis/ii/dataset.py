@@ -73,6 +73,7 @@ class OASIS2(Dataset):
     help = HELP
     keys = KeySpec(None, KEYS, KEYS)
     subject_width = 4
+    sessions = True             # (roast; harvest: parts hold every session)
     harvest_subjects = False
     template_dir = Path(__file__).parent / "templates"
     requires = {"roast": ("openpyxl",)}

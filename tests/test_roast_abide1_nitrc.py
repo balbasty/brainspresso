@@ -8,10 +8,13 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    SCOPE_SCENARIOS,
+    check_scope,
     init_layout,
     layout_of,
     make_tar,
     nii_bytes,
+    open_spy,
     raw_file,
     raw_tree,
     read_tsv,
@@ -375,6 +378,20 @@ def test_one_shard_per_tarball(root, monkeypatch):
     roast(root, keys={"T1w", "rest"}, ifexists="overwrite", display=False)
     assert sidecar(root, "sub-51456/anat/sub-51456_T1w.json") == \
         {"EchoTime": 1}
+
+
+@pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
+def test_scope_of_tarballs(root, monkeypatch, scenario):
+    """`--subs` narrowing and `meta` skip the tarballs, a new subject
+    re-reads the tarball of its site only (`roast.scope`)"""
+    opened = open_spy(monkeypatch, roaster)
+    check_scope(
+        scenario, root, lambda **kw: roast(root, display=False, **kw),
+        opened, a=51456, b=51330, label_a="51456", label_b="51330",
+        archives={
+            "Caltech.tgz": ({"51456", "51457"}, "roast/raw/Caltech.tgz"),
+            "MaxMun_a.tgz": ({"51330"}, "roast/raw/MaxMun_a.tgz")},
+        keys={"meta", "T1w", "T2w", "rest"}, key="rest", absent=50000)
 
 
 def test_subjects_pruned_before_extraction(root, monkeypatch):

@@ -16,6 +16,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    scoped_records,
 )
 
 from brainspresso.actions.state import read_task_states
@@ -238,6 +239,31 @@ def test_rerun_skips(root):
     roast(root)
     assert nii.stat().st_mtime_ns == mtime
     assert raw_tree(root) == META | RAW
+
+
+def test_scope_of_subject_shards(root, monkeypatch):
+    """Toggling `meta`, fewer subjects: no subject is roasted again;
+    another sidecar policy, or other keys (its inputs follow the wanted
+    keys) roast it again"""
+    calls = []
+    real = roaster.roast_subject
+
+    def spy(ctx, sub):
+        calls.append(sub)
+        return real(ctx, sub)
+
+    monkeypatch.setattr(roaster, "roast_subject", spy)
+    assert not roast_api(root, display=False).errors
+    assert calls
+    scoped_records(root)
+    del calls[:]
+    for options in ({"exclude_keys": "meta"}, {"subs": [1]},
+                    {"exclude_keys": "meta", "subs": [2]}):
+        assert not roast_api(root, display=False, **options).errors
+    assert calls == []
+    roast_api(root, json="no", subs=[1], display=False)
+    roast_api(root, exclude_keys="vessels", subs=[2], display=False)
+    assert calls == ["001", "002"]
 
 
 # ----------------------------------------------------------------------

@@ -15,8 +15,11 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
+from brainspresso.actions.state import read_task_states
+from brainspresso.bids.compost import compost
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import STATE_DIR, Layout, make_layout
+from brainspresso.bids.select import Selection
 
 LAYOUTS = ("study", "flat")
 _EXCLUDED = ("derivatives", "sourcedata", STATE_DIR)
@@ -100,3 +103,142 @@ def read_tsv(path: Path) -> list[list[str]]:
         line.split("\t")
         for line in Path(path).read_text().splitlines() if line
     ]
+
+
+# ----------------------------------------------------------------------
+#   Scope of shards (`roast.scope`)
+# ----------------------------------------------------------------------
+
+def scoped_records(ds_root: Path) -> dict[str, dict]:
+    """
+    Task records of a roast; fail on a scoped one whose audit failed.
+
+    A record with `scopes == []` is that of a shard whose outputs were
+    found outside its declared scope (`RoastPolicy.audit`): it is never
+    skipped by its scope, and its roaster's declaration is wrong.
+    """
+    states = read_task_states(layout_of(ds_root).state)
+    for task, record in states.items():
+        if record.get("status") == "done" and "scopes" in record:
+            assert record["scopes"], f"{task}: outputs outside its scope"
+    return states
+
+
+def open_spy(monkeypatch, module, name: str = "TarArchive") -> list[str]:
+    """Record the names of the archives that a roaster module opens."""
+    opened = []
+    real = getattr(module, name)
+
+    def opener(path, *args, **kwargs):
+        opened.append(Path(path).name)
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(module, name, opener)
+    return opened
+
+
+#: Scenarios of `check_scope` (a fresh dataset each)
+SCOPE_SCENARIOS = ("narrow", "widen", "back", "seen", "compost")
+
+
+def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
+                a, b, label_a: str, label_b: str, archives: dict,
+                keys: set, key: str, absent=None):
+    """
+    Check that a roaster's shards are skipped by their scope.
+
+    Parameters
+    ----------
+    scenario : {"narrow", "widen", "back", "seen", "compost"}
+        - narrow: a full roast, then `--subs a`, then `--exclude-keys
+          meta`: no archive is opened again;
+        - widen: `--subs a` then `--subs a b`: only the archives that
+          hold `b` are opened again, and `b` is written; a subject held
+          by no archive (`absent`) opens nothing;
+        - back: `--subs a`, `--subs b`, `--subs a`: the third opens
+          nothing;
+        - seen: after a roast of `a` and `key` only, every scoped record
+          has seen every subject of its archive;
+        - compost: compost `b`, then `--exclude-subs b` opens nothing,
+          then a full roast opens the archives of `b` and writes it
+          again
+    ds_root : Path
+        Dataset folder
+    roast : callable(**options) -> report
+        Roast of the dataset (`subs=`, `exclude_subs=`, `keys=`,
+        `exclude_keys=`)
+    opened : list[str]
+        Names of the archives opened (`open_spy`)
+    a, b : subject values of `subs=`
+        In different archives, if the dataset has several
+    label_a, label_b : str
+        Their labels
+    archives : dict[str, (set[str], task id)]
+        Archive name -> (labels of the subjects it holds, task id of its
+        shard)
+    keys : set[str]
+        Keys of a full roast (meta and the image keys)
+    key : str
+        One image key that `a` has
+    absent : subject value of `subs=`, optional
+        A subject that no archive holds
+    """
+    def holding(label):
+        return sorted(n for n, (labels, _) in archives.items()
+                      if label in labels)
+
+    def written(label):
+        return any(p.startswith(f"sub-{label}/") for p in raw_tree(ds_root))
+
+    def check(report):
+        assert not report.errors, report.errors
+        scoped_records(ds_root)
+
+    if scenario == "narrow":
+        check(roast(keys=keys))
+        assert sorted(opened) == sorted(archives)
+        before = raw_tree(ds_root)
+        check(roast(keys=keys, subs=[a]))
+        check(roast(keys=keys, exclude_keys={"meta"}))
+        check(roast(keys={key}, subs=[a, b]))
+        assert sorted(opened) == sorted(archives)
+        assert raw_tree(ds_root) == before
+    elif scenario == "widen":
+        check(roast(keys=keys, subs=[a]))
+        assert written(label_a) and not written(label_b)
+        del opened[:]
+        check(roast(keys=keys, subs=[a, b]))
+        assert sorted(opened) == holding(label_b)
+        assert written(label_b)
+        if absent is not None:
+            del opened[:]
+            check(roast(keys=keys, subs=[a, b, absent]))
+            assert opened == []
+    elif scenario == "back":
+        check(roast(keys=keys, subs=[a]))
+        check(roast(keys=keys, subs=[b]))
+        del opened[:]
+        check(roast(keys=keys, subs=[a]))
+        assert opened == []
+    elif scenario == "seen":
+        check(roast(keys={key}, subs=[a]))
+        records = scoped_records(ds_root)
+        for name, (labels, task) in archives.items():
+            if label_a in labels:
+                assert records[task]["seen"] == {"sub": sorted(labels)}
+    elif scenario == "compost":
+        check(roast(keys=keys))
+        files = {p for p in raw_tree(ds_root)
+                 if p.startswith(f"sub-{label_b}/")}
+        assert files
+        compost(ds_root, selection=Selection(exclude_subs=[label_b]),
+                yes=True)
+        assert not written(label_b)
+        del opened[:]
+        check(roast(keys=keys, exclude_subs=[b]))
+        assert opened == [] and not written(label_b)
+        check(roast(keys=keys))
+        assert sorted(opened) == holding(label_b)
+        assert files <= raw_tree(ds_root)
+    else:
+        raise ValueError(scenario)

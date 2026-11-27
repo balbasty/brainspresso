@@ -264,6 +264,7 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
         ctx, folders, roast_subject,
         inputs=lambda label: shard_inputs(ctx, folders[label]),
         config={"named": sorted(ctx.options.get("named", ()))},
+        scope_keys=(*RAW, *DERIVATIVES),
     )
 
 

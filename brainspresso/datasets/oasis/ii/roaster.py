@@ -24,8 +24,10 @@ A part is a gz tarball that holds the scans of about 75 subjects (all
 their sessions), and reading a member of a gz tarball decompresses
 everything before it. Each part is therefore read by one shard (task id
 `roast/parts/part<N>`, inputs: the part and the sidecar template, so
-that an unchanged part is skipped on a re-run): it is listed once, then
-its members are extracted in archive order (one forward pass). Parts
+that an unchanged part is skipped on a re-run, also by a roast that
+keeps fewer subjects or toggles `meta`: its scope, `roast.scope`): it
+is listed once, then its members are extracted in archive order (one
+forward pass). Parts
 that are not in `sourcedata/` are skipped with a warning, unless named
 with `--parts` (then an error). Sessions are the MR numbers of the
 member folders (`OAS2_<sub>_MR<n>` is `ses-<n>`). The participants and
@@ -42,10 +44,12 @@ from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.oasis.i.roaster import READ_ERRORS, analyze_action
 from brainspresso.errors import UsageError
 from brainspresso.roast import (
+    SEEN,
     RoastContext,
     Shard,
     copy_templates,
     roast_dataset,
+    scope,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -192,6 +196,7 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
             roast_part, path, tag="parts", advance="parts",
             id=f"roast/parts/part{part}",
             inputs=[path, *([sidecar] if sidecar else [])],
+            scope=scope(keys=("raw",), subs=SEEN),
         ))
     ctx.progress(total=len(shards), tag="parts")
     yield from shards
@@ -306,7 +311,7 @@ def roast_part(ctx: RoastContext, path: Path) -> Iterator[Action]:
         actions = []            # [(position, action)]
         sessions = ctx.selection.base.sessions
         for scan in found:
-            if ctx.selection.keeps_subject(scan[0]) and (
+            if ctx.keeps_subject(scan[0]) and (
                     not sessions or str(scan[1]) in sessions):
                 actions += scan_actions(ctx, archive, path, *scan,
                                         members=members)

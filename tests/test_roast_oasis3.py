@@ -12,6 +12,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    scoped_records,
 )
 
 from brainspresso.datasets.oasis.iii import roaster
@@ -224,6 +225,31 @@ def test_category_keys_open_no_image_tarball(root, monkeypatch, keys):
         assert [p.name for p in opened] == ["anat1.tar.gz"] * 2
     else:
         assert opened == []
+
+
+def test_scope_of_subject_shards(root, monkeypatch):
+    """Toggling `meta`, fewer subjects: no subject is roasted again; a
+    key that its shard had not written: it is (`roast.scope`)"""
+    calls = []
+    real = roaster.roast_subject
+
+    def spy(ctx, sub):
+        calls.append(sub)
+        return real(ctx, sub)
+
+    monkeypatch.setattr(roaster, "roast_subject", spy)
+    assert not roast(root, keys={"T1w", "T2w"}, display=False).errors
+    assert sorted(calls) == ["0001", "0002"]
+    scope = scoped_records(root)["roast/subjects/sub-0001"]["scopes"][0]
+    assert scope["fixed"]["declared"]["subs"] == ["0001"]
+    assert "meta" not in scope["fixed"]["declared"]["keys"]
+    del calls[:]
+    for options in ({"keys": {"T1w", "T2w", "meta", "pheno"}},
+                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "subs": [2]}):
+        assert not roast(root, display=False, **options).errors
+    assert calls == []
+    roast(root, keys={"T1w", "FLAIR"}, subs=[1], display=False)
+    assert calls == ["0001"]
 
 
 def test_key_classification():

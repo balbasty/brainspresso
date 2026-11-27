@@ -9,13 +9,17 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    SCOPE_SCENARIOS,
     analyze_pair,
+    check_scope,
     init_layout,
     layout_of,
     make_tar,
+    open_spy,
     raw_file,
     raw_tree,
     read_tsv,
+    scoped_records,
 )
 
 from brainspresso.actions.state import read_task_states
@@ -517,6 +521,45 @@ def test_cli_layout(tmp_path, layout):
     assert layout_of(root).kind == layout
     assert raw_tree(root) == raw_runs(1)
     assert (root / "rawbids").is_dir() == (layout == "study")
+
+
+@pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
+def test_scope_of_image_discs(root, monkeypatch, scenario):
+    """`--subs` narrowing and `meta` skip the discs, a new subject
+    re-reads the disc that holds it only (`roast.scope`)"""
+    image_disc(root / "sourcedata", disc=2, ids=(3,))
+    opened = open_spy(monkeypatch, roaster)
+    check_scope(
+        scenario, root, lambda **kw: roast(root, display=False, **kw),
+        opened, a=1, b=3, label_a="0001", label_b="0003",
+        archives={
+            "oasis_cross-sectional_disc1.tar.gz":
+                ({"0001", "0002"}, "roast/discs/raw-disc01"),
+            "oasis_cross-sectional_disc2.tar.gz":
+                ({"0003"}, "roast/discs/raw-disc02")},
+        keys={"meta", "raw", "avg", "tal", "fsl"}, key="tal", absent=9)
+
+
+def test_scope_of_freesurfer_discs(root, monkeypatch):
+    """Every subject of a FreeSurfer disc is seen, also one without
+    files that BIDS describes (it has some with `fs-all`)"""
+    s = "disc1/OAS1_0001_MR1"
+    make_tar(root / "sourcedata" / "oasis_cs_freesurfer_disc1.tar.gz", {
+        f"{s}/mri/aseg.mgz": mgz_bytes(),
+        "disc1/OAS1_0003_MR1/stats/aseg.stats": b"# not bidsifiable",
+        "disc1/OAS1_0004_MR2/mri/aseg.mgz": mgz_bytes(),
+    })
+    opened = open_spy(monkeypatch, roaster)
+    roast(root, keys={"fs"}, subs=[1], discs=[1], display=False)
+    record = scoped_records(root)["roast/discs/fs-disc01"]
+    assert record["seen"] == {"sub": ["0001", "0003"]}
+    del opened[:]
+    roast(root, keys={"fs", "meta"}, subs=[1, 4], discs=[1], display=False)
+    assert opened == []
+    roast(root, keys={"fs-all"}, subs=[1, 3], discs=[1], display=False)
+    assert opened
+    fsdrv = layout_of(root).derivative(FS)
+    assert (fsdrv.source / "sub-0003" / "stats" / "aseg.stats").exists()
 
 
 def test_rerun_skips_discs(root, monkeypatch):

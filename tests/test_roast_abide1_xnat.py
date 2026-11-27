@@ -17,6 +17,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    scoped_records,
 )
 
 from brainspresso.cli import main
@@ -456,6 +457,31 @@ def test_freesurfer_rerun_skipped(root, monkeypatch):
     add_freesurfer(root / "sourcedata", "Pitt_0050003", "Pitt_0050003-fs")
     xnat(root)
     assert opened == ["Pitt_0050003-fs.tar.gz"]
+
+
+def test_scope_of_subject_shards(root, monkeypatch):
+    """Toggling `meta`, fewer keys or subjects: no archive is opened
+    (each shard declares its keys and its subject, `roast.scope`)"""
+    report = xnat(root)
+    assert not report.errors
+    records = scoped_records(root)
+    assert records["roast/fs/sub-50003"]["scopes"][0]["keys"] == ["fs"]
+    opened = []
+    real = TarArchive.__init__
+
+    def spy(self, path):
+        opened.append(Path(path).name)
+        real(self, path)
+
+    monkeypatch.setattr(TarArchive, "__init__", spy)
+    for options in ({"exclude_keys": ["meta"]}, {"keys": ["T1w", "fs"]},
+                    {"subs": ["51456"], "keys": ["meta", "rest"]}):
+        assert not xnat(root, **options).errors
+    assert opened == []
+    # (`fs-all` is a key that the FreeSurfer shards had not written)
+    xnat(root, keys=["fs-all"])
+    assert sorted(opened) == ["Caltech_0051456-freesurfer.tar.gz",
+                              "Pitt_0050003-fs.tar.gz"]
 
 
 def test_subjects_filters_and_shards(root, monkeypatch):

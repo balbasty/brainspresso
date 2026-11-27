@@ -8,10 +8,13 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    SCOPE_SCENARIOS,
+    check_scope,
     init_layout,
     layout_of,
     make_tar,
     nii_bytes,
+    open_spy,
     raw_file,
     raw_tree,
     read_tsv,
@@ -313,8 +316,9 @@ def test_subjects_pruned_before_extraction(root, monkeypatch):
 
 
 def test_rerun_skips_by_signature(root, monkeypatch):
-    """A re-run with the same inputs and options does not open the tarball;
-    new options (subjects) do"""
+    """A re-run with the same inputs and options does not open the tarball,
+    nor one that keeps fewer subjects (its scope); a new sidecar policy
+    does"""
     opened = []
     real = roaster.TarArchive
 
@@ -330,7 +334,22 @@ def test_rerun_skips_by_signature(root, monkeypatch):
     assert len(opened) == 1
     assert raw_tree(root) == RAW | META
     roast(root, subs=[40000], display=False)
+    assert len(opened) == 1
+    roast(root, json="no", display=False)
     assert len(opened) == 2
+
+
+@pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
+def test_scope_of_the_image_shard(root, monkeypatch, scenario):
+    """`--subs` narrowing and `meta` skip the tarball, a new subject of
+    it re-reads it (`roast.scope`)"""
+    opened = open_spy(monkeypatch, roaster)
+    check_scope(
+        scenario, root, lambda **kw: roast(root, display=False, **kw),
+        opened, a=40000, b=40001, label_a="0040000", label_b="0040001",
+        archives={"COBRE_scan_data.tgz": ({"0040000", "0040001"},
+                                          "roast/scans")},
+        keys={"meta", "T1w", "func"}, key="func", absent=49999)
 
 
 def test_jobs(root):

@@ -15,9 +15,9 @@ from brainspresso.actions.action import Action
 from brainspresso.actions.engine import Context, Policy
 from brainspresso.bids.layout import DerivativeLayout, Layout
 from brainspresso.grind.containers import ContainerRuntime
-from brainspresso.grind.execution import Profile
 from brainspresso.grind.model import Config, Pipeline
 from brainspresso.grind.overrides import GrindOverrides
+from brainspresso.percolate.options import Profile
 
 __all__ = ["GrindContext", "GrindPolicy"]
 
@@ -30,15 +30,16 @@ class GrindContext(Context):
     of the layout, `stage` is "grind", and task records pick up
     `pipeline`, which is therefore the **name** of the pipeline (the
     engine stores `ctx.pipeline` as it is); the `Pipeline` itself is
-    `spec`. It is pickled to workers and cluster jobs: it holds no open
-    resource.
+    `spec`. A task builds its own from the plan (it is never sent to
+    another process), in the worker or the job that runs it.
 
     The other fields that grind adds to task records
     (`grind.graph.GRIND_FIELDS`) are not read from the context: each
     task gives them to the engine as the extra record fields of its
     shard (`Shard(record=...)`, step 7), and the engine merges them,
     with the fields it does not own, into the record that exists (the
-    "pending" record written at submission) instead of replacing it.
+    "pending" record that `bx percolate` writes with the job id)
+    instead of replacing it.
 
     Parameters
     ----------
@@ -51,7 +52,7 @@ class GrindContext(Context):
     overrides : GrindOverrides | None
         What the dataset declares
     profile : Profile | None
-        Execution profile (backend, runtime, scratch)
+        Execution profile (container runtime, scratch, lock wait)
     dataset : str | None
         Reference of the dataset
     variant : str | None

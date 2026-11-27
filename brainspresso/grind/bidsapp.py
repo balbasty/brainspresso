@@ -41,8 +41,9 @@ class BidsAppConfig:
         Extra arguments, passed as they are
     bids_filter : Mapping[str, Mapping[str, str]] | None
         Content of the filter file of apps that take one
-        (`--bids-filter-file`); needed for a selection finer than
-        subjects and sessions, which is refused without it
+        (`--bids-filter-file`). A selection finer than subjects and
+        sessions needs it, or staging (`--stage inputs|all` copies only
+        the selected files, `grind.staging`); else it is refused
     skip_bids_validation : bool
         Pass the app's flag that skips its validation of the dataset
     files : Mapping[str, str]

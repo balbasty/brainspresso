@@ -6,6 +6,13 @@ declarative: a pipeline lists stages, a stage lists what it needs and
 what it writes, and the order of the work follows from that
 (`grind.graph`). There is no wiring syntax.
 
+A task of a plan names its pipeline and stage; the job that runs it
+finds them again by name (`get_pipeline`, same version, else it
+refuses). So a pipeline that runs from a plan is registered, and the
+callables of its stages (`FunctionStage.fn`, `CommandStage.command`)
+are importable as `module:qualname`: module-level functions, never
+lambdas or closures.
+
 ```python
 fs_long = Pipeline(
     "fs-long", "7.4.1", config=FsConfig, stages=(
@@ -42,6 +49,7 @@ from brainspresso.actions.action import Action
 from brainspresso.actions.engine import Producer
 from brainspresso.bids.select import Selection
 from brainspresso.grind.containers import Container
+from brainspresso.percolate.plan import Resources
 
 if TYPE_CHECKING:
     from brainspresso.grind.context import GrindContext
@@ -350,63 +358,6 @@ class Output:
 
 
 @dataclass(frozen=True)
-class Resources:
-    """
-    Resources of one task, for the backends of `grind.execution`.
-
-    Attributes
-    ----------
-    cpus : int
-        CPU cores
-    memory_gb : float | None
-        Memory, in GiB (None: the default of the backend)
-    gpus : int
-        GPUs
-    walltime_min : int | None
-        Time limit, in minutes (None: the default of the backend)
-    scratch_gb : float | None
-        Local scratch space, in GiB
-    extra : Mapping[str, Any]
-        Backend-specific options (`{"slurm_partition": "gpu"}`)
-    """
-
-    cpus: int = 1
-    memory_gb: float | None = None
-    gpus: int = 0
-    walltime_min: int | None = None
-    scratch_gb: float | None = None
-    extra: Mapping[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        """
-        Return the `resources` dict of `Executor.submit`.
-
-        Returns
-        -------
-        dict[str, Any]
-            `{"cpus": ..., "memory_gb": ..., ...}`, `extra` merged in
-        """
-        raise NotImplementedError
-
-    def merged(self, other: "Resources | Mapping[str, Any] | None"
-               ) -> "Resources":
-        """
-        Override with the fields that another set of resources gives.
-
-        Parameters
-        ----------
-        other : Resources | Mapping[str, Any] | None
-            Overrides (a profile, the command line)
-
-        Returns
-        -------
-        Resources
-            The merged resources
-        """
-        raise NotImplementedError
-
-
-@dataclass(frozen=True)
 class Work:
     """
     What `Stage.run` receives: one unit, resolved.
@@ -419,11 +370,17 @@ class Work:
         Effective configuration (defaults, dataset overrides, config
         file, command line)
     inputs : Mapping[str, tuple[Path, ...]]
-        Files of each requirement, by name (absolute paths)
+        Files of each requirement, by name: the paths to read, i.e.
+        the copies on scratch when inputs are staged
     outputs : Mapping[str, Path]
-        Path of each declared output, by name (absolute paths)
+        Path of each declared output, by name, in `root`
     root : Path
         Derivative dataset that the stage writes into
+    stage : {"none", "inputs", "all"}
+        Staging of the task (`grind.staging`). "all": commands write
+        under `workdir` and their outputs are committed to `root`
+        afterwards; actions that write through `File` always write to
+        `root`
     workdir : Path
         Scratch folder of the task (removed when it succeeds)
     resources : Resources
@@ -440,6 +397,7 @@ class Work:
     inputs: Mapping[str, tuple[Path, ...]] = field(default_factory=dict)
     outputs: Mapping[str, Path] = field(default_factory=dict)
     root: Path = Path(".")
+    stage: str = "none"
     workdir: Path = Path(".")
     resources: Resources = Resources()
     members: tuple[Unit, ...] = ()
@@ -465,7 +423,9 @@ class Stage(ABC):
     outputs : tuple[Output, ...]
         What it writes
     resources : Resources
-        Default resources of one task
+        Resources that one task needs: the default of the plan, below
+        the profile, the dataset overrides and the command line
+        (`percolate.options.resolve_resources`)
     container : Container | None
         Container of its commands (None: that of the pipeline)
     """
@@ -535,7 +495,8 @@ class FunctionStage(Stage):
     Attributes
     ----------
     fn : callable(ctx, work) -> iterator of Action | Producer | None
-        Module-level function (picklable) that yields the actions
+        Function that yields the actions; importable as
+        `module:qualname` (`validate` refuses a lambda or a closure)
     """
 
     fn: StageFunction | None = None
@@ -573,8 +534,8 @@ class CommandStage(Stage):
     Attributes
     ----------
     command : callable(work) -> list[str] | None
-        Module-level function that returns the argv (paths as the
-        command sees them: `mounts` maps them)
+        Function that returns the argv (paths as the command sees
+        them); importable as `module:qualname`
     env : Mapping[str, str]
         Environment variables of the command
     """
@@ -692,7 +653,8 @@ class Pipeline:
 
         Stage names are unique, levels are known, requirements name
         existing stages, outputs and required pipelines, output
-        templates only use known fields, and stages do not depend on
+        templates only use known fields, stage callables are importable
+        (`module:qualname`), and stages do not depend on
         each other in a cycle. An output with `claim=True` must use
         every entity of the level of its stage (`sub-{sub}/` is refused
         for a session stage: its tasks would overwrite each other).

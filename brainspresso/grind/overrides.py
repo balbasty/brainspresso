@@ -3,7 +3,10 @@ What a dataset declares for grind: defaults and exceptions.
 
 Interfaces only (see `brainspresso.grind`). Pure data: a dataset may
 declare `grind = GrindOverrides(...)`; nothing else of this package is
-for dataset modules.
+for dataset modules. The same fields may also come from the config
+file (separate PR), in `[<Module.Path>.grind]` and, per pipeline,
+`[<Module.Path>.grind.<pipeline>]` sections (`[ABIDE.I.grind.fs]`),
+which win over the declaration.
 """
 from __future__ import annotations
 

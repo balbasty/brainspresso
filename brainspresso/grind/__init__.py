@@ -8,26 +8,29 @@ bodies without changing the names, the arguments or the meaning that the
 docstrings give them.
 
 * `model`: `Pipeline`, `Stage` (`FunctionStage`, `CommandStage`),
-  `Requirement`, `Query`, `Output`, `Unit`, `LEVELS`, `Resources`,
-  `Config`, `Work`, `format_output`, the pipeline registry;
+  `Requirement`, `Query`, `Output`, `Unit`, `LEVELS`, `Config`, `Work`,
+  `format_output`, the pipeline registry;
 * `overrides`: `GrindOverrides`, what a dataset declares for grind;
 * `containers`: `Container`, `Mount`, `ContainerRuntime`;
-* `execution`: `Executor`, `Handle`, `After` (the submit protocol),
-  `NotReady`, `TaskLost`, `Profile`;
-* `graph`: `Task`, `TaskArray`, `Graph`, `Scope`, `task_id`,
-  `derivative_name`, `enumerate_units`, `signature`, `plan`;
+* `graph`: `Scope`, `task_id`, `derivative_name`, `enumerate_units`,
+  `signature`, `plan` (which returns a `percolate.plan.Plan`);
 * `context`: `GrindContext`, `GrindPolicy` (the grind layer of the
   action engine);
 * `bidsapp`: `BidsAppPipeline`, `BidsAppStage`, `BidsAppConfig`;
 * `index`: `DatasetRef`, `resolve_datasets`, `build_index`, `Where`;
 * `provenance`: `generated_by`, `source_datasets`,
   `describe_derivative`;
+* `staging`: `stage_in`, `stage_out` (node-local scratch);
 * `run`: `grind_dataset`, `grind_collection`, `grind_status`,
-  `GrindReport`.
+  `GrindReport`, `GrindPlanner`.
 
-Layering: `grind/` builds on `actions/` and `bids/`; `actions/` never
-imports it. No module of this package imports an optional dependency
-(pydantic, submitit, Dask, Ray).
+Plans, execution options, scheduler jobs and `bx percolate` are
+stage-agnostic and live in `brainspresso.percolate` (`Resources` is
+re-exported here).
+
+Layering: `grind/` builds on `actions/`, `bids/` and `percolate/`;
+none of them imports it. No module of this package imports an optional
+dependency (pydantic, PyYAML).
 """
 from brainspresso.grind.bidsapp import (
     BidsAppConfig,
@@ -42,25 +45,11 @@ from brainspresso.grind.containers import (
     get_runtime,
 )
 from brainspresso.grind.context import GrindContext, GrindPolicy
-from brainspresso.grind.execution import (
-    BACKENDS,
-    After,
-    Executor,
-    Handle,
-    NotReady,
-    Profile,
-    TaskLost,
-    load_profile,
-    make_executor,
-)
 from brainspresso.grind.graph import (
     GRIND_FIELDS,
     VERDICTS,
     DatasetScope,
-    Graph,
     Scope,
-    Task,
-    TaskArray,
     derivative_name,
     enumerate_units,
     plan,
@@ -101,25 +90,25 @@ from brainspresso.grind.provenance import (
 )
 from brainspresso.grind.run import (
     GRIND_LOCK,
+    GrindPlanner,
     GrindReport,
     grind_collection,
     grind_dataset,
     grind_status,
 )
+from brainspresso.grind.staging import stage_in, stage_out
 
 __all__ = [
-    "BACKENDS", "GRIND_FIELDS", "GRIND_LOCK", "LEVELS", "PIPELINES",
-    "RUNTIMES", "VERDICTS", "WHERE_OPERATORS", "After", "BidsAppConfig",
-    "BidsAppPipeline", "BidsAppStage", "CommandStage", "Config",
-    "Container", "ContainerRuntime", "DatasetRef", "DatasetScope",
-    "Executor", "FunctionStage", "Graph", "GrindContext",
-    "GrindOverrides", "GrindPolicy", "GrindReport", "Handle", "Mount",
-    "NotReady", "Output", "Pipeline", "Profile", "Query", "Requirement",
-    "Resources", "Scope", "Stage", "Task", "TaskArray", "TaskLost",
-    "Unit", "Where", "Work", "build_index", "derivative_name",
-    "describe_derivative", "enumerate_units", "format_output",
-    "generated_by", "get_pipeline", "get_runtime", "grind_collection",
-    "grind_dataset", "grind_status", "load_profile", "make_executor",
-    "parse_where", "plan", "register_pipeline", "resolve_datasets",
-    "signature", "source_datasets", "task_id",
+    "GRIND_FIELDS", "GRIND_LOCK", "LEVELS", "PIPELINES", "RUNTIMES",
+    "VERDICTS", "WHERE_OPERATORS", "BidsAppConfig", "BidsAppPipeline",
+    "BidsAppStage", "CommandStage", "Config", "Container",
+    "ContainerRuntime", "DatasetRef", "DatasetScope", "FunctionStage",
+    "GrindContext", "GrindOverrides", "GrindPlanner", "GrindPolicy",
+    "GrindReport", "Mount", "Output", "Pipeline", "Query", "Requirement",
+    "Resources", "Scope", "Stage", "Unit", "Where", "Work", "build_index",
+    "derivative_name", "describe_derivative", "enumerate_units",
+    "format_output", "generated_by", "get_pipeline", "get_runtime",
+    "grind_collection", "grind_dataset", "grind_status", "parse_where",
+    "plan", "register_pipeline", "resolve_datasets", "signature",
+    "source_datasets", "stage_in", "stage_out", "task_id",
 ]

@@ -3,11 +3,15 @@ Datasets of a cross-dataset run: references, index and conditions.
 
 Interfaces only (see `brainspresso.grind`).
 
-A dataset **reference** is `<name>[/<argument>...][/<site>]`: the
-command line name of the dataset, then its positional arguments
-(`Dataset.arguments`), then at most one site: `ixi`,
-`openneuro/ds000224`, `abide-1/NYU`. Names are case-insensitive. A `*`
-in an argument or a site matches what is on disk (`openneuro/*`). A
+A dataset **reference** is `<Module.Path>[/<argument>...][/<site>]`:
+the name of the dataset, then its positional arguments
+(`Dataset.arguments`), then at most one site: `IXI`,
+`OpenNeuro/ds000224`, `ABIDE.I/NYU`. The name is the module path of
+the dataset under `brainspresso.datasets` (`ABIDE.I`, not `abide-1`),
+as in the sections of the config file (separate PR,
+`claude/feat/config-file`, which adds it to the catalog); it is
+case-insensitive. A `*`
+in an argument or a site matches what is on disk (`OpenNeuro/*`). A
 path (absolute, or starting with `./` or `../`) names a BIDS dataset
 outside the catalog. The canonical form is the `dataset` of units, task
 records and index rows.
@@ -35,12 +39,13 @@ WHERE_OPERATORS = ("==", "!=", "<=", ">=", "<", ">", "in", "~")
 @dataclass(frozen=True)
 class DatasetRef:
     """
-    Reference of a dataset: `<name>[/<argument>...][/<site>]`.
+    Reference of a dataset: `<Module.Path>[/<argument>...][/<site>]`.
 
     Attributes
     ----------
     name : str
-        Command line name of the dataset (lower case), or "" for a path
+        Module path of the dataset, in its canonical case (`ABIDE.I`),
+        or "" for a path
     arguments : tuple[str, ...]
         Values of the positional arguments of the dataset
     site : str | None
@@ -65,7 +70,7 @@ class DatasetRef:
         Parameters
         ----------
         text : str
-            E.g. "openneuro/ds000224"
+            E.g. "OpenNeuro/ds000224"
 
         Returns
         -------
@@ -164,7 +169,7 @@ def parse_where(text: str) -> Where:
     Parameters
     ----------
     text : str
-        E.g. "age >= 60", "sex == F", "dataset in ixi,oasis-3"
+        E.g. "age >= 60", "sex == F", "dataset in IXI,OASIS.III"
 
     Returns
     -------

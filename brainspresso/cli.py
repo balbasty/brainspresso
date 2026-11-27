@@ -147,6 +147,20 @@ def _toml(value) -> str:
     return json.dumps(value, default=str)
 
 
+#: Effective values of options whose default is None (to tell what the
+#: command line gave)
+EFFECTIVE = {"sidecars": "yes", "lock-wait": 0}
+
+
+def _line(key: str, value, origin) -> str:
+    """`key = value  # origin` (a comment if unset: TOML has no null)."""
+    if value is None:
+        value = EFFECTIVE.get(key)
+    if value is None:
+        return f"# {key}: not set  # {origin}"
+    return f"{key} = {_toml(value)}  # {origin}"
+
+
 def _registered(loader: Loader, name: str):
     """Build the app of a dataset for `bx config` (its dataset too)."""
     if name not in CATALOG:
@@ -182,7 +196,7 @@ def show_sections(loader: Loader) -> None:
     for (_, name), table in sorted(merged.items()):
         print(f"[{name}]")
         for key, (value, origin) in sorted(table.items()):
-            print(f"{key} = {_toml(value)}  # {origin}")
+            print(_line(key, value, origin))
         print()
 
 
@@ -199,6 +213,9 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
         A command (default: every command), then what follows it on the
         command line (arguments, options)
     """
+    from brainspresso.datasets.options import (  # noqa: PLC0415
+        lock_wait,  # lazy: startup time (`bx --help`)
+    )
     from brainspresso.datasets.register import (  # noqa: PLC0415
         command_names,  # lazy: startup time (`bx --help`)
         config_options,
@@ -241,8 +258,12 @@ def show_options(loader: Loader, name: str, tokens=()) -> None:
                 group = bound.arguments.get(option.group)
                 value = getattr(group, option.field) if group is not None \
                     else option.default
+                if group is not None and option.field == "sidecars":
+                    value = group.sidecar_policy      # (with its aliases)
+                elif group is not None and option.field == "lock_wait":
+                    value = lock_wait(group)
             origin = origins.get(key, Origin("built-in"))
-            print(f"{key} = {_toml(value)}  # {origin}")
+            print(_line(key, value, origin))
         print()
 
 
@@ -295,10 +316,13 @@ def show_unbound(loader: Loader, dataset, command: str, tokens=()) -> None:
             continue                    # (hidden aliases)
         if key in location:
             value, origin = location[key], Origin("CLI")
+        elif key in config.LOCATION and location:
+            # (one location: the other is not read from config)
+            value, origin = option.default, Origin("built-in")
         else:
             value, origin = found.get(key, (option.default,
                                             Origin("built-in")))
-        print(f"{key} = {_toml(value)}  # {origin}")
+        print(_line(key, value, origin))
     print()
 
 

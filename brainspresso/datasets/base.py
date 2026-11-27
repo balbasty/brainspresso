@@ -40,6 +40,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, ClassVar, Iterable, Literal, Mapping
 
+from brainspresso.actions.locks import is_state_folder
 from brainspresso.actions.runlock import run_lock
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import (
@@ -1056,7 +1057,7 @@ class Dataset:
                 parents.append(parent / STATE_DIR)
         targets = [Path(layout.state)]
         targets += [Path(d.state) for d in layout.datasets()
-                    if d is not layout and Path(d.state).is_dir()]
+                    if d is not layout and is_state_folder(d.root)]
         return parents, targets
 
     def run(self, command: str, layout=None, args: Args | None = None):

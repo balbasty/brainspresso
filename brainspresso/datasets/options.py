@@ -462,11 +462,11 @@ def lock_wait(group) -> float:
         `--wait` and `--lock-wait` with different values
     """
     old = getattr(group, "wait", None)
-    new = float(getattr(group, "lock_wait", 0) or 0)
+    new = getattr(group, "lock_wait", None)
     if old is None:
-        return new
+        return float(new or 0)
     deprecated("--wait", "--lock-wait")
-    if new and float(old) != new:
+    if new is not None and float(old) != float(new):
         raise UsageError(f"--wait {old:g} and --lock-wait {new:g} "
                          f"contradict each other")
     return float(old)
@@ -492,7 +492,7 @@ class HarvestOptions(OptionGroup):
         help="Print what would be downloaded, then exit (nothing is "
         "written)"
     )] = False
-    lock_wait: Annotated[float, _LOCK_WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
     wait: Annotated[float | None, _WAIT] = None
 
     deprecated = _WAIT_ALIAS
@@ -551,7 +551,7 @@ class RoastOptions(OptionGroup):
         help="Behaviour when a file already exists"
     )] = "skip"
     jobs: Annotated[int, Parameter(help="Number of processes")] = 1
-    lock_wait: Annotated[float, _LOCK_WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
 
     deprecated = {
         "json": ("sidecars", "--sidecars"),
@@ -629,7 +629,7 @@ class CompostOptions(OptionGroup):
     list: Annotated[bool, Parameter(
         help="Print the files to delete before asking for confirmation"
     )] = False
-    lock_wait: Annotated[float, _LOCK_WAIT] = 0
+    lock_wait: Annotated[float | None, _LOCK_WAIT] = None
     wait: Annotated[float | None, _WAIT] = None
 
     deprecated = _WAIT_ALIAS

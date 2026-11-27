@@ -776,9 +776,19 @@ environment variables. Layers, later wins (`Loader.layers`):
    used by `Dataset.lock_states`: the manifest, else the tree of a real
    state folder). The first command on a dataset whose `.brainspresso/`
    only holds `config.toml` adds `locks/` to it (`Layout.ensure_state`)
-   before it takes a lock. Config folders are remembered for 2 s (a
-   folder without `.brainspresso/` costs one `stat`, as before). `bx
-   config` only reads: it creates no manifest, state or lock file;
+   before it takes a lock. Whether a folder is a state folder is never
+   cached when it is not (another process may make it one: two
+   processes must not lock one file through two lock files); found
+   datasets are cached, and an entry computed across `forget_datasets`
+   is dropped. The user config folder (`~/.brainspresso`,
+   `$BRAINSPRESSO_CONFIG_HOME`) is never a state folder. Only state
+   folders are run-lock targets (`Dataset.lock_states` picks sites with
+   `is_state_folder`, and `run_lock` refuses another `.brainspresso/`:
+   its run records would make it a state folder mid-run). `bx config`
+   only reads: it creates no manifest, state or lock file; `bx config
+   show` prints the effective value of an option whose default is None
+   (`sidecars = "yes"`, `lock-wait = 0`) and an unset one as a comment
+   (TOML has no null);
 5. the files of `bx --config FILE`: a global option, before the dataset
    name, repeatable, applied in order (`cli.global_options`; TOML, or
    YAML if PyYAML is importable);
@@ -862,7 +872,8 @@ whitespace by `config.split_env` (`shlex.split(posix=False)`, then a
 pair of quotes around a value removed): `..._COMPOST__WHERE='"age >=
 60" sex==F'`; backslashes and quotes inside a value are kept
 (`sub-0\d*`, `C:\data`, `O'Brien`), so a value can neither start and
-end with the same quote nor hold an unbalanced quote at its start;
+end with the same quote nor hold an unbalanced quote at its start, and
+only whole values can be quoted (`"a b"c` is `a b` and `c`);
 `..._NKI_RS__HARVEST__JOBS`; `..._OPENNEURO__DS000224__HARVEST__TAG`;
 `..._ADHD200__HARVEST__NO_BIDS=1`). Two variables for one key of one
 section (`..._JOBS` and `..._DEFAULTS__JOBS`, case variants, `BIDS` and
@@ -2095,8 +2106,19 @@ up as an XPASS failure once fixed (then drop the marker).
   choices of the dataset (a warning names the others). A state folder
   is one with a state entry (`locks/`, manifest, `run`, `runs/`,
   `tasks/`, `orig/`) or an empty one, so that backup and swap files of a
-  config file do not make one; config folders are remembered for 2 s.
+  config file do not make one; config folders were remembered for 2 s
+  (dropped in r27).
   Env lists: `split_env` (`shlex.split(posix=False)`, quotes removed,
   backslashes kept). `--wait` with a different `--lock-wait` is a
   `UsageError`; `bx config show` hides deprecated aliases and, without
   the arguments of a dataset, reads `--path`/`--out`.
+* r27: last review of PR #24. No negative cache of state folders (a
+  config-only `.brainspresso/` made a state folder by another process is
+  seen at once); the positive cache is not filled across
+  `forget_datasets`; the user config folder is never a state folder;
+  run-lock targets are state folders only (`lock_states`, `run_lock`).
+  `--lock-wait` defaults to None, so `--wait N --lock-wait 0` is a
+  conflict; `bx config show` prints no `null` and, without the
+  arguments of a dataset, the location the command line does not give
+  as built-in; a shared list warns once per value; `split_env` quotes
+  whole values only.

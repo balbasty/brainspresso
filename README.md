@@ -387,6 +387,7 @@ parts of a section and `_` for `-`, case-insensitive:
 by spaces; a value that holds spaces goes in quotes, which are removed
 (`BRAINSPRESSO_OPT_COMPOST__WHERE='"age >= 60" sex==F'`); backslashes
 and quotes inside a value are kept (`sub-0\d*`, `C:\data`, `O'Brien`).
+Only whole values can be quoted: `"a b"c` is two values, `a b` and `c`.
 
 Some options are never read from a config file: confirmations of
 deletions (`--yes`, compost `--force`, `--ignore-runs`), secrets

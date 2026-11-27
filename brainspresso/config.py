@@ -495,7 +495,8 @@ def split_env(value: str) -> list[str]:
     Split the value of a variable into several values.
 
     On whitespace; a value that holds spaces is quoted, `"age >= 60"` or
-    `'age >= 60'` (the pair of quotes is removed). Backslashes are kept
+    `'age >= 60'` (the pair of quotes is removed). Only whole values are
+    quoted: `"a b"c` is two values, `a b` and `c`. Backslashes are kept
     (`sub-0\d*`, `C:\data`), and so is a quote inside a value
     (`O'Brien`), so no value can start and end with the same quote.
 
@@ -778,11 +779,18 @@ def _fitting(option: OptionInfo, entry: Entry, key: str, value, parts):
         return value
     where = f"Config {entry.source} [{entry.section}]"
     name = parts[0] if parts else "this dataset"
+    # (those of no dataset were warned about when the file was read)
+    nowhere = _fits_none(entry.command, key, dropped)
+    dropped_here = [v for v in dropped if v not in nowhere]
     if not isinstance(value, list):
-        lg.debug(f"{where}: {key} = {value!r} is not a choice of {name} "
-                 f"({', '.join(option.choices)}): ignored there")
+        lg.debug(f"{where}: {key} = {value!r} is not a choice of {name}: "
+                 f"ignored there")
         return _SKIP
-    lg.warning(f"{where}: {key} {dropped!r} are not choices of {name}: "
+    if not dropped_here:
+        lg.debug(f"{where}: {key} {dropped!r} are not choices of {name}: "
+                 f"ignored there")
+        return kept if kept else _SKIP
+    lg.warning(f"{where}: {key} {dropped_here!r} are not choices of {name}: "
                f"ignored there" + (f", {kept!r} kept" if kept else
                                    f" ({key} is not set from it)"))
     return kept if kept else _SKIP

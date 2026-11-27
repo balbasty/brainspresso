@@ -14,8 +14,14 @@ from cyclopts import CycloptsError
 
 from brainspresso import cli, config
 from brainspresso.actions import locks
-from brainspresso.actions.locks import find_dataset, is_state_folder
-from brainspresso.bids.layout import is_sites_parent, make_layout
+from brainspresso.actions.locks import (
+    LockError,
+    find_dataset,
+    is_state_folder,
+    lock_file,
+)
+from brainspresso.actions.runlock import run_lock
+from brainspresso.bids.layout import Layout, is_sites_parent, make_layout
 from brainspresso.cli import build_app, global_options, main
 from brainspresso.config import ConfigError, Loader, dataset_names, tree
 from brainspresso.datasets import base
@@ -23,6 +29,7 @@ from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
 from brainspresso.datasets.IXI.dataset import IXI
+from brainspresso.errors import UsageError
 
 # ----------------------------------------------------------------------
 #   Helpers
@@ -907,7 +914,7 @@ def test_lock_wait_alias_from_the_command_line(tmp_path, home):
     # `--wait` given: `lock-wait` is not read from config
     user(home, "[harvest]\nlock-wait = 7\n")
     args, report = parse("ixi", "harvest", tmp_path, "--wait", "2")
-    assert value(args, "harvest", "lock_wait") == 0
+    assert value(args, "harvest", "lock_wait") is None
     assert value(args, "harvest", "wait") == 2
     assert origin(report, "lock-wait").kind == "built-in"
 
@@ -1129,24 +1136,112 @@ def test_state_file_entries(tmp_path):
     assert is_state_folder(tmp_path / "empty")
 
 
-def test_config_folders_are_cached(tmp_path, monkeypatch):
-    # an ancestor with a config folder (`~/.brainspresso/`) is not listed
-    # every time a file outside datasets is locked
-    located(tmp_path, "[harvest]\njobs = 2\n")
+def test_state_folder_of_another_process_is_seen_at_once(tmp_path):
+    # B (this process) looks up a file of a dataset whose `.brainspresso/`
+    # only holds `config.toml`; A (another process) makes it a state
+    # folder: B sees the dataset at once (one lock file for both)
+    ds = tmp_path / "IXI"
+    located(ds, "[harvest]\njobs = 2\n")
+    target = ds / "sub-002" / "anat" / "x.nii.gz"
     locks.forget_datasets()
-    calls = []
-    original = locks.is_state_folder
-
-    def counting(folder):
-        calls.append(Path(folder))
-        return original(folder)
-
-    monkeypatch.setattr(locks, "is_state_folder", counting)
-    target = tmp_path / "a" / "b" / "file.txt"
     assert find_dataset(target) is None
-    assert calls == [tmp_path]
-    assert find_dataset(target) is None
-    assert calls == [tmp_path]          # (remembered)
-    # a state folder created in this process is seen at once
-    make_layout("flat", tmp_path / "a").ensure_state()
-    assert find_dataset(target) == tmp_path / "a"
+    before = lock_file(target)[0]
+    code = ("import sys\nfrom brainspresso.bids.layout import make_layout\n"
+            "make_layout('flat', sys.argv[1]).ensure_state()\n")
+    out = subprocess.run([sys.executable, "-c", code, str(ds)],
+                         capture_output=True, text=True,
+                         cwd=Path(__file__).parents[1])
+    assert out.returncode == 0, out.stderr
+    assert find_dataset(target) == ds
+    after = lock_file(target)[0]
+    assert after != before and after.is_relative_to(ds / ".brainspresso")
+
+
+def test_user_config_home_is_never_a_dataset(tmp_path, monkeypatch):
+    home = tmp_path / "home" / ".brainspresso"
+    home.mkdir(parents=True)
+    monkeypatch.setenv(config.HOME_ENV, str(home))
+    # empty, or with anything in it: still the user config folder
+    assert not is_state_folder(home.parent)
+    (home / "locks").mkdir()
+    assert not is_state_folder(home.parent)
+    assert find_dataset(home.parent / "Downloads" / "x.zip") is None
+    # through a symbolic link too
+    (tmp_path / "link").symlink_to(home.parent)
+    assert not is_state_folder(tmp_path / "link")
+
+
+def test_sites_with_only_a_config_file_are_not_locked(tmp_path):
+    # a site whose `.brainspresso/` only holds `config.toml` is not a run
+    # lock target (its run records would make it a state folder mid-run)
+    root = tmp_path / "DS"
+    sites = make_layout("sites", root, child_kind="flat")
+    for name in ("A", "B"):
+        (root / name / "sub-01").mkdir(parents=True)
+    sites.ensure_state()
+    located(root / "C", "[harvest]\njobs = 2\n")
+    (root / "C" / "sub-01").mkdir()
+    found = Layout.detect(root)
+    _, targets = Dataset.lock_states(found)
+    assert root / "C" / ".brainspresso" not in targets
+    # and `run_lock` refuses it
+    with pytest.raises(LockError, match="No state folder"):
+        with run_lock(root / "C" / ".brainspresso", "harvest"):
+            pass
+    assert [p.name for p in (root / "C" / ".brainspresso").iterdir()] == [
+        "config.toml"]
+
+
+def test_show_effective_defaults(capsys):
+    # no `null` (not TOML): the effective value, or a comment
+    for tokens in (["ixi", "roast"], ["ixi", "roast", "--no-json"],
+                   ["ixi", "harvest", "--wait", "3"]):
+        try:
+            main(["config", "show", *tokens])
+        except SystemExit as e:
+            assert not e.code
+    out = capsys.readouterr().out
+    assert "null" not in out
+    blocks = out.split("\n\n")
+    assert 'sidecars = "yes"  # built-in' in blocks[0]
+    assert 'sidecars = "no"' in blocks[1]
+    assert "lock-wait = 0  # built-in" in blocks[0]
+    assert "lock-wait = 3.0" in blocks[2]
+    assert "# path: not set  # built-in" in blocks[0]
+
+
+def test_show_unbound_one_location(tmp_path, home, capsys):
+    # a configured `out` is not used with `--path` on the command line
+    user(home, f"[openneuro.ds1]\nout = {str(tmp_path / 'x')!r}\n"
+               f"[defaults]\npath = {str(tmp_path / 'y')!r}\n")
+    try:
+        main(["config", "show", "openneuro", "harvest", "--out",
+              str(tmp_path / "z")])
+    except SystemExit as e:
+        assert not e.code
+    out = capsys.readouterr().out
+    assert "# path: not set  # built-in" in out
+    assert f'out = "{tmp_path / "z"}"  # CLI' in out
+
+
+@pytest.mark.parametrize("command", ["harvest", "compost"])
+def test_wait_with_lock_wait_zero(tmp_path, command):
+    args, _ = parse("ixi", command, tmp_path, "--wait", "3",
+                    "--lock-wait", "0")
+    groups = {k: v for k, v in args.items() if k not in ("path", "out")}
+    with pytest.raises(UsageError, match="contradict"):
+        IXI().check(command, base.Args.of(IXI(), command, **groups))
+
+
+def test_shared_list_warns_once(tmp_path, home, caplog):
+    user(home, "[harvest]\nkeys = ['T1w', 'nosuchkey', 'bold']\n")
+    caplog.set_level(logging.DEBUG, logger="brainspresso.config")
+    args, _ = parse("ixi", "harvest", tmp_path)
+    assert value(args, "keys", "keys") == ("T1w",)
+    warnings = [r.getMessage() for r in caplog.records
+                if r.levelno == logging.WARNING]
+    # once for the key of no dataset, once for the key of other datasets
+    assert len(warnings) == 2
+    assert "'nosuchkey' not a choice of any dataset" in warnings[0]
+    assert "['bold'] are not choices of ixi" in warnings[1]
+    assert "nosuchkey" not in warnings[1]

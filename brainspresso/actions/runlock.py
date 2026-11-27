@@ -45,6 +45,7 @@ from brainspresso.actions.locks import (
     FileLock,
     LockError,
     LockTimeout,
+    is_state_folder,
     locks_enabled,
 )
 
@@ -248,7 +249,9 @@ def run_lock(
     locks, records, counted = [], [], []
     try:
         for state in states:
-            if not state.is_dir():
+            if not is_state_folder(state.parent):
+                # (a `.brainspresso/` that is not a state folder would
+                # become one with the run records: lock files would move)
                 raise LockError(f"No state folder {state}: cannot lock it")
             lock = FileLock(state / RUN_FILE, exclusive=exclusive,
                             timeout=wait)

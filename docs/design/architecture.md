@@ -610,6 +610,10 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   OASIS-II parts are read the same way (one shard per part, task id
   `roast/parts/part<N>`, inputs: the part and the `T1w.json` template;
   2 decompressions per part).
+* Subjects that are folders of small files (UNC-Wisconsin, Bullitt)
+  are read by one shard per subject (`subject_shards`, task id
+  `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
+  subject and its sidecar templates).
 * Several gz archives (ABIDE-I, step 5): one shard per gz archive (NITRC
   `<Site>.tgz`, id `roast/raw/<name>`), or per folder that stands for
   one (a site folder of a bucket copy, `RawData/<Site>/`, its files as
@@ -1379,7 +1383,7 @@ units take the run lock (§7, "What the ports must and must not assume").
 | COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
 | OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
 | OASIS-II | declared (`parts` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--parts`); sessions |
-| Bullitt | declared | override, legacy code; own `keys_for("roast")` | |
+| Bullitt | declared (token) | declared (source roaster, step 5) | width 3; `roast_options` (scans named by `--keys`); own `keys_for("roast")` (roast keys without `dwi`, `phantoms`) |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
@@ -2184,7 +2188,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1932 passed, 2 skipped, 10 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2206,7 +2210,8 @@ Each step lands as commits on the refactor branch with its tests green.
   one negated `per-file-ignores` pattern in `pyproject.toml`
   (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
   and the ported modules and datasets, `datasets/indi/cobre/**`,
-  `datasets/oasis/i/**` and `datasets/indi/abide/i/**` in step 5; two
+  `datasets/oasis/i/**`, `datasets/indi/abide/i/**`,
+  `datasets/oasis/ii/**` and `datasets/bullitt/**` in step 5; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2341,6 +2346,18 @@ up as an XPASS failure once fixed (then drop the marker).
   roast of its part; participants were read from visit 1 only (now the
   first visit); `sessions.json`: `Unit` for `Units`, `delay` described
   as the time *to* the first visit.
+* ~~Bullitt (`bidsifier.py`, no characterization test before step
+  5): `--sidecars only` wrote the derivative images
+  (`desc-brain_T1w.nii.gz`, `.tre`) and `--sidecars no` the sidecar of
+  the skull-stripped image; the derivative dataset files (`README`,
+  `dataset_description.json`, `.bidsignore`) were only written with
+  the `meta` key, so `--keys skullstripped vessels` wrote a derivative
+  dataset without a description; a missing `sourcedata/` was a
+  warning; `participants.tsv` was copied whole (109 rows) whatever was
+  roasted; the per-modality error counters of `fixstatus` were one
+  global count shown under each modality.~~ Fixed in the port of
+  Bullitt (step 5, `datasets/bullitt/roaster.py`; strict xfails of
+  the characterization tests removed).
 * ~~ABIDE-I XNAT (`bidsifier_xnat.py`), found in step 4 and on #18:
   FreeSurfer archives are looked up with the OASIS-3 pattern
   `OAS3{id:05d}_MR_*`, so `fs`/`fs-all` roasts find nothing; `fixstatus`
@@ -2789,3 +2806,21 @@ up as an XPASS failure once fixed (then drop the marker).
   of another subject skipped, the visit used (with a warning) when the
   MRI ID cannot be parsed; a missing openpyxl is an error with the
   install hint; `--sessions` for roast (`Dataset.sessions`).
+* r41: step 5, Bullitt on the roast engine. Characterization tests of
+  the legacy roaster first (`tests/test_roast_bullitt.py`, a synthetic
+  Girder download, both layouts; its bugs as strict xfails, §8), then
+  the port: `datasets/bullitt/roaster.py` declared on the Girder
+  source (`bidsifier.py` deleted, no `roast` override), one shard per
+  subject folder, a Python `roast()` (subjects through
+  `subject_labels`, `keys` a name or a list). Roast keys are a
+  `KeyAliases` tree (groups `raw`, `anat`, `T1w`, `derivatives`;
+  `--keys` default unchanged, the seven leaves), `KeySpec.leaves`
+  expands `KeyAliases` trees so that such a default still means all.
+  Missing scans are errors only when `--keys` names their key or a
+  group above it (`Dataset.roast_options`: the source distributes
+  scans incompletely, e.g. no MPRAGE for many subjects); no subject
+  folder is an error; a missing sidecar template only when sidecars
+  are written. `participants.tsv` (the template) goes through
+  `.brainspresso/orig/` and trim (bad rows skipped with a warning,
+  empty cells `n/a`); the derivative dataset files are written with
+  any derivative key. DTI is still not converted (no gradient table).

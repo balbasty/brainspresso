@@ -80,8 +80,19 @@ ENTITIES = (
 TEMPLATES = Path(__file__).parent / "templates"
 # Fill-in templates of `templates/<name>/` (sidecars converted from the
 # scanner printouts, `scripts/make_sidecars.py`): `{"fill": [paths]}`,
-# merged key by key into the bucket's sidecars (`bids.hosted`)
+# merged key by key into the bucket's sidecars by the metadata roast
+# (`bids.hosted`, `roast.hosted`)
 FILL_INDEX = FILL_FILE
+# SHA-256 of earlier versions of templates (`<name>/<path>`): a harvest
+# refreshes a local copy that is still such a version (see
+# `bids.harvest.write_inline` and `roast.hosted`; later versions are
+# recognised from the manifest)
+PREVIOUS_TEMPLATES = {
+    # hand-written {TaskName, RepetitionTime}, before printouts/SLIM
+    "slim/task-rest_bold.json": (
+        "518c8fbc5ae23d9cb5a9fccf4420a3c2119823d3bf360fd211c7dc8fccc00269",
+    ),
+}
 NA = "n/a"
 
 
@@ -311,10 +322,16 @@ class Project:
             return p.name == ".bidsignore" or \
                 not p.name.startswith((".", "_"))
 
-        return [
-            InlineEntry(p.relative_to(root).as_posix(), p.read_bytes())
-            for p in sorted(root.rglob("*")) if keep(p)
-        ]
+        out = []
+        for p in sorted(root.rglob("*")):
+            if not keep(p):
+                continue
+            rel = p.relative_to(root).as_posix()
+            out.append(InlineEntry(
+                rel, p.read_bytes(),
+                previous=PREVIOUS_TEMPLATES.get(f"{self.name}/{rel}", ()),
+            ))
+        return out
 
     def fill_templates(self) -> list[FillTemplate]:
         """
@@ -329,8 +346,12 @@ class Project:
         """
         parent = getattr(self, "parent", None)
         sites = (parent or self).sites
-        return read_fill_templates(self.template_dir,
-                                   [s.name for s in sites if s.name])
+        return [
+            dataclasses.replace(t, previous=PREVIOUS_TEMPLATES.get(
+                f"{self.name}/{t.id}", ()))
+            for t in read_fill_templates(self.template_dir,
+                                         [s.name for s in sites if s.name])
+        ]
 
     # ------------------------------------------------------------------
     #   Layout "sites": one BIDS dataset per site
@@ -402,6 +423,8 @@ class Project:
                 site_of if self.multisite else None,
             )
             inline.append(InlineEntry("participants.tsv", participants))
+        # (fill-in templates are not among the templates: the metadata
+        # roast merges them key by key into what the dataset has)
         inline += self.templates()
         for entry in inline:        # generated files override the bucket's
             out[entry.path] = entry

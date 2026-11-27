@@ -1,0 +1,212 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+    },
+    "sidecars": {
+        "task-rest_acq-AP_bold.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "cmrr_mbep2d_resting",
+            "nii": "nii/bold.nii",
+            "nii_sha256": "d764c0ce29f29bb6621c897b8b0fc4c65b7f7a9bf743dc77c4de5eff61a60579",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-GEfmap_phasediff.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "gre_field_mapping",
+            "nii": "nii/phasediff.nii",
+            "nii_sha256": "419244f541adb7b38877b42018b75ce3d0c3e2d0b4d80d91b0f1392b9f74b998",
+            "drop": [
+                "EchoTime"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapBOLDpre_dir-AP_epi.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "3",
+            "nii": "nii/SEfmapBOLDpre_AP.nii",
+            "nii_sha256": "c5d5f7f6634e633acd619f2e88d4441684a060f473d318ca9cad2db6d467d8bd",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapBOLDpre_dir-PA_epi.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "4",
+            "nii": "nii/SEfmapBOLDpre_PA.nii",
+            "nii_sha256": "2fba1f6f2e1357c0b470ede51d4ad190097a5d7409a977385cd2f142871edda6",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapBOLDpost_dir-AP_epi.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "6",
+            "nii": "nii/SEfmapBOLDpost_AP.nii",
+            "nii_sha256": "6aab5b63478101fe066d0a8353628ed53f3ab292fb4ff8c7103d3da9f7f3e3e5",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapBOLDpost_dir-PA_epi.json": {
+            "printout": "1_LEMON_resting_130904.pdf",
+            "sha256": "0650e0e978837c8b71f84b732c08f2d0da0f8220a60d34253157977117348a68",
+            "select": "7",
+            "nii": "nii/SEfmapBOLDpost_PA.nii",
+            "nii_sha256": "1baa30a349a3e5383ca7a43796466ada9ee19defa28654245fd8c7b76eee552e",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "MP2RAGE.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "mp2rage_p3_602B",
+            "nii": "nii/inv-1_MP2RAGE.nii",
+            "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "RepetitionTime"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-mp2rage_T1w.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "mp2rage_p3_602B",
+            "nii": "nii/mp2rage_T1w.nii",
+            "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "ImageType"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-mp2rage_T1map.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "mp2rage_p3_602B",
+            "nii": "nii/mp2rage_T1map.nii",
+            "nii_sha256": "f97dd256bc13dc889c3973f1dbdde9c2fbf5913de5dc012c1b18ddfbdc9af784",
+            "drop": [
+                "ImageType"
+            ],
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "T2w.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "t2_spc_sag_p2_iso_1.0",
+            "nii": "nii/T2w.nii",
+            "nii_sha256": "b170d78bb7d47f98e9bdf79f3fc241da03b5870649cd3dcb48f24b9d020bb9e1",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-lowres_FLAIR.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "t2_tse_FLAIR_tra_fs",
+            "nii": "nii/lowres_FLAIR.nii",
+            "nii_sha256": "9d860509e5716c5b66f50f8f7267ba1451c80d044fda2489f755cc119336b746",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-highres_FLAIR.json": {
+            "printout": "3_LEMON_anat_MODIFIED_141008.pdf",
+            "sha256": "36f66d1c49b326ffe735ad91805f059c479ca00ac2f04a64dbab69bc2dd6c0af",
+            "select": "t2_spc_da-fl_irprep_sag_p2_iso",
+            "nii": "nii/highres_FLAIR.nii",
+            "nii_sha256": "5c8bf7068f3853ad45d2062872bd213f914f8ee97aa95b6d21992cb3b7847da8",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "T2starw.json": {
+            "printout": "3_LEMON_anat_MODIFIED_141008.pdf",
+            "sha256": "36f66d1c49b326ffe735ad91805f059c479ca00ac2f04a64dbab69bc2dd6c0af",
+            "select": "as_gre_TE17ms_nifti",
+            "nii": "nii/mag_GRE.nii",
+            "nii_sha256": "12fed8ef3bbc05c1b9d326a9eb1e1e96f2ef6873ad9652d6021f5539830d243f",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "dwi.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "cmrr_mbep2d_diff",
+            "nii": "nii/dwi.nii",
+            "nii_sha256": "b3706d4391f906edec0740bc74f3fc5d100617f88965fceceaedb0076745c34b",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapDWI_dir-AP_epi.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "cmrr_mbep2d_se_AP_unwarp_diff",
+            "nii": "nii/SEfmapDWI_AP.nii",
+            "nii_sha256": "c270047bb2c05a6b8a60f56c69fb2affeb379030e31c254f44ebab2738b4f7eb",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "acq-SEfmapDWI_dir-PA_epi.json": {
+            "printout": "2_LEMON_anat_130904.pdf",
+            "sha256": "60a41544c6e77c9be3520c81f85dd59202dd402296c361efce2eceb3bfa92f28",
+            "select": "cmrr_mbep2d_se_PA_unwarp_diff",
+            "nii": "nii/SEfmapDWI_PA.nii",
+            "nii_sha256": "db228fd19c77bac75a52c7a3a63a4b0bc3d2acbb8e7e8589ca374f0004c8d056",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        }
+    }
+}

@@ -1201,7 +1201,15 @@ class Dataset:
         CompostPlan | list[CompostPlan]
         """
         c = args.compost
-        plans = run_compost(
+        after_data = None
+        if self.hosted:
+            # the metadata that is left is roasted again (`IntendedFor`
+            # and tables trimmed to what is left; nothing is re-created),
+            # before its pristine copies may go (`--sourcedata`)
+            def after_data(dataset):
+                self.roast_hosted(layout, None, existing_only=True,
+                                  only={Path(dataset.root)})
+        return run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
@@ -1210,20 +1218,8 @@ class Dataset:
             trim=c.trim, force=c.force, yes=c.yes, dry_run=c.dry_run,
             list=c.list, sites=self.select_sites(args.sites.sites),
             exclude_sites=self.select_sites(args.sites.exclude_sites),
-            **args.filters.filters(),
+            after_data=after_data, **args.filters.filters(),
         )
-        if self.hosted and not c.dry_run:
-            # the metadata that is left is roasted again (`IntendedFor`
-            # and tables trimmed to what is left; nothing is re-created)
-            composted = {
-                Path(p.root) for p in (plans if isinstance(plans, list)
-                                       else [plans])
-                if p.data or p.derivatives
-            }
-            if composted:
-                self.roast_hosted(layout, None, existing_only=True,
-                                  only=composted)
-        return plans
 
     # ------------------------------------------------------------------
     #   Hosted datasets (hybrid placement, `roast.hosted`)

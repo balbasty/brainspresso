@@ -1,0 +1,106 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py NKI-RS` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/INDI/templates/nki-rs/
+#   printout  path of the protocol printout, relative to printouts/NKI-RS
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/NKI-RS) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   drop      (optional) list of keys removed from the converted sidecar
+#   fill      true: fill-in template, for the BIDS sidecars the bucket
+#             hosts: it never replaces one. Until the placement hook
+#             (claude/feat/hosted-bids-placement) merges keys, a template
+#             is skipped whole when the bucket hosts a file at its path,
+#             else written at the dataset root, where BIDS inheritance
+#             lets the hosted, lower-level sidecars win (see
+#             printouts/README.md)
+#   note      (optional) free-text comment
+#
+# Outputs are named as the local (remapped) BIDS files, without the
+# sub/ses/run entities, so that they apply to every matching file.
+# One site (NKI, Siemens TrioTim), RocklandSample/RawDataBIDSLatest.
+# The protocol page (indi/enhanced/mri_protocol.html, HTML, not read by
+# protocol2bids) links one Siemens printout per scan; the lifespan
+# protocol's are used. Four of them are byte-identical to CoRR NKI_TRT
+# printouts and are used from printouts/CoRR by reference:
+#   DIff_137.pdf == CoRR/NKI_TRT/dti.pdf
+#   Rest_645.pdf == CoRR/NKI_TRT/rest_645.pdf
+#   Rest_1400.pdf == CoRR/NKI_TRT/rest_1400.pdf
+#   Rest_CAP.pdf == CoRR/NKI_TRT/rest_2500.pdf (REST_CAP, TR = 2500 ms)
+# No printout for T2w, FLAIR and task-pCASL_bold: no template. The
+# `acq-*RR` reruns are all bold (task-*_acq-{645,1400,CAP}RR_bold, 20 of
+# 24756 NIfTI files of the bucket, listed on 2026-11-27): their acq
+# labels differ, so no template applies to them (T1w.json and dwi.json
+# only apply to T1w and dwi files, none of which has an acq entity).
+
+[[sidecar]]
+output = "T1w.json"
+printout = "NKI_MPRAGE.pdf"
+nii = "nii/T1w.nii"
+drop = ["SliceEncodingDirection"]
+fill = true
+note = """MPRAGE, TR = 1900 ms (lifespan protocol).
+axes: 1 of 10 sampled headers (sub-A00089407 ses-FLU1) is RAS, the others LAS: SliceEncodingDirection dropped (see printouts/README.md)"""
+
+[[sidecar]]
+output = "dwi.json"
+printout = "../CoRR/NKI_TRT/dti.pdf"
+nii = "nii/dwi.nii"
+fill = true
+note = """DIFF_137_AP (NITRC indi/pro/eNKI_RS_TRT/DIff_137.pdf).
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""
+
+[[sidecar]]
+output = "task-rest_acq-645_bold.json"
+printout = "../CoRR/NKI_TRT/rest_645.pdf"
+nii = "nii/rest_645.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = """REST_645 (NITRC indi/pro/eNKI_RS_TRT/Rest_645.pdf).
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""
+
+[[sidecar]]
+output = "task-rest_acq-1400_bold.json"
+printout = "../CoRR/NKI_TRT/rest_1400.pdf"
+nii = "nii/rest_1400.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = """REST_1400 (NITRC indi/pro/eNKI_RS_TRT/Rest_1400.pdf).
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""
+
+[[sidecar]]
+output = "task-rest_acq-CAP_bold.json"
+printout = "../CoRR/NKI_TRT/rest_2500.pdf"
+nii = "nii/rest_CAP.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = """REST_CAP (NITRC indi/pro/eNKI_RS_TRT/Rest_CAP.pdf).
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""
+
+[[sidecar]]
+output = "task-CHECKERBOARD_acq-645_bold.json"
+printout = "Checker_645.pdf"
+nii = "nii/checker_645.nii"
+defaults = { TaskName = "CHECKERBOARD" }
+fill = true
+note = "axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"
+
+[[sidecar]]
+output = "task-CHECKERBOARD_acq-1400_bold.json"
+printout = "Checker_1400.pdf"
+nii = "nii/checker_1400.nii"
+defaults = { TaskName = "CHECKERBOARD" }
+fill = true
+note = "axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"
+
+[[sidecar]]
+output = "task-BREATHHOLD_acq-1400_bold.json"
+printout = "Breath_1400.pdf"
+nii = "nii/breathhold_1400.nii"
+defaults = { TaskName = "BREATHHOLD" }
+fill = true
+note = "axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"

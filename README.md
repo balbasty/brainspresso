@@ -195,8 +195,10 @@ downloaded). `bx openneuro roast ds000224 /data` roasts the metadata
 again from those copies, without the network (after deleting or editing
 a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
 download the JSON sidecars of the data files, `--sidecars only` only
-downloads metadata (no images). A harvest that runs again skips what did
-not change.
+downloads metadata (no images; tables and field maps are still trimmed to
+the images selected). A harvest that runs again skips what did not
+change, and a roasted file you edit is kept (`--if-exists overwrite`
+replaces it).
 
 Files are listed through the OpenNeuro API, which pins the exact snapshot
 and provides SHA256 checksums for annexed files. If the API cannot be

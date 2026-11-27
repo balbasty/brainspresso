@@ -59,7 +59,6 @@ Rules (`docs/design/architecture.md`, §4):
 from __future__ import annotations
 
 import functools
-import hashlib
 import os
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -72,8 +71,10 @@ from brainspresso.actions.engine import Shard
 from brainspresso.bids.harvest import (
     InlineEntry,
     _filters,
+    manifest_files,
     record_run,
     select_entries,
+    sha256,
     update_files,
     write_inline,
 )
@@ -87,12 +88,7 @@ from brainspresso.bids.hosted import (
 )
 from brainspresso.bids.keys import KeySelection
 from brainspresso.bids.kinds import accepts, default_kind
-from brainspresso.bids.layout import (
-    Layout,
-    SitesLayout,
-    read_manifest,
-    resolve_layout,
-)
+from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
 from brainspresso.bids.repair import loads, read_sibling, repair_sidecar
 from brainspresso.bids.select import OPTIONAL_FOLDERS, Selection
 from brainspresso.bids.tables import is_trimmable
@@ -115,11 +111,6 @@ TAG = "hosted"
 # ----------------------------------------------------------------------
 #   Harvest
 # ----------------------------------------------------------------------
-
-def sha256(data: bytes) -> str:
-    """SHA-256 of bytes (hex)."""
-    return hashlib.sha256(data).hexdigest()
-
 
 def _rel(layout: Layout, path: Path) -> str:
     return Path(path).relative_to(layout.root).as_posix()
@@ -232,11 +223,9 @@ def harvest_hosted(
     layout.ensure_state()
     # SHA-256 of the files the earlier roasts wrote (an edited file is
     # kept, see `_actions`)
-    known = {
-        k: v["sha256"] for k, v in
-        ((read_manifest(layout.state) or {}).get("files") or {}).items()
-        if isinstance(v, dict) and v.get("sha256")
-    }
+    before = manifest_files(layout)
+    known = {k: v["sha256"] for k, v in before.items()
+             if isinstance(v.get("sha256"), str)}
     files: dict[str, dict] = {}
     placed: set[str] = set()
     downloads: dict[Path, Downloader] = {}
@@ -253,11 +242,25 @@ def harvest_hosted(
                 **({"chunk_size": chunk_size} if chunk_size else {}),
             )
 
+    touched: set[str] = set()
+    fetched_paths = {e.path for e in selected}
     for e in chosen:
         local = layout.resolve(e.path)
         dataset, rel = layout.relative(local)
         if Path(dataset) == raw:
             present.append(rel)
+        if _subject(rel):
+            touched.add(_subject(rel))
+        if e.path not in fetched_paths and is_data(e.path):
+            # selected, not fetched (`--sidecars only`): it counts as
+            # present when tables and `IntendedFor` are trimmed
+            key = _rel(layout, local)
+            if not local.exists():          # (fetched by an earlier run)
+                meta = getattr(e, "meta", None) or {}
+                files[key] = {"url": e.url, "size": e.size,
+                              "origin": "direct", "fetched": False,
+                              **({"site": meta["site"]}
+                                 if meta.get("site") else {})}
     for e in selected:
         local = layout.resolve(e.path)
         key = _rel(layout, local)
@@ -318,9 +321,9 @@ def harvest_hosted(
         "nb_files": len(selected),
     }, files=files)
     report = roast_hosted(
-        layout, fill=fill, site=site, paths=placed, present=present,
-        json=sidecars, ifexists=if_exists, display=display,
-        info={"trigger": "harvest"},
+        layout, fill=fill, site=site, paths=placed, subjects=touched,
+        present=present, json=sidecars, ifexists=if_exists,
+        display=display, info={"trigger": "harvest"},
     )
     if report.status != "complete":
         lg.warning(f"Metadata roast of {layout.root}: {report.status} "
@@ -346,11 +349,9 @@ def hosted_files(layout: Layout) -> dict[str, dict]:
         Manifest entries with a `source`, by path relative to
         `layout.root`
     """
-    manifest = read_manifest(layout.state) or {}
     return {
-        key: entry for key, entry in (manifest.get("files") or {}).items()
-        if isinstance(entry, dict) and entry.get("origin") in PLACED
-        and entry.get("source")
+        key: entry for key, entry in manifest_files(layout).items()
+        if entry.get("origin") in PLACED and entry.get("source")
     }
 
 
@@ -375,12 +376,13 @@ def _plan(
     fill: Iterable[FillTemplate] = (),
     site: str | None = None,
     paths: Iterable[str] | None = None,
+    subjects: Iterable[str] | None = None,
     present: Iterable[str] = (),
     existing_only: bool = False,
+    every: dict[str, dict] | None = None,
 ) -> list[dict]:
     """Items of a metadata roast (picklable dictionaries)."""
-    manifest = read_manifest(layout.state) or {}
-    every = manifest.get("files") or {}
+    every = manifest_files(layout) if every is None else every
     raw = Path(layout.raw)
     root = Path(layout.root)
 
@@ -392,26 +394,36 @@ def _plan(
     raw_placed = {rel: key for key, (d, rel) in located.items() if d == raw}
     present = set(present)
     subject_sites = {}
+    # selected data not fetched (`--sidecars only`), per dataset and
+    # subject: present for `IntendedFor`
+    unfetched: dict[tuple, list[str]] = {}
     for key, entry in every.items():
         try:
             dataset, rel = where(key)
         except ValueError:
             continue
+        if entry.get("fetched") is False:
+            unfetched.setdefault((dataset, _subject(rel)), []).append(rel)
         if dataset != raw:
             continue
         present.add(rel)
         label = _subject(rel)
-        if label and isinstance(entry, dict) and entry.get("site"):
+        if label and entry.get("site"):
             subject_sites.setdefault(label, entry["site"])
 
     def read(rel):
-        source = root / files[raw_placed[rel]]["source"]
+        entry = files[raw_placed[rel]]
+        source = root / entry["source"]
         try:
             meta = loads(source.read_text(encoding="utf-8",
                                           errors="replace"))
         except (OSError, ValueError):
             return None
-        return meta if isinstance(meta, dict) else None
+        if not isinstance(meta, dict):
+            return None
+        # the keys of the roasted file: repairs may rename or add some
+        return repair_sidecar(meta, PurePosixPath(rel).name) \
+            if entry.get("repair") else meta
 
     plans = plan_fill(
         list(fill), present=present, placements=raw_placed, read=read,
@@ -425,24 +437,32 @@ def _plan(
         target = root / key
         plan = plans.pop(rel, None) if dataset == raw else None
         items.append(_item(layout, key, target, dataset, rel, entry,
-                           files, plan))
+                           files, plan, unfetched))
     for rel, plan in sorted(plans.items()):
+        # a new fill-in sidecar: its record (`sha256`) if it has one
         target = raw / rel
         key = _rel(layout, target)
-        items.append(_item(layout, key, target, raw, rel,
-                           {"origin": "generated"}, files, plan))
+        entry = {**every.get(key, {}), "origin": "generated"}
+        entry.pop("source", None)
+        items.append(_item(layout, key, target, raw, rel, entry, files,
+                           plan, unfetched))
 
     if paths is not None:
+        # a harvest: what it placed, and every file of the subjects it
+        # touched (new images re-trim `IntendedFor` and scans tables)
         paths = set(paths)
-        subjects = {_subject(located[k][1]) for k in paths if k in located}
+        touched = {_subject(located[k][1]) for k in paths if k in located}
+        touched |= set(subjects or ())
         items = [i for i in items if i["key"] in paths or (
-            i["source"] is None and i["subject"] in subjects | {None})]
+            i["subject"] in touched) or (
+            i["source"] is None and i["subject"] is None)]
     if existing_only:
         items = [i for i in items if Path(i["dst"]).exists()]
     return items
 
 
-def _item(layout, key, target, dataset, rel, entry, files, plan) -> dict:
+def _item(layout, key, target, dataset, rel, entry, files, plan,
+          unfetched) -> dict:
     root = Path(layout.root)
     name = target.name
     trim = entry.get("trim", True)
@@ -458,6 +478,7 @@ def _item(layout, key, target, dataset, rel, entry, files, plan) -> dict:
     source = entry.get("source")
     intended = name.endswith(".json") and target.parent.name == "fmap" \
         and (repair or trim)
+    previous = sorted(plan.previous) if plan else []
     return {
         "key": key,
         "origin": entry.get("origin", "roasted"),
@@ -474,6 +495,9 @@ def _item(layout, key, target, dataset, rel, entry, files, plan) -> dict:
         "subject": _subject(rel),
         "table": table,
         "sha256": entry.get("sha256"),
+        "previous": previous,
+        "present": unfetched.get((dataset, _subject(rel)), [])
+        if intended else [],
     }
 
 
@@ -514,10 +538,13 @@ class RoastMetadata(Action):
         target = Path(item["target"])
         sibling = None
         if item["sibling"]:
+            # by the local name of the sibling (its pristine copy may
+            # have another name: remapped labels)
+            name = target.name.replace("_phasediff.json", "_magnitude1.json")
             sibling = _sibling_reader(target.parent, {
-                Path(item["sibling"]).name: Path(item["sibling"])})
-        intended = (item["dataset"], item["rel"], item["trim"]) \
-            if item["intended"] else None
+                name: Path(item["sibling"])})
+        intended = (item["dataset"], item["rel"], item["trim"],
+                    item["present"]) if item["intended"] else None
         return render(content, target.name, repair=item["repair"],
                       fill=item["fill"], intended=intended, sibling=sibling)
 
@@ -526,19 +553,49 @@ class RoastMetadata(Action):
         file.write(self.render())
 
 
+def _edited(item: dict) -> bool:
+    """
+    Whether the output of an item was edited since brainspresso wrote it.
+
+    Its SHA-256 is neither the one recorded in the manifest nor that of
+    a known earlier version of its template. Without a record (a dataset
+    harvested before hashes were recorded), a file that equals what the
+    roast writes is ours (its hash is then recorded); any other is an
+    edit.
+    """
+    dst = Path(item["dst"])
+    if item["table"] or not dst.is_file():
+        return False
+    data = dst.read_bytes()
+    if sha256(data) in {item["sha256"], *item["previous"]} - {None}:
+        return False
+    try:
+        return RoastMetadata(item).render() != data
+    except (OSError, ValueError) as e:
+        lg.debug(f"{dst}: cannot render ({e})")
+        return True
+
+
 def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     source, dst = item["source"], Path(item["dst"])
+    skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
     if source is not None and not Path(source).exists():
         if dst.exists():
+            if item["intended"] and item["trim"]:
+                # no pristine copy: trim the field map on disk itself
+                yield RoastMetadata({**item, "source": str(dst),
+                                     "repair": False, "fill": None,
+                                     "sibling": None},
+                                    ifexists="different" if skip else None,
+                                    tag=ctx.tag)
+                return
             lg.debug(f"{item['key']}: no pristine copy ({source}), "
                      f"left as it is")
             return
         yield Fail(f"{item['key']}: its pristine copy {source} is "
                    f"missing (harvest again)", name=dst.name, tag=ctx.tag)
         return
-    skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
-    if skip and item["sha256"] and not item["table"] and dst.is_file() \
-            and sha256(dst.read_bytes()) != item["sha256"]:
+    if skip and _edited(item):
         lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
                    f"(--if-exists different or overwrite replaces it)")
         return
@@ -634,6 +691,7 @@ def roast_hosted(
     site: str | None = None,
     selection: Selection | None = None,
     paths: Iterable[str] | None = None,
+    subjects: Iterable[str] | None = None,
     present: Iterable[str] = (),
     existing_only: bool = False,
     json: str = "yes",
@@ -658,8 +716,11 @@ def roast_hosted(
     selection : Selection, optional
         Subject and session filters
     paths : list[str], optional
-        Only these files (relative to the dataset folder), and the
-        fill-in sidecars of their subjects (a harvest)
+        Only these files (relative to the dataset folder), and every
+        file of their subjects and of `subjects` (a harvest)
+    subjects : list[str], optional
+        With `paths`: subjects whose files are roasted again (their
+        images changed)
     present : list[str]
         Files the harvest selected but may not have fetched, relative to
         the raw dataset (where fill-in sidecars apply)
@@ -681,9 +742,14 @@ def roast_hosted(
     RoastReport
     """
     layout = resolve_layout(layout)
-    files = hosted_files(layout)
+    every = manifest_files(layout)
+    files = {k: v for k, v in every.items()
+             if v.get("origin") in PLACED and v.get("source")}
     items = _plan(layout, files, fill=fill, site=site, paths=paths,
-                  present=present, existing_only=existing_only)
+                  subjects=subjects, present=present,
+                  existing_only=existing_only, every=every)
+    unfetched = sorted(k for k, v in every.items()
+                       if v.get("fetched") is False)
     base = selection or Selection()
     ctx = RoastContext(
         layout=layout,
@@ -696,7 +762,8 @@ def roast_hosted(
     roaster = functools.partial(roast_metadata, items=items)
     roaster.__name__ = "roast_metadata"
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
-                       info={"hosted": True, **(info or {})})
+                       info={"hosted": True, **(info or {})},
+                       present=unfetched)
     # SHA-256 of what this roast wrote (or found identical), and the
     # fill-in templates merged into it
     written = {os.path.normcase(os.path.abspath(p)) for p in report.outputs}
@@ -708,10 +775,10 @@ def roast_hosted(
         entry = recorded[item["key"]] = {}
         if not item["table"] and dst.is_file():
             entry["sha256"] = sha256(dst.read_bytes())
-        if item["fill"]:
-            entry["fill"] = item["fill"].ids
-            if item["source"] is None:
-                entry["origin"] = "generated"
+        # (None removes a stale list)
+        entry["fill"] = item["fill"].ids if item["fill"] else None
+        if item["fill"] and item["source"] is None:
+            entry["origin"] = "generated"
     if recorded:
         update_files(layout, recorded)
     return report

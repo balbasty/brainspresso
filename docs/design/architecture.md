@@ -160,7 +160,13 @@ copy, `generated` for files the listing generates. Roasted and
 generated files of a hosted dataset also carry `source` (the pristine
 copy, or the generated base in `<state>/generated/<path>`) and
 optionally `repair: true`, `trim: false`, `site`, and `fill` (the fill-in
-templates merged into them). Per-task state: `<state>/tasks/<task id>.json`, see
+templates merged into them); every file a roast wrote has its `sha256`;
+data selected but not fetched (`--sidecars only`) has `"fetched": false`.
+The manifest has one writer (`bids.harvest._update_manifest`, behind
+`record_run` and `update_files`): an exclusive `FileLock` of the
+manifest around the reread-modify-write (#26), an atomic write (a
+temporary file and `os.replace`), malformed manifests backed up and
+replaced. Per-task state: `<state>/tasks/<task id>.json`, see
 §7. Both are defined in `bids/harvest.py` (`record_run`,
 `write_manifest`, `write_task_state`, `read_task_states`).
 
@@ -375,9 +381,16 @@ Interactions (decided):
   `bval`/`bvec`, README and descriptions always. In a roast it drops
   the actions of the excluded kinds; files on disk are left as they are
   (a roast never deletes). A sidecar not fetched with "no" is not in the
-  manifest: harvest again with "yes" to get it.
-* Selection: a harvest roasts exactly what it selected (keys, subs,
-  sessions, sites, datatypes, globs, `--where`); a roast takes `--subs`,
+  manifest: harvest again with "yes" to get it. Data selected but not
+  fetched under "only" is recorded with `"fetched": false` and counts
+  as present when tables and `IntendedFor` are trimmed (the selected
+  listing, not the disk), in this harvest and in later roasts; a later
+  harvest that fetches it makes it an ordinary entry, a compost forgets
+  those its filters drop.
+* Selection: a harvest roasts what it selected (keys, subs, sessions,
+  sites, datatypes, globs, `--where`) and every roasted file of the
+  subjects it touched (new images re-trim `IntendedFor` and scans
+  tables of files placed earlier); a roast takes `--subs`,
   `--exclude-subs`, `--sessions` (and `--sites` for sites layouts).
   Tables are trimmed to what is on disk, so successive partial harvests
   add up (`participants.tsv` lists every subject harvested so far).
@@ -391,20 +404,28 @@ Interactions (decided):
 * Re-runs: a harvest that runs again skips existing downloads and the
   subject shards whose signature is unchanged. Edits: the manifest
   records the `sha256` of every file a roast wrote (as #26 does for
-  generated files); under `skip`, a file whose hash differs (edited by
-  hand) is kept with a warning, an unedited one follows its pristine
-  copy or template (a generated file that is a known earlier version,
-  `InlineEntry.previous` of #26, counts as unedited); `--if-exists
-  different|overwrite` replaces it.
+  generated files), carried forward by harvests (a kept edit never
+  becomes brainspresso's); under `skip`, a file whose hash differs is
+  kept with a warning naming `--if-exists different|overwrite`, unless
+  it is a known earlier version of its template (`InlineEntry.previous`,
+  `FillTemplate.previous`: refreshed) or already what the roast writes
+  (adopted: its hash is recorded). A dataset without hashes (harvested
+  before they were recorded) follows the same rule: equal to the output,
+  adopted; else kept. New fill-in sidecars are judged from their own
+  record too.
 * Pristine copy missing (composted with `--sourcedata`): the roasted
-  file is left as it is (its existence then enters the signature); if
-  it is missing too, a `Fail` ("harvest again"). Datasets harvested
+  file is left as it is (its existence then enters the signature), but
+  a field map is still trimmed in place (`IntendedFor` of its file on
+  disk); if it is missing too, a `Fail` ("harvest again"). Datasets harvested
   before 2b-iii have no pristine copies: their next harvest fetches them
   and replaces the roasted files that differ.
 * Compost keeps the pristine copies (`source` of `roasted` entries,
   `bids.compost.pristine_files`) unless `--sourcedata` is given
   explicitly; then the next harvest fetches them again. A compost that
-  deletes BIDS data roasts the rest again (`existing_only`). Copies
+  deletes BIDS data roasts the rest again (`existing_only`), after the
+  BIDS data is deleted and before source data is (`compost(after_data=)`),
+  so that `--sourcedata` with filters still re-trims from the pristine
+  copies. Copies
   whose roasted files were all composted are no longer referenced and
   go with the next default compost.
 
@@ -439,7 +460,8 @@ where it describes a selected file. A hosted file of the same level
 with another name that may describe the same data takes the fill-in if
 it is at least as specific, else the template is skipped there (two
 sidecars of one level must not describe one file); keys of hosted
-top-level sidecars are never pushed down. Recorded as `generated` (new
+top-level sidecars (as roasted: repaired when the file is) are never
+pushed down. Recorded as `generated` (new
 file) or keeping the origin of the merged file, with `fill: [ids]`.
 
 Not done: `IntendedFor` paths of INDI multi-site datasets are not
@@ -1989,7 +2011,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1372 passed, 2 skipped, 28 xfailed) |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1412 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -2346,3 +2368,12 @@ up as an XPASS failure once fixed (then drop the marker).
   what is left; fill-in sidecar templates (`<template_dir>/_fill.json`,
   the marker of #26; inherited sidecars, never overriding); edited
   roasted files are kept under `skip` (`sha256` in the manifest).
+* r29: review of #27, round 1, with #26 merged. Every manifest write
+  goes through one locked, atomic writer; edits without a recorded hash
+  are kept unless equal to the output; fill-in sidecars keep their
+  record; a harvest re-roasts every file of the subjects it touches;
+  `--sidecars only` trims against the selected listing (`"fetched":
+  false`); hosted top-level keys are judged after repair; phase
+  difference siblings are found by their local name; compost roasts
+  before deleting source data, and trims field maps in place without
+  pristine copies; stale `fill` lists are removed.

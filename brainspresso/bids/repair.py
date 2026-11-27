@@ -386,7 +386,7 @@ IMAGE_EXTENSIONS = (".nii.gz", ".nii")
 
 
 def intended_for(meta: dict, path: str | Path, root: Path,
-                 trim: bool = False) -> dict:
+                 trim: bool = False, present: Iterable[str] = ()) -> dict:
     """
     Repair (and trim) `IntendedFor` of a field map sidecar's content.
 
@@ -403,12 +403,16 @@ def intended_for(meta: dict, path: str | Path, root: Path,
         BIDS dataset that contains it
     trim : bool
         Drop targets that are not present locally
+    present : iterable of str
+        Files (relative to `root`, POSIX) that count as present although
+        they are not on disk (selected, not fetched: `--sidecars only`)
 
     Returns
     -------
     dict
         The new content (`meta` itself if nothing changed)
     """
+    present = {str(p) for p in present}
     root = Path(root)
     path = Path(path)
     try:
@@ -420,6 +424,7 @@ def intended_for(meta: dict, path: str | Path, root: Path,
     if not isinstance(meta, dict) or "IntendedFor" not in meta:
         return meta
     subject = root / rel.parts[0]
+    rel_subject = rel.parts[0]
     session = subject / rel.parts[1] \
         if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
     targets = meta["IntendedFor"]
@@ -433,18 +438,24 @@ def intended_for(meta: dict, path: str | Path, root: Path,
         datatype = INTENDED_TAGS.get(target.strip().lower())
         if datatype and "/" not in target:
             folder = (session or subject) / datatype
+            prefix = folder.relative_to(root).as_posix() + "/"
+            names = {p.name for p in folder.glob("*")} | {
+                p[len(prefix):] for p in present
+                if p.startswith(prefix) and "/" not in p[len(prefix):]
+            }
             out += sorted(
-                p.relative_to(subject).as_posix()
-                for p in folder.glob("*")
-                if p.name.endswith(IMAGE_EXTENSIONS)
-                and not any(fnmatch.fnmatch(p.name, pat) for pat in ignore)
+                (folder / name).relative_to(subject).as_posix()
+                for name in names
+                if name.endswith(IMAGE_EXTENSIONS)
+                and not any(fnmatch.fnmatch(name, pat) for pat in ignore)
             )
             continue
         if trim:
             if target.startswith("bids::"):
-                exists = (root / target[len("bids::"):]).exists()
+                rel = target[len("bids::"):]
             else:
-                exists = (subject / target).exists()
+                rel = f"{rel_subject}/{target}"
+            exists = (root / rel).exists() or rel in present
             if not exists:
                 continue
         out.append(target)

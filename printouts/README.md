@@ -9,6 +9,18 @@ templates of datasets whose providers do not distribute sidecars:
 | `ABIDE1/` | ABIDE-I  | `brainspresso/datasets/ABIDE/I/templates` |
 | `ABIDE2/` | ABIDE-II | `brainspresso/datasets/ABIDE/II/templates` |
 | `CoRR/`   | CoRR     | `brainspresso/datasets/CoRR/templates`    |
+| `MPI-LEMON/` | INDI MPI-LEMON | `brainspresso/datasets/INDI/templates/mpi-lemon` (fill-in) |
+| `NKI-RS/` | INDI NKI-RS | `brainspresso/datasets/INDI/templates/nki-rs` (fill-in) |
+| `SALD/`   | INDI SALD | `brainspresso/datasets/INDI/templates/sald` (fill-in) |
+| `SLIM/`   | INDI SLIM | `brainspresso/datasets/INDI/templates/slim` (fill-in) |
+
+INDI projects host BIDS sidecars in the bucket, but they are often
+incomplete (unless dcm2niix wrote them). Their templates are **fill-in**
+templates (`fill = true`, see below): they never replace a hosted file.
+Until the placement hook (`claude/feat/hosted-bids-placement`) merges
+them key by key, a fill-in template is skipped whole when the bucket
+hosts a file at its path, and otherwise written at the dataset root,
+where BIDS inheritance lets the hosted, lower-level sidecars win.
 
 It lives **outside** the `brainspresso` package and is never shipped in
 the wheel/sdist. The printouts are converted once, by a maintainer, with
@@ -64,6 +76,42 @@ Files come from two sources:
   `IACAS_1` and `UM_1`.
 
 ABIDE-I had no printouts in brainspresso; all come from the corpus.
+
+### INDI projects
+
+Single-site projects (site `""` in `brainspresso/datasets/INDI/projects.py`):
+the files sit directly in `printouts/<DATASET>/` (no site folder), and the
+templates in `templates/<Project.name>/`. Downloaded on 2026-11-27 from
+`https://fcon_1000.projects.nitrc.org/indi/`, unchanged (only renamed where
+said):
+
+| dataset | file | source (under `indi/`) |
+|---|---|---|
+| SLIM | `anat.pdf`, `dti.pdf`, `rest.pdf` | `retro/swu_slim_content/swu_slim_scan_params_{anat,dti,rest}.pdf` (linked from `retro/southwestuni_qiu_index.html`) |
+| SALD | - (by reference: `../SLIM/anat.pdf`, `../SLIM/rest.pdf`) | `retro/SALD/swu_slim_scan_params_{anat,rest}.pdf`, byte-identical to SLIM's (SHA-256 `95f50815...`, `945f2ca3...`) |
+| MPI-LEMON | `1_LEMON_resting_130904.pdf`, `2_LEMON_anat_130904.pdf`, `3_LEMON_anat_MODIFIED_141008.pdf`, `4_MRI_Sequences_Table_LEMON.pdf` (was `4_MRI Sequences_Table_LEMON.pdf`) | `retro/MPI_LEMON/` |
+| NKI-RS | `NKI_MPRAGE.pdf` | `enhanced/NKI_MPRAGE.pdf` |
+| NKI-RS | `Checker_645.pdf`, `Checker_1400.pdf`, `Breath_1400.pdf` | `pro/eNKI_RS_TRT/` |
+| NKI-RS | - (by reference: `../CoRR/NKI_TRT/{dti,rest_645,rest_1400,rest_2500}.pdf`) | `pro/eNKI_RS_TRT/{DIff_137,Rest_645,Rest_1400,Rest_CAP}.pdf`, byte-identical to the CoRR NKI_TRT printouts |
+
+The NKI-RS protocol page (`enhanced/mri_protocol.html`) is HTML, which
+protocol2bids does not read; it links one Siemens printout per scan, which
+are used instead. Its real-time neurofeedback printouts (`enhanced/MPRAGE.pdf`,
+`FieldMap.pdf`, `Mask.pdf`, `r-fMRI.pdf`, `RTfMRI.pdf`, `MSIT.pdf`,
+`MoralDilemma.pdf`) are not stored: those scans are not in
+`RocklandSample/RawDataBIDSLatest`. NKI-RS `T2w`, `FLAIR` and
+`task-pCASL_bold` have no printout, hence no template. The `acq-*RR`
+reruns are all bold scans (`task-*_acq-{645,1400,CAP}RR_bold`, 20 of the
+24756 NIfTI files of the bucket, full listing of 2026-11-27): no template
+applies to them, as their `acq` labels differ from the templates'
+(`T1w.json` and `dwi.json` only apply to T1w and dwi files, none of which
+has an `acq` entity). LEMON's
+`4_MRI_Sequences_Table_LEMON.pdf` is a summary table that protocol2bids does
+not read: it is kept for documentation, unused.
+
+No printout was found for the other INDI projects: FCON1000 (only a summary
+table of scan parameters), NATVIEW (only a PDF of download instructions),
+SIMON, HBN and ACPI. They have no table here.
 
 Per site:
 
@@ -182,7 +230,48 @@ note = "free text"                # optional
 [[sidecar]]
 output = "UCLA/2/T1w.json"
 manual = true                     # no printout: kept as is
+
+[[sidecar]]                       # INDI (printouts/SLIM/sidecars.toml)
+output = "task-rest_bold.json"    # templates/slim/task-rest_bold.json
+printout = "rest.pdf"
+nii = "nii/bold.nii"
+defaults = { TaskName = "rest" }
+fill = true                       # fill-in template (see below)
 ```
+
+`fill = true` marks a fill-in template: it never replaces a sidecar
+hosted with the data (key-level merging, filling only the missing keys,
+is the job of the placement hook; until it lands, see below).
+It does not change the conversion. `sidecars.lock.json` records it as
+`"fill": true`, and `make_sidecars.py` writes the list of fill-in
+templates to `_fill.json` next to them (`{"fill": ["T1w.json", ...]}`,
+checked by `--check`), which ships with the package (the lock does not):
+this is the **fill marker** the engine reads. The fill-in hook and its
+final convention (template location, flag or naming) belong to the
+hosted-BIDS placement work (step 2b-iii); the names are single constants
+of `make_sidecars.py` (`FILL_KEY`, `LOCK_FILL_KEY`, `FILL_INDEX`) and of
+`INDI/engine.py` (`FILL_INDEX`). Until that hook lands, the INDI engine
+mirrors `templates/<Project.name>/*` at the dataset root, where BIDS
+inheritance lets the hosted, lower-level sidecars win, and a bucket file
+at the same path as a fill-in template is kept (the template is skipped,
+with a warning; non-fill templates still override, as before).
+
+`drop = [...]` removes keys from the converted sidecar (after `defaults`
+and `assigns`; recorded in the lock). It is used for keys that would be
+wrong when inherited: in MPI-LEMON `MP2RAGE.json`, `RepetitionTime`
+(`bids.repair` moves it to `RepetitionTimePreparation` in
+`*_MP2RAGE.json`, which the printout already gives), in
+`acq-GEfmap_phasediff.json` `EchoTime` (the list of both echoes: a
+phasediff has `EchoTime1`/`EchoTime2`; the hosted one has no `EchoTime`,
+and `bids.repair` reads one as the second echo), in
+`acq-mp2rage_{T1w,T1map}.json` `ImageType` (the printout's
+ORIGINAL/PRIMARY; these images are derived by the scanner), and in NKI-RS
+`T1w.json` `SliceEncodingDirection` (see "Voxel axes" below). No other
+template has a key that `bids.repair` renames or removes. INDI outputs are named as the
+local (remapped) BIDS files, without `sub`/`ses`/`run` entities, and bold
+templates get `TaskName` (from the file name) as a `defaults`. Printouts
+byte-identical to another dataset's are used by reference
+(`printout = "../SLIM/anat.pdf"`), with the dataset's own NIfTI headers.
 
 The richest printout available is used for each sidecar (vendor exports
 over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
@@ -220,6 +309,21 @@ over the ABIDE/CoRR "scantable" summaries). Choices worth knowing:
   (test/retest), `NKI/TRT/acq-{645,1400,2500}_bold.json` (+ `dwi.json`),
   `Utah/2/fieldmap.json`, `XHCUMS/1/{T1w,dwi,bold}.json`. `NKI/2` keeps the
   `NKI_2/scantable.pdf` table. CoRR has no roast yet.
+- INDI (all fill-in): SLIM `T1w`, `dwi`, `task-rest_bold` (the latter
+  replaces the hand-written `{TaskName, RepetitionTime}`; the bucket hosts
+  no SLIM sidecar); SALD `T1w`, `task-rest_bold` (SLIM's printouts);
+  MPI-LEMON, after `LEMON.remap`: `task-rest_acq-AP_bold`,
+  `acq-GEfmap_phasediff`, `acq-SEfmapBOLD{pre,post}_dir-{AP,PA}_epi`
+  (`cmrr_mbep2d_se` is AP, the polarity of the AP bold, `_invpol` PA),
+  `MP2RAGE` (both inversions), `acq-mp2rage_{T1w,T1map}`, `T2w`,
+  `acq-lowres_FLAIR` (2D, first anatomical printout), `acq-highres_FLAIR`
+  (3D, modified printout), `T2starw` (`as_gre_TE17ms`, both parts; the
+  bucket's GRE has TE = 17.3 ms and only subjects with the 3D FLAIR have
+  it), `dwi`, `acq-SEfmapDWI_dir-{AP,PA}_epi`; NKI-RS `T1w`, `dwi`,
+  `task-rest_acq-{645,1400,CAP}_bold`, `task-CHECKERBOARD_acq-{645,1400}_bold`,
+  `task-BREATHHOLD_acq-1400_bold`. LEMON's printouts are summary exports
+  (10 to 19 keys); SLIM's and NKI-RS's are full Siemens B17 printouts (42
+  to 48 keys).
 
 ## NIfTI headers
 
@@ -235,6 +339,58 @@ or `NKI_2` folder). Headers come from the protocol2bids corpus
 | `ABIDE2/BNI_1/nii/FLAIR.nii` | `ABIDE2/RawData/ABIDEII-BNI_1/sub-29015/ses-1/anat/sub-29015_ses-1_run-1_FLAIR.nii.gz` |
 | `ABIDE2/GU_1/nii/bold.nii` | `ABIDE2/RawData/ABIDEII-GU_1/sub-28742/ses-1/func/sub-28742_ses-1_task-rest_run-1_bold.nii.gz` |
 | `ABIDE2/SDSU_1/nii/dwi.nii` | `ABIDE2/RawData/ABIDEII-SDSU_1/sub-28853/ses-1/dwi/sub-28853_ses-1_run-1_dwi.nii.gz` |
+| `SLIM/nii/T1w.nii` | `INDI/SLIM/RawData/sub-25629/ses-1/anat/sub-25629_ses-1_T1w.nii.gz` |
+| `SLIM/nii/dwi.nii` | `INDI/SLIM/RawData/sub-25629/ses-1/dwi/sub-25629_ses-1_dwi.nii.gz` |
+| `SLIM/nii/bold.nii` | `INDI/SLIM/RawData/sub-25629/ses-1/func/sub-25629_ses-1_task-rest_bold.nii.gz` |
+| `SALD/nii/T1w.nii` | `INDI/SALD/RawData_BIDS/sub-031274/anat/sub-031274_T1w.nii.gz` |
+| `SALD/nii/bold.nii` | `INDI/SALD/RawData_BIDS/sub-031274/func/sub-031274_task-rest_bold.nii.gz` |
+| `MPI-LEMON/nii/bold.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/func/sub-032301_ses-01_task-rest_acq-AP_run-01_bold.nii.gz` |
+| `MPI-LEMON/nii/phasediff.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-GEfmap_run-01_phasediff.nii.gz` |
+| `MPI-LEMON/nii/SEfmapBOLDpre_AP.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapBOLDpre_dir-AP_epi.nii.gz` |
+| `MPI-LEMON/nii/SEfmapBOLDpre_PA.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapBOLDpre_dir-PA_epi.nii.gz` |
+| `MPI-LEMON/nii/SEfmapBOLDpost_AP.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapBOLDpost_dir-AP_epi.nii.gz` |
+| `MPI-LEMON/nii/SEfmapBOLDpost_PA.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapBOLDpost_dir-PA_epi.nii.gz` |
+| `MPI-LEMON/nii/SEfmapDWI_AP.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapDWI_dir-AP_epi.nii.gz` |
+| `MPI-LEMON/nii/SEfmapDWI_PA.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/fmap/sub-032301_ses-01_acq-SEfmapDWI_dir-PA_epi.nii.gz` |
+| `MPI-LEMON/nii/inv-1_MP2RAGE.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/anat/sub-032301_ses-01_inv-1_mp2rage.nii.gz` |
+| `MPI-LEMON/nii/mp2rage_T1w.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/anat/sub-032301_ses-01_acq-mp2rage_T1w.nii.gz` |
+| `MPI-LEMON/nii/mp2rage_T1map.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/anat/sub-032301_ses-01_acq-mp2rage_T1map.nii.gz` |
+| `MPI-LEMON/nii/T2w.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/anat/sub-032301_ses-01_T2w.nii.gz` |
+| `MPI-LEMON/nii/lowres_FLAIR.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/anat/sub-032301_ses-01_acq-lowres_FLAIR.nii.gz` |
+| `MPI-LEMON/nii/highres_FLAIR.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032328/ses-01/anat/sub-032328_ses-01_acq-highres_FLAIR.nii.gz` |
+| `MPI-LEMON/nii/mag_GRE.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032328/ses-01/anat/sub-032328_ses-01_acq-mag_GRE.nii.gz` |
+| `MPI-LEMON/nii/dwi.nii` | `INDI/MPI-LEMON/MRI_MPILMBB_LEMON/MRI_Raw/sub-032301/ses-01/dwi/sub-032301_ses-01_dwi.nii.gz` |
+| `NKI-RS/nii/T1w.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/anat/sub-A00008326_ses-BAS1_T1w.nii.gz` |
+| `NKI-RS/nii/dwi.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/dwi/sub-A00008326_ses-BAS1_dwi.nii.gz` |
+| `NKI-RS/nii/rest_645.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-rest_acq-645_bold.nii.gz` |
+| `NKI-RS/nii/rest_1400.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-rest_acq-1400_bold.nii.gz` |
+| `NKI-RS/nii/rest_CAP.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-rest_acq-CAP_bold.nii.gz` |
+| `NKI-RS/nii/checker_645.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-CHECKERBOARD_acq-645_bold.nii.gz` |
+| `NKI-RS/nii/checker_1400.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-CHECKERBOARD_acq-1400_bold.nii.gz` |
+| `NKI-RS/nii/breathhold_1400.nii` | `RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/func/sub-A00008326_ses-BAS1_task-BREATHHOLD_acq-1400_bold.nii.gz` |
+
+## Voxel axes of the INDI templates
+
+`PhaseEncodingDirection`, `SliceEncodingDirection` and the order of
+`SliceTiming` refer to voxel axes, mapped by protocol2bids from ONE NIfTI
+header, while a top-level template applies to every subject and session.
+For each INDI template with such keys, the headers of 10 files of the
+bucket (evenly spaced in the sorted listing, so across subjects and
+sessions; first 64 KiB, `fetch_nii_headers.fetch_header`) were compared
+with the reference header (qform/sform axis codes, nibabel), on
+2026-11-27:
+
+| template | files in the bucket | sessions sampled | axis codes | result |
+|---|---|---|---|---|
+| SLIM `T1w`, `dwi`, `task-rest_bold` | 1048, 1029, 1044 | ses-1, 2, 3 | LAS (q and s), 10/10 | kept |
+| SALD `T1w` | 494 | - | RAS (sform; no qform), 10/10 | kept |
+| SALD `task-rest_bold` | 493 | - | LAS, 10/10 | kept |
+| NKI-RS `dwi`, `task-rest_acq-{645,1400,CAP}_bold`, `task-CHECKERBOARD_acq-{645,1400}_bold`, `task-BREATHHOLD_acq-1400_bold` | 2352 to 2487 each | 3 to 5 of BAS1-3, FLU1-3, TRT | LAS, 10/10 each | kept |
+| NKI-RS `T1w` | 2455 | BAS1, BAS2, FLU1, FLU2, TRT | LAS 9/10, RAS 1/10 (`sub-A00089407/ses-FLU1`) | `SliceEncodingDirection` dropped |
+
+MPI-LEMON templates have none of these keys (summary printouts). A sample
+does not prove that every file agrees; a disagreeing hosted sidecar
+still wins (fill-in).
 
 ## Regenerating
 

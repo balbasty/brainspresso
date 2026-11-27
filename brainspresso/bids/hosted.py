@@ -187,12 +187,16 @@ class FillTemplate:
         Site it applies to (None: the whole dataset)
     path : str | None
         File it was read from (locks and input signatures of roasts)
+    previous : tuple[str, ...]
+        SHA-256 of earlier versions of the file it generates (a local
+        copy that is still one of them is not an edit)
     """
 
     name: str
     content: dict
     site: str | None = None
     path: str | None = None
+    previous: tuple = ()
 
     @property
     def id(self) -> str:
@@ -225,6 +229,11 @@ class FillPlan:
     def paths(self) -> list[str]:
         """Files of the templates."""
         return [t.path for t in self.layers if t.path]
+
+    @property
+    def previous(self) -> set[str]:
+        """SHA-256 of the earlier versions of its templates."""
+        return {h for t in self.layers for h in t.previous}
 
 
 def _entities(name: str) -> tuple[dict, str | None, str]:
@@ -547,10 +556,11 @@ def render(
         Apply `bids.repair` (JSON and TSV)
     fill : FillPlan | None
         Fill-in of a sidecar
-    intended : tuple(root, path, trim) | None
+    intended : tuple(root, path, trim[, present]) | None
         Field map sidecar: repair free-text `IntendedFor` tags and, with
         `trim`, drop the targets that are not in the BIDS dataset `root`
-        (`path`: the sidecar, relative to `root`)
+        (`path`: the sidecar, relative to `root`; `present`: files that
+        count as there, relative to `root`)
     sibling : callable(name) -> dict | None
         Content of a sibling sidecar (phase difference repairs)
 
@@ -596,8 +606,9 @@ def render(
     fixed = repair_sidecar(meta, name, sibling) if repair else dict(meta)
     fixed = fill_in(fixed, fill)
     if intended is not None:
-        root, path, trim = intended
-        fixed = intended_for(fixed, PurePosixPath(path), Path(root), trim)
+        root, path, trim, *more = intended
+        fixed = intended_for(fixed, PurePosixPath(path), Path(root), trim,
+                             *more)
     if original is not None and fixed == original:
         return content
     return dumps(fixed).encode("utf-8")

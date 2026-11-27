@@ -1,0 +1,30 @@
+{
+    "protocol2bids": {
+        "version": "0.0.0",
+        "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+    },
+    "sidecars": {
+        "T1w.json": {
+            "printout": "../SLIM/anat.pdf",
+            "sha256": "95f508159b30cabf83db91d7025225d2fc62109e077fc32946bcb179ce96037c",
+            "nii": "nii/T1w.nii",
+            "nii_sha256": "bde20403d10a2f4d5594ae9fe70a3d23bead06596ac231c915c6174cd567cd20",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        },
+        "task-rest_bold.json": {
+            "printout": "../SLIM/rest.pdf",
+            "sha256": "945f2ca34cb6164961fecd6296b87ec86e642423f886710bb847349562ef172c",
+            "nii": "nii/bold.nii",
+            "nii_sha256": "ab191e8487dccc93a3f1093688a2a9ac640f2c76bcc3b73c0c7b125a7966025c",
+            "protocol2bids": {
+                "version": "0.0.0",
+                "commit": "198706288dedb5c415a60516044ce1f09c352deb"
+            },
+            "fill": true
+        }
+    }
+}

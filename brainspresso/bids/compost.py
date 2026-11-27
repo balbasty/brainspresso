@@ -39,7 +39,7 @@ from typing import Callable, Iterable
 
 from humanize import naturalsize
 
-from brainspresso.bids.harvest import _filters, record_run
+from brainspresso.bids.harvest import _filters, record_run, update_files
 from brainspresso.bids.layout import (
     Layout,
     SitesLayout,
@@ -69,6 +69,9 @@ class CompostPlan:
     derivatives: list[str] = field(default_factory=list)
     kept_subjects: set[str] | None = None
     pristine: list[str] = field(default_factory=list)
+    #: manifest entries of selected files never fetched (`--sidecars
+    #: only`) that the filters drop: forgotten, nothing to delete
+    forgotten: list[str] = field(default_factory=list)
 
     @property
     def files(self) -> list[str]:
@@ -241,6 +244,31 @@ def pristine_files(layout: Layout) -> set[str]:
     }
 
 
+def unfetched_files(layout: Layout) -> list[str]:
+    """
+    Files of a hosted dataset selected but never fetched.
+
+    Data files of a harvest with `--sidecars only`, recorded with
+    `"fetched": false`: they count as present when tables and
+    `IntendedFor` are trimmed.
+
+    Parameters
+    ----------
+    layout : Layout
+
+    Returns
+    -------
+    list[str]
+        Paths relative to `layout.root`
+    """
+    manifest = read_manifest(layout.state) or {}
+    files = manifest.get("files")
+    if not isinstance(files, dict):
+        return []
+    return sorted(k for k, v in files.items()
+                  if isinstance(v, dict) and v.get("fetched") is False)
+
+
 def _filter_tree(tree: Path, selection: Selection) -> list[str]:
     """Files of a BIDS tree that fall outside a selection."""
     paths = list_files(tree, tree)
@@ -350,6 +378,19 @@ def plan_compost(
                     prefix + p for p in _filter_tree(pipeline, subsel)
                 ]
 
+        # Files selected but never fetched (`--sidecars only`): those
+        # that the filters drop are forgotten
+        unfetched = unfetched_files(layout)
+        if unfetched:
+            listed = {
+                _relative(root / k, bids): k for k in unfetched
+                if (root / k).is_relative_to(bids)
+            }
+            kept = set(selection.select(
+                list_files(bids, bids) + list(listed)))
+            plan.forgotten = sorted(k for rel, k in listed.items()
+                                    if rel not in kept)
+
         # Subjects that will still have a folder after composting
         removed = set(plan.data)
         plan.kept_subjects = set()
@@ -398,12 +439,13 @@ def delete_files(root: Path, files: Iterable[str]) -> int:
     return count
 
 
-def retrim_tables(layout: Layout) -> list[str]:
+def retrim_tables(layout: Layout, present: Iterable[str] = ()) -> list[str]:
     """
     Rewrite participants/sessions/scans tables to what is on disk.
 
     Untouched copies saved by `harvest` in
-    `.brainspresso/orig/` are used as reference when they exist.
+    `.brainspresso/orig/` are used as reference when they exist; files of
+    `present` (relative to `layout.root`) count as there.
     Returns the tables written, relative to `layout.root`.
     """
     root, bids = layout.root, layout.raw
@@ -420,14 +462,14 @@ def retrim_tables(layout: Layout) -> list[str]:
     for path in list_files(bids, bids):
         if path.startswith("sub-") and is_trimmable(path):
             tables[_relative(bids / path, root)] = original(bids / path)
-    return trim_tables(root, tables)
+    return trim_tables(root, tables, present=present)
 
 
 def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
     """Record the compost run in `.brainspresso/manifest.json`, if any."""
     record_run(
         layout, "compost", {**record, "nb_files": len(plan.files)},
-        deleted=plan.files, create=False,
+        deleted=[*plan.files, *plan.forgotten], create=False,
     )
 
 
@@ -461,6 +503,7 @@ def compost(
     listing: bool = False,
     ask: Callable[[str], str] = input,
     layout: str | None = None,
+    after_data: Callable[[Layout], object] | None = None,
 ) -> CompostPlan:
     """
     Delete source data and/or BIDS data outside of a selection.
@@ -498,6 +541,10 @@ def compost(
         Function used to ask for confirmation
     layout : {"study", "flat"}, optional
         Expected layout (default: detected)
+    after_data : callable(layout), optional
+        Run after BIDS data is deleted and before source data is (e.g.
+        the metadata roast of a hosted dataset, which reads its pristine
+        copies in `sourcedata/`)
 
     Returns
     -------
@@ -554,12 +601,20 @@ def compost(
     freed = plan.size()
     # (the state folder holds the lock files of the dataset)
     plan.layout.ensure_state()
-    count = delete_files(root, plan.files)
-    lg.info(f"Deleted {count} files under {root}")
-
-    if trim and (plan.data or plan.derivatives):
-        written = retrim_tables(plan.layout)
+    # BIDS data first, then what reads source data (`after_data`: the
+    # metadata roast of a hosted dataset reads the pristine copies),
+    # then source data
+    bids_files = [*plan.data, *plan.derivatives]
+    count = delete_files(root, bids_files)
+    if bids_files or plan.forgotten:
+        update_files(plan.layout, deleted=[*bids_files, *plan.forgotten])
+    if trim and bids_files:
+        written = retrim_tables(plan.layout, unfetched_files(plan.layout))
         lg.info(f"Trimmed tables: {written}")
+    if after_data is not None and bids_files:
+        after_data(plan.layout)
+    count += delete_files(root, plan.sourcedata)
+    lg.info(f"Deleted {count} files under {root}")
 
     filters = _filters(selection) if filtering else {}
     update_manifest(plan.layout, plan, {

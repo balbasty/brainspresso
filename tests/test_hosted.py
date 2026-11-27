@@ -10,6 +10,7 @@ templates add the keys that hosted sidecars lack.
 import json
 import os
 import shutil
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -19,6 +20,7 @@ from fake_s3 import bucket_app, serve
 
 from brainspresso.actions.state import read_task_states
 from brainspresso.bids.compost import compost
+from brainspresso.bids.harvest import sha256, update_files
 from brainspresso.bids.hosted import (
     FillPlan,
     FillTemplate,
@@ -34,8 +36,10 @@ from brainspresso.bids.layout import Layout, make_layout, read_manifest
 from brainspresso.cli import app
 from brainspresso.datasets.catalog import load
 from brainspresso.datasets.INDI import engine
+from brainspresso.datasets.INDI.dataset import INDIDataset
+from brainspresso.datasets.INDI.engine import Project, Site
 from brainspresso.datasets.register import register
-from brainspresso.roast.hosted import roast_hosted
+from brainspresso.roast.hosted import RoastMetadata, _plan, roast_hosted
 from brainspresso.sources import fcp
 from brainspresso.sources import openneuro as openneuro_mod
 from brainspresso.sources.s3 import S3Bucket
@@ -259,6 +263,10 @@ ON = {
         tsv(["onset", "duration"], ["0", "1"]),
     "sub-01/fmap/sub-01_dir-AP_epi.nii.gz": b"\x03" * 64,
     "sub-01/fmap/sub-01_dir-AP_epi.json": json.dumps(FMAP).encode(),
+    "sub-01/sub-01_scans.tsv": tsv(
+        ["filename", "acq_time"],
+        ["anat/sub-01_T1w.nii.gz", "n/a"],
+        ["func/sub-01_task-rest_bold.nii.gz", "n/a"]),
     "sub-02/anat/sub-02_T1w.nii.gz": b"\x04" * 64,
     "sub-02/anat/sub-02_T1w.json": b'{"EchoTime": 0.003}',
     "sub-03/anat/sub-03_T1w.nii.gz": b"\x05" * 64,
@@ -439,8 +447,10 @@ def test_openneuro_compost_re_roasts_what_is_left(tmp_path, openneuro):
     assert "IntendedFor" not in read_json(fmap)
     # nothing was re-created (sub-01's events, or sub-03 sidecars)
     assert not (raw / "sub-01/func/sub-01_task-rest_events.tsv").exists()
-    run = read_manifest(lay.state)["runs"][-1]
-    assert run["stage"] == "roast" and run["trigger"] == "compost"
+    runs = read_manifest(lay.state)["runs"]
+    # roasted between the deletion of BIDS data and that of source data
+    assert runs[-2]["stage"] == "roast" and runs[-2]["trigger"] == "compost"
+    assert runs[-1]["stage"] == "compost"
 
 
 def test_openneuro_dry_run(tmp_path, openneuro, capsys):
@@ -511,6 +521,9 @@ def templates(tmp_path, indi_url, monkeypatch):
 
 def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
     sald = templates / "sald"
+    # (this test's own fill-in templates instead of the shipped ones)
+    for name in ("T1w.json", "task-rest_bold.json"):
+        (sald / name).unlink(missing_ok=True)
     write(sald / "_fill.json", '{"fill": ["T1w.json", "bold.json", '
           '"dwi.json"]}')
     write(sald / "T1w.json", '{"Manufacturer": "Siemens", '
@@ -698,3 +711,208 @@ def test_edited_files_are_kept_under_skip(tmp_path, openneuro, caplog):
     assert "was edited since brainspresso wrote it" in caplog.text
     on("roast", tmp_path, "--if-exists", "overwrite")
     assert readme.read_text() == "New README\n"
+
+
+
+# ----------------------------------------------------------------------
+#   Review of #27 (round 1)
+# ----------------------------------------------------------------------
+
+def manifest_entry(lay, path):
+    return read_manifest(lay.state)["files"][
+        Path(path).relative_to(lay.root).as_posix()]
+
+
+def test_edited_fill_in_sidecar_is_kept(tmp_path, templates, caplog):
+    sald = templates / "sald"
+    for name in ("T1w.json", "task-rest_bold.json"):
+        (sald / name).unlink(missing_ok=True)
+    write(sald / "_fill.json", '{"fill": ["T1w.json"]}')
+    write(sald / "T1w.json", '{"Manufacturer": "Siemens"}')
+    out = tmp_path / "data"
+    bx("sald", "harvest", out)
+    lay = Layout.detect(out / "SALD")
+    t1w = lay.raw / "T1w.json"
+    assert manifest_entry(lay, t1w)["sha256"] == sha256(t1w.read_bytes())
+    t1w.write_text('{"Manufacturer": "GE"}\n')
+    caplog.clear()
+    bx("sald", "roast", out)
+    assert read_json(t1w) == {"Manufacturer": "GE"}
+    assert "was edited since brainspresso wrote it: kept" in caplog.text
+
+
+def test_datasets_without_hashes(tmp_path, openneuro, caplog):
+    """A manifest of before hashes were recorded: a file that equals
+    the roasted output is adopted, any other is an edit (kept)."""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    files = read_manifest(lay.state)["files"]
+    update_files(lay, {k: {"sha256": None} for k in files})
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    t1w.write_text('{"EchoTime": 1}\n')
+    readme = lay.raw / "README"
+    caplog.clear()
+    on("roast", tmp_path, "--subs", "01")       # (the shard runs)
+    assert read_json(t1w) == {"EchoTime": 1}
+    assert "--if-exists different or overwrite" in caplog.text
+    assert "sha256" not in manifest_entry(lay, t1w)
+    # unedited: adopted (its hash recorded)
+    assert manifest_entry(lay, readme)["sha256"] == \
+        sha256(readme.read_bytes())
+
+
+def test_later_harvest_re_trims_field_maps(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01", "--datatypes", "anat",
+             "fmap")
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    assert "IntendedFor" not in read_json(fmap)        # no func yet
+    assert table_rows(lay.raw / "sub-01/sub-01_scans.tsv") == [
+        "anat/sub-01_T1w.nii.gz"]
+    on("harvest", tmp_path, "--subs", "01", "--datatypes", "func")
+    assert read_json(fmap)["IntendedFor"] == [
+        "func/sub-01_task-rest_bold.nii.gz"]
+    assert table_rows(lay.raw / "sub-01/sub-01_scans.tsv") == [
+        "anat/sub-01_T1w.nii.gz", "func/sub-01_task-rest_bold.nii.gz"]
+
+
+def table_rows(path):
+    return [line.split("\t")[0]
+            for line in Path(path).read_text().splitlines()[1:]]
+
+
+def test_sidecars_only_trims_against_the_selection(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01", "--sidecars", "only")
+    raw = lay.raw
+    assert not (raw / "sub-01/func/sub-01_task-rest_bold.nii.gz").exists()
+    fmap = raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    rows = ["anat/sub-01_T1w.nii.gz", "func/sub-01_task-rest_bold.nii.gz"]
+    for _ in range(2):      # the harvest, then a roast on its own
+        # targets that were selected count, those not in the dataset not
+        assert read_json(fmap)["IntendedFor"] == [
+            "func/sub-01_task-rest_bold.nii.gz"]
+        assert table_rows(raw / "sub-01/sub-01_scans.tsv") == rows
+        on("roast", tmp_path, "--if-exists", "different")
+    entry = manifest_entry(lay, raw / "sub-01/anat/sub-01_T1w.nii.gz")
+    assert entry["fetched"] is False
+    # fetched later: an ordinary file
+    on("harvest", tmp_path, "--subs", "01")
+    entry = manifest_entry(lay, raw / "sub-01/anat/sub-01_T1w.nii.gz")
+    assert "fetched" not in entry
+    # a compost forgets the unfetched files it drops
+    lay = on("harvest", tmp_path, "--subs", "02", "--sidecars", "only")
+    on("compost", tmp_path, "--exclude-subs", "02", "--yes")
+    files = read_manifest(lay.state)["files"]
+    assert not any(k.startswith("rawbids/sub-02") for k in files)
+
+
+WRITER = """
+import sys
+from brainspresso.bids.harvest import update_files
+from brainspresso.bids.layout import Layout
+layout = Layout.detect(sys.argv[1])
+for i in range(40):
+    update_files(layout, {f"{sys.argv[2]}/{i}": {"origin": "direct"}})
+"""
+
+
+def test_concurrent_manifest_updates(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    procs = [subprocess.Popen([sys.executable, "-c", WRITER, str(lay.root),
+                               name], cwd=Path(__file__).parents[1])
+             for name in ("a", "b")]
+    # while they write: a roast, which records its files and run
+    on("roast", tmp_path, "--if-exists", "different")
+    assert [p.wait(60) for p in procs] == [0, 0]
+    manifest = read_manifest(lay.state)
+    for name in ("a", "b"):
+        assert all(f"{name}/{i}" in manifest["files"] for i in range(40))
+    assert manifest["runs"][-1]["stage"] == "roast"
+    assert not list(Path(lay.state).glob(".manifest.json.*.part"))
+
+
+def test_repaired_top_level_keys_are_never_pushed_down(tmp_path):
+    lay = make_layout("flat", tmp_path / "ds")
+    write(lay.source / "x/inv-1_MP2RAGE.json", '{"RepetitionTime": 5}')
+    write(lay.raw / "sub-A1/anat/sub-A1_inv-1_MP2RAGE.nii.gz", "x")
+    write(lay.state / "manifest.json", json.dumps({"layout": "flat",
+                                                   "files": {
+        "inv-1_MP2RAGE.json": {"origin": "roasted", "repair": True,
+                               "source": "sourcedata/x/inv-1_MP2RAGE.json"},
+        "sub-A1/anat/sub-A1_inv-1_MP2RAGE.nii.gz": {"origin": "direct",
+                                                    "site": "A"},
+    }}))
+    fill = [FillTemplate("MP2RAGE.json",
+                         {"RepetitionTimePreparation": 9, "FlipAngle": 4},
+                         "A")]
+    roast_hosted(lay, fill=fill, display=False)
+    # repair turned RepetitionTime into RepetitionTimePreparation: the
+    # hosted value must not be overridden from below
+    assert read_json(lay.raw / "inv-1_MP2RAGE.json") == {
+        "RepetitionTimePreparation": 5}
+    assert read_json(lay.raw / "sub-A1/sub-A1_MP2RAGE.json") == {
+        "FlipAngle": 4}
+
+
+class Coded(Project):
+    """Two sites whose labels get a site code (remapped names)."""
+
+    name = "coded"
+    folder = "CODED"
+    title = "Coded"
+    sites = (Site("A", "CODED/A", "A"), Site("B", "CODED/B", "B"))
+
+
+CODED = f"{P}/CODED"
+INDI.update({
+    f"{CODED}/A/sub-01/fmap/sub-01_magnitude1.nii.gz": b"\x06" * 32,
+    f"{CODED}/A/sub-01/fmap/sub-01_magnitude1.json":
+        b'{"EchoTime": "0.00492"}',
+    f"{CODED}/A/sub-01/fmap/sub-01_phasediff.nii.gz": b"\x07" * 32,
+    f"{CODED}/A/sub-01/fmap/sub-01_phasediff.json": b'{"EchoTime": 0.00738}',
+    f"{CODED}/B/sub-01/anat/sub-01_T1w.nii.gz": b"\x08" * 32,
+})
+
+
+def test_phasediff_of_a_remapped_subject(tmp_path, templates):
+    INDIDataset(Coded()).execute("harvest", path=tmp_path)
+    lay = Layout.detect(tmp_path / "CODED")
+    fmap = lay.raw / "sub-A01/fmap"
+    assert read_json(fmap / "sub-A01_phasediff.json") == {
+        "EchoTime": 0.00738, "EchoTime1": 0.00492, "EchoTime2": 0.00738}
+    # the magnitude is read from its pristine copy (named `sub-01_...`),
+    # not from the local file
+    (fmap / "sub-A01_magnitude1.json").unlink()
+    item, = (i for i in _plan(lay, {
+        k: v for k, v in read_manifest(lay.state)["files"].items()
+        if v.get("source")}) if i["key"].endswith("_phasediff.json"))
+    assert Path(item["sibling"]).name == "sub-01_magnitude1.json"
+    assert json.loads(RoastMetadata(item).render())["EchoTime1"] == 0.00492
+
+
+@pytest.mark.parametrize("order", ["together", "sourcedata first"])
+def test_compost_re_roasts_before_pristine_copies_go(tmp_path, openneuro,
+                                                     order):
+    lay = on("harvest", tmp_path)
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    if order == "together":
+        on("compost", tmp_path, "--exclude", "sub-01/func/*",
+           "--sourcedata", "--yes")
+    else:
+        # no pristine copy: the field map on disk is trimmed in place
+        on("compost", tmp_path, "--sourcedata", "--yes")
+        on("compost", tmp_path, "--exclude", "sub-01/func/*", "--yes")
+    assert not (lay.source / "openneuro").exists()
+    assert not (lay.raw / "sub-01/func").exists()
+    assert "IntendedFor" not in read_json(fmap)
+
+
+def test_stale_fill_list_is_removed(tmp_path, templates):
+    sald = templates / "sald"
+    write(sald / "_fill.json", '{"fill": ["task-rest_bold.json"]}')
+    out = tmp_path / "data"
+    bx("sald", "harvest", out)
+    lay = Layout.detect(out / "SALD")
+    bold = lay.raw / "task-rest_bold.json"
+    assert manifest_entry(lay, bold)["fill"] == ["task-rest_bold.json"]
+    write(sald / "_fill.json", '{"fill": []}')
+    bx("sald", "roast", out, "--if-exists", "different")
+    assert "fill" not in manifest_entry(lay, bold)

@@ -359,8 +359,13 @@ project ported, since they share `Project.entries`):
   plus new fill-in sidecars; top-level files in the main roaster, one
   shard per subject (`roast/hosted/sub-<label>`, inputs: pristine
   copies, sibling, fill-in templates and the files of the subject on
-  disk, so that new images change `IntendedFor`). Repair only where the
-  harvest asked for it (INDI yes, OpenNeuro no: validated datasets);
+  disk, so that new images change `IntendedFor`). Repair (`bids.repair`)
+  is on by default for every hosted source, OpenNeuro included (owner,
+  Q2), with `--repair/--no-repair` on hosted harvests and on `roast`
+  (config key `repair`): the per-file `repair` flag of the manifest
+  follows the option, a change is part of the shard config (the files
+  are roasted again), and `--no-repair` restores the content of the
+  pristine copies (trimming and relabelling still apply; edits kept);
   field maps: free-text `IntendedFor` tags replaced, targets not on disk
   dropped (`trim`); phase differences read the pristine copy of their
   `magnitude1`. Paths that hosted metadata gives (`IntendedFor` of
@@ -386,6 +391,10 @@ project ported, since they share `Project.entries`):
   layout with `--sites`; INDI site datasets accept merged labels).
 
 Interactions (decided):
+
+* `--repair/--no-repair` (default on): see above; a harvest records it
+  per file, a roast applies it to every roasted file it roasts (the
+  generated ones are never repaired).
 
 * `--sidecars yes|no|only` is the placement policy, on hosted harvests
   (new, `HostedOptions.sidecars`) and roasts, through
@@ -2054,7 +2063,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1430 passed, 2 skipped, 28 xfailed) |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1433 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -2422,7 +2431,8 @@ up as an XPASS failure once fixed (then drop the marker).
   pristine copies; stale `fill` lists are removed.
 * r30: owner decisions on #27 and review round 2. Paths in hosted
   metadata (`IntendedFor`, scans `filename`) are remapped like the
-  images, then trimmed (Q1); OpenNeuro repair stays off (Q2); edited
+  images, then trimmed (Q1); repair stays off for OpenNeuro (Q2,
+  revised in r32); edited
   roasted files are kept under `skip` (Q4); trimming always starts from
   the pristine copy, `--no-trim` restores full tables (Q5). Hashes are
   recorded only for files holding what the roast writes; edited or
@@ -2438,3 +2448,7 @@ up as an XPASS failure once fixed (then drop the marker).
   handles them; older field maps are compared with renders without
   relabel and fill-in; old tables without copies are left alone;
   `Shard.config` signed as `shard_config`; state model table (§4).
+* r32: owner decision Q2 on #27: metadata repair is on by default for
+  every hosted source, OpenNeuro included, `--repair/--no-repair` on
+  hosted harvests and roasts (config `repair = false`); the per-file
+  flag follows it and enters the shard config.

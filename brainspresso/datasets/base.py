@@ -709,8 +709,10 @@ class Dataset:
         -------
         dict[str, type[OptionGroup]]
             Parameter name -> group (fields must not reuse a standard
-            name)
+            name); hosted datasets: `roast --repair/--no-repair`
         """
+        if self.hosted and command == "roast":
+            return {"hosted_roast": opt.HostedRoastOptions}
         return {}
 
     def describe(self, command: str) -> str:
@@ -1321,6 +1323,8 @@ class Dataset:
                 child, fill=fill, site=site, selection=selection,
                 existing_only=existing_only,
                 json=args.roast.sidecar_policy if args else "yes",
+                repair=args.extra("hosted_roast", "repair", True)
+                if args else None,
                 ifexists=args.roast.if_exists if args else "skip",
                 jobs=args.roast.jobs if args else 1,
                 info={"trigger": "compost" if existing_only else "roast"},

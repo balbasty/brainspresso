@@ -180,7 +180,7 @@ def harvest_sites(
                 stack.enter_context(run_lock(child.state, "harvest",
                                              wait=wait))
             harvest_hosted(
-                entries, child, local, folder=FOLDER, repair=True,
+                entries, child, local, folder=FOLDER,
                 provenance={**(provenance or {}), "site": site.name},
                 check_subjects=False, fill=fill, site=site.name,
                 **options)

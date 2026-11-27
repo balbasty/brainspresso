@@ -144,8 +144,10 @@ class INDIDataset(Dataset):
         return out
 
     def options(self, command):
-        """`info --derivatives`."""
-        return {"info": InfoOptions} if command == "info" else {}
+        """`info --derivatives`; `roast --repair` (hosted)."""
+        if command == "info":
+            return {"info": InfoOptions}
+        return super().options(command)
 
     def groups(self, command):
         """`info` takes `--sites`."""
@@ -211,7 +213,7 @@ class INDIDataset(Dataset):
             dry_run=h.dry_run, listing=args.hosted.list,
             insecure=bool(h.insecure),
             chunk_size=h.runtime().chunk_size,
-            sidecars=args.hosted.sidecars,
+            sidecars=args.hosted.sidecars, repair=args.hosted.repair,
         )
         fill = self.fill_templates()
         if isinstance(layout, SitesLayout):
@@ -227,7 +229,7 @@ class INDIDataset(Dataset):
                                      selection=selection, where=f.where)
         check_selected_subjects(asked, entries)
         harvest_hosted(entries, layout, selection, folder=FOLDER,
-                       repair=True, fill=fill, provenance=provenance,
+                       fill=fill, provenance=provenance,
                        check_subjects=False, **options)
         if not h.dry_run:
             print(f"BIDS root: {Path(layout.raw)}")

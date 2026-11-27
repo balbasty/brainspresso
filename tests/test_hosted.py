@@ -277,6 +277,8 @@ ON = {
     "sub-02/anat/sub-02_T1w.nii.gz": b"\x04" * 64,
     "sub-02/anat/sub-02_T1w.json": b'{"EchoTime": 0.003}',
     "sub-03/anat/sub-03_T1w.nii.gz": b"\x05" * 64,
+    # a defect that repair fixes
+    "sub-03/anat/sub-03_T1w.json": b'{"MagneticFieldStrength": "3T"}',
 }
 ON_OBJECTS = {f"{DS}/{k}": v for k, v in ON.items()}
 ON_REQUESTS = Counter()
@@ -344,7 +346,7 @@ def test_openneuro_hybrid_placement(tmp_path, openneuro, kind):
     t1w = entries[f"{prefix}sub-01/anat/sub-01_T1w.json"]
     assert t1w["origin"] == "roasted"
     assert t1w["source"] == "sourcedata/openneuro/sub-01/anat/sub-01_T1w.json"
-    assert "repair" not in t1w           # OpenNeuro: no repair
+    assert t1w["repair"] is True         # (owner: repair by default)
     assert entries[t1w["source"]]["origin"] == "direct"
     stages = [r["stage"] for r in read_manifest(lay.state)["runs"]]
     assert stages[-2:] == ["harvest", "roast"]
@@ -1243,3 +1245,45 @@ def test_old_tables_without_copies_are_left_alone(tmp_path, openneuro):
     runs = read_manifest(lay.state)["runs"]
     assert runs[-2]["stage"] == "roast" and runs[-2]["status"] == "complete"
     assert scans.exists()
+
+
+
+# ----------------------------------------------------------------------
+#   Owner decision Q2: repair on by default, `--repair/--no-repair`
+# ----------------------------------------------------------------------
+
+def test_openneuro_metadata_repaired_by_default(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "03")
+    t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
+    assert read_json(t1w) == {"MagneticFieldStrength": 3}
+    assert manifest_entry(lay, t1w)["repair"] is True
+    # the pristine copy is never changed
+    assert (lay.source / "openneuro/sub-03/anat/sub-03_T1w.json"
+            ).read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
+
+
+def test_no_repair_keeps_the_pristine_content(tmp_path, openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01", "03", "--no-repair")
+    t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
+    assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
+    assert "repair" not in manifest_entry(lay, t1w)
+    # trimming still applies
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    assert read_json(fmap)["IntendedFor"] == [
+        "func/sub-01_task-rest_bold.nii.gz"]
+    # a roast repairs (the default) and records it; `--no-repair`
+    # restores the pristine content (unedited files)
+    on("roast", tmp_path)
+    assert read_json(t1w) == {"MagneticFieldStrength": 3}
+    assert manifest_entry(lay, t1w)["repair"] is True
+    on("roast", tmp_path, "--no-repair")
+    assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
+    assert "repair" not in manifest_entry(lay, t1w)
+
+
+def test_repair_from_a_config_file(tmp_path, openneuro):
+    write(tmp_path / ".brainspresso/config.toml",
+          "[harvest]\nrepair = false\n")
+    lay = on("harvest", tmp_path, "--subs", "03")
+    t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
+    assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]

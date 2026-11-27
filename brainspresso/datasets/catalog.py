@@ -130,9 +130,9 @@ KEYS: dict[str, tuple[str, ...]] = {
         "bids", "datatypes", "discs", "dry-run", "exclude", "exclude-keys",
         "exclude-sites", "exclude-subs", "folders", "if-exists", "include",
         "insecure", "jobs", "keys", "layout", "level", "list", "lock-wait",
-        "log", "out", "packet", "parts", "path", "sessions", "sidecars",
-        "sites", "source", "subs", "suffixes", "tag", "tasks", "trim", "user",
-        "where",
+        "log", "out", "packet", "parts", "path", "repair", "sessions",
+        "sidecars", "sites", "source", "subs", "suffixes", "tag", "tasks",
+        "trim", "user", "where",
     ),
     "info": (
         "derivatives", "exclude-sites", "level", "log", "sites", "source",
@@ -140,7 +140,7 @@ KEYS: dict[str, tuple[str, ...]] = {
     "roast": (
         "discs", "exclude-keys", "exclude-sites", "exclude-subs", "if-exists",
         "jobs", "keys", "layout", "level", "lock-wait", "log", "out", "parts",
-        "path", "sessions", "sidecars", "sites", "source", "subs",
+        "path", "repair", "sessions", "sidecars", "sites", "source", "subs",
     ),
     # END KEYS
 }

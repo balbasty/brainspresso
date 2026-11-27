@@ -532,7 +532,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
     table = trim and trimmable
     dst = layout.original(target) if table else target
     sibling = None
-    if repair and name.endswith("_phasediff.json"):
+    if name.endswith("_phasediff.json"):        # (used if repaired)
         magnitude = name.replace("_phasediff.json", "_magnitude1.json")
         other = PurePosixPath(key).with_name(magnitude).as_posix()
         sibling = str(root / files[other]["source"]) if other in files \
@@ -564,6 +564,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "repair": repair,
         "trim": trim,
         "intended": intended,
+        "fmap": fmap,
         "sibling": sibling,
         "fill": plan,
         "subject": _subject(rel),
@@ -852,6 +853,7 @@ def roast_hosted(
     present: Iterable[str] = (),
     existing_only: bool = False,
     json: str = "yes",
+    repair: bool | None = None,
     ifexists: IfExists.Choice = "skip",
     jobs: int = 1,
     display: bool = True,
@@ -885,6 +887,9 @@ def roast_hosted(
         Only rewrite the files that exist (after a compost)
     json : {"yes", "no", "only"}
         Sidecar policy
+    repair : bool | None
+        Repair the hosted metadata (`--repair/--no-repair`; recorded per
+        file); None: as each file was harvested
     ifexists : {"skip", "overwrite", "different", "refresh", "error"}
         Default `IfExists`
     jobs : int
@@ -906,6 +911,13 @@ def roast_hosted(
         layout, files, fill=fill, site=site, paths=paths,
         subjects=subjects, present=present, existing_only=existing_only,
         every=every)
+    if repair is not None:
+        # (in the shard config: a change roasts the files again)
+        for item in items:
+            if item["origin"] == "roasted":
+                item["repair"] = bool(repair)
+                item["intended"] = item["fmap"] and (item["repair"]
+                                                     or item["trim"])
     skip = IfExists.from_any(ifexists) is IfExists.SKIP
     for item in items:
         if item["source"] is not None and \
@@ -939,6 +951,15 @@ def roast_hosted(
                        info={"hosted": True, **(info or {})},
                        present=unfetched, untrimmed=untrimmed)
     _record(layout, items, orphans, report)
+    if repair is not None:
+        flags = {
+            i["key"]: {"repair": True if repair else None} for i in items
+            if i["origin"] == "roasted" and (
+                i["subject"] is None
+                or ctx.selection.keeps_subject(i["subject"]))
+        }
+        if flags:
+            update_files(layout, flags)
     return report
 
 

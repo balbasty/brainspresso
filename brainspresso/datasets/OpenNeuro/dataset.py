@@ -74,7 +74,7 @@ class OpenNeuroDataset(Dataset):
             return {"openneuro": OpenNeuroOptions}
         if command == "info":
             return {"openneuro": RouteOptions}
-        return {}
+        return super().options(command)
 
     def groups(self, command):
         """`info` takes `--token`."""
@@ -125,6 +125,7 @@ class OpenNeuroDataset(Dataset):
         remote.harvest(layout, selection, options=options, where=f.where,
                        trim=args.hosted.trim, listing=args.hosted.list,
                        sidecars=args.hosted.sidecars,
+                       repair=args.hosted.repair,
                        fill=self.fill_templates())
         if not options.dry_run:
             print(f"BIDS root: {Path(layout.raw)}")

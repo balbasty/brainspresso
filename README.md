@@ -190,8 +190,10 @@ Placement is *hybrid*: images and recordings are downloaded straight to
 their place in the BIDS dataset, while metadata (sidecars, tables,
 `events.tsv`, `bval`/`bvec`, README, descriptions) is downloaded to
 `sourcedata/openneuro/` under its path in the snapshot (an untouched,
-*pristine* copy), then **roasted** into the dataset (trimmed to what was
-downloaded). `bx openneuro roast ds000224 /data` roasts the metadata
+*pristine* copy), then **roasted** into the dataset (repaired, as for
+INDI below, and trimmed to what was downloaded; `--no-repair` keeps the
+content of the pristine copies, also on `roast`, or `repair = false` in
+a config file). `bx openneuro roast ds000224 /data` roasts the metadata
 again from those copies, without the network (after deleting or editing
 a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
 download the JSON sidecars of the data files, `--sidecars only` only

@@ -422,7 +422,7 @@ class OpenNeuro(Source):
 
     def fetch(self, entries, layout, options=None, *, selection=None,
               where=(), trim: bool = True, listing: bool = False,
-              repair: bool = False, provenance: dict | None = None,
+              repair: bool = True, provenance: dict | None = None,
               sidecars: str = "yes", fill=()):
         """Select files and place them (`roast.hosted.harvest_hosted`).
 
@@ -443,8 +443,8 @@ class OpenNeuro(Source):
         listing : bool
             Print the selected files.
         repair : bool
-            Repair the metadata (`bids.repair`; OpenNeuro datasets are
-            validated: off by default).
+            Repair the metadata (`bids.repair`) when it is roasted (the
+            pristine copies are never changed).
         provenance : dict, optional
             Provenance to record (default: `provenance()`).
         sidecars : {"yes", "no", "only"}

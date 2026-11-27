@@ -66,6 +66,7 @@ STATE_DIR = ".brainspresso"      # state folder, in each dataset
 MANIFEST = "manifest.json"       # in the state folder
 TASKS_DIR = "tasks"              # per-task state files, in the state folder
 ORIG_DIR = "orig"                # pristine tables, in the state folder
+GENERATED_DIR = "generated"      # generated metadata (hosted datasets)
 RAW_DIR = "rawbids"              # raw dataset of a study
 SOURCE_DIR = "sourcedata"
 DERIVATIVES_DIR = "derivatives"
@@ -109,7 +110,7 @@ def read_manifest(state: str | os.PathLike) -> dict | None:
         return None
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):       # (also not UTF-8)
         lg.warning(f"Could not parse {path}")
         return None
     return manifest if isinstance(manifest, dict) else None
@@ -266,6 +267,26 @@ class Layout:
     def original(self, path: str | os.PathLike) -> Path:
         """Pristine copy of a (trimmed) table, in `<state>/orig/`."""
         return self.state / ORIG_DIR / self._relpath(path)
+
+    def generated(self, path: str | os.PathLike) -> Path:
+        """
+        Return the base of a generated file, in `<state>/generated/`.
+
+        Hosted datasets (`roast.hosted`) keep there the files that their
+        harvest generates (merged tables, curated descriptions, sidecars
+        the host lacks), which their metadata roast reads as it reads
+        the pristine copies of the hosted metadata in `sourcedata/`.
+
+        Parameters
+        ----------
+        path : str | PathLike
+            The file (absolute, or relative to `root`)
+
+        Returns
+        -------
+        Path
+        """
+        return self.state / GENERATED_DIR / self._relpath(path)
 
     def ensure_state(self) -> Path:
         """
@@ -529,6 +550,10 @@ class DerivativeLayout(Layout):
     def original(self, path):
         """Pristine copy of a table, in the state folder of the parent."""
         return self.parent.original(path)
+
+    def generated(self, path):
+        """Return the base of a generated file (parent's state folder)."""
+        return self.parent.generated(path)
 
     @property
     def source_url(self) -> str:

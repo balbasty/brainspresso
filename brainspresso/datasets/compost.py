@@ -67,6 +67,7 @@ def run_compost(
     layout: str | None = None,
     sites: Iterable[str] = (),
     exclude_sites: Iterable[str] = (),
+    after_data=None,
 ):
     """
     Compost a dataset (a "sites" layout: site by site).
@@ -86,6 +87,9 @@ def run_compost(
         Only these sites (a "sites" layout only)
     exclude_sites : list[str]
         Not these sites (a "sites" layout only)
+    after_data : callable(layout), optional
+        Run on each dataset after its BIDS data is deleted, before its
+        source data is (`bids.compost.compost`)
 
     Returns
     -------
@@ -100,7 +104,7 @@ def run_compost(
         exclude_subs=exclude_subs, sessions=sessions, datatypes=datatypes,
         suffixes=suffixes, tasks=tasks, include=include, exclude=exclude,
         where=where, derivatives=derivatives, trim=trim, force=force,
-        yes=yes, dry_run=dry_run, list=list,
+        yes=yes, dry_run=dry_run, list=list, after_data=after_data,
     )
     if isinstance(found, SitesLayout):
         datasets = [d for d in found.datasets() if Path(d.root).is_dir()]
@@ -132,4 +136,5 @@ def run_compost(
         found, sourcedata=sourcedata, nested=nested, keep=keep,
         selection=selection, where=where, derivatives=derivatives,
         trim=trim, force=force, yes=yes, dry_run=dry_run, listing=list,
+        after_data=after_data,
     )

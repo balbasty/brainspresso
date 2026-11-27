@@ -377,6 +377,17 @@ class HostedOptions(OptionGroup):
     list: Annotated[bool, Parameter(
         help="Print the selected files before downloading"
     )] = False
+    sidecars: Annotated[Literal["yes", "no", "only"], Parameter(
+        help="Sidecars: \"yes\" fetches them; \"no\" does not fetch the "
+        "JSON sidecars of the data files (bval/bvec and tables are still "
+        "fetched); \"only\" fetches the sidecars and metadata only, not "
+        "the images"
+    )] = "yes"
+    repair: Annotated[bool, Parameter(
+        help="Repair common defects of the metadata when it is roasted "
+        "(numbers stored as text, invalid JSON, tables...; the pristine "
+        "copies in `sourcedata/` are never changed)"
+    )] = True
 
     @classmethod
     def choices(cls, dataset, command):
@@ -389,6 +400,17 @@ class HostedOptions(OptionGroup):
 # ----------------------------------------------------------------------
 #   Sources and credentials
 # ----------------------------------------------------------------------
+
+@option_group("Metadata", 41)
+class HostedRoastOptions(OptionGroup):
+    """`roast --repair/--no-repair` of datasets hosted as BIDS."""
+
+    repair: Annotated[bool, Parameter(
+        help="Repair common defects of the metadata (from the pristine "
+        "copies in `sourcedata/`, which are never changed); "
+        "`--no-repair` restores their content"
+    )] = True
+
 
 @option_group("Sources", 30)
 class SourceOptions(OptionGroup):

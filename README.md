@@ -179,11 +179,10 @@ other commands use the dataset.
 
 ## OpenNeuro: any dataset, or a filtered subset of it
 
-OpenNeuro datasets are already in BIDS, so `harvest` downloads them
-directly into the raw BIDS dataset of `<path>/OpenNeuro/<dataset>/` (or
-`--out`): `rawbids/`, or the folder itself with `--layout flat`. The
-dataset's own `sourcedata/` and `derivatives/` (`--folders`) go next to
-it.
+OpenNeuro datasets are already in BIDS, so `harvest` places them
+in the raw BIDS dataset of `<path>/OpenNeuro/<dataset>/` (or `--out`):
+`rawbids/`, or the folder itself with `--layout flat`. The dataset's own
+`sourcedata/` and `derivatives/` (`--folders`) go next to it.
 Filters select *data* files; the metadata that applies to them (sidecars,
 `events.tsv`, `scans.tsv`/`sessions.tsv`, top-level files, `phenotype/`)
 is added automatically, following the BIDS inheritance principle.
@@ -204,9 +203,28 @@ Useful options: `--sessions`, `--suffixes`, `--tasks`, `--include`/`--exclude`
 (globs on paths relative to the dataset root), `--folders derivatives`,
 `--jobs`, `--list`. By default, `participants.tsv`, `*_sessions.tsv` and
 `*_scans.tsv` are rewritten to only list what is present locally (the
-untouched copies are kept in `.brainspresso/orig/`; disable with
-`--no-trim`). Each run is recorded in `.brainspresso/manifest.json`
-(snapshot, filters, files, URLs and checksums).
+untouched copies are kept in `sourcedata/openneuro/`), and field maps
+whose `IntendedFor` targets were not downloaded lose them; disable with
+`--no-trim`. Each run is recorded in `.brainspresso/manifest.json`
+(snapshot, filters, files, URLs and checksums, and how each file got
+there: `direct`, `roasted` or `generated`).
+
+Placement is *hybrid*: images and recordings are downloaded straight to
+their place in the BIDS dataset, while metadata (sidecars, tables,
+`events.tsv`, `bval`/`bvec`, README, descriptions) is downloaded to
+`sourcedata/openneuro/` under its path in the snapshot (an untouched,
+*pristine* copy), then **roasted** into the dataset (repaired, as for
+INDI below, and trimmed to what was downloaded; `--no-repair` keeps the
+content of the pristine copies, also on `roast`, or `repair = false` in
+a config file). `bx openneuro roast ds000224 /data` roasts the metadata
+again from those copies, without the network (after deleting or editing
+a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
+download the JSON sidecars of the data files, `--sidecars only` only
+downloads metadata (no images; tables and field maps are still trimmed to
+the images selected). A harvest that runs again skips what did not
+change, and a roasted file you edit is kept (`--if-exists overwrite`
+replaces it). `bx openneuro roast` repairs by default, also what a
+`harvest --no-repair` placed, unless a config file says `repair = false`.
 
 Files are listed through the OpenNeuro API, which pins the exact snapshot
 and provides SHA256 checksums for annexed files. If the API cannot be
@@ -261,14 +279,17 @@ have no gradient table, and their volumes are stacked along z.
 
 Curated commands for projects of the International Neuroimaging
 Data-sharing Initiative mirrored on the public `fcp-indi` bucket (no
-login needed). Each dataset is harvested straight to the raw BIDS
-dataset of `<path>/<DATASET>/` (see [Local layout](#local-layout)), with
-the same selection options as `bx openneuro
-harvest` (`--subs`, `--sessions`, `--datatypes`, `--suffixes`,
-`--tasks`, `--include`/`--exclude`, `--where`, `--folders derivatives`,
-`--dry-run`...) plus `--sites` for multi-site datasets. Only the
-selected subjects are listed, so small selections of large datasets
-start immediately.
+login needed). Each dataset is harvested to the raw BIDS dataset of
+`<path>/<DATASET>/` (see [Local layout](#local-layout)), with the same
+selection options as `bx openneuro harvest` (`--subs`, `--sessions`,
+`--datatypes`, `--suffixes`, `--tasks`, `--include`/`--exclude`,
+`--where`, `--folders derivatives`, `--sidecars`, `--dry-run`...) plus
+`--sites` for multi-site datasets, and with the same hybrid placement:
+images go straight to their place, metadata to
+`sourcedata/fcp-indi/<bucket key>` and is then roasted (repaired, filled
+in, trimmed; `bx <project> roast` does it again). Only the selected
+subjects are listed, so small selections of large datasets start
+immediately.
 
 | Command        | Dataset                                              | Notes                                   |
 |----------------|------------------------------------------------------|-----------------------------------------|
@@ -317,7 +338,10 @@ missing descriptions, READMEs and sidecars are generated; entities are
 put in BIDS order; and common metadata defects (numbers stored as text,
 slice timing in milliseconds, invalid JSON, sessions tables without
 `session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
-are repaired after download (`brainspresso/bids/repair.py`).
+are repaired when the metadata is roasted (`brainspresso/bids/repair.py`).
+Sidecar templates listed in `templates/<project>/_fill.json` (e.g. scan
+parameters from protocol printouts) add the keys that the bucket's
+sidecars lack, never changing a key the bucket gives.
 Each dataset's `README` lists what was changed.
 
 ## Compost: clean up a local dataset
@@ -327,6 +351,10 @@ data (`<path>/<DATASET>/sourcedata/`) once it has been roasted into BIDS
 (in either layout),
 since the archives it contains are usually only taking up space. It
 refuses to do so if no BIDS subject is found (use `--force` to override).
+The pristine metadata of datasets hosted as BIDS (OpenNeuro, INDI:
+`sourcedata/openneuro/`, `sourcedata/fcp-indi/`) is kept, since `roast`
+reads it and it is small; `--sourcedata` deletes it too (the next
+harvest downloads it again).
 
 ```shell
 bx ixi compost /data --dry-run          # what would be deleted?
@@ -341,7 +369,9 @@ what is *kept*: composting with some filters leaves what harvesting with
 the same filters would have downloaded. Metadata that still applies to a
 kept file is kept, dataset-level files are never deleted, and
 `participants.tsv`, `*_sessions.tsv` and `*_scans.tsv` are rewritten to
-only list what is left.
+only list what is left. In a dataset hosted as BIDS, the metadata that is
+left is then roasted again (field maps lose the `IntendedFor` targets
+that were deleted); nothing deleted is re-created.
 
 ```shell
 bx ixi compost /data --exclude-subs 012 145      # delete two subjects

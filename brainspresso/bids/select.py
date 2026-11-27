@@ -610,6 +610,32 @@ def _inherits(meta: BidsName, by_dir) -> bool | None:
     return verdict
 
 
+def applies(meta: str, data: str) -> bool:
+    """
+    Whether a metadata file applies to a file (inheritance principle).
+
+    Parameters
+    ----------
+    meta : str
+        Path of a sidecar or companion, relative to the BIDS dataset
+    data : str
+        Path of a data file (or of another sidecar: its suffix and
+        entities are those of the data files it describes), relative to
+        the BIDS dataset
+
+    Returns
+    -------
+    bool
+        Whether `meta` is in a folder of `data` (or its own) and its
+        suffix and entities match (see the module docstring, rule 2)
+    """
+    m, d = BidsName.parse(meta), BidsName.parse(data)
+    folder = m._dir
+    if folder and d._dir != folder and not d._dir.startswith(folder + "/"):
+        return False
+    return _applies(m, d)
+
+
 def _applies(meta: BidsName, data: BidsName) -> bool:
     """Whether a metadata file applies to a data file (inheritance)."""
     own = meta.companion

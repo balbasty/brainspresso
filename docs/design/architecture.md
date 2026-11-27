@@ -153,9 +153,20 @@ layout of each site):
            "origin": "direct | roasted | generated"}}}
 ```
 
-`origin` is written by hosted harvests today (`direct` for downloads,
-`generated` for inline files); `roasted` is reserved for hybrid
-placement (2b-iii). Per-task state: `<state>/tasks/<task id>.json`, see
+`origin` is written by hosted harvests (2b-iii, §4): `direct` for a
+file downloaded to its place (images, and the pristine copies in
+`sourcedata/<folder>/`), `roasted` for metadata roasted from a pristine
+copy, `generated` for files the listing generates. Roasted and
+generated files of a hosted dataset also carry `source` (the pristine
+copy, or the generated base in `<state>/generated/<path>`) and
+optionally `repair: true`, `trim: false`, `site`, and `fill` (the fill-in
+templates merged into them); every file a roast wrote has its `sha256`;
+data selected but not fetched (`--sidecars only`) has `"fetched": false`.
+The manifest has one writer (`bids.harvest._update_manifest`, behind
+`record_run` and `update_files`): an exclusive `FileLock` of the
+manifest around the reread-modify-write (#26), an atomic write (a
+temporary file and `os.replace`), malformed manifests backed up and
+replaced. Per-task state: `<state>/tasks/<task id>.json`, see
 §7. Both are defined in `bids/harvest.py` (`record_run`,
 `write_manifest`, `write_task_state`, `read_task_states`).
 
@@ -309,6 +320,237 @@ Implemented (step 3):
   (`--sourcedata` on a hosted dataset says the next harvest re-fetches it).
 * The manifest records each file's origin: `direct`, `roasted`, `generated`.
 
+Implemented (step 2b-iii; pilots OpenNeuro and INDI SALD, every INDI
+project ported, since they share `Project.entries`):
+
+* `bids/hosted.py` (BIDS knowledge, no I/O beyond the tree):
+  `placement(path) -> "direct" | "roasted"` on the flat view after
+  remapping: "roasted" for every file of a BIDS dataset (raw or
+  `derivatives/<name>/`) whose `default_kind` is not "data" (sidecars,
+  `bval`/`bvec`, every TSV including events, scans, sessions,
+  participants, `phenotype/`, README, `.bidsignore`, descriptions);
+  "direct" for data files, files inside directory-format recordings
+  (`*.ome.zarr/zarr.json`), and `sourcedata/`, `code/`, `stimuli/`...
+  `is_data(path)` (data of a `sub-*` tree, for `--sidecars only`).
+  `render(content, name, repair=, fill=, intended=, sibling=)`: the
+  bytes of a roasted file; the pristine bytes when nothing changes (a
+  valid file is a byte-identical copy). Fill-in templates
+  (`FillTemplate`, `read_fill_templates`, `plan_fill`, `fill_in`), see
+  below. `bids/repair.py` gained pure versions of its in-place repairs
+  (`repair_sidecar`, `repair_table`, `intended_for`).
+* `roast/hosted.py`: `harvest_hosted(entries, layout, selection,
+  folder=, ...)` (the harvest of OpenNeuro, `OpenNeuro.fetch`, and of
+  each INDI dataset or site) selects (`bids.harvest.select_entries`),
+  downloads direct files to their place and metadata to
+  `sourcedata/<folder>/<remote path>` (`entry.meta["remote"]`, default
+  `entry.path`; one download per remote file, also when several local
+  files come from it: INDI site sidecars pushed down to every subject),
+  writes generated metadata (`InlineEntry`) to `<state>/generated/`,
+  records the harvest run and every file (`origin`, `source`), then runs
+  `roast_hosted` on what it placed. Folders: `sourcedata/openneuro/`
+  (path in the snapshot), `sourcedata/fcp-indi/` (key under
+  `data/Projects/`, the same in merged and per-site layouts). A sites
+  parent is not a BIDS dataset: its files (`extra_files`) are placed
+  directly (`bids.harvest.harvest`).
+* `roast_hosted(layout, fill=, site=, selection=, paths=, existing_only=,
+  json=, ifexists=, jobs=)` is the metadata roast: one `RoastMetadata`
+  action (an `actions.Action`: sources under shared locks, output under
+  an exclusive lock, atomic rename) per manifest entry with a `source`,
+  plus new fill-in sidecars; top-level files in the main roaster, one
+  shard per subject (`roast/hosted/sub-<label>`, inputs: pristine
+  copies, sibling, fill-in templates and the files of the subject on
+  disk, so that new images change `IntendedFor`). Repair (`bids.repair`)
+  is on by default for every hosted source, OpenNeuro included (owner,
+  Q2), with `--repair/--no-repair` on hosted harvests and on `roast`
+  (config key `repair`): the per-file `repair` flag of the manifest
+  follows the option, a change is part of the shard config (the files
+  are roasted again), and `--no-repair` restores the content of the
+  pristine copies (trimming and relabelling still apply; edits kept);
+  field maps: free-text `IntendedFor` tags replaced, targets not on disk
+  dropped (`trim`); phase differences read the pristine copy of their
+  `magnitude1`. Paths that hosted metadata gives (`IntendedFor` of
+  field maps, plain or `bids::`; the `filename` column of scans tables)
+  are remapped as the images are (site codes, label maps, runs,
+  typos: from the manifest's `remote_root`, recorded on every file of a
+  listing that has one, and `remote`, recorded where the path was
+  remapped), then trimmed against what is present (owner, Q1); identifiers
+  (`B0FieldIdentifier`, `B0FieldSource`) are not paths and are kept.
+  Tables (participants, sessions, scans) are ordinary roasted files:
+  their rows are trimmed in `render` (`trim_rows`, a pure filter on
+  what is present), so trimming always starts from the base and
+  `--no-trim` (`trim=False` in the same render) restores the full
+  table (owner, Q5); hosted datasets have no `<state>/orig/` (the
+  roast passes `run_roast(trim=False)`; compost re-trims only the
+  tables without a rendered entry, e.g. of datasets harvested before
+  this step, and leaves the others to the roast after the deletion,
+  which `compost --no-trim` tells to leave tables alone). `trim_rows`
+  matches `participant_id` with or without `sub-` and keeps, with a
+  warning, rows too short to have the column. No INDI project remaps
+  session labels (checked: only subject labels, runs, typos and
+  entities), so `session_id` columns are not relabelled. It runs after the images are
+  placed, on its own (`bx <ds> roast`, everything the manifest records,
+  no network), and after a compost of BIDS data (`existing_only`:
+  files still there, never re-created). INDI and OpenNeuro gain a
+  `roast` command (`Dataset.roast` of a `hosted` dataset:
+  `Dataset.roast_hosted` over `hosted_datasets`, each site of a sites
+  layout with `--sites`; INDI site datasets accept merged labels).
+
+Interactions (decided):
+
+* `--repair/--no-repair` (default on): see above; a harvest records it
+  per file, a roast applies it to every roasted file it roasts (the
+  generated ones are never repaired).
+
+* `--sidecars yes|no|only` is the placement policy, on hosted harvests
+  (new, `HostedOptions.sidecars`) and roasts, through
+  `bids.kinds.accepts`: at harvest "no" does not fetch (nor record) the
+  JSON sidecars of data files, "only" does not fetch data files; tables,
+  `bval`/`bvec`, README and descriptions always. In a roast it drops
+  the actions of the excluded kinds; files on disk are left as they are
+  (a roast never deletes). A sidecar not fetched with "no" is not in the
+  manifest: harvest again with "yes" to get it. Data selected but not
+  fetched under "only" is recorded with `"fetched": false` and counts
+  as present when tables and `IntendedFor` are trimmed (the selected
+  listing, not the disk), in this harvest and in later roasts; a later
+  harvest that fetches it makes it an ordinary entry, a compost forgets
+  those its filters drop.
+* Selection: a harvest roasts what it selected (keys, subs, sessions,
+  sites, datatypes, globs, `--where`) and every roasted file of the
+  subjects it touched (new images re-trim `IntendedFor` and scans
+  tables of files placed earlier); a roast takes `--subs`,
+  `--exclude-subs`, `--sessions` (and `--sites` for sites layouts).
+  Tables are trimmed to what is on disk, so successive partial harvests
+  add up (`participants.tsv` lists every subject harvested so far).
+* Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
+  `sites[:kind]` in each site's own `sourcedata/` (the parent's files
+  are direct). Fill-in placement depends on the layout (below).
+* `--if-exists`: downloads as before; roasted files under "skip" use
+  "different" with `compare` (they are cheap and derived: a new pristine
+  copy or template must reach the dataset); "overwrite", "error" and
+  "refresh" (mtime of the pristine copy) apply as such.
+* Re-runs: a harvest that runs again skips existing downloads and the
+  subject shards whose signature is unchanged (their bases, templates,
+  files on disk, `.bidsignore`, and `Shard.config`: `RENDER_VERSION`,
+  bumped whenever repairs or rendering change, and the options of each
+  file). Edits are decided by hash only (see the state model). New
+  fill-in sidecars are judged from their own record too. A fill-in
+  sidecar whose template no longer applies is removed if unedited (and
+  forgotten), else kept with a warning, when a roast handles it.
+  Directly placed generated files keep #26's refresh-if-unedited
+  (`write_inline`, now under the file's lock and atomic).
+* `--repair/--no-repair`: `bx <ds> roast` with its defaults repairs, so
+  it undoes a `harvest --no-repair` unless a config file says
+  `repair = false`. The flags of the manifest are not updated when the
+  roast failed.
+* A missing base freezes the file (left as it is; a `Fail` only if the
+  visible file is missing too). The accepted cost: after `compost
+  --sourcedata`, a later filtering compost no longer trims `IntendedFor`
+  (nor the rows of tables) until the next harvest fetches the pristine
+  copies again. Datasets harvested before 2b-iii have no pristine
+  copies: their next harvest fetches them. A roasted entry whose remote
+  file disappeared from the listing keeps its stale pristine copy and
+  visible file (nothing deletes them).
+* Pristine copies are refreshed against the listing whatever
+  `--if-exists` says: by digest (S3 single-part ETags, OpenNeuro annex
+  keys), else by size and mtime ("refresh": S3 listings), else
+  downloaded again (OpenNeuro GraphQL, files not annexed), an identical
+  copy keeping its mtime (shard signatures); `--if-exists` governs the
+  visible files (and the data files). An entry that becomes roasted
+  clears the `size`/`digests` of an older, direct one.
+* Harvests merge their entries into the manifest (a None clears a
+  field); only the roast writes the hashes of roasted files.
+* Compost keeps the pristine copies (`source` of `roasted` entries,
+  `bids.compost.pristine_files`) unless `--sourcedata` is given
+  explicitly; then the next harvest fetches them again. A compost that
+  deletes BIDS data roasts the rest again (`existing_only`), after the
+  BIDS data is deleted and before source data is (`compost(after_data=)`),
+  so that `--sourcedata` with filters still renders from the pristine
+  copies. In a sites layout the compost holds the exclusive run locks
+  of the parent and of every site (`Dataset.lock_states`); its roast
+  runs in the same process (one job: no pool worker asks for a shared
+  lock), under those locks. Copies
+  whose roasted files were all composted are no longer referenced and
+  go with the next default compost.
+
+State model of a hosted dataset. Every visible metadata file, tables
+included, is `render(base, options, presence)`, written by one `File`
+action, with one edit test (one row per kind of file; the
+authoritative copy first):
+
+| Kind | Copies | Written | Deleted |
+|------|--------|---------|---------|
+| Data (images, recordings) | visible only (manifest: `direct`; `fetched: false` if selected, not fetched) | harvest (download; `--if-exists`) | compost filters (entry removed) |
+| Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: every metadata roast (rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
+| Generated metadata (templates, merged tables, generated sidecars) | base `<state>/generated/<path>`; visible (`generated`, `source`) | base: every harvest; visible: as hosted metadata | as hosted metadata (the base stays) |
+| New fill-in sidecars | templates in the package; visible (`generated`, `fill`, no `source`) | metadata roasts, where a template applies | when no template applies any more, if unedited (and the roast handles it) |
+| Directly placed generated files | visible only (`generated`, `sha256`) | harvest, if unedited (#26) | compost filters |
+
+* A missing base freezes its file: left as it is (one info line); a
+  `Fail` only if the visible file is missing too.
+* Edits, by hash only: a visible file is edited iff its hash differs
+  from the recorded one; kept under `skip` (an edited field map keeps
+  the user's keys and takes `IntendedFor` from the render);
+  `--if-exists different|overwrite` replaces it.
+* No recorded hash (an older dataset): a file equal to the render is
+  adopted; any other follows `MIGRATION_RULE` ("keep": kept, with a
+  warning; "replace": copied to `<state>/replaced/<path>` as the action
+  writes it, which replaces it atomically; nothing is copied or lost if
+  no action writes). Default "keep" (owner to decide; "replace" is
+  recommended by the review).
+* Only `_record` writes the hashes of roasted files: that of a file
+  holding the render, whatever its state was (an edit replaced with
+  `--if-exists overwrite` is ours again; a merged field map or a
+  replayed output is not). The harvest records the hashes of earlier
+  versions of a template as `previous`, never as `sha256`.
+* A file the shard leaves as it is (an edit, a file without a hash, a
+  frozen one) is not a recorded output: whether it exists is in the
+  shard config, so that deleting it runs the shard (re-rendered, or a
+  `Fail` for a frozen one).
+* Fill-in push-down reads the keys of a top-level sidecar from its base
+  (repaired as the running roast repairs), else from the visible file;
+  if neither can be read, no fill-in of that suffix is pushed down.
+
+Fill-in sidecars (`bids/hosted.py`): templates of a hosted dataset that
+**add** the keys its hosted (or generated) sidecars lack and **never**
+change one. Found from the dataset package, never a fixed path:
+`<Dataset.template_dir>/_fill.json` (INDI: `Project.template_dir`,
+`templates/<project>/`; the marker of the printouts PR #26, written by
+`scripts/make_sidecars.py` and checked by its `--check`), listing
+`[<site>/]<name>.json` files:
+
+```json
+{"fill": ["T1w.json", "ICBM/T1w.json", "*/task-rest_bold.json"]}
+```
+
+`<name>` is a sidecar name without `sub-`/`ses-`; `<site>` a site name
+of the dataset; patterns glob one segment at a time and must match;
+listed files (and `_fill.json`, a `_*` file) are never mirrored as
+plain templates (this replaces the stopgap of #26, where a bucket file
+at a template's path skipped the template whole: the merge is now key
+by key).
+Placement (BIDS inheritance principle, chosen over merging into every
+hosted sidecar: data files without any hosted sidecar get the fill-in
+too, a template is written once per level, and lower levels win, which
+is exactly "never override"): dataset templates, and the templates of
+the site a dataset *is* (`--layout sites`), at the top level as
+`<name>`; site templates of a merged multi-site dataset pushed down to
+the subjects of the site (`sub-<label>/sub-<label>_<name>`, the site
+from the manifest's `site`); merged into the file already at that path
+(precedence: file, site template, dataset template), else written only
+where it describes a selected file. A hosted file of the same level
+with another name that may describe the same data takes the fill-in if
+it is at least as specific, else the template is skipped there (two
+sidecars of one level must not describe one file); keys of hosted
+top-level sidecars (as roasted: repaired when the file is) are never
+pushed down. Recorded as `generated` (new
+file) or keeping the origin of the merged file, with `fill: [ids]`.
+
+Not done: ABIDE-II from S3 (§9) would be an INDI-style `Project` over
+`ABIDE2/RawData/` (site remap `ETHZ` -> `ETH`, runs, the bucket's
+`RawData/sidecards/` as site sidecars) with the ABIDE-II printout
+templates as fill-in templates (`templates/<site>/<sample>/`, a
+`_fill.json`), opt-in until its roast reads the same subjects as NITRC.
+
 ## 5. Roast: roasters on the action engine
 
 * A **roaster** is a plain callable `roaster(ctx) -> Iterator[Action |
@@ -344,7 +586,9 @@ Implemented (step 3):
   accumulated across actions. A `finalize(ctx)` hook sees the finished tree
   (e.g. sites computed from a tar scan).
 * Common steps after every roast, also for hosted datasets: repair, trim,
-  `dataset_description` for the layout, `.bidsignore`, manifest.
+  `dataset_description` for the layout, `.bidsignore`, manifest. For
+  hosted datasets, repair is part of their metadata roast
+  (`roast.hosted`, §4), not a common step.
 * For gz tarballs, listing members is a full decompression: early pruning by
   selection (`selection.keeps_subject(label)`) is expected there.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
@@ -1049,8 +1293,8 @@ units take the run lock (§7, "What the ports must and must not assume").
 | COBRE, Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
-| INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | none | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
-| OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | none | default compost; `info` override |
+| INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
+| OpenNeuro | override; `arguments=(dataset,)`; `--tag`, `--source` (field `route`) | hosted metadata roast (2b-iii) | default compost (re-roasts after composting BIDS data); `info` override |
 
 ### CLI compatibility
 
@@ -1085,6 +1329,10 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   hidden deprecated alias on harvest and compost, none on roast (r24).
 * Added: `bx config show|paths`, the global `--config FILE`, and config
   files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
+* Added (2b-iii): `--sidecars yes|no|only` on hosted harvests
+  (OpenNeuro, INDI); a `roast` command for OpenNeuro and every INDI
+  project (`--sites` where sites layouts exist). Changed: compost keeps
+  the pristine metadata of hosted datasets unless `--sourcedata`.
 
 ### Tests
 
@@ -1842,7 +2090,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 2b-ii-fix | Review fixes: readers take no lock (shared and read-only sources); tables use `different` under `skip`; every shard runs in the pool (nested ones handed back), every `finalize` runs; pool failures fall back to the main process, common steps in a `finally`, run `status`; key classification (`key_of`) instead of a union; kinds (`meta` for bval/bvec, mixed kinds rejected, `Fail` never hidden), `staging`, category folders; claims yield actions only (lists of folders, "empty"); task state per shard, progress from it, input-signature skip, `submit` protocol; `ctx.source`; port helpers | High-Effort Opus | done (511 passed, 28 xfailed) |
 | 2b-iv | Actions core / roast layer split (`actions/engine.py` with an acceptance `Policy`, `roast/`, `bids/kinds.py`), RW locks (`actions/locks.py`: shared readers, exclusive writers, lock files in `.brainspresso/locks/`, timeouts), docstrings (pydocstyle, numpy convention, on `actions/`, `roast/`, `bids/`) | High-Effort Opus | done (608 passed, 2 skipped, 28 xfailed, with step 3 merged) |
 | 2c | Dataset module names match the stage names (`download.py` → `harvest.py`, `bidsify.py` → `roast.py`); temporary re-exports of the 2b-iv split removed | Low-Effort Opus | done |
-| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | |
+| 2b-iii | Hybrid placement for hosted-BIDS sources; pilot on one INDI project and OpenNeuro | High-Effort Opus | done (§4; pilots OpenNeuro and SALD, every INDI project ported; fill-in sidecar hook; 1459 passed, 2 skipped, 28 xfailed) |
 | 3 | Sources: `RemoteEntry`, `provides`/`roaster`/`fetch`, per-key defaults, `LocalSource`, label mapping, credentials; drop request-option shim | High-Effort Opus | done (536 passed, 28 xfailed; every harvest on sources, ABIDE-II S3 opt-in only, see §4) |
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
@@ -1963,7 +2211,8 @@ up as an XPASS failure once fixed (then drop the marker).
   BIDS-like copy as a hosted-BIDS source (INDI-style project with
   hybrid placement, 2b-iii), or keep the NITRC tarballs as the default.
   The two copies differ (runs, acquisitions, sessions), so a dataset
-  harvested from both is not one BIDS dataset.
+  harvested from both is not one BIDS dataset. What the S3 route would
+  need is listed at the end of §4 (2b-iii).
 
 ## 10. Revision log
 
@@ -2187,3 +2436,62 @@ up as an XPASS failure once fixed (then drop the marker).
   arguments of a dataset, the location the command line does not give
   as built-in; a shared list warns once per value; `split_env` quotes
   whole values only.
+* r28: step 2b-iii. Hybrid placement for hosted BIDS (§4): images
+  direct, metadata to `sourcedata/<folder>/<remote path>` then roasted
+  (`roast.hosted`, through the action engine), generated files based in
+  `<state>/generated/`; manifest entries carry `origin` and `source`;
+  OpenNeuro and every INDI project harvest this way and gain `roast`;
+  `--sidecars` on hosted harvests is a placement policy; roasted files
+  under `skip` are compared, subject shards skipped by signature;
+  compost keeps pristine metadata unless `--sourcedata` and re-roasts
+  what is left; fill-in sidecar templates (`<template_dir>/_fill.json`,
+  the marker of #26; inherited sidecars, never overriding); edited
+  roasted files are kept under `skip` (`sha256` in the manifest).
+* r29: review of #27, round 1, with #26 merged. Every manifest write
+  goes through one locked, atomic writer; edits without a recorded hash
+  are kept unless equal to the output; fill-in sidecars keep their
+  record; a harvest re-roasts every file of the subjects it touches;
+  `--sidecars only` trims against the selected listing (`"fetched":
+  false`); hosted top-level keys are judged after repair; phase
+  difference siblings are found by their local name; compost roasts
+  before deleting source data, and trims field maps in place without
+  pristine copies; stale `fill` lists are removed.
+* r30: owner decisions on #27 and review round 2. Paths in hosted
+  metadata (`IntendedFor`, scans `filename`) are remapped like the
+  images, then trimmed (Q1); repair stays off for OpenNeuro (Q2,
+  revised in r32); edited
+  roasted files are kept under `skip` (Q4); trimming always starts from
+  the pristine copy, `--no-trim` restores full tables (Q5). Hashes are
+  recorded only for files holding what the roast writes; edited or
+  orphaned field maps are trimmed in place; the no-hash migration
+  compares with what an older harvest wrote; orphan fill-in sidecars are
+  removed; `Shard(config=)` enters shard signatures; directly placed
+  generated files refresh if unedited; compost applies forgotten
+  entries alone; `read_manifest` tolerates non-UTF-8 manifests.
+* r31: review round 3 of #27. `remote_root` on every file of a listing
+  that has one (relabel of files that kept their name); `--no-trim`
+  keeps `orig/` (never trimmed from) and starts from it when the
+  pristine copy is gone; orphan fill-ins are only forgotten when a roast
+  handles them; older field maps are compared with renders without
+  relabel and fill-in; old tables without copies are left alone;
+  `Shard.config` signed as `shard_config`; state model table (§4).
+* r32: owner decision Q2 on #27: metadata repair is on by default for
+  every hosted source, OpenNeuro included, `--repair/--no-repair` on
+  hosted harvests and roasts (config `repair = false`); the per-file
+  flag follows it and enters the shard config.
+* r33: state model of hosted datasets, after an independent review of
+  #27: every visible metadata file, tables included, is `render(base,
+  options, presence)` (table rows trimmed in the render; no `orig/` for
+  hosted datasets); a missing base freezes the file; edits by hash
+  only, tables included; `MIGRATION_RULE` for files without a hash;
+  harvests merge manifest entries and only the roast writes hashes;
+  pristine copies follow the listing whatever `--if-exists`; fill-in
+  push-down reads the visible top-level file when its base is gone;
+  `write_inline` locked and atomic; `RENDER_VERSION` and `.bidsignore`
+  in shard signatures; a restricted roast leaves the files of
+  unselected data alone.
+* r34: Fable follow-up of #27. Hashes recorded whenever the file holds
+  the render; the existence of kept and frozen files in the shard
+  config; "replace" copies as the action writes; compost re-trims
+  tables without a rendered entry, `--no-trim` reaches the roast;
+  pristine refresh by digest, size and mtime, or content.

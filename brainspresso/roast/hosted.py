@@ -536,9 +536,15 @@ def roast_subject(ctx: RoastContext, label: str, items: list[dict]):
 
 
 def _inputs(items: list[dict], label: str) -> list[str]:
-    """Input signature of a subject: sources, templates, files on disk."""
+    """
+    Input signature of a subject: sources, templates, files on disk.
+
+    The outputs are not inputs, but for those whose pristine copy is
+    missing (left as they are): their deletion must run the shard again.
+    """
     outputs = {os.path.normcase(i[k]) for i in items for k in ("dst",
-                                                                "target")}
+                                                                "target")
+               if i["source"] is None or os.path.exists(i["source"])}
     inputs = set()
     for item in items:
         for path in (item["source"], item["sibling"]):

@@ -3,15 +3,14 @@ Datasets of a cross-dataset run: references, index and conditions.
 
 Interfaces only (see `brainspresso.grind`).
 
-A dataset **reference** is `<Module.Path>[/<argument>...][/<site>]`:
+A dataset **reference** is `<name>[/<argument>...][/<site>]`:
 the name of the dataset, then its positional arguments
 (`Dataset.arguments`), then at most one site: `IXI`,
-`OpenNeuro/ds000224`, `ABIDE.I/NYU`. The name is the module path of
-the dataset under `brainspresso.datasets` (`ABIDE.I`, not `abide-1`),
-as in the sections of the config file (separate PR,
-`claude/feat/config-file`, which adds it to the catalog); it is
+`openneuro/ds000224`, `abide1/NYU`. The name is the dataset's CLI
+name, i.e. its catalog key (`bx abide1`), as in the sections of the
+config file (separate PR, `claude/feat/config-file`); it is
 case-insensitive. A `*`
-in an argument or a site matches what is on disk (`OpenNeuro/*`). A
+in an argument or a site matches what is on disk (`openneuro/*`). A
 path (absolute, or starting with `./` or `../`) names a BIDS dataset
 outside the catalog. The canonical form is the `dataset` of units, task
 records and index rows.
@@ -39,13 +38,13 @@ WHERE_OPERATORS = ("==", "!=", "<=", ">=", "<", ">", "in", "~")
 @dataclass(frozen=True)
 class DatasetRef:
     """
-    Reference of a dataset: `<Module.Path>[/<argument>...][/<site>]`.
+    Reference of a dataset: `<name>[/<argument>...][/<site>]`.
 
     Attributes
     ----------
     name : str
-        Module path of the dataset, in its canonical case (`ABIDE.I`),
-        or "" for a path
+        CLI name of the dataset, its catalog key, lower case
+        (`abide1`), or "" for a path
     arguments : tuple[str, ...]
         Values of the positional arguments of the dataset
     site : str | None
@@ -70,7 +69,7 @@ class DatasetRef:
         Parameters
         ----------
         text : str
-            E.g. "OpenNeuro/ds000224"
+            E.g. "openneuro/ds000224"
 
         Returns
         -------

@@ -779,7 +779,7 @@ roasters get numbers (`Dataset.numbers`).
 
 `grind` will be one more builder in `register.COMMANDS` (`bx <ds>
 grind <pipeline>`, step 7). Decided in §7: a bound dataset is named
-`<Module.Path>/<argument>` in `--datasets` (`OpenNeuro/ds000224`, then an
+`<name>/<argument>` in `--datasets` (`openneuro/ds000224`, then an
 optional site); a sites layout is ground site by site
 (`layout.datasets()`), group outputs in the parent; grind does not take
 `<state>/run` (too coarse for long jobs) but a second lock file,
@@ -1287,8 +1287,8 @@ attribute: `exclude_subs`, `exclude` (globs never used as inputs),
 `inputs` (`{requirement name or suffix: Query}` that narrows a
 requirement, i.e. "which T1w"), `species`, `template`, `config`
 (`{pipeline: {field: value}}`) and `resources`. The same fields may
-come from `[<Module.Path>.grind]` and
-`[<Module.Path>.grind.<pipeline>]` sections (`[ABIDE.I.grind.fs]`) of
+come from `[<name>.grind]` and
+`[<name>.grind.<pipeline>]` sections (`[abide1.grind.fs]`) of
 the config file (separate PR), which win over the declaration. They apply in `bx <ds>
 grind` and per dataset in a cross-dataset run, and enter the signature
 through the effective config and the resolved inputs.
@@ -1311,12 +1311,12 @@ through the effective config and the resolved inputs.
   **home**: `<root>/derivatives/<pipeline>/` with state in
   `<root>/.brainspresso/` (manifest `"layout": "collection"`).
 * **D** (§6): a dataset reference (`DatasetRef`) is
-  `<Module.Path>[/<argument>...][/<site>]`, case-insensitive: the
-  dataset's module path (`IXI`, `ABIDE.I`, `OpenNeuro`: the name that
-  the config-file PR, `claude/feat/config-file`, adds to the catalog
-  and uses for config sections), then the dataset's positional
-  `arguments`, then at most one site (`OpenNeuro/ds000224`,
-  `ABIDE.I/NYU`). `*` globs match what is on disk (`OpenNeuro/*`); a path names a BIDS dataset outside the
+  `<name>[/<argument>...][/<site>]`, case-insensitive: the
+  dataset's CLI name (`ixi`, `abide1`, `openneuro`, `fcon1000`: the
+  catalog key, also used for the sections of the config file, separate
+  PR `claude/feat/config-file`), then the dataset's positional
+  `arguments`, then at most one site (`openneuro/ds000224`,
+  `abide1/NYU`). `*` globs match what is on disk (`openneuro/*`); a path names a BIDS dataset outside the
   catalog. The reference is the `dataset` of units, records and the
   index.
 * The index (`build_index`): one row per subject (and session) on
@@ -1661,4 +1661,4 @@ up as an XPASS failure once fixed (then drop the marker).
   `NotReady`, `TaskLost`, requeues) and `Task`/`Graph`/`TaskArray`.
   Profiles and dataset overrides also come from the config file
   (separate PR).
-  Dataset references use the module path (`ABIDE.I/NYU`).
+  Dataset references use the CLI name (`abide1/NYU`).

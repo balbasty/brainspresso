@@ -193,8 +193,8 @@ def test_command_options_are_in_the_design():
         "--keep-scratch-on-failure", "--with", "--variant", "--if-stale",
     ):
         assert option in SECTION, option
-    assert "ABIDE.I/NYU" in SECTION and "OpenNeuro/ds000224" in SECTION
-    assert "[ABIDE.I.grind.fs]" in SECTION
+    assert "abide1/NYU" in SECTION and "openneuro/ds000224" in SECTION
+    assert "[abide1.grind.fs]" in SECTION
     assert "~/.brainspresso/config.toml" in SECTION
 
 
@@ -535,12 +535,12 @@ def test_nothing_is_implemented(tmp_path):
         lambda: context.GrindContext(layout, pipeline),
         lambda: context.GrindPolicy().fingerprint(None),
         lambda: staging.stage_in(None, None, model.Work(unit)),
-        lambda: index.DatasetRef.parse("OpenNeuro/ds000224"),
+        lambda: index.DatasetRef.parse("openneuro/ds000224"),
         lambda: index.parse_where("age > 60"),
         lambda: index.build_index(()),
         lambda: provenance.generated_by(pipeline),
         lambda: run.grind_dataset(pipeline, layout),
-        lambda: run.grind_collection(pipeline, ["ABIDE.I/NYU"]),
+        lambda: run.grind_collection(pipeline, ["abide1/NYU"]),
         lambda: run.grind_status(pipeline, layout),
         lambda: run.planner.run(plan, plan.tasks[0], profile),
         lambda: run.planner.locks(plan, plan.tasks[0]),

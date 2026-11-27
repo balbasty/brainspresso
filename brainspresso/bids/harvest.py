@@ -22,7 +22,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
 
 from humanize import naturalsize
 
@@ -521,22 +521,26 @@ def replace_generated(dst: Path, digest: str | None, if_exists: str) -> bool:
 #       "files": {                                   # harvested files
 #         "<path relative to layout.root>": {
 #           "url": "...", "size": 123, "digests": {"md5": "..."},
-#           "origin": "direct" | "roasted" | "generated",
-#           "sha256": "..."          # generated: the file as written
+#           "origin": "direct" | "roasted" | "generated" | "converted",
+#           "sha256": "..."          # generated, converted: as written
 #         }
 #       }
 #     }
 #
 # `origin` says how a file got to its place: downloaded to its final
 # path (`direct`), downloaded to `sourcedata/` then roasted (`roasted`,
-# hybrid placement of hosted-BIDS sources, `roast.hosted`), or generated
-# locally (`generated`). A `roasted` or `generated` file of a hosted
-# dataset also has a `source` (its pristine copy in `sourcedata/<folder>/`,
-# or its generated base in `<state>/generated/`), and optionally `repair`
-# (true), `trim` (false), `site` and `fill` (fill-in templates merged
-# into it); see `roast.hosted`. Manifests without `schema` (written before the
-# layouts) are read as is; their `files` keys are relative to the raw
-# dataset, which is `layout.root` for a flat layout.
+# hybrid placement of hosted-BIDS sources, `roast.hosted`), generated
+# locally (`generated`), or written by an engine roast (`converted`: its
+# sidecars and visible table-kind files such as `README`, with the
+# `sha256` of what roast wrote, so that `roast --if-exists update` tells
+# an edit, `roast.policy`). A `roasted` or `generated` file of a hosted
+# dataset also has a `source` (its pristine copy in
+# `sourcedata/<folder>/`, or its generated base in `<state>/generated/`),
+# and optionally `repair` (true), `trim` (false), `site` and `fill`
+# (fill-in templates merged into it); see `roast.hosted`. Manifests
+# without `schema` (written before the layouts) are read as is; their
+# `files` keys are relative to the raw dataset, which is `layout.root`
+# for a flat layout.
 #
 # `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
 # unit...), so that concurrent jobs never write the same file. The
@@ -560,6 +564,12 @@ def replace_generated(dst: Path, digest: str | None, if_exists: str) -> bool:
 #     }
 
 MANIFEST_SCHEMA = 1
+
+#: `roast --if-exists update`, engine and hosted roasts alike: a file
+#: without a recorded hash (an older dataset) that differs from what
+#: roast writes is "kept" (with a warning), or "replace"d (copied to
+#: `<state>/replaced/<path>` first, `Layout.replaced`)
+MIGRATION_RULE: Literal["keep", "replace"] = "replace"
 
 
 def record_run(
@@ -799,14 +809,47 @@ def trim_originals(layout: Layout) -> list[str]:
     return written
 
 
-def finish_roast(layout: Layout, **info) -> None:
+def finish_roast(layout: Layout, files: dict[str, dict] | None = None,
+                 **info) -> None:
     """
     Run the steps shared by all roasts, once their actions have run.
 
     Write the descriptions that depend on the layout (study description,
     `SourceDatasets` of derivatives) and record the run in the manifest.
+
+    Parameters
+    ----------
+    layout : Layout
+    files : dict[str, dict]
+        Entries to merge into the manifest (`"converted"` files and
+        their `sha256`), by path relative to `layout.root`. A file that
+        `write_descriptions` rewrites (a derivative description) gets
+        the hash of the file as left on disk, also if it was recorded
+        by an earlier roast, so that it is not taken for an edit.
+    **info
+        Fields of the run
     """
-    layout.write_descriptions()
+    written = layout.write_descriptions()
+    files = dict(files or {})
+    if written:
+        known = None
+        for path in written:
+            try:
+                key = Path(path).relative_to(layout.root).as_posix()
+            except ValueError:
+                continue
+            if key not in files:
+                if known is None:
+                    known = manifest_files(layout)
+                entry = known.get(key) or {}
+                if entry.get("origin") != "converted":
+                    continue
+            try:
+                digest = sha256(Path(path).read_bytes())
+            except OSError:
+                continue
+            files[key] = {**files.get(key, {"origin": "converted"}),
+                          "sha256": digest}
     info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
             for k, v in info.items()}
-    record_run(layout, "roast", info)
+    record_run(layout, "roast", info, files=files or None, merge=True)

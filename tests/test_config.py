@@ -1248,3 +1248,21 @@ def test_shared_list_warns_once(tmp_path, home, caplog):
     assert "'nosuchkey' not a choice of any dataset" in warnings[0]
     assert "['bold'] are not choices of ixi" in warnings[1]
     assert "nosuchkey" not in warnings[1]
+
+
+# ----------------------------------------------------------------------
+#   `--if-exists update`: roast only
+# ----------------------------------------------------------------------
+
+def test_if_exists_update_is_a_roast_choice(tmp_path, home):
+    args, _ = parse("cobre", "roast", tmp_path, "--if-exists", "update")
+    assert value(args, "roast", "if_exists") == "update"
+    with pytest.raises(CycloptsError, match="update"):
+        parse("cobre", "harvest", tmp_path, "--if-exists", "update")
+    user(home, "[cobre.roast]\nif-exists = 'update'\n")
+    args, report = parse("cobre", "roast", tmp_path)
+    assert value(args, "roast", "if_exists") == "update"
+    assert origin(report, "if-exists").kind == "user"
+    user(home, "[cobre.harvest]\nif-exists = 'update'\n")
+    with pytest.raises(CycloptsError, match="update"):
+        parse("cobre", "harvest", tmp_path)

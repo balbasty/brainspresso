@@ -129,6 +129,32 @@ def test_roast_sample_template(root):
         == tpl("CMU/T1w.json")
 
 
+def test_site_template_under_skip_and_update(root, caplog):
+    """A per-site template that changes: left alone under `skip`, followed
+    under `update` (an edit kept, with a warning)"""
+    roast(root, keys={"T1w"}, display=False)
+    paths = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+             for s in (51456, 51457, 51330)]
+    old = [p.read_bytes() for p in paths]
+    local = root / "sourcedata" / "Caltech" / "T1w.json"
+    local.parent.mkdir()
+    local.write_text(json.dumps({**tpl("Caltech/T1w.json"), "Local": 1}))
+    caplog.clear()
+    roast(root, keys={"T1w"}, display=False)
+    assert [p.read_bytes() for p in paths] == old
+    assert "WARNING" not in caplog.text
+    paths[1].write_text('{"Mine": true}')
+    roast(root, keys={"T1w"}, ifexists="update", display=False)
+    assert sidecar(root, "sub-51456/anat/sub-51456_T1w.json") == \
+        {**tpl("Caltech/T1w.json"), "Local": 1}
+    assert json.loads(paths[1].read_text()) == {"Mine": True}
+    assert paths[2].read_bytes() == old[2]       # (another site)
+    assert "was edited" in caplog.text
+    roast(root, keys={"T1w"}, ifexists="different", display=False)
+    assert sidecar(root, "sub-51457/anat/sub-51457_T1w.json") == \
+        {**tpl("Caltech/T1w.json"), "Local": 1}
+
+
 def test_roast_filters(root):
     roast(root, keys={"T1w"}, exclude_subs={51457}, json="no",
           display=False)

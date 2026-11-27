@@ -18,6 +18,7 @@ from typing import Iterable, Literal
 
 from brainspresso.actions.action import IfExists, Kind
 from brainspresso.actions.engine import Context
+from brainspresso.bids.harvest import manifest_files
 from brainspresso.bids.keys import KeyAliases, KeySelection
 from brainspresso.bids.kinds import accepts
 from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
@@ -47,7 +48,7 @@ class RoastContext(Context):
         Keys of the dataset (predicates, categories and their folders)
     json : {"yes", "no", "only"}
         Write sidecars only (`only`), not at all (`no`), or with data
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists` of actions that do not set their own
     options : dict
         Dataset-specific options
@@ -78,6 +79,7 @@ class RoastContext(Context):
         """Normalize `json` and `source`."""
         self._reporter = None
         self._folders: list[tuple[Path, frozenset]] | None = None
+        self._recorded: dict[str, str] | None = None
         if isinstance(self.json, bool):
             self.json = "yes" if self.json else "no"
         self.json = str(self.json).lower()
@@ -85,6 +87,48 @@ class RoastContext(Context):
             raise ValueError(f"json must be yes, no or only: {self.json}")
         self.source = Path(self.source) if self.source is not None \
             else Path(self.layout.source)
+
+    def __getstate__(self) -> dict:
+        """Pickle without the reporter and the manifest read."""
+        state = super().__getstate__()
+        state["_recorded"] = None
+        return state
+
+    def forget(self) -> None:
+        """Drop the manifest read by `recorded` (a new run starts)."""
+        self._recorded = None
+
+    def recorded(self, path: str | os.PathLike) -> str | None:
+        """
+        SHA-256 recorded in the manifest for an output.
+
+        The manifest is read once (per run and process): it changes at
+        the end of a roast only.
+
+        Parameters
+        ----------
+        path : str | PathLike
+            Absolute path of an output
+
+        Returns
+        -------
+        str | None
+            Its `sha256` (None: no entry, or no hash)
+        """
+        if self._recorded is None:
+            try:
+                files = manifest_files(self.layout)
+            except OSError:
+                files = {}
+            self._recorded = {
+                key: entry["sha256"] for key, entry in files.items()
+                if isinstance(entry.get("sha256"), str)
+            }
+        try:
+            key = Path(path).relative_to(self.layout.root).as_posix()
+        except ValueError:
+            return None
+        return self._recorded.get(key)
 
     @property
     def root(self) -> Path:
@@ -252,7 +296,7 @@ def make_context(
         `--keys`, `--exclude-keys`
     json : {"yes", "no", "only"} | bool
         Sidecar policy (`RoastOptions.sidecar_policy`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists`
     templates : path
         Templates shipped with the dataset

@@ -32,7 +32,7 @@ architecture.md`, §4, "State model"):
   one; an edit is kept under `skip` (an edited field map keeps the
   user's keys and takes `IntendedFor` from the render); without a
   record (an older dataset), a file equal to the render is adopted,
-  any other follows `MIGRATION_RULE`;
+  any other follows `bids.harvest.MIGRATION_RULE` (re-exported here);
 * only `_record` writes the hashes, of the files that hold the render.
 
 It runs after the images are placed (repairs read siblings:
@@ -67,17 +67,18 @@ from __future__ import annotations
 
 import functools
 import os
-import shutil
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Iterator, Literal
+from typing import Iterable, Iterator
 
 from humanize import naturalsize
 
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import Unlink
+from brainspresso.bids import harvest
 from brainspresso.bids.harvest import (
+    MIGRATION_RULE,
     InlineEntry,
     _filters,
     manifest_files,
@@ -108,6 +109,7 @@ from brainspresso.bids.select import OPTIONAL_FOLDERS, Selection
 from brainspresso.bids.tables import is_trimmable
 from brainspresso.download import Downloader, DownloadManager
 from brainspresso.roast.context import RoastContext
+from brainspresso.roast.policy import RoastPolicy
 from brainspresso.roast.run import RoastReport, run_roast
 from brainspresso.sources.base import write_content
 
@@ -124,12 +126,6 @@ TAG = "hosted"
 #: Version of what `render` writes: bump it when the repairs or the
 #: rendering change, so that unchanged shards are roasted again
 RENDER_VERSION = 1
-#: A file without a recorded hash (an older dataset) that differs from
-#: the render: "keep" it (with a warning), or "replace" it (moved to
-#: `<state>/replaced/<path>` first)
-MIGRATION_RULE: Literal["keep", "replace"] = "replace"
-#: Backups of the files replaced by the migration rule, in the state
-REPLACED_DIR = "replaced"
 
 
 # ----------------------------------------------------------------------
@@ -701,7 +697,6 @@ class RoastMetadata(Action):
                  keep: bool = False, backup=None):
         self.item = item
         self.keep = keep
-        self.backup = backup
         fill: FillPlan | None = item.get("fill")
         src = [p for p in (item["source"], item["sibling"]) if p]
         src += fill.paths if fill else []
@@ -710,6 +705,8 @@ class RoastMetadata(Action):
             action=self.write, mode="wb", input="file", ifexists=ifexists,
             tag=tag, compare=True,
         )
+        # (copied by the action core before it replaces the file)
+        self.backup = Path(backup) if backup is not None else None
 
     def render(self) -> bytes:
         """Content of the output."""
@@ -744,11 +741,6 @@ class RoastMetadata(Action):
 
     def write(self, file) -> None:
         """Write the output (the actor of the action)."""
-        target = Path(self.item["target"])
-        if self.backup is not None and target.is_file():
-            # (a copy: the file itself is replaced atomically, or kept)
-            Path(self.backup).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(target, self.backup)
         file.write(self.render())
 
 
@@ -791,11 +783,8 @@ def _migrate(ctx: RoastContext, item: dict, rule: str
     """
     dst = Path(item["target"])
     if rule == "replace":
-        backup = Path(ctx.layout.state) / REPLACED_DIR / item["key"]
-        lg.warning(f"{dst} differs from what brainspresso writes and has no "
-                   f"recorded hash (an older harvest): replaced, the old "
-                   f"file is in {backup}")
-        return True, backup
+        # (`Action.backup`: the copy and its warning)
+        return True, ctx.layout.replaced(dst)
     lg.warning(f"{dst} differs from what brainspresso writes and has no "
                f"recorded hash (an older harvest, or edited): kept "
                f"(--if-exists different or overwrite replaces it)")
@@ -834,7 +823,7 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
         except (OSError, ValueError):
             same = False
         if not same:
-            write, backup = _migrate(ctx, item, MIGRATION_RULE)
+            write, backup = _migrate(ctx, item, harvest.MIGRATION_RULE)
             if not write:
                 return
     yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag, backup=backup)
@@ -1060,9 +1049,11 @@ def roast_hosted(
     roaster = functools.partial(roast_metadata, items=items,
                                 orphans=orphans)
     roaster.__name__ = "roast_metadata"
-    # (tables are trimmed as they are rendered: no `trim_originals`)
+    # (tables are trimmed as they are rendered: no `trim_originals`;
+    # `_record` writes the hashes: no "converted" entries)
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
-                       info={"hosted": True, **(info or {})}, trim=False)
+                       info={"hosted": True, **(info or {})}, trim=False,
+                       policy=RoastPolicy(track=False))
     _record(layout, items, orphans, report, ctx, repair)
     return report
 

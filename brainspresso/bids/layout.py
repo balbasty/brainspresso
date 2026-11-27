@@ -67,6 +67,7 @@ MANIFEST = "manifest.json"       # in the state folder
 TASKS_DIR = "tasks"              # per-task state files, in the state folder
 ORIG_DIR = "orig"                # pristine tables, in the state folder
 GENERATED_DIR = "generated"      # generated metadata (hosted datasets)
+REPLACED_DIR = "replaced"        # backups of replaced files (`update`)
 RAW_DIR = "rawbids"              # raw dataset of a study
 SOURCE_DIR = "sourcedata"
 DERIVATIVES_DIR = "derivatives"
@@ -287,6 +288,25 @@ class Layout:
         Path
         """
         return self.state / GENERATED_DIR / self._relpath(path)
+
+    def replaced(self, path: str | os.PathLike) -> Path:
+        """
+        Return the backup of a replaced file, in `<state>/replaced/`.
+
+        `roast --if-exists update` copies there a file that has no
+        recorded hash and differs from what roast writes, before it
+        replaces it (`bids.harvest.MIGRATION_RULE`).
+
+        Parameters
+        ----------
+        path : str | PathLike
+            The file (absolute, or relative to `root`)
+
+        Returns
+        -------
+        Path
+        """
+        return self.state / REPLACED_DIR / self._relpath(path)
 
     def ensure_state(self) -> Path:
         """
@@ -554,6 +574,10 @@ class DerivativeLayout(Layout):
     def generated(self, path):
         """Return the base of a generated file (parent's state folder)."""
         return self.parent.generated(path)
+
+    def replaced(self, path):
+        """Return the backup of a replaced file (parent's state folder)."""
+        return self.parent.replaced(path)
 
     @property
     def source_url(self) -> str:

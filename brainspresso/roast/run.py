@@ -23,13 +23,16 @@ failed: the visible tables are trimmed from their pristine copies
 (`bids.harvest.trim_originals`), then the layout descriptions and the
 manifest are written (`bids.harvest.finish_roast`, with a `status`:
 "complete", "partial" if anything failed, "failed" if the engine itself
-stopped).
+stopped), with the hashes of the tracked files that hold what the roast
+wrote (`Report.digests`, origin "converted": the edit test of
+`--if-exists update`).
 """
 from __future__ import annotations
 
 import os
 import traceback
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from brainspresso.actions.engine import Producer, Report, run
@@ -91,6 +94,8 @@ def run_roast(
         Counts per tag, errors, outputs, progress and `status`
     """
     report = RoastReport(status="failed")
+    if isinstance(ctx, RoastContext):
+        ctx.forget()                # (hashes recorded by an earlier run)
     try:
         # the state folder holds the lock files of the dataset
         # (`actions.locks`): create it before anything is read or written
@@ -107,7 +112,14 @@ def run_roast(
             report.status = status = "failed" if status == "failed" \
                 else "partial"
         keys = ctx.selection.keys
-        finish_roast(ctx.layout, **{
+        files = {}
+        for path, digest in report.digests.items():
+            try:
+                key = Path(path).relative_to(ctx.layout.root).as_posix()
+            except ValueError:
+                continue
+            files[key] = {"origin": "converted", "sha256": digest}
+        finish_roast(ctx.layout, files=files, **{
             **({"keys": sorted(keys)} if keys is not None else {}),
             "json": ctx.json,
             "status": status,

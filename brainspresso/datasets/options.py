@@ -34,6 +34,10 @@ from brainspresso.utils.ui import human2bytes
 
 lg = logging.getLogger(__name__)
 
+#: `harvest --if-exists` (no "update": downloads cannot tell an edit)
+HarvestIfExists = Literal['skip', 'overwrite', 'different', 'refresh',
+                          'error']
+
 Many = Parameter(consume_multiple=True)
 Strings = tuple[str, ...]
 
@@ -638,8 +642,13 @@ def lock_wait(group) -> float:
 class HarvestOptions(OptionGroup):
     """Options of downloads."""
 
-    if_exists: Annotated[IfExists.Choice, Parameter(
-        help="Behaviour if a file already exists"
+    if_exists: Annotated[HarvestIfExists, Parameter(
+        help="Behaviour if a file already exists. skip: leave existing "
+        "files alone (default; pristine copies in sourcedata/ still follow "
+        "the remote dataset); different: replace a file whose size, digest "
+        "or content differs (edits of generated files included); "
+        "overwrite: replace every file; refresh: replace a file whose "
+        "mtime differs; error: refuse an existing file"
     )] = "skip"
     jobs: Annotated[int | None, Parameter(
         help="Number of parallel downloads (default: that of the source)",
@@ -743,7 +752,15 @@ class RoastOptions(OptionGroup):
         help="Deprecated: use `--sidecars no`"
     )] = False
     if_exists: Annotated[IfExists.Choice, Parameter(
-        help="Behaviour when a file already exists"
+        help="Behaviour when a file already exists. skip: leave existing "
+        "files alone (default; tables are still trimmed to what is on "
+        "disk); update: rewrite the sidecars and metadata files whose "
+        "content changed, keep the ones you edited (with a warning; a "
+        "file without a recorded hash is backed up to "
+        ".brainspresso/replaced/ first); different: rewrite the files "
+        "whose content changed, edits included; overwrite: rewrite "
+        "everything; refresh: rewrite a file whose mtime differs from its "
+        "sources'; error: refuse an existing file"
     )] = "skip"
     jobs: Annotated[int, Parameter(help="Number of processes")] = 1
     lock_wait: Annotated[float | None, _LOCK_WAIT] = None

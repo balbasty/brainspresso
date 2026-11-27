@@ -228,9 +228,10 @@ def test_missing_phenotypes(tmp_path):
     assert len(report.errors) == 1
 
 
-def test_dataset_files_compared(root):
-    """`dataset_description.json` and `participants.json` are compared
-    (tables), so a new template replaces them under `skip`"""
+def test_dataset_files_compared(root, caplog):
+    """`dataset_description.json` and `participants.json` are left alone
+    under `skip` (pure skip), compared under `update`, so that a new
+    template replaces them"""
     roast(root, keys={"meta"}, display=False)
     files = [raw_file(root, n) for n in ("dataset_description.json",
                                          "participants.json")]
@@ -239,8 +240,15 @@ def test_dataset_files_compared(root):
     assert [f.stat().st_mtime_ns for f in files] == first
     (root / "sourcedata" / "dataset_description.json").write_text(
         json.dumps({"Name": "COBRE (local)", "BIDSVersion": "1.8.0"}))
+    caplog.clear()
     roast(root, keys={"meta"}, display=False)
+    assert json.loads(files[0].read_text())["Name"] == "COBRE"
+    assert [f.stat().st_mtime_ns for f in files] == first
+    assert "WARNING" not in caplog.text
+    roast(root, keys={"meta"}, ifexists="update", display=False)
     assert json.loads(files[0].read_text())["Name"] == "COBRE (local)"
+    assert files[1].stat().st_mtime_ns == first[1]       # (unchanged)
+    assert "WARNING" not in caplog.text
 
 
 def test_subject_labels_in_python_api(root):
@@ -292,6 +300,54 @@ def test_template_change_reruns_the_shard(root, monkeypatch):
     assert len(opened) == 2
     roast(root, keys={"T1w"}, display=False)
     assert len(opened) == 2
+
+
+def test_pure_skip_then_update(root, monkeypatch, caplog):
+    """The owner's scenario: `skip` leaves existing sidecars and dataset
+    files alone (no warning), `update` follows the templates but keeps
+    an edit (with a warning), `different` replaces the edit too"""
+    opened = []
+    real = roaster.TarArchive
+
+    def opener(path):
+        opened.append(path)
+        return real(path)
+
+    monkeypatch.setattr(roaster, "TarArchive", opener)
+    roast(root, keys={"T1w", "meta"}, display=False)
+    t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+           for s in ("0040000", "0040001")]
+    readme = raw_file(root, "README")
+    old = [f.read_bytes() for f in (*t1w, readme)]
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    (root / "sourcedata" / "README").write_text("A local README\n")
+    # 1. skip: the shard runs again (new template), nothing is rewritten
+    caplog.clear()
+    roast(root, keys={"T1w", "meta"}, display=False)
+    assert len(opened) == 2
+    assert [f.read_bytes() for f in (*t1w, readme)] == old
+    assert "WARNING" not in caplog.text
+    # 2. skip again: the signature is up to date
+    roast(root, keys={"T1w", "meta"}, display=False)
+    assert len(opened) == 2
+    # 3. update: every shard runs, an edit is kept with a warning
+    t1w[1].write_text('{"EchoTime": 2, "Mine": true}')
+    caplog.clear()
+    roast(root, keys={"T1w", "meta"}, ifexists="update", display=False)
+    assert len(opened) == 3
+    assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
+    assert readme.read_text() == "A local README\n"
+    assert json.loads(t1w[1].read_text())["Mine"] is True
+    assert "was edited" in caplog.text and t1w[1].name in caplog.text
+    assert not [r for r in caplog.records if r.levelname == "WARNING"
+                and t1w[0].name in r.getMessage()]
+    # 4. different: the edit is replaced
+    roast(root, keys={"T1w", "meta"}, ifexists="different", display=False)
+    assert json.loads(t1w[1].read_text()) == {"EchoTime": 1}
+    # ... and is ours again: `update` leaves it, without a warning
+    caplog.clear()
+    roast(root, keys={"T1w", "meta"}, ifexists="update", display=False)
+    assert "WARNING" not in caplog.text
 
 
 def test_exclude_keys(root):

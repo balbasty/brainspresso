@@ -25,9 +25,8 @@
     }
   },
   "icd9": {
-      "Description": "Specific diagnosis (ICD-9-CM code)",
+      "Description": "Specific diagnosis (ICD-9-CM code; n/a: nothing diagnosed)",
       "Levels": {
-        "": "Nothing diagnosed",
         "295.1": "Disorganized type schizophrenia",
         "295.2": "Catatonic type schizophrenia",
         "295.3": "Paranoid type schizophrenia unspecified state",
@@ -42,9 +41,10 @@
       }
   },
   "icd9_subtype": {
-    "Description": "Specific diagnosis subtype (ICD-9-CM)",
-        "": "No subtype",
+    "Description": "Specific diagnosis subtype (ICD-9-CM; n/a: no subtype)",
+    "Levels": {
         "depressed": "Schizoaffective disorder, depressed type (schizodepressive)",
         "bipolar": "Schizoaffective disorder, bipolar type (schizomanic)"
+    }
   }
 }

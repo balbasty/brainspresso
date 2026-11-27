@@ -1,4 +1,5 @@
-
+"""COBRE harvest: the files of the NITRC project (login required)."""
+from brainspresso.datasets.indi.cobre.roaster import roast_cobre
 from brainspresso.sources.nitrc import NITRC
 
 URLBASE = 'https://fcon_1000.projects.nitrc.org/indi/retro/COBRE'
@@ -14,9 +15,13 @@ URLS = {
 }
 
 
-
 def sources() -> dict:
-    """Sources of COBRE: NITRC files (login), four at a time"""
-    return {"nitrc": NITRC(URLS, jobs=4)}
+    """
+    Return the sources of COBRE.
 
-
+    Returns
+    -------
+    dict[str, Source]
+        NITRC files (login), four at a time, roasted by `roast_cobre`
+    """
+    return {"nitrc": NITRC(URLS, jobs=4, roaster=roast_cobre)}

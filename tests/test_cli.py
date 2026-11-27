@@ -443,22 +443,22 @@ def test_ignore_runs_is_not_force(tmp_path, capsys):
 def test_legacy_subjects_files_and_ranges(tmp_path):
     subs = tmp_path / "subs.txt"
     subs.write_text("40000\nsub-40001\n")
-    cobre = COBRE()
-    assert cobre.numbers([str(subs), "3:5", "sub-7"]) == [3, 4, 7, 40000,
+    abide = ABIDE2()
+    assert abide.numbers([str(subs), "3:5", "sub-7"]) == [3, 4, 7, 40000,
                                                           40001]
-    cobre.check("roast", Args.of(cobre, "roast", select=SelectionOptions(
+    abide.check("roast", Args.of(abide, "roast", select=SelectionOptions(
         subs=(str(subs), "1:3"))))
     with pytest.raises(UsageError):
-        cobre.numbers(["abc"])
+        abide.numbers(["abc"])
 
 
 def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
     # an invalid subject
-    (tmp_path / "COBRE").mkdir()
+    (tmp_path / "ABIDE-2").mkdir()
     with pytest.raises(SystemExit):
-        main(["cobre", "roast", str(tmp_path), "--subs", "abc"])
+        main(["abide2", "roast", str(tmp_path), "--subs", "abc"])
     assert "Subjects are numbers" in capsys.readouterr().err
-    assert not any((tmp_path / "COBRE").iterdir())
+    assert not any((tmp_path / "ABIDE-2").iterdir())
     # a missing dataset
     with pytest.raises(SystemExit):
         main(["oasis2", "roast", str(tmp_path)])

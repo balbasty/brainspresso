@@ -1,7 +1,9 @@
 """`bx cobre`: COBRE (schizophrenia)."""
+from pathlib import Path
+
 from brainspresso.datasets.base import Dataset, KeySpec
-from brainspresso.datasets.indi.cobre.bidsifier import Bidsifier
 from brainspresso.datasets.indi.cobre.harvest import sources
+from brainspresso.datasets.indi.cobre.roaster import KEYS as ROAST_ALIASES
 
 HELP = """
 COBRE dataset (schizophrenia)
@@ -26,28 +28,31 @@ class COBRE(Dataset):
     indi_category = "retro"
     title = "COBRE"
     help = HELP
-    legacy_subjects = True
     keys = KeySpec(None, KEYS, KEYS)
+    subject_width = 7
     harvest_subjects = False
     credentials = "login"
     download = {"on_error": "raise"}
+    template_dir = Path(__file__).parent / "templates"
 
     def keys_for(self, command):
-        """Roast keys (legacy roaster, `Bidsifier` class)."""
+        """Roast keys: those of the roaster."""
         if command == "roast":
-            return KeySpec(None, ROAST_KEYS, ROAST_KEYS)
+            return KeySpec(ROAST_ALIASES, ROAST_KEYS, ROAST_KEYS)
         return self.keys
 
     def sources(self, args=None):
-        """NITRC files."""
+        """NITRC files (roasted by `roaster.roast_cobre`)."""
         return sources()
 
-    def roast(self, layout, args):
-        """Legacy roaster (`Bidsifier` class, rewritten in step 5)."""
-        Bidsifier(
-            layout.root, keys=self.legacy_keys("roast", args),
-            subs=self.numbers(args.select.subs),
-            exclude_subs=self.numbers(args.select.exclude_subs),
-            json=args.roast.sidecar_policy, layout=layout.kind,
-            ifexists=args.roast.if_exists,
-        ).run()
+    def describe(self, command):
+        """Roast: how the participants table is trimmed."""
+        if command == "roast":
+            return (
+                "Convert the source data of COBRE to BIDS.\n\n"
+                "`participants.tsv` lists the subjects whose folder is on "
+                "disk (all of them are in the pristine copy, "
+                "`.brainspresso/orig/`): a roast of `--keys meta` alone, "
+                "before any image, writes its header only."
+            )
+        return super().describe(command)

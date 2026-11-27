@@ -589,7 +589,10 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   hosted datasets, repair is part of their metadata roast
   (`roast.hosted`, §4), not a common step.
 * For gz tarballs, listing members is a full decompression: early pruning by
-  selection (`selection.keeps_subject(label)`) is expected there.
+  selection (`selection.keeps_subject(label)`) is expected there. A gz
+  tarball that holds every subject (COBRE) is read by one shard (id and
+  `inputs`: skipped by signature), not by one shard per subject, each
+  of which would decompress it up to its own members (step 5).
 * A gz tarball that holds many subjects (OASIS-I discs) is read by one
   shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc and
   the templates its actions read, so an unchanged disc is skipped by
@@ -1302,7 +1305,9 @@ units take the run lock (§7, "What the ports must and must not assume").
 | IXI | declared (login) | declared (source roasters) | `requires` roast xlrd, width 3 |
 | UNC-Wisconsin, OASIS-III | declared (token / login) | declared | UNC sessions |
 | ABIDE-I, ABIDE-II, CoRR | declared (sites, login) | ABIDE: override, legacy code (step 5) | ABIDE-I `download-nitrc/xnat` dropped |
-| COBRE, Bullitt, OASIS-I/II | declared (OASIS: `discs`/`parts` groups) | override, legacy code; own `keys_for("roast")` | |
+| COBRE | declared (login) | declared (source roaster, step 5) | width 7 |
+| OASIS-I | declared (`discs` group) | declared (source roaster, step 5) | width 4; `roast_options` (`--discs`) |
+| Bullitt, OASIS-II | declared (OASIS: `parts` group) | override, legacy code; own `keys_for("roast")` | |
 | GSP, ADHD200 | declared (ADHD200: `--bids/--no-bids` group, `--bidsify` a hidden alias) | none | |
 | ADNI-I | declared + `--urls` group | none | still not in the catalog |
 | INDI projects | override (`harvest_sites`/`collect`), hosted groups, jobs 8 | hosted metadata roast (2b-iii) | `INDIDataset` wraps a `Project` (composition: no clash with `Project.sites`/`templates()`); `info` override; `INDI/command.py` became `INDI/harvest.py` |
@@ -2107,7 +2112,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; NNNN) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2125,11 +2130,11 @@ Each step lands as commits on the refactor branch with its tests green.
   "numpy"`) in `brainspresso/actions/`, `brainspresso/roast/`,
   `brainspresso/bids/` (step 2b-iv), `brainspresso/sources/` and
   `brainspresso/download/` (step 3), `brainspresso/grind/` and
-  `brainspresso/percolate/` (step 4g), the ported datasets
-  (`brainspresso/datasets/oasis/i/`, step 5); other packages are exempt through
+  `brainspresso/percolate/` (step 4g); other packages are exempt through
   one negated `per-file-ignores` pattern in `pyproject.toml`
   (`!brainspresso/{actions,bids,download,grind,percolate,roast,sources}/**`
-  and the ported modules; two
+  and the ported modules and datasets, `datasets/indi/cobre/**` and
+  `datasets/oasis/i/**` in step 5; two
   negated patterns would exempt every file). Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2203,7 +2208,8 @@ up as an XPASS failure once fixed (then drop the marker).
 * ABIDE-II `make_participants` reads ABIDE-I's `Phenotypic_V1_0b.csv`
   (suspected, no xfail).
 * ABIDE-I nitrc: phenotype glob misses `phenotypic_MAX_MUN.csv`.
-* `participant_id` without `sub-` prefix: ABIDE-I, ABIDE-II, COBRE.
+* `participant_id` without `sub-` prefix: ABIDE-I, ABIDE-II, ~~COBRE~~
+  (COBRE fixed in its port, step 5).
 * ~~OASIS-I: missing comma in `PARTICIPANTS_HEADER` (`'handednessage'`);
   `do_tal` looks up members without `.img` (Talairach never written);
   avg/tal `Sources` miss `_` before `run-`; empty xlsx cells written as `''`;
@@ -2550,7 +2556,24 @@ up as an XPASS failure once fixed (then drop the marker).
   grouped by collection (`datasets/indi/`, ...; Conventions, §8);
   `INDI/projects.py` split into one subpackage per project, each a
   catalog entry; `Dataset.indi_category`. No import shim.
-* r36: step 5, OASIS-I on the roast engine: one shard per disc (§5),
+* r36: step 5, COBRE ported to the roast engine
+  (`datasets/indi/cobre/roaster.py`, roaster of its NITRC source; the
+  legacy `Bidsifier` and its `roast` override are gone, and with them
+  COBRE's use of `legacy_keys`/`legacy_subjects`: subjects are labels of
+  width 7). `participant_id` gets its `sub-` prefix (known bug, xfail
+  dropped); the participants table is written complete to
+  `.brainspresso/orig/` and trimmed to the subjects on disk; a missing
+  tarball or phenotype file is an error (`Fail`), no longer a warning.
+  The images of the single gz tarball are extracted by one shard
+  (§5), not one per subject, reading it once (members extracted as they
+  are reached); the sidecar templates (paths, hashes) are its
+  `Shard.config`. Review of #31: CSV ids zero-padded to the 7 digits of
+  the tarball labels; missing diagnoses and empty cells are `n/a`
+  (BIDS), blank and short CSV rows skipped; a missing sidecar template
+  is an error only when sidecars are written. Open: the shard
+  signature includes the whole selection, so toggling `meta` re-reads
+  the tarball (a per-shard fingerprint needs an engine hook).
+* r37: step 5, OASIS-I on the roast engine: one shard per disc (§5),
   participants table through `.brainspresso/orig/` and trim,
   FreeSurfer lookup tables with the `fs` keys, a `dseg.tsv` for the
   relabelled FSL segmentation; missing discs are skipped with a warning
@@ -2558,3 +2581,5 @@ up as an XPASS failure once fixed (then drop the marker).
   dataset options (`--discs`) to `RoastContext.options`;
   `legacy_subjects`, `legacy_keys` and the `Bidsifier` class no longer
   used by OASIS-I (`subject_width = 4`); its known bugs fixed (§8).
+  Open, as for COBRE: the shard signature includes the whole
+  selection, so a changed `--subs` or key re-reads every disc (once).

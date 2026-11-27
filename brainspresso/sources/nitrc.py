@@ -43,6 +43,7 @@ class NITRC(StaticURLs):
     """
 
     name = "nitrc"
+    title = "NITRC"
     insecure = True
     jobs = 1
     login = True

@@ -220,6 +220,7 @@ class XNAT(Source):
     """
 
     name = "xnat"
+    title = "XNAT"
     server: str = DEFAULT_SERVER
     project: str = ""
     login: bool = True

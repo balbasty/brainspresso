@@ -370,6 +370,7 @@ class OpenNeuro(Source):
     """
 
     name = "openneuro"
+    title = "OpenNeuro"
     provides = frozenset({"bids"})
     jobs = 8
     #: Sub-folder of `sourcedata/` for the pristine metadata

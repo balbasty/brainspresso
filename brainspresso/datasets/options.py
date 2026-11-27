@@ -3,7 +3,11 @@ Option groups of the dataset commands.
 
 Each group is a frozen dataclass whose fields become flags of the
 command line (`@Parameter(name="*")`: the fields are flattened, under a
-help panel), with their help in `Parameter(help=...)`. A dataset adds
+help panel), with their help in `Parameter(help=...)`. Help panels follow
+one order (`Panel`, docs/design/architecture.md, section 6, "Help
+panels"): the options of every dataset, then those of the command, then
+those of the sources (one panel per source that reads some: `by_source`,
+`source_panels`), of a collection and of one dataset. A dataset adds
 its own groups (`Dataset.options`), subclasses a group to add fields,
 and gets per-dataset choices and defaults through
 `OptionGroup.for_dataset` (a subclass built with
@@ -52,7 +56,70 @@ def _many(help: str, **kwargs) -> Parameter:
     return Parameter(help=help, consume_multiple=True, **kwargs)
 
 
-def option_group(title: str, sort_key: int):
+class Panel:
+    """
+    Sort keys of the help panels, in the order they are shown.
+
+    Attributes
+    ----------
+    DATASET : int
+        "Dataset": `path`, `--out`, the arguments, `--layout`
+    SELECTION : int
+        "Selection": `--subs`, `--sessions`, `--sites`
+    FILTERS : int
+        "Filters": BIDS filters, `--folders`
+    KEYS : int
+        "Keys": `--keys`, `--exclude-keys`
+    COMMAND : int
+        "Harvest", "Roast", "Compost": options of one command
+    SOURCES : int
+        "Sources": `--source`, and the options of harvest that every
+        source reads (`--jobs`, `--packet`, `--insecure`), whose help
+        gives the defaults of each source
+    SOURCE : int
+        One panel per source with options of its own ("NITRC (--source
+        nitrc)": `--user`, `--password`), in the order of
+        `Dataset.sources` (`source_panels`)
+    COLLECTION : int
+        Options of the datasets of a collection ("INDI")
+    OWN : int
+        Options of one dataset ("OASIS-1"), whichever command has them
+    LOGGING : int
+        "Logging": `--log`, `--level`
+    """
+
+    DATASET = 10
+    SELECTION = 20
+    FILTERS = 25
+    KEYS = 30
+    COMMAND = 40
+    SOURCES = 45
+    SOURCE = 46
+    COLLECTION = 48
+    OWN = 50
+    LOGGING = 90
+
+
+@functools.lru_cache(maxsize=None)
+def panel(title: str, sort_key: float) -> Group:
+    """
+    Return the help panel of a title (one `Group` per title and key).
+
+    Parameters
+    ----------
+    title : str
+        Title of the panel
+    sort_key : float
+        Position of the panel (`Panel`)
+
+    Returns
+    -------
+    cyclopts.Group
+    """
+    return Group(title, sort_key=sort_key)
+
+
+def option_group(title: str, sort_key: float):
     """
     Decorate an option group: frozen dataclass, flattened flags.
 
@@ -60,8 +127,8 @@ def option_group(title: str, sort_key: int):
     ----------
     title : str
         Title of its help panel
-    sort_key : int
-        Position of the panel
+    sort_key : float
+        Position of the panel (`Panel`)
 
     Returns
     -------
@@ -71,8 +138,71 @@ def option_group(title: str, sort_key: int):
     def decorate(cls):
         cls = dataclasses.dataclass(frozen=True)(cls)
         cls.panel = (title, sort_key)
-        return Parameter(name="*", group=Group(title, sort_key=sort_key))(cls)
+        return Parameter(name="*", group=panel(title, sort_key))(cls)
     return decorate
+
+
+def _reads(source, field: str) -> bool:
+    """Whether a source reads a per-run option (`Source.reads`)."""
+    reads = getattr(source, "reads", None)
+    return reads(field) if callable(reads) else hasattr(source, field)
+
+
+def source_panels(dataset, fields) -> tuple[Group, ...]:
+    """
+    Panels of the sources of a dataset that read some options.
+
+    Parameters
+    ----------
+    dataset : Dataset
+    fields : list[str]
+        Per-run options (fields of a group)
+
+    Returns
+    -------
+    tuple[cyclopts.Group]
+        One panel per source that reads one of them, in the order of
+        `Dataset.sources`: "<title> (--source <name>)" (its `title`,
+        else its name; "<title>" alone for a dataset of one source)
+    """
+    sources = dataset.sources()
+    out = []
+    for i, (name, source) in enumerate(sources.items()):
+        if not any(_reads(source, f) for f in fields):
+            continue
+        title = getattr(source, "title", "") or name
+        if len(sources) > 1:
+            title = f"{title} (--source {name})"
+        out.append(panel(title, Panel.SOURCE + i / 100))
+    return tuple(out)
+
+
+def group_panels(dataset, name: str, group: type) -> tuple[Group, ...]:
+    """
+    Help panels of an option group of a dataset.
+
+    Parameters
+    ----------
+    dataset : Dataset
+    name : str
+        Parameter name of the group (`Args` field)
+    group : type[OptionGroup]
+
+    Returns
+    -------
+    tuple[cyclopts.Group]
+        `Dataset.panels[name]`, else, for a `by_source` group, the panels
+        of the sources that read its fields (`source_panels`), else its
+        own panel
+    """
+    if name in dataset.panels:
+        return (panel(*dataset.panels[name]),)
+    if group.by_source:
+        found = source_panels(
+            dataset, [f.name for f in dataclasses.fields(group)])
+        if found:
+            return found
+    return (panel(*group.panel),)
 
 
 class OptionGroup:
@@ -86,10 +216,14 @@ class OptionGroup:
     deprecated : dict[str, tuple[str, str]]
         Deprecated alias fields: field -> (the field it stands for, what
         to use instead). Config files refuse them (`brainspresso.config`)
+    by_source : bool
+        Shown in the panels of the sources that read its fields
+        (`Source.reads`; credentials), else in its own panel
     """
 
-    panel: ClassVar[tuple[str, int]] = ("Options", 50)
+    panel: ClassVar[tuple[str, float]] = ("Options", Panel.OWN)
     deprecated: ClassVar[Mapping[str, tuple[str, str]]] = {}
+    by_source: ClassVar[bool] = False
 
     def source_options(self, dataset) -> dict[str, Any]:
         """
@@ -207,9 +341,7 @@ class OptionGroup:
             namespace={"__module__": cls.__module__,
                        "__doc__": cls.__doc__},
         )
-        title, sort_key = cls.panel
-        return Parameter(name="*",
-                         group=Group(title, sort_key=sort_key))(new)
+        return Parameter(name="*", group=panel(*cls.panel))(new)
 
 
 def field_hints(cls) -> dict[str, Any]:
@@ -241,7 +373,7 @@ def literal(values) -> Any:
 #   Selection
 # ----------------------------------------------------------------------
 
-@option_group("Keys", 10)
+@option_group("Keys", Panel.KEYS)
 class KeyOptions(OptionGroup):
     """`--keys`, `--exclude-keys` (see `Dataset.keys_for`)."""
 
@@ -282,7 +414,7 @@ class KeyOptions(OptionGroup):
         return {"keys": tuple(spec.default)} if spec and spec.default else {}
 
 
-@option_group("Selection", 20)
+@option_group("Selection", Panel.SELECTION)
 class SelectionOptions(OptionGroup):
     """`--subs`, `--exclude-subs`."""
 
@@ -293,7 +425,7 @@ class SelectionOptions(OptionGroup):
     exclude_subs: Annotated[Strings, _many("Not these subjects")] = ()
 
 
-@option_group("Selection", 20)
+@option_group("Selection", Panel.SELECTION)
 class SessionOptions(OptionGroup):
     """`--sessions`."""
 
@@ -302,7 +434,7 @@ class SessionOptions(OptionGroup):
     )] = ()
 
 
-@option_group("Selection", 20)
+@option_group("Selection", Panel.SELECTION)
 class SiteOptions(OptionGroup):
     """`--sites`, `--exclude-sites` (checked by `Dataset.select_sites`)."""
 
@@ -333,7 +465,7 @@ class SiteOptions(OptionGroup):
         return out
 
 
-@option_group("Filters", 25)
+@option_group("Filters", Panel.FILTERS)
 class FilterOptions(OptionGroup):
     """BIDS filters: datatypes, suffixes, tasks, globs, participants."""
 
@@ -363,12 +495,13 @@ class FilterOptions(OptionGroup):
                 "exclude": self.exclude}
 
 
-@option_group("Filters", 25)
+@option_group("Harvest", Panel.COMMAND)
 class HostedOptions(OptionGroup):
-    """Options of harvests of datasets hosted as BIDS."""
+    """Options of harvests of hosted BIDS datasets (`--folders`: Filters)."""
 
     folders: Annotated[Strings, _many(
-        "Also download these optional folders"
+        "Also download these optional folders",
+        group=panel("Filters", Panel.FILTERS),
     )] = ()
     trim: Annotated[bool, Parameter(
         help="Rewrite participants/sessions/scans tables so that they only "
@@ -401,7 +534,7 @@ class HostedOptions(OptionGroup):
 #   Sources and credentials
 # ----------------------------------------------------------------------
 
-@option_group("Metadata", 41)
+@option_group("Roast", Panel.COMMAND)
 class HostedRoastOptions(OptionGroup):
     """`roast --repair/--no-repair` of datasets hosted as BIDS."""
 
@@ -412,7 +545,7 @@ class HostedRoastOptions(OptionGroup):
     )] = True
 
 
-@option_group("Sources", 30)
+@option_group("Sources", Panel.SOURCES)
 class SourceOptions(OptionGroup):
     """`--source`: sources to use instead of the per-key defaults."""
 
@@ -428,9 +561,11 @@ class SourceOptions(OptionGroup):
         return {"source": tuple[literal(names), ...]} if names else {}
 
 
-@option_group("Credentials", 35)
+@option_group("Credentials", Panel.SOURCE)
 class LoginOptions(OptionGroup):
     """`--user`, `--password` (else environment variables, or a prompt)."""
+
+    by_source = True
 
     user: Annotated[str | None, Parameter(help="Username")] = None
     password: Annotated[str | None, Parameter(help="Password")] = None
@@ -440,9 +575,11 @@ class LoginOptions(OptionGroup):
         return {"user": self.user, "password": self.password}
 
 
-@option_group("Credentials", 35)
+@option_group("Credentials", Panel.SOURCE)
 class TokenOptions(OptionGroup):
     """`--token` (else an environment variable)."""
+
+    by_source = True
 
     token: Annotated[str | None, Parameter(help="API token")] = None
 
@@ -455,6 +592,8 @@ class TokenOptions(OptionGroup):
 #   Commands
 # ----------------------------------------------------------------------
 
+#: Fields of harvest read by every source (`Panel.SOURCES`)
+_SOURCES = panel("Sources", Panel.SOURCES)
 _LOCK_WAIT = Parameter(help="Seconds to wait for a dataset in use by "
                             "another command (default: fail at once)")
 # `--wait SECONDS`: the deprecated name of `--lock-wait` (harvest and
@@ -494,7 +633,7 @@ def lock_wait(group) -> float:
     return float(old)
 
 
-@option_group("Harvest", 40)
+@option_group("Harvest", Panel.COMMAND)
 class HarvestOptions(OptionGroup):
     """Options of downloads."""
 
@@ -502,13 +641,15 @@ class HarvestOptions(OptionGroup):
         help="Behaviour if a file already exists"
     )] = "skip"
     jobs: Annotated[int | None, Parameter(
-        help="Number of parallel downloads (default: that of the source)"
+        help="Number of parallel downloads (default: that of the source)",
+        group=_SOURCES,
     )] = None
     packet: Annotated[int | str, Parameter(
-        help="Packet size to download, in bytes"
+        help="Packet size to download, in bytes", group=_SOURCES,
     )] = naturalsize(CHUNK_SIZE)
     insecure: Annotated[bool | None, Parameter(
-        help="Do not verify TLS certificates (default: that of the source)"
+        help="Do not verify TLS certificates (default: that of the source)",
+        group=_SOURCES,
     )] = None
     dry_run: Annotated[bool, Parameter(
         help="Print what would be downloaded, then exit (nothing is "
@@ -523,6 +664,36 @@ class HarvestOptions(OptionGroup):
     def defaults(cls, dataset, command):
         """Return the number of downloads of the dataset."""
         return {"jobs": dataset.harvest_jobs}
+
+    @classmethod
+    def helps(cls, dataset, command):
+        """`--jobs`, `--insecure`: the defaults of the sources."""
+        out = {}
+        defaults = {**cls.defaults(dataset, command),
+                    **dict(dataset.option_defaults.get(command, {}))}
+        jobs = _per_source(dataset, "jobs")
+        # a default of the dataset replaces those of the sources
+        if defaults.get("jobs") is not None:
+            out["jobs"] = "Number of parallel downloads"
+        elif jobs:
+            out["jobs"] = ("Number of parallel downloads (default: that "
+                           "of the source: " + ", ".join(
+                               f"{name} {'/'.join(map(str, values))}"
+                               for name, values in jobs.items()) + ")")
+        if defaults.get("insecure") is not None:
+            out["insecure"] = "Do not verify TLS certificates"
+        else:
+            insecure = _per_source(dataset, "insecure")
+            names = [name + ("" if values == [True] else " (some files)")
+                     for name, values in insecure.items() if True in values]
+            out["insecure"] = (
+                "Do not verify TLS certificates (default: that of the "
+                "source: " + (", ".join(names) + " do not verify them"
+                              if len(names) > 1 else
+                              f"{names[0]} does not verify them"
+                              if names else "every source verifies them")
+                + ")")
+        return out
 
     def runtime(self, **fixed):
         """
@@ -544,7 +715,7 @@ class HarvestOptions(OptionGroup):
         )
 
 
-@option_group("Roast", 40)
+@option_group("Roast", Panel.COMMAND)
 class RoastOptions(OptionGroup):
     """
     Options of a roast.
@@ -610,7 +781,35 @@ class RoastOptions(OptionGroup):
         return values.pop() if values else "yes"
 
 
-@option_group("Compost", 40)
+def _per_source(dataset, attr: str) -> dict[str, list]:
+    """
+    Values of an attribute of the sources of a dataset (help).
+
+    Parameters
+    ----------
+    dataset : Dataset
+    attr : str
+        Attribute of the sources (`jobs`, `insecure`)
+
+    Returns
+    -------
+    dict[str, list]
+        Source name -> distinct values of its parts (a `CompositeSource`)
+        that are not None; sources without one are left out
+    """
+    out = {}
+    for name, source in dataset.sources().items():
+        values = []
+        for part in getattr(source, "parts", None) or [source]:
+            value = getattr(part, attr, None)
+            if value is not None and value not in values:
+                values.append(value)
+        if values:
+            out[name] = values
+    return out
+
+
+@option_group("Compost", Panel.COMMAND)
 class CompostOptions(OptionGroup):
     """Options of compost."""
 
@@ -657,18 +856,25 @@ class CompostOptions(OptionGroup):
     deprecated = _WAIT_ALIAS
 
 
-@option_group("Dataset", 60)
+_LAYOUT_HELP = (
+    "Layout of the dataset: \"study\" (raw dataset in `rawbids/`) or "
+    "\"flat\" (raw dataset at the root){sites}. Default: the layout of an "
+    "existing dataset, else \"study\""
+)
+_SITES_HELP = (
+    "; \"sites\": one dataset per site (with the layout of existing sites, "
+    "else study), \"sites:study\", \"sites:flat\""
+)
+
+
+@option_group("Dataset", Panel.DATASET)
 class LayoutOptions(OptionGroup):
     """`--layout` (and the deprecated `--site-layout`)."""
 
     deprecated = {"site_layout": ("layout", "--layout sites:<layout>")}
 
     layout: Annotated[Literal["study", "flat"] | None, Parameter(
-        help="Layout of the dataset: \"study\" (raw dataset in "
-        "`rawbids/`) or \"flat\" (raw dataset at the root); \"sites\": "
-        "one dataset per site (with the layout of existing sites, else "
-        "study), \"sites:study\", \"sites:flat\". Default: the layout of "
-        "an existing dataset, else \"study\""
+        help=_LAYOUT_HELP.format(sites=_SITES_HELP)
     )] = None
     site_layout: Annotated[Literal["study", "flat"] | None, Parameter(
         show=False, help="Deprecated: use `--layout sites:<layout>`"
@@ -678,6 +884,13 @@ class LayoutOptions(OptionGroup):
     def choices(cls, dataset, command):
         """Layouts of the dataset."""
         return {"layout": literal(dataset.layouts) | None}
+
+    @classmethod
+    def helps(cls, dataset, command):
+        """Without site layouts, the help does not describe them."""
+        if any(str(x).startswith("sites") for x in dataset.layouts):
+            return {}
+        return {"layout": _LAYOUT_HELP.format(sites="")}
 
     def value(self, dataset=None) -> str | None:
         """
@@ -708,7 +921,7 @@ class LayoutOptions(OptionGroup):
         return value
 
 
-@option_group("Logging", 90)
+@option_group("Logging", Panel.LOGGING)
 class LogOptions(OptionGroup):
     """`--log`, `--level`."""
 

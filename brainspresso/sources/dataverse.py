@@ -73,6 +73,7 @@ class Dataverse(StaticURLs):
     """
 
     name = "dataverse"
+    title = "Dataverse"
     insecure = False
     jobs = 1
     token: str | None = None

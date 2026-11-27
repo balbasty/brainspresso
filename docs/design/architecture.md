@@ -864,6 +864,8 @@ class Dataset:
     download: Mapping[str, Any] = {} # fixed DownloadOptions (on_error...)
     option_defaults: Mapping[str, Mapping[str, Any]] = {}
                                   # {command: {field: default}}
+    panels: Mapping[str, tuple[str, float]] = {}   # help panel of a
+                                  #   standard group (OpenNeuro: token)
     requires: Mapping[str, tuple[str, ...]] = {}   # {"roast": ("xlrd",)}
     extra: str | None = None      # pip extra that installs `requires`
     commands: tuple[str, ...] = ("harvest", "roast", "compost", "info")
@@ -979,6 +981,40 @@ break under `from __future__ import annotations`.
 | `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--lock-wait` (`--wait`, hidden, deprecated) | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
+
+**Help panels** (r38). The flags of a command are shown in panels
+(cyclopts `Group`s, one per title, `options.panel`), in one order
+(`options.Panel`): the options of every dataset first, "Dataset"
+(`path`, `--out`, the arguments, `--layout`), "Selection" (`--subs`,
+`--sessions`, `--sites`), "Filters" (BIDS filters, `--folders`),
+"Keys"; then the panel of the command ("Harvest", "Roast", "Compost":
+the hosted `--trim`, `--list`, `--sidecars`, `--repair` too);
+"Sources" (`--source`, and the options of harvest that every source
+reads, `--jobs`, `--packet`, `--insecure`, whose help gives the
+defaults of each source of the dataset); one panel per source that
+reads options of its own, "NITRC (--source nitrc)" ("NITRC" for a
+dataset of one source), in the order of `sources()`; then a collection
+("INDI": `info --derivatives`) and one dataset ("OASIS-1": `--discs`,
+whichever command has them); "Logging" last. Credentials
+(`by_source` groups: `--user`/`--password`, `--token`) are shown in
+the panel of each source that reads them (`Source.reads(option)`,
+the per-run options that `configure` keeps; a `CompositeSource` reads
+those of its parts, titled "XNAT + NITRC"), so a login shared by two
+sources is repeated in both panels (one parameter, two groups), and
+each panel says all that its `--source` needs; options that every
+source reads stay in "Sources", once, since repeating them would
+duplicate that panel for every source. A source titles its panel with
+`Source.title`. `Dataset.panels` moves a standard group to another
+panel when no declared source reads it (OpenNeuro: `--token` in
+"OpenNeuro"). The groups of a dataset name their own panel
+(`option_group("OASIS-1", Panel.OWN)`). Help only: names, defaults,
+config keys and parsing are unchanged; the panels are set on the
+signature (`Annotated[group | None, Parameter(name="*",
+group=panels)]`, `register.command_panels`; cyclopts 3.17 replaces,
+rather than merges, the `Parameter` of the class, hence `name="*"`
+again) and on fields (`Parameter(group=)`), both supported from 3.17.
+`--keys` choices follow the hierarchy (`KeySpec.all_choices`, the order
+of the help) when they are its keys.
 
 Every command but `info` also takes `path` (root of all datasets,
 `BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an
@@ -2599,3 +2635,11 @@ up as an XPASS failure once fixed (then drop the marker).
   members are not errors under `--sidecars only`; FreeSurfer lookup
   tables renamed to match the images; FreeSurfer `Sources` from the
   runs of the tree; `"Manual": false`.
+* r38: help panels by source, collection and dataset (§6, "Help
+  panels"): one order (`options.Panel`), one panel per source that reads
+  credentials (`Source.title`, `Source.reads`), "Sources" for the
+  options that every source reads (with the defaults of each source),
+  `Dataset.panels`; the hosted options move to "Filters" (`--folders`)
+  and to the command panels, `path`/`--out` to "Dataset". `--keys`
+  choices in the order of the hierarchy. No change of names, defaults
+  or parsing.

@@ -95,21 +95,3 @@ jobs:
         run: |
           python -c "import brainspresso; print(brainspresso.__file__)"
           pytest "$GITHUB_WORKSPACE/tests" -n auto
-      # TEMPORARY (to be removed): loop the dropped-connection tests
-      - name: Loop dropped-connection tests (temporary)
-        if: ${{ inputs.os == 'windows-latest' }}
-        shell: bash
-        working-directory: ${{ github.workspace }}/ci_tmp
-        run: |
-          # CPU load, as during the parallel test suite
-          for k in 1 2 3 4; do
-            python -c "while True: pass" & done
-          for round in 1 2 3; do
-            pytest -q -p no:cacheprovider test_stress.py -n auto -rf \
-              > out.txt 2>&1 || true
-            tail -1 out.txt
-            echo "ROUND $round old: $(grep -c '^FAILED.*\[old-' out.txt) failed"
-            echo "ROUND $round new: $(grep -c '^FAILED.*\[new-' out.txt) failed"
-            grep '^FAILED' out.txt | head -5
-          done
-          kill $(jobs -p) || true

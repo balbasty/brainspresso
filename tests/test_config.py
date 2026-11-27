@@ -4,6 +4,7 @@ Config files (`brainspresso.config`): layers, sections, keys, `bx config`.
 Options are checked on the parsed command (`App.parse_args`, through the
 config callable of the root app), so nothing runs.
 """
+import json
 import logging
 import subprocess
 import sys
@@ -209,12 +210,12 @@ def test_dataset_file_from_parsed_path(tmp_path, home):
     assert value(args, "harvest", "jobs") == 5
     assert value(args, "keys", "keys") == ("T1w",)
     # a root from the user file
-    user(home, f"[defaults]\npath = {str(root)!r}\n")
+    user(home, f"[defaults]\npath = '{root}'\n")
     args, report = parse("ixi", "harvest")
     assert value(args, "harvest", "jobs") == 3
     assert origin(report, "path").kind == "user"
     # out from the user file, in the section of the dataset
-    user(home, f"[ixi]\nout = {str(other)!r}\n")
+    user(home, f"[ixi]\nout = '{other}'\n")
     args, report = parse("ixi", "harvest")
     assert value(args, "harvest", "jobs") == 5
     assert args["out"] == str(other)
@@ -227,8 +228,8 @@ def test_path_and_out_are_one_location(tmp_path, home):
     located(configured, "[harvest]\njobs = 2\n")
     located(given / "IXI", "[harvest]\njobs = 3\n")
     located(tmp_path / "out", "[harvest]\njobs = 4\n")
-    user(home, f"[defaults]\npath = {str(tmp_path / 'nowhere')!r}\n"
-               f"[ixi]\nout = {str(configured)!r}\n")
+    user(home, f"[defaults]\npath = '{tmp_path / 'nowhere'}'\n"
+               f"[ixi]\nout = '{configured}'\n")
     args, report = parse("ixi", "harvest", given)
     assert args["path"] == str(given) and "out" not in args
     assert value(args, "harvest", "jobs") == 3
@@ -250,7 +251,7 @@ def test_user_file_is_not_a_root_file(tmp_path, home, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("BDP_PATH", raising=False)
     located(tmp_path, f"[harvest]\njobs = 2\n"
-                      f"[ixi]\nout = {str(tmp_path / 'IXI')!r}\n")
+                      f"[ixi]\nout = '{tmp_path / 'IXI'}'\n")
     args, report = parse("ixi", "harvest")
     assert value(args, "harvest", "jobs") == 2
     assert [la.kind for la in report["layers"]] == ["user", "dataset",
@@ -707,7 +708,7 @@ def test_real_run(tmp_path, home):
         write(root / sub / "anat" / f"{sub}_T1w.nii.gz", "x")
     write(root / "dataset_description.json",
           '{"Name": "x", "BIDSVersion": "1.10.0"}')
-    user(home, f"[openneuro.ds1]\nout = {str(root)!r}\n"
+    user(home, f"[openneuro.ds1]\nout = '{root}'\n"
                "[openneuro.compost]\ndry-run = true\nexclude-subs = ['01']\n")
     try:
         main(["openneuro", "compost", "ds1"])
@@ -889,7 +890,7 @@ def test_show_without_arguments(home, capsys):
 
 
 def test_paths_of_a_command(tmp_path, home, capsys):
-    user(home, f"[compost]\npath = {str(tmp_path)!r}\n")
+    user(home, f"[compost]\npath = '{tmp_path}'\n")
     try:
         main(["config", "paths", "ixi", "compost"])
     except SystemExit as e:
@@ -1065,8 +1066,10 @@ def test_show_unbound_with_location(tmp_path, home, capsys):
     located(root, "[openneuro.harvest]\ntag = '1.0.0'\n")
     located(out, "[harvest]\njobs = 3\n")
     for tokens, expected in (
-        (["--path", str(root)], ['tag = "1.0.0"', f'path = "{root}"  # CLI']),
-        ([f"--out={out}"], ["jobs = 3", f'out = "{out}"  # CLI']),
+        (["--path", str(root)],
+         ['tag = "1.0.0"', f'path = {json.dumps(str(root))}  # CLI']),
+        ([f"--out={out}"],
+         ["jobs = 3", f'out = {json.dumps(str(out))}  # CLI']),
     ):
         try:
             main(["config", "show", "openneuro", "harvest", *tokens])
@@ -1212,8 +1215,8 @@ def test_show_effective_defaults(capsys):
 
 def test_show_unbound_one_location(tmp_path, home, capsys):
     # a configured `out` is not used with `--path` on the command line
-    user(home, f"[openneuro.ds1]\nout = {str(tmp_path / 'x')!r}\n"
-               f"[defaults]\npath = {str(tmp_path / 'y')!r}\n")
+    user(home, f"[openneuro.ds1]\nout = '{tmp_path / 'x'}'\n"
+               f"[defaults]\npath = '{tmp_path / 'y'}'\n")
     try:
         main(["config", "show", "openneuro", "harvest", "--out",
               str(tmp_path / "z")])
@@ -1221,7 +1224,7 @@ def test_show_unbound_one_location(tmp_path, home, capsys):
         assert not e.code
     out = capsys.readouterr().out
     assert "# path: not set  # built-in" in out
-    assert f'out = "{tmp_path / "z"}"  # CLI' in out
+    assert f'out = {json.dumps(str(tmp_path / "z"))}  # CLI' in out
 
 
 @pytest.mark.parametrize("command", ["harvest", "compost"])

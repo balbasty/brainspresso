@@ -178,14 +178,19 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
         If a field contains a line break (the message names its row and
         column)
     """
-    rows = _tsv_rows(src, dst)
+    rows = _tsv_rows(src, dst)             # (checked once)
     if isinstance(dst, (str, Path)):
         dst = Path(dst)
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
         with open(dst, 'wt', encoding='utf-8', newline='') as fdst:
-            return write_tsv(rows, fdst, makedirs=False, **kwargs)
+            return _write_tsv_rows(rows, fdst, **kwargs)
+    return _write_tsv_rows(rows, dst, **kwargs)
+
+
+def _write_tsv_rows(rows: list[list], dst, **kwargs) -> None:
+    """Write checked rows to an open text file (`write_tsv`)."""
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
     # (`csv` ends rows with "\r\n" by default; BIDS tables use "\n")

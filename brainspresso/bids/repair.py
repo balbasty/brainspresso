@@ -212,8 +212,10 @@ def _phasediff(path: Path, meta: dict) -> dict:
     if "EchoTime" not in meta or not magnitude.exists():
         return meta
     try:
-        # (as `repair_json`: a sidecar that is not valid UTF-8 is read
-        # with replacement characters, only its EchoTime is used)
+        # (a magnitude sidecar that is not valid UTF-8 is read with
+        # replacement characters: only its EchoTime, a number, is used,
+        # and it is never written back; `repair_json` itself decodes
+        # strictly)
         text = magnitude.read_text(encoding="utf-8", errors="replace")
         te1 = loads(text).get("EchoTime")
     except (ValueError, OSError, AttributeError):

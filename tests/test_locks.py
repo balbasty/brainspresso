@@ -1063,3 +1063,16 @@ def test_datasets_with_the_same_relative_path_have_two_entries(
     assert not locks._registry
     with FileLock(b / "x.nii", exclusive=True, timeout=0):
         pass
+
+
+def test_rewrite_text_through_separate_file_objects(tmp_path):
+    """The rewrite recommended by `File`: read "r", then write "w"."""
+    path = tmp_path / "x.txt"
+    path.write_bytes(b"a\r\nb\r\n")
+    with File(path, "r+") as f:
+        with f.open("r") as fobj:
+            text = fobj.read()
+        assert text == "a\nb\n"
+        with f.open("w") as fobj:
+            fobj.write(text.upper())
+    assert path.read_bytes() == b"A\nB\n"

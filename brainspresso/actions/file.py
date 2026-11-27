@@ -114,6 +114,16 @@ class File:
     Read-modify-write modes (`"a"`, `"r+"`) copy the existing file to
     the temporary one first, under the exclusive lock only.
 
+    Text files are UTF-8; writers write LF line endings on every
+    platform. Update modes (`+`) translate no line ending: their reads
+    return line endings as stored, so a read-modify-write of a CRLF file
+    in an update mode gives mixed line endings (the old CRLF and the new
+    LF). Text that is rewritten is better read and written through
+    separate file objects: in a `File(path, "r+")` context (exclusive,
+    atomic), `open("r")` reads it with universal newlines, then
+    `open("w")` writes the new text (LF). (A reader `File` and a writer
+    `File` of one path at once, in one thread, would be a lock upgrade.)
+
     ```python
     # Lock for reading, open a file object
     with File(filename, "rb") as file_ref:

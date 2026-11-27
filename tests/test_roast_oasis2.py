@@ -1,6 +1,7 @@
 """Tests of the OASIS-II roast step."""
 import json
 import os
+import re
 import sys
 import zipfile
 
@@ -299,10 +300,16 @@ def test_trailing_empty_cells_and_stale_dimension(root):
     with zipfile.ZipFile(path) as z:
         files = {n: z.read(n) for n in z.namelist()}
     sheet = "xl/worksheets/sheet1.xml"
-    assert b"<dimension ref=" in files[sheet]
-    files[sheet] = files[sheet].replace(b'<dimension ref="A1:O5"/>',
-                                        b'<dimension ref="A1:C2"/>')
-    assert b'<dimension ref="A1:C2"/>' in files[sheet]
+    # (the tag is written `<dimension ref="..."/>` with lxml, `... />`
+    # without; inserted after `<sheetPr>` if absent)
+    stale = b'<dimension ref="A1:C2"/>'
+    files[sheet], count = re.subn(rb'<dimension\s[^>]*/>', stale,
+                                  files[sheet])
+    if not count:
+        files[sheet], count = re.subn(
+            rb'(</sheetPr>|<sheetPr\s[^>]*/>)', rb'\1' + stale,
+            files[sheet], count=1)
+    assert count == 1 and stale in files[sheet]
     with zipfile.ZipFile(path, "w") as z:
         for name, data in files.items():
             z.writestr(name, data)

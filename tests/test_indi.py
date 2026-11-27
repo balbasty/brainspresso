@@ -634,7 +634,8 @@ def test_repair_json(tmp_path):
     desc = tmp_path / "dataset_description.json"
     desc.write_text('{"Name": "X",\xa0"BIDSVersion": "1.0.1",'
                     ' "Authors": ["A\tB"], "Funding": "grant",'
-                    ' "Acknowledgements": ["C", "D"]}')
+                    ' "Acknowledgements": ["C", "D"]}',
+                    encoding="utf-8")          # (BIDS JSON is UTF-8)
     mp2rage = tmp_path / "sub-1_inv-1_MP2RAGE.json"
     mp2rage.write_text('{"RepetitionTime": 5}')
     magnitude = tmp_path / "sub-1_magnitude1.json"
@@ -807,3 +808,38 @@ def test_fcon1000_site_lock_waits(tmp_path, monkeypatch, caplog, flag):
     deprecated = "--wait is deprecated: use --lock-wait"
     assert (deprecated in caplog.text) is (flag == "--wait")
     assert caplog.text.count(deprecated) <= 1
+
+
+def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
+    """Latin-1 sidecars: skipped with a warning, never a crash."""
+    sub = tmp_path / "sub-1" / "fmap"
+    sub.mkdir(parents=True)
+    # a phase difference whose magnitude is not UTF-8: EchoTime still read
+    magnitude = sub / "sub-1_magnitude1.json"
+    magnitude.write_bytes(b'{"EchoTime": 0.00492, "Note": "Z\xfcrich"}')
+    phasediff = sub / "sub-1_phasediff.json"
+    phasediff.write_text('{"EchoTime": 0.00738}', encoding="utf-8")
+    repair([phasediff])
+    assert json.loads(phasediff.read_text(encoding="utf-8")) == {
+        "EchoTime": 0.00738, "EchoTime1": 0.00492, "EchoTime2": 0.00738,
+    }
+    # IntendedFor of a sidecar that is not UTF-8: left as it is
+    epi = sub / "sub-1_dir-AP_epi.json"
+    blob = b'{"IntendedFor": "dwi", "Note": "Z\xfcrich"}'
+    epi.write_bytes(blob)
+    assert not fix_intended_for(epi, tmp_path)
+    assert epi.read_bytes() == blob
+    assert "not valid UTF-8" in caplog.text
+    # sidecars and tables that would be repaired are left byte for byte
+    # (never rewritten with replacement characters)
+    bad = sub / "sub-1_acq-x_T1w.json"
+    bad_blob = b'{"EchoTime": "0.003", "Note": "Z\xfcrich",}'
+    bad.write_bytes(bad_blob)
+    table = tmp_path / "participants.tsv"
+    table_blob = b"participant_id\tsite\n1\tZ\xfcrich\n"
+    table.write_bytes(table_blob)
+    caplog.clear()
+    assert repair([bad, table]) == []
+    assert bad.read_bytes() == bad_blob
+    assert table.read_bytes() == table_blob
+    assert caplog.text.count("not valid UTF-8") == 2

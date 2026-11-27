@@ -3,6 +3,7 @@ Tests for the download engine, against a local HTTP server that can
 inject faults (dropped connections, 5xx, ignored Range, auth...).
 """
 import asyncio
+import errno
 import hashlib
 import socket
 import threading
@@ -13,8 +14,11 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from brainspresso.download import Downloader, DownloadManager
+from brainspresso.actions import locks
+from brainspresso.actions.locks import FileLock
+from brainspresso.download import Downloader, DownloadManager, incomplete
 from brainspresso.download.constants import TIMEOUT
+from brainspresso.download.incomplete import IncompleteFile
 
 SIZE = 3 * 2**20 + 123          # not a multiple of the chunk size
 
@@ -34,6 +38,8 @@ class Server:
     Behaviour of each file is controlled through `self.rules[name]`:
     - "drop_after": int      close the connection after N body bytes
                              (only for the first `drop_times` GETs)
+    - "drop_when": Event     ... once this event is set (`appended`: the
+                             client wrote a chunk), then clear it
     - "fail_status": int     answer this status for the first
                              `fail_times` GETs
     - "retry_after": str     Retry-After header sent with failures
@@ -121,6 +127,15 @@ class Server:
                 k = min(block, len(body) - sent)
                 if drop is not None and sent + k > drop:
                     await resp.write(body[sent:drop])
+                    event = rule.get("drop_when")
+                    if event is not None:
+                        # aiohttp raises the error of a dropped
+                        # connection before it hands over the bytes it
+                        # has buffered: without this, a client that is
+                        # slow to start reading gets none of them
+                        await asyncio.get_running_loop().run_in_executor(
+                            None, event.wait, 30)
+                        event.clear()
                     request.transport.close()
                     return resp
                 await resp.write(body[sent:sent+k])
@@ -205,6 +220,20 @@ async def collect(downloader):
         return [status async for status in downloader]
 
 
+def appended(monkeypatch) -> threading.Event:
+    """An event set each time a download writes a chunk."""
+    from brainspresso.download.incomplete import IncompleteFile
+    event, append = threading.Event(), IncompleteFile.append
+
+    async def spy(self, blob):
+        out = await append(self, blob)
+        event.set()
+        return out
+
+    monkeypatch.setattr(IncompleteFile, "append", spy)
+    return event
+
+
 def fast_retries(monkeypatch):
     import brainspresso.download.downloader as dl
     monkeypatch.setattr(dl, "_retry_delay", lambda exc, attempt: 0.01)
@@ -247,7 +276,8 @@ def test_jobs_limit(srv, tmp_path):
 def test_resume_after_dropped_connection(srv, tmp_path, monkeypatch):
     fast_retries(monkeypatch)
     srv.rules["a"] = {
-        "drop_after": 2**20, "drop_times": 2, "rate": 16 * 2**20
+        "drop_after": 2**20, "drop_times": 2, "rate": 16 * 2**20,
+        "drop_when": appended(monkeypatch),
     }
     statuses = asyncio.run(collect(
         Downloader(f"{srv.url}/a", tmp_path / "a", ifexists="overwrite")
@@ -281,7 +311,7 @@ def test_restart_when_remote_changed(srv, tmp_path, monkeypatch):
     # first attempt gets v0 and is interrupted
     srv.rules["c"] = {
         "drop_after": 2**20, "drop_times": 1, "version": 0,
-        "rate": 16 * 2**20,
+        "rate": 16 * 2**20, "drop_when": appended(monkeypatch),
     }
     dl = Downloader(
         f"{srv.url}/c", tmp_path / "c", ifexists="overwrite", max_attempts=1
@@ -435,3 +465,195 @@ def test_sessions_honour_proxy_settings():
             return session.trust_env, session.timeout.total
 
     assert asyncio.run(check()) == (True, None)
+
+
+# ----------------------------------------------------------------------
+#   The download lock never leaks
+# ----------------------------------------------------------------------
+
+def assert_download_lock_free(dst):
+    assert not locks._entries()
+    with FileLock(dst.with_name(dst.name + ".download"), exclusive=True,
+                  timeout=0):
+        pass
+
+
+def test_download_lock_released_after_an_open_error(tmp_path, monkeypatch):
+    dst = tmp_path / "x"
+    real = incomplete.aiofiles.open
+
+    def fail(path, *args, **kwargs):
+        if str(path).endswith(".download"):
+            raise OSError(errno.EIO, "boom")
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(incomplete.aiofiles, "open", fail)
+
+    async def go():
+        async with IncompleteFile(dst):
+            raise AssertionError("not reached")
+
+    with pytest.raises(OSError, match="boom"):
+        asyncio.run(go())
+    assert_download_lock_free(dst)
+
+
+def test_download_lock_released_when_cancelled_while_acquiring(
+    tmp_path, monkeypatch,
+):
+    dst = tmp_path / "x"
+    acquire, started = FileLock.acquire, threading.Event()
+
+    def slow(self):
+        started.set()
+        time.sleep(0.5)                 # (cancelled meanwhile)
+        return acquire(self)
+
+    monkeypatch.setattr(FileLock, "acquire", slow)
+
+    async def enter():
+        async with IncompleteFile(dst):
+            raise AssertionError("not reached")
+
+    async def go():
+        task = asyncio.ensure_future(enter())
+        while not started.is_set():
+            await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(go())               # (waits for the executor's acquire)
+    monkeypatch.undo()
+    assert_download_lock_free(dst)
+
+
+def test_download_lock_released_when_cancelled_after_acquiring(
+    tmp_path, monkeypatch,
+):
+    dst = tmp_path / "x"
+
+    async def stuck(self):
+        await asyncio.sleep(60)
+
+    monkeypatch.setattr(IncompleteFile, "_enter", stuck)
+
+    async def go():
+        task = asyncio.ensure_future(IncompleteFile(dst).__aenter__())
+        await asyncio.sleep(0.3)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(go())
+    assert_download_lock_free(dst)
+
+
+def test_download_lock_released_when_closing_fails(tmp_path):
+    dst = tmp_path / "x"
+
+    async def failing_close():
+        raise OSError(errno.EIO, "close failed")
+
+    async def go():
+        async with IncompleteFile(dst) as partial:
+            await partial.append(b"data")
+            await partial.file.close()
+            partial.file.close = failing_close
+
+    with pytest.raises(OSError, match="close failed"):
+        asyncio.run(go())
+    assert_download_lock_free(dst)
+
+
+class _ClosedFile:
+    async def close(self):
+        pass
+
+
+def test_download_lock_released_when_cancelled_while_releasing(tmp_path):
+    """The release, queued in a saturated executor, still runs."""
+    from concurrent.futures import ThreadPoolExecutor
+    dst = tmp_path / "x"
+    busy = threading.Event()
+
+    async def go():
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(1))
+        partial = IncompleteFile(dst)
+        await partial.__aenter__()
+        await partial.file.close()
+        partial.file = _ClosedFile()
+        blocker = loop.run_in_executor(None, busy.wait, 30)  # (saturated)
+        exiting = asyncio.ensure_future(partial.__aexit__(
+            RuntimeError, RuntimeError("interrupted"), None))
+        await asyncio.sleep(0.2)        # (the release is queued)
+        exiting.cancel()
+        busy.set()
+        with pytest.raises(asyncio.CancelledError):
+            await exiting
+        await blocker
+
+    asyncio.run(go())               # (waits for the executor)
+    assert_download_lock_free(dst)
+
+
+def test_download_lock_held_until_the_rename_is_done(tmp_path, monkeypatch):
+    """A cancellation during the rename waits for it before releasing."""
+    dst = tmp_path / "x"
+    install, state = IncompleteFile._install, {}
+
+    def slow_install(self):
+        state["started"] = True
+        time.sleep(0.5)
+        install(self)
+        state["done"] = True
+
+    monkeypatch.setattr(IncompleteFile, "_install", slow_install)
+
+    async def download():
+        async with IncompleteFile(dst) as partial:
+            await partial.append(b"data")
+
+    async def go():
+        task = asyncio.ensure_future(download())
+        while not state.get("started"):
+            await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        # the cancellation arrives once the rename is done, lock released
+        state["at_cancel"] = state.get("done", False)
+        state["free"] = not locks._entries()
+
+    asyncio.run(go())
+    assert state["at_cancel"] and state["free"]
+    assert dst.read_bytes() == b"data"
+    assert not dst.with_name("x.download").exists()
+
+
+def test_release_errors_never_replace_the_original_one(tmp_path,
+                                                       monkeypatch):
+    dst = tmp_path / "x"
+    real_open, real_release = incomplete.aiofiles.open, FileLock.release
+
+    def fail(path, *args, **kwargs):
+        if str(path).endswith(".download"):
+            raise OSError(errno.EIO, "boom")
+        return real_open(path, *args, **kwargs)
+
+    def failing_release(self):
+        real_release(self)
+        raise OSError(errno.EIO, "release failed")
+
+    monkeypatch.setattr(incomplete.aiofiles, "open", fail)
+    monkeypatch.setattr(FileLock, "release", failing_release)
+
+    async def go():
+        async with IncompleteFile(dst):
+            raise AssertionError("not reached")
+
+    with pytest.raises(OSError, match="boom"):
+        asyncio.run(go())
+    monkeypatch.undo()
+    assert_download_lock_free(dst)

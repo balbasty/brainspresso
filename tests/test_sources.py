@@ -11,6 +11,7 @@ import json
 import os
 import socket
 import ssl
+import sys
 import tarfile
 import threading
 from pathlib import Path
@@ -370,6 +371,18 @@ def test_subject_labels(tmp_path):
         "001", "002", "003", "005", "007", "008"}
     with pytest.raises(ValueError):
         subject_labels(["3:"])
+    # a list saved with a byte order mark (Windows Notepad)
+    ids.write_bytes(b"\xef\xbb\xbf9\r\n10\r\n")
+    assert subject_labels([str(ids)], width=3) == {"009", "010"}
+
+
+def test_url_list_with_a_byte_order_mark(tmp_path):
+    from brainspresso.datasets.ADNI.I.dataset import URLOptions
+    urls = tmp_path / "urls.txt"
+    urls.write_bytes(b"\xef\xbb\xbfhttps://a/1\r\nhttps://a/2\n")
+    options = URLOptions(urls=(str(urls), "https://b/3"))
+    assert options.all_urls() == ["https://a/1", "https://a/2",
+                                  "https://b/3"]
 
 
 # ----------------------------------------------------------------------
@@ -724,6 +737,8 @@ def umask_002():
         os.umask(old)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason=(
+    "POSIX permission bits: Windows has no umask or group/other modes"))
 def test_write_content_mode_follows_the_umask(tmp_path, umask_002):
     path = tmp_path / "a.json"
     assert write_content(path, "{}")

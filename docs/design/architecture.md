@@ -410,34 +410,79 @@ layer in 2b-iv):
   holds a **shared** lock for its whole context (any number of readers;
   every reopen inside it sees the same content), a writer an
   **exclusive** one while it writes `<dst>.tmp/<name>` and renames it
-  into place (writers of one file are serialised; `a`/`r+` copy the
-  file under the exclusive lock only). Acquisition polls up to a
-  timeout (`timeout=`, else `$BRAINSPRESSO_LOCK_TIMEOUT`, else 10 min)
-  and raises `LockTimeout` naming the file and its holder (readers, or
-  a writer with its pid and host). Lock files are never created next to
-  files nor deleted by their holders: inside a dataset (nearest
-  ancestor with `.brainspresso/`) they are
+  into place (writers of one file are serialised; `a`/`r+` copy the file
+  under the exclusive lock only). Acquisition polls up to a timeout
+  (`timeout=`, else `$BRAINSPRESSO_LOCK_TIMEOUT`, else 10 min) and
+  raises `LockTimeout` naming the file and its holder (readers, or a
+  writer with its pid and host). Lock files are never created next to
+  files nor deleted by their holders: inside a dataset (nearest ancestor
+  with `.brainspresso/`) they are
   `<DS>/.brainspresso/locks/<h[:2]>/<h>.lock`, `h` the SHA-256 of the
   dataset-relative path, on the dataset's filesystem (also across
-  cluster nodes where `fcntl` locks work, whatever the mount point);
-  outside datasets (package templates, other source folders) in a
-  private per-user local folder (`$BRAINSPRESSO_LOCK_DIR`, else
+  cluster nodes where the filesystem shares locks, whatever the mount
+  point; the path is NFC-normalised and casefolded first on every
+  platform, so that two spellings of a file on a caseless filesystem
+  (macOS, Windows) and the Linux, macOS and Windows clients of one
+  shared dataset agree on its lock file, at the price of files that
+  differ only by case sharing one; lock files of earlier versions were
+  named from the path as given, so runs of an older and a newer version
+  do not exclude each other during an upgrade); outside datasets
+  (package templates, other source folders) in a private per-user local
+  folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
-  `<tmp>/brainspresso-<uid>/locks`), which protects one user's
-  processes on one machine. A reader that cannot create or open its
-  lock file (read-only state folder) reads without a lock; a writer
-  raises `LockError`, as does a filesystem that refuses `fcntl` locks
-  (`$BRAINSPRESSO_LOCKS=0` disables locks: an unsafe escape hatch).
-  POSIX locks belong to a process and closing any descriptor drops
-  them all, so each process opens a lock file once and arbitrates its
-  own holders (nested readers of an archive and its members, threads);
-  a lock upgrade (write a file the thread reads) or a nested writer of
-  one file raises `LockError` at once instead of deadlocking. Not
-  handled: cross-process cycles (A reads X, writes Y; B reads Y, writes
-  X) end in a `LockTimeout`; `fcntl` locks are not fair (steady readers
-  can delay a writer up to its timeout); lock files accumulate (delete
-  `locks/` only when nothing runs). `run_roast` creates the state
-  folder first so that all locks of a roast are in the dataset.
+  `<tmp>/brainspresso-<uid>/locks`), which protects one user's processes
+  on one machine. A reader that cannot create or open its lock file
+  (read-only state folder) reads without a lock; a writer raises
+  `LockError`, as does a filesystem that refuses locks. Only
+  `$BRAINSPRESSO_LOCKS=0` disables locks (an unsafe escape hatch): no
+  platform runs unlocked silently, and without a lock backend every
+  `FileLock` raises `LockError` naming that variable. Two layers, so
+  that under-exclusion needs both to fail (no dependency: `fcntl`,
+  `struct`, `ctypes`; fasteners is no longer used, the per-download lock
+  of `download/incomplete.py` included, which is a `FileLock` of the
+  partial file: it does not exclude the `<name>.lock` of earlier
+  versions, which is never deleted; outside datasets it is in the
+  per-user local lock folder, so it does not exclude other machines). A
+  lock taken before a `fork` is dead in the child (no descriptor;
+  `release` there is a no-op). Layer A, the registry of a process: one
+  `_Entry` per lock file, which owns its descriptor for life, found by
+  path (`str(lockfile)`, not folded) and by identity, `(st_dev, st_ino,
+  alias key)` from `fstat` of a held descriptor, the alias key being the
+  resolved path, NFC-normalised and casefolded (a symbolic link or a
+  case alias merges; two distinct files with equal inodes do not);
+  descriptors of other spellings are parked (`spares`), never closed
+  while the entry lives; a live entry found by identity wins over a
+  retired one found by path; no filesystem call under the registry lock;
+  the last holder retires the entry, closes its descriptors, then
+  removes its keys and sets `gone`, which a thread that found it waits
+  for; lock, then verify (POSIX: the path must still name the entry's
+  file, else retire and lock again, at most 3 rounds). Layer B, the OS
+  primitive (a chain, the next one on EINVAL/ENOTSUP/ENOSYS): Linux OFD
+  locks (`F_OFD_SETLK`, per descriptor, the lock space of classic
+  `fcntl` locks), then `lockf`; macOS `lockf` (per process), then
+  `flock`; Windows `LockFileEx` on byte 0 (per handle; the writer's
+  signature "pid N on host" follows at byte 1). A timed-out writer
+  probes for readers with a shared try-lock; a writer released inside
+  its own reader keeps a shared lock without a gap where the primitive
+  converts (OFD, `lockf`, Windows stacking), else stays exclusive until
+  the last reader leaves. Lock files keep their names: earlier commits
+  and this one exclude each other on all platforms. Not handled
+  (documented in `actions/locks.py`): a per-process primitive plus an
+  identity split (two mounts of one export, `st_ino` 0); two lock files
+  with equal inodes and paths that differ only by case on a
+  case-sensitive filesystem; a lock file or state folder replaced while
+  held (split across processes; the next acquisition retires the entry).
+  Across machines: NFSv4, or NFSv3 with `lockd`, share the locks (not
+  `nolock` / `local_lock=all` mounts); Lustre with `-o flock`; SMB
+  servers enforce `LockFileEx` between Windows clients; CIFS clients
+  unless `nobrl`; none verified here; a lock upgrade (write a file the
+  thread reads) or a nested writer of one file raises `LockError` at
+  once instead of deadlocking. Not handled: cross-process cycles (A
+  reads X, writes Y; B reads Y, writes X) end in a `LockTimeout`; the
+  locks are not fair (steady readers can delay a writer up to its
+  timeout); lock files accumulate (delete `locks/` only when nothing
+  runs). `run_roast` creates the state folder first so that all locks of
+  a roast are in the dataset.
 * `run_roast(roaster, ctx, *, jobs=1, display=True | callable,
   executor=None) -> RoastReport` (counts per tag, errors, outputs,
   progress, `status`). `RoastContext(layout, selection, aliases, json,
@@ -959,7 +1004,8 @@ absence of the key.
   hidden alias, logged as deprecated, on harvest and compost only: on
   roast, `--wait` is kept for the execution flag `--wait`/`--detach`
   of §7, so roast has none). Locks disabled
-  (`BRAINSPRESSO_LOCKS=0`): no lock, no record.
+  (`BRAINSPRESSO_LOCKS=0`, only explicitly): no lock, no record; no lock
+  backend: `LockError`.
 * A shared lock that cannot be opened raises `LockError` (`FileLock`
   would go on unlocked).
 * Run records: every holder writes `<state>/runs/<host>-<pid>.json`
@@ -972,7 +1018,9 @@ absence of the key.
   that does not seem roasted") while a record from another host exists
   ("locks may not be shared on this filesystem, or a run crashed on
   <host>") or one from this host with a live pid; records of dead local
-  pids are removed.
+  pids are removed. `pid_alive`: `os.kill(pid, 0)` on POSIX,
+  `OpenProcess` + `GetExitCodeProcess` (`STILL_ACTIVE`) through
+  `ctypes` on Windows (no dependency); invalid pids count as alive.
 * Deletions and rewritten tables take no per-file lock: they run under
   the exclusive run lock (a per-file lock would leave one never-deleted
   lock file per deleted file, and `File` writers would nest with the
@@ -1072,8 +1120,9 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   the server, then delete the stale record); NFSv4 can drop the lock of
   a partitioned node; Lustre `localflock` and some FUSE mounts do not
   share locks between nodes; a stopped (SIGSTOP) job keeps its lock. Run
-  records catch the cases where the lock is not shared; without `fcntl`
-  compost refuses unless `BRAINSPRESSO_LOCKS=0`.
+  records catch the cases where the lock is not shared; without a lock
+  backend every command refuses unless `BRAINSPRESSO_LOCKS=0`. Windows
+  releases the locks of a crashed process with a short delay.
 * Over-generalising: legacy roasts stay overrides, `cli()` is an escape
   hatch.
 
@@ -1835,6 +1884,22 @@ Each step lands as commits on the refactor branch with its tests green.
   stage-agnostic) builds on `actions/` and `bids/` and imports neither
   `roast/` nor `grind/`; `roast/` and `grind/` build on all three;
   BIDS knowledge lives in `bids/`.
+* Platforms: Linux, macOS and Windows (CI runs the tests on all three).
+  No `fcntl`, `os.pread`/`pwrite`, `os.getuid`, `os.kill` probe or
+  signal without a portable path or an explicit guard; replace files
+  with `os.replace` (`os.rename` fails onto an existing file on
+  Windows, and a folder in the way raises `PermissionError` there, not
+  `IsADirectoryError`); path keys (lock files, task ids) are POSIX
+  strings (`as_posix()`), never `os.sep`-joined, and archive members
+  are `PurePosixPath`s; text files are read and written as UTF-8, and
+  written with "\n" line endings (`File` does so by default; update
+  modes, `+`, translate no line ending either way; TSV rows end with
+  "\n", not the "\r\n" of `csv`, and a field with a line break is
+  refused), so outputs are
+  byte-identical on every platform. A test is skipped on
+  Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
+  feature the platform lacks (POSIX permissions, symbolic links
+  without privileges), never to hide a bug.
 
 ### Known bugs to fix while porting (step 5)
 

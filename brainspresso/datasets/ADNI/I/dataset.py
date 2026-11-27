@@ -33,7 +33,9 @@ class URLOptions(OptionGroup):
         out = []
         for url in self.urls:
             if Path(url).exists():
-                out += [x.strip() for x in Path(url).read_text().splitlines()
+                # ("utf-8-sig": a BOM is not part of the first URL)
+                text = Path(url).read_text(encoding="utf-8-sig")
+                out += [x.strip() for x in text.splitlines()
                         if x.strip()]
             else:
                 out.append(url)

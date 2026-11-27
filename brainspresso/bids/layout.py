@@ -108,7 +108,7 @@ def read_manifest(state: str | os.PathLike) -> dict | None:
     if not path.exists():
         return None
     try:
-        manifest = json.loads(path.read_text())
+        manifest = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         lg.warning(f"Could not parse {path}")
         return None
@@ -159,7 +159,7 @@ def relative_url(target: Path, start: Path) -> str:
 
 def _read_json(path: Path) -> dict | None:
     try:
-        out = json.loads(path.read_text())
+        out = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return out if isinstance(out, dict) else None
@@ -170,7 +170,8 @@ def _write_json(path: Path, obj: dict) -> bool:
     if path.exists() and _read_json(path) == obj:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2) + "\n")
+    path.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8",
+                    newline="\n")
     return True
 
 
@@ -318,7 +319,8 @@ class Layout:
             return PurePosixPath(path.relative_to(self.root).as_posix())
         except ValueError:
             pass
-        if path.is_absolute() or ".." in path.parts:
+        # (`anchor`: also a rooted path without a drive on Windows)
+        if path.is_absolute() or path.anchor or ".." in path.parts:
             raise ValueError(f"{path} is not inside {self.root}")
         return PurePosixPath(path.as_posix())
 

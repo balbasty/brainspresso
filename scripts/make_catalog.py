@@ -172,7 +172,7 @@ def _replace(text: str, block: str, body: str) -> str:
 
 def main(check: bool = False) -> int:
     """Rewrite (or check) the catalog."""
-    text = CATALOG.read_text()
+    text = CATALOG.read_text(encoding="utf-8")
     new = _replace(text, "CATALOG", render(entries()))
     new = _replace(new, "ARGUMENTS", render_table(arguments()))
     new = _replace(new, "KEYS", render_table(keys()))
@@ -183,7 +183,7 @@ def main(check: bool = False) -> int:
             print(f"{CATALOG} is out of date: run {__file__}")
             return 1
         return 0
-    CATALOG.write_text(new)
+    CATALOG.write_text(new, encoding="utf-8", newline="\n")
     return 0
 
 

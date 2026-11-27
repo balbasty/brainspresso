@@ -334,12 +334,12 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
 
     lock_path = pdir / 'sidecars.lock.json'
     report_path = pdir / 'report.md'
-    old_lock = (json.loads(lock_path.read_text())
+    old_lock = (json.loads(lock_path.read_text(encoding="utf-8"))
                 if lock_path.exists() else {})
     old_locked = old_lock.get('sidecars', {})
     # with --only, entries outside the filter keep their lock entry and
     # report section (merge, don't replace)
-    old_sections = (report_sections(report_path.read_text())
+    old_sections = (report_sections(report_path.read_text(encoding="utf-8"))
                     if only and report_path.exists() else {})
 
     def selected(e):
@@ -390,12 +390,12 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         else:
             # roundtrip so that the comparison is done on json values
             report[output] = ('ok', diff(old, json.loads(text)), prov)
-        old_text = dst.read_text() if dst.exists() else None
+        old_text = dst.read_text(encoding="utf-8") if dst.exists() else None
         if old_text != text:
             dirty.append(output)
             if not check:
                 dst.parent.mkdir(parents=True, exist_ok=True)
-                dst.write_text(text)
+                dst.write_text(text, encoding="utf-8", newline="\n")
 
     def fail(output, exc, prov=None):
         failures.append(output)
@@ -451,7 +451,7 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
                     raise TableError(f'{src} failed')
                 text = texts.get(src)
                 if text is None:
-                    text = (tpl / src).read_text()
+                    text = (tpl / src).read_text(encoding="utf-8")
                 sources.append(json.loads(text))
         except (OSError, ValueError) as exc:
             fail(e['output'], exc, prov)
@@ -462,7 +462,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         e['output']: locked[e['output']] for e in entries
         if e['output'] in locked}}
     lock_text = dumps(lock)
-    old_lock_text = lock_path.read_text() if lock_path.exists() else None
+    old_lock_text = (lock_path.read_text(encoding="utf-8")
+                     if lock_path.exists() else None)
     if old_lock_text != lock_text:
         dirty.append(lock_path.name)
 
@@ -473,8 +474,8 @@ def run(dataset, check=False, only=None, root=ROOT, out=sys.stdout,
         if dirty:
             print(f'--check: would change {dirty}', file=out)
         return 1 if (dirty or failures) else 0
-    lock_path.write_text(lock_text)
-    report_path.write_text(md)
+    lock_path.write_text(lock_text, encoding="utf-8", newline="\n")
+    report_path.write_text(md, encoding="utf-8", newline="\n")
     return 1 if failures else 0
 
 
@@ -499,7 +500,7 @@ def baseline_text(e, tpl, root, baseline, in_git):
     def read(path):
         if in_git:
             return committed_text(path, root, baseline)
-        return path.read_text() if path.exists() else None
+        return path.read_text(encoding="utf-8") if path.exists() else None
 
     text = read(tpl / e['output'])
     if text is None and 'previous' in e:
@@ -510,7 +511,7 @@ def baseline_text(e, tpl, root, baseline, in_git):
     if text is None and baseline == 'HEAD':
         # not committed yet: diff against the working copy
         path = tpl / e['output']
-        text = path.read_text() if path.exists() else None
+        text = path.read_text(encoding="utf-8") if path.exists() else None
     return text
 
 

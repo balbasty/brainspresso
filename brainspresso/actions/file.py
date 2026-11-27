@@ -32,8 +32,65 @@ lg = getLogger(__name__)
 
 __all__ = [
     "File", "Files", "FileObj", "FileObjMixin", "OpenedFile",
+    "folder_in_the_way",
     "LockError", "LockTimeout",
 ]
+
+
+def _text_options(mode: str, options: dict) -> dict:
+    r"""
+    Options of `open`, with the defaults of text files.
+
+    Text files are UTF-8 (BIDS), and written with "\n" line endings, so
+    that outputs are byte-identical on every platform (the locale
+    encoding and "\r\n" of Windows otherwise). Readers keep universal
+    newlines. Update modes (`+`), which read as well as write, use
+    `newline=""`: no translation either way, so their writes stay "\n"
+    on every platform, and their reads return line endings as stored
+    ("\r\n" in a CRLF file) on every platform too.
+
+    Parameters
+    ----------
+    mode : str
+        Opening mode
+    options : dict
+        Options given (they win)
+
+    Returns
+    -------
+    dict
+        Options to pass to `open`
+    """
+    if "b" in mode:
+        return dict(options)
+    defaults = {"encoding": "utf-8"}
+    if "+" in mode:
+        defaults["newline"] = ""
+    elif _is_writer(mode):
+        defaults["newline"] = "\n"
+    return {**defaults, **options}
+
+
+def folder_in_the_way(src: Path, dst: Path) -> bool:
+    """
+    Tell whether a rename of file `src` failed because `dst` is a folder.
+
+    The error is `IsADirectoryError` on POSIX but `PermissionError` on
+    Windows: callers catch `OSError` and ask this.
+
+    Parameters
+    ----------
+    src : Path
+        File renamed
+    dst : Path
+        Its destination
+
+    Returns
+    -------
+    bool
+        Whether `src` is a file and `dst` a folder (not a link to one)
+    """
+    return src.is_file() and dst.is_dir() and not dst.is_symlink()
 
 
 def _is_writer(mode: str) -> bool:
@@ -56,6 +113,16 @@ class File:
     when the context exits without error (unless `discard` is set).
     Read-modify-write modes (`"a"`, `"r+"`) copy the existing file to
     the temporary one first, under the exclusive lock only.
+
+    Text files are UTF-8; writers write LF line endings on every
+    platform. Update modes (`+`) translate no line ending: their reads
+    return line endings as stored, so a read-modify-write of a CRLF file
+    in an update mode gives mixed line endings (the old CRLF and the new
+    LF). Text that is rewritten is better read and written through
+    separate file objects: in a `File(path, "r+")` context (exclusive,
+    atomic), `open("r")` reads it with universal newlines, then
+    `open("w")` writes the new text (LF). (A reader `File` and a writer
+    `File` of one path at once, in one thread, would be a lock upgrade.)
 
     ```python
     # Lock for reading, open a file object
@@ -254,7 +321,11 @@ class File:
             ):
                 try:
                     self.tempname.replace(self.filename)
-                except IsADirectoryError:
+                except OSError:
+                    # a folder in the way of a file: IsADirectoryError
+                    # (POSIX), PermissionError (Windows)
+                    if not folder_in_the_way(self.tempname, self.filename):
+                        raise
                     rmtree(self.filename)
                     self.tempname.replace(self.filename)
         finally:
@@ -590,7 +661,8 @@ class FileObj(FileObjMixin, File):
         """Lock the file and open the file object."""
         super().__enter__()
         try:
-            self.fileobj = self.safename.open(self.mode)
+            self.fileobj = self.safename.open(
+                self.mode, **_text_options(self.mode, {}))
         except BaseException as e:
             super().__exit__(type(e), e, e.__traceback__)
             raise
@@ -667,7 +739,8 @@ class OpenedFile(FileObjMixin):
 
         # protection deferred to here (`File(path)` without mode)
         self.file.protect(mode)
-        self.fileobj: IO = self.file.safename.open(mode, **self.kwargs)
+        self.fileobj: IO = self.file.safename.open(
+            mode, **_text_options(mode, self.kwargs))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:

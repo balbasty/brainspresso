@@ -8,7 +8,7 @@ import time
 from enum import Enum as _Enum
 from functools import partial
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from typing import AsyncIterator, Callable, Literal
 from urllib.parse import ParseResult, urlparse
 
@@ -239,7 +239,7 @@ class Downloader:
         self.src = src
         dst = Path(dst or '.')
         if dst.is_dir():
-            dst = dst / PosixPath(src.path).name
+            dst = dst / PurePosixPath(src.path).name
         self.dst = dst
         self.session = session
         self.auth = auth

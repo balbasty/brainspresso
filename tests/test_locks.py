@@ -6,6 +6,7 @@ Processes are started with the "spawn" method, as the engine does.
 import hashlib
 import multiprocessing
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -69,8 +70,9 @@ def test_lock_file_inside_a_dataset(tmp_path):
     path = ds / "rawbids" / "sub-01" / "anat" / "sub-01_T1w.nii.gz"
     lockfile, found = lock_file(path)
     assert found == ds
-    digest = hashlib.sha256(
-        b"rawbids/sub-01/anat/sub-01_T1w.nii.gz").hexdigest()
+    key = "rawbids/sub-01/anat/sub-01_T1w.nii.gz"
+    key = key.casefold()                # (lock keys ignore case)
+    digest = hashlib.sha256(key.encode()).hexdigest()
     assert lockfile == ds / STATE_DIR / "locks" / digest[:2] / \
         f"{digest}.lock"
     # same lock file through a symbolic link to the dataset
@@ -322,6 +324,8 @@ def test_read_only_source_folder(tmp_path, where):
         folder.chmod(0o755)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason=(
+    "POSIX permissions: chmod cannot make a folder read-only on Windows"))
 def test_reader_without_lock_folder(tmp_path):
     """A read-only state folder: readers go on, writers refuse."""
     if hasattr(os, "geteuid") and os.geteuid() == 0:
@@ -628,7 +632,10 @@ def test_harvest_creates_the_state_folder_before_locks(
     ]
     harvest_module.harvest(entries, root, Selection(), layout=kind,
                            trim=False)
-    assert len(locks_seen) == 2
+    # the two files, plus (since fasteners was dropped) the lock of each
+    # partial download: all in the dataset
+    assert sorted(p.name for p, _ in locks_seen) == sorted(
+        [f"sub-0{i}_T1w.nii.gz{x}" for i in (1, 2) for x in ("", ".download")])
     assert all(found == root for _, found in locks_seen)
 
 
@@ -690,3 +697,203 @@ def test_state_folder_created_later_is_found(tmp_path):
     assert find_dataset(path) == tmp_path / "DS" / "site-a"
     assert lock_file(path)[0].is_relative_to(
         tmp_path / "DS" / "site-a" / STATE_DIR)
+
+
+# ----------------------------------------------------------------------
+#   The OS layer on every platform (OFD or lockf / LockFileEx)
+# ----------------------------------------------------------------------
+
+def hold_lock(path, exclusive, acquired, release, failed=None, timeout=None):
+    """Hold a `FileLock` until `release` is set (in another process)."""
+    try:
+        with FileLock(path, exclusive=exclusive, timeout=timeout) as lock:
+            assert lock.locked
+            acquired.set()
+            release.wait(SOON)
+    except LockError as e:
+        if failed is None:
+            raise
+        failed.put(f"{type(e).__name__}: {e}")
+
+
+def holder(path, exclusive, timeout=None, failed=None):
+    """Start a process that holds a lock: (process, acquired, release)."""
+    acquired, release = events()
+    proc = start(hold_lock, path, exclusive, acquired, release,
+                 failed=failed, timeout=timeout)
+    return proc, acquired, release
+
+
+def finish(*procs):
+    for proc in procs:
+        proc.join(SOON)
+        assert proc.exitcode == 0
+
+
+@pytest.mark.parametrize("where", ["dataset", "outside"])
+def test_shared_readers_and_an_exclusive_writer_across_processes(
+    tmp_path, where,
+):
+    root = dataset(tmp_path / "DS") if where == "dataset" else tmp_path
+    path = root / "data.txt"
+    # two readers in two processes hold the file at once
+    r1, r1_in, r1_out = holder(path, False)
+    r2, r2_in, r2_out = holder(path, False)
+    assert r1_in.wait(SOON) and r2_in.wait(SOON)
+    # a writer waits for both
+    w, w_in, w_out = holder(path, True)
+    assert not w_in.wait(1.0)
+    r1_out.set()
+    finish(r1)
+    assert not w_in.wait(0.5)
+    r2_out.set()
+    finish(r2)
+    assert w_in.wait(SOON)
+    # then a reader waits for the writer
+    r3, r3_in, r3_out = holder(path, False)
+    assert not r3_in.wait(1.0)
+    w_out.set()
+    finish(w)
+    assert r3_in.wait(SOON)
+    r3_out.set()
+    finish(r3)
+
+
+def test_writer_downgraded_to_its_reader(tmp_path):
+    """A writer released inside its own reader leaves a shared lock."""
+    path = tmp_path / "data.txt"
+    failed = SPAWN.Queue()
+    writer = FileLock(path, exclusive=True).acquire()
+    reader = FileLock(path).acquire()               # (nested in it)
+    writer.release()
+    try:
+        # other readers share it now, writers still wait (no gap)
+        proc, acquired, release = holder(path, False)
+        assert acquired.wait(SOON)
+        release.set()
+        finish(proc)
+        proc, acquired, release = holder(path, True, timeout=0.3,
+                                         failed=failed)
+        message = failed.get(timeout=SOON)
+        finish(proc)
+        assert not acquired.is_set()
+        assert message.startswith("LockTimeout")
+        assert "held by readers" in message
+    finally:
+        reader.release()
+    with FileLock(path, exclusive=True, timeout=SOON):  # free again
+        pass
+
+
+def test_timeout_of_a_file_lock(tmp_path, monkeypatch):
+    path = tmp_path / "data.txt"
+    failed = SPAWN.Queue()
+    proc, acquired, release = holder(path, True)
+    try:
+        assert acquired.wait(SOON)
+        # the argument
+        tic = time.monotonic()
+        with pytest.raises(LockTimeout) as e:
+            FileLock(path, timeout=0.4).acquire()
+        elapsed = time.monotonic() - tic
+        assert 0.4 <= elapsed < SOON
+        assert isinstance(e.value, TimeoutError)
+        assert e.value.timeout == 0.4 and not e.value.exclusive
+        # the signature of the writer, read past its locked byte
+        assert f"held by a writer (pid {proc.pid} on" in str(e.value)
+        # the environment, for writers too
+        monkeypatch.setenv(TIMEOUT_ENV, "0.2")
+        with pytest.raises(LockTimeout, match="after 0.2 s"):
+            FileLock(path, exclusive=True).acquire()
+        # 0: a single attempt
+        with pytest.raises(LockTimeout, match="after 0 s"):
+            FileLock(path, timeout=0).acquire()
+    finally:
+        release.set()
+        finish(proc)
+    assert failed.empty()
+    with FileLock(path, exclusive=True, timeout=0):     # released
+        pass
+
+
+def test_lock_keys_ignore_case_on_every_platform(tmp_path):
+    """Clients of a shared dataset on Linux, macOS and Windows agree."""
+    ds = dataset(tmp_path / "DS")
+    upper, lower = lock_file(ds / "Sub-01_T1w.nii")[0], \
+        lock_file(ds / "sub-01_t1w.nii")[0]
+    assert upper == lower
+    # NFC: a decomposed name (as macOS may give it) is the composed one
+    assert lock_file(ds / "e\u0301.json")[0] == lock_file(ds / "\xe9.json")[0]
+
+
+def test_text_files_are_utf8_with_lf_on_every_platform(tmp_path):
+    path = tmp_path / "x.tsv"
+    with File(path, "w") as f:
+        with f.open() as fobj:
+            fobj.write("a\tbé\nc\td\n")
+    assert path.read_bytes() == "a\tbé\nc\td\n".encode("utf-8")
+    # update modes translate nothing: reads return the line endings as
+    # stored, writes stay LF (on every platform)
+    path.write_bytes(b"a\r\nb\r\n")
+    for mode in ("r+", "a+"):
+        with File(path, mode) as f:
+            with f.open() as fobj:
+                fobj.seek(0)
+                assert fobj.read() == "a\r\nb\r\n"
+                fobj.write("c\n")
+        assert path.read_bytes() == b"a\r\nb\r\nc\n"
+        path.write_bytes(b"a\r\nb\r\n")
+    with File(path, "w+") as f:
+        with f.open() as fobj:
+            fobj.write("x\ny\n")
+            fobj.seek(0)
+            assert fobj.read() == "x\ny\n"
+    assert path.read_bytes() == b"x\ny\n"
+    path.write_bytes(b"a\r\nb\r\n")
+    # plain readers too, and options given win
+    with File(path, "r") as f:
+        with f.open() as fobj:
+            assert fobj.read() == "a\nb\n"
+        with f.open("r", newline="") as fobj:
+            assert fobj.read() == "a\r\nb\r\n"
+
+
+def test_tsv_rows_end_with_lf(tmp_path):
+    """`csv` ends rows with CRLF by default; BIDS tables use LF."""
+    from brainspresso.actions.writers import WriteTSV
+    from brainspresso.utils.io import write_tsv
+    write_tsv([["a", "b"], ["1", "é"]], tmp_path / "x.tsv")
+    assert (tmp_path / "x.tsv").read_bytes() == \
+        "a\tb\n1\té\n".encode("utf-8")
+    statuses = list(WriteTSV([["a", "b"], ["1", "2"]], tmp_path / "y.tsv"))
+    assert {"status": "done"} in statuses, statuses
+    assert (tmp_path / "y.tsv").read_bytes() == b"a\tb\n1\t2\n"
+
+
+@pytest.mark.parametrize("brk", ["\r", "\n", "\r\n"])
+def test_tsv_fields_with_line_breaks_are_refused(tmp_path, brk):
+    """The same on every Python version (3.10 and 3.11 wrote "\\r" raw)."""
+    from brainspresso.actions.writers import WriteTSV
+    from brainspresso.utils.io import write_tsv
+    path = tmp_path / "x.tsv"
+    rows = [["participant_id", "note"], ["sub-1", f"a{brk}b"]]
+    with pytest.raises(ValueError, match="row 2, column 'note'"):
+        write_tsv(rows, path)
+    assert not path.exists()                    # nothing written
+    statuses = list(WriteTSV(rows, path))
+    assert statuses[-1]["status"] == "error", statuses
+    assert "line break" in statuses[-1]["message"]
+    assert not path.exists()
+
+
+def test_rewrite_text_through_separate_file_objects(tmp_path):
+    """The rewrite recommended by `File`: read "r", then write "w"."""
+    path = tmp_path / "x.txt"
+    path.write_bytes(b"a\r\nb\r\n")
+    with File(path, "r+") as f:
+        with f.open("r") as fobj:
+            text = fobj.read()
+        assert text == "a\nb\n"
+        with f.open("w") as fobj:
+            fobj.write(text.upper())
+    assert path.read_bytes() == b"A\nB\n"

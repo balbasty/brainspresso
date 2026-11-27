@@ -28,7 +28,7 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-2/` itself
 """
 import tarfile
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 from typing import Iterable, Iterator, Literal
 
@@ -154,7 +154,7 @@ class Bidsifier:
     def tar2nii(
         self,
         tar: tarfile.TarFile,       # Opened TAR archive
-        src: PosixPath,             # Member to unpack
+        src: PurePosixPath,             # Member to unpack
         dst: Path,                  # Path to output nifti file
         affine: np.ndarray | None = None,
     ) -> Action:
@@ -269,7 +269,7 @@ class Bidsifier:
         yield {'progress': 0}
         with IfExists(self.ifexists):
             for member in tar:
-                membername = PosixPath(member.name)
+                membername = PurePosixPath(member.name)
                 if self._raw_skip_path(membername):
                     continue
                 nscan += 1
@@ -280,21 +280,21 @@ class Bidsifier:
                 yield {'progress': 100*nscan/nscans}
         yield {'status': 'done', 'message': ''}
 
-    def _raw_get_id(self, path: PosixPath) -> tuple[int, int, int]:
+    def _raw_get_id(self, path: PurePosixPath) -> tuple[int, int, int]:
         """Compute subject / session / run from path"""
         _, id, ses = path.parts[1].split('_')
         id, ses = int(id), int(ses[2:])
         run = int(path.name[4])
         return id, ses, run
 
-    def _raw_skip_path(self, path: PosixPath):
+    def _raw_skip_path(self, path: PurePosixPath):
         """Should we skip this member?"""
 
         def skip_subject(id: int) -> bool:
             return ((self.subs and id not in self.subs)
                     or id in self.exclude_subs)
 
-        def skip_member(path: PosixPath) -> bool:
+        def skip_member(path: PurePosixPath) -> bool:
             if 'RAW' not in str(path):
                 return True
             if path.suffix != '.img':
@@ -317,7 +317,7 @@ class Bidsifier:
         """Find all subject ids and runs contained in this archive"""
         subjects = {}
         for member in tar:
-            path = PosixPath(member.name)
+            path = PurePosixPath(member.name)
             if self._raw_skip_path(path):
                 continue
             id, ses, run = self._raw_get_id(path)
@@ -344,7 +344,7 @@ class Bidsifier:
             yield CopyJSON(json_path, base.with_suffix('.json'))
 
         if self.json != 'only':
-            member = PosixPath(
+            member = PurePosixPath(
                 f'OAS2_RAW_PART{part}/OAS2_{id:04d}_MR{ses}/RAW'
             )
             member = member / f'mpr-{run}.nifti.img'

@@ -7,7 +7,8 @@ Every harvest and roast of a dataset holds a **shared** lock on
 from before it plans until it has deleted (through its confirmation
 prompt). So compost never deletes files that a running harvest or roast
 writes or reads, also on other cluster nodes where the filesystem
-shares `fcntl` locks, and nothing starts while compost runs. By default
+shares the locks (`actions.locks`: `fcntl` locks on POSIX, `LockFileEx`
+on Windows), and nothing starts while compost runs. By default
 a command that cannot take the lock fails at once (`wait=0`).
 
 `FileLock` only signs exclusive holders. So every holder also writes a
@@ -23,8 +24,9 @@ exists, or one from this host whose process is alive, unless `force`
 (`compost --ignore-runs`). Records of dead processes of this host are
 removed.
 
-With locks disabled (`$BRAINSPRESSO_LOCKS=0`, or no `fcntl`), nothing is
-locked and no record is written.
+With locks disabled (`$BRAINSPRESSO_LOCKS=0`, only explicitly), nothing
+is locked and no record is written; without a lock backend, `run_lock`
+raises `LockError`.
 
 Roast workers take the shared lock too: `held_states()` lists the state
 folders whose run lock this process holds, and `hold_shared(states)`
@@ -33,6 +35,7 @@ folders whose run lock this process holds, and `hold_shared(states)`
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import datetime
 import getpass
 import json
@@ -92,7 +95,7 @@ def read_records(state: str | os.PathLike) -> list[dict]:
     folder = Path(state) / RECORDS_DIR
     for path in sorted(folder.glob("*.json")) if folder.is_dir() else ():
         try:
-            record = json.loads(path.read_text())
+            record = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         record["file"] = str(path)
@@ -112,8 +115,13 @@ def pid_alive(pid: int) -> bool:
     """
     Tell whether a process of this host is alive.
 
-    POSIX only, as the locks (`fcntl`): Windows is not supported, and
-    there `os.kill(pid, 0)` is no probe, so every pid counts as alive.
+    POSIX: `os.kill(pid, 0)` (a probe, no signal is sent). Windows:
+    `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` and
+    `GetExitCodeProcess` (through `ctypes`; `os.kill` would terminate the
+    process there). Pids are reused by the OS on both, so a pid of a
+    dead run can count as alive while another process has it; and on
+    Windows, a process that exited with code 259 (`STILL_ACTIVE`) counts
+    as alive.
 
     Parameters
     ----------
@@ -123,18 +131,56 @@ def pid_alive(pid: int) -> bool:
     Returns
     -------
     bool
-        False only if no such process exists (one that cannot be
-        signalled, or an invalid pid, counts as alive)
+        False only if no such process exists, or (Windows) it has exited
+        (one that cannot be signalled or queried, or an invalid pid,
+        counts as alive)
     """
-    if os.name == "nt":         # `os.kill(pid, 0)` would terminate it
-        return True
     try:
-        os.kill(int(pid), 0)
+        pid = int(pid)
+    except (ValueError, TypeError, OverflowError):
+        return True
+    if os.name == "nt":             # pragma: no cover (Windows)
+        return _pid_alive_windows(pid)
+    try:
+        os.kill(pid, 0)
     except ProcessLookupError:
         return False
-    except (PermissionError, ValueError, TypeError, OverflowError):
+    except (PermissionError, ValueError, OverflowError):
         return True
     return True
+
+
+# Windows API (`pid_alive`)
+_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+_STILL_ACTIVE = 259
+_ERROR_INVALID_PARAMETER = 87       # (OpenProcess: no such process)
+
+
+def _pid_alive_windows(pid: int) -> bool:   # pragma: no cover (Windows)
+    """`pid_alive` on Windows (`OpenProcess`, `GetExitCodeProcess`)."""
+    if not 0 < pid <= 0xFFFFFFFF:
+        return True                 # (invalid: counts as alive)
+    # (`ctypes.wintypes` names: DWORD, BOOL, HANDLE)
+    dword, boolean, handle_t = ctypes.c_uint32, ctypes.c_int, ctypes.c_void_p
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.argtypes = [dword, boolean, dword]
+    kernel32.OpenProcess.restype = handle_t
+    kernel32.GetExitCodeProcess.argtypes = [handle_t, ctypes.POINTER(dword)]
+    kernel32.GetExitCodeProcess.restype = boolean
+    kernel32.CloseHandle.argtypes = [handle_t]
+    kernel32.CloseHandle.restype = boolean
+    handle = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION,
+                                  False, pid)
+    if not handle:
+        # no such process; else (access denied...) it exists
+        return ctypes.get_last_error() != _ERROR_INVALID_PARAMETER
+    try:
+        code = dword()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+            return True
+        return code.value == _STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def _write_record(state: Path, command: str) -> Path:
@@ -153,7 +199,7 @@ def _write_record(state: Path, command: str) -> Path:
         .isoformat(timespec="seconds"),
     }
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(record))
+    tmp.write_text(json.dumps(record), encoding="utf-8", newline="\n")
     os.replace(tmp, path)
     return path
 
@@ -237,8 +283,9 @@ def run_lock(
     RunLocked
         If another command holds the lock after `wait` seconds
     LockError
-        If the lock cannot be taken (e.g. a filesystem without `fcntl`
-        locks), or if records of other runs exist (exclusive lock)
+        If the lock cannot be taken (e.g. a filesystem without file
+        locks, or no lock backend), or if records of other runs exist
+        (exclusive lock)
     """
     if isinstance(states, (str, os.PathLike)):
         states = [states]

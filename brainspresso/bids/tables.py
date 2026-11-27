@@ -30,7 +30,7 @@ def read_tsv(text: str) -> tuple[list[str], list[dict]]:
 
 def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
     """Write rows (dictionaries) as a TSV table."""
-    with open(path, "w", newline="") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f, header, delimiter="\t", lineterminator="\n",
             extrasaction="ignore",
@@ -122,7 +122,7 @@ def trim_tables(
     for relpath, original in sorted(originals.items()):
         if not original.exists():
             continue
-        header, rows = read_tsv(original.read_text())
+        header, rows = read_tsv(original.read_text(encoding="utf-8"))
         name = Path(relpath).name
         folder = (root / relpath).parent
         if name == "participants.tsv":

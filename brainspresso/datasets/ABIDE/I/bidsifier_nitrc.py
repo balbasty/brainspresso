@@ -37,7 +37,7 @@ With `--layout flat`, the content of `rawbids/` is in `ABIDE-1/` itself
 import shutil
 import tarfile
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from typing import IO, Any, Callable, Iterator
 
 from brainspresso.actions import Action, Fail
@@ -57,7 +57,7 @@ Status = dict[str, Any]
 
 # (path inside the FCP layout, source file, function that writes the data,
 #  function that opens the data)
-Member = tuple[PosixPath, Path, Callable[[IO[bytes]], None],
+Member = tuple[PurePosixPath, Path, Callable[[IO[bytes]], None],
                Callable[[], IO[bytes]]]
 
 
@@ -120,7 +120,7 @@ class Bidsifier(BidsifierBase):
             def open_(member=member):
                 return tar.extractfile(member)
 
-            yield PosixPath(member.name), Path(tar.name), write, open_
+            yield PurePosixPath(member.name), Path(tar.name), write, open_
 
     @staticmethod
     def _folder_members(rawdir: Path) -> Iterator[Member]:
@@ -133,7 +133,7 @@ class Bidsifier(BidsifierBase):
             def open_(path=path):
                 return open(path, 'rb')
 
-            yield (PosixPath(path.relative_to(rawdir).as_posix()), path,
+            yield (PurePosixPath(path.relative_to(rawdir).as_posix()), path,
                    write, open_)
 
     def _iter_raw_actions(

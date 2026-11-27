@@ -34,7 +34,7 @@ With `--layout flat`, the content of `rawbids/` is in `COBRE/` itself
 import csv
 import tarfile
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from typing import Iterable, Literal, Set
 
 from brainspresso.actions import (
@@ -202,7 +202,7 @@ class Bidsifier:
         def parse_member(member):
 
             # Get name
-            path = PosixPath(member.name)
+            path = PurePosixPath(member.name)
             id = path.parts[1]
             if skip_subject(id):
                 return
@@ -242,7 +242,7 @@ class Bidsifier:
         for path in tar.getnames():
             if not path.endswith('.nii.gz'):
                 continue
-            path = PosixPath(path)
+            path = PurePosixPath(path)
             id = path.parts[1]
             if id in ids:
                 continue
@@ -255,7 +255,7 @@ class Bidsifier:
         for member in tar.getmembers():
             if not member.name.endswith('.nii.gz'):
                 continue
-            path = PosixPath(member.name)
+            path = PurePosixPath(member.name)
             id = path.parts[1]
             if skip_subject(id):
                 continue
@@ -296,7 +296,7 @@ class Bidsifier:
         ]
 
         def iter_rows():
-            with open(path_csv, 'rt', newline='') as textio:
+            with open(path_csv, 'rt', newline='', encoding='utf-8') as textio:
                 csvio = csv.reader(textio)
                 next(csvio)
                 yield HEADER

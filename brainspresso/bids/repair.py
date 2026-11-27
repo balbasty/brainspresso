@@ -154,10 +154,27 @@ def fix_sidecar(meta: dict, name: str = "") -> dict:
     return out
 
 
+def _read_utf8(path: Path) -> str | None:
+    """
+    Text of a file to repair in place (None: not valid UTF-8).
+
+    Decoded strictly: a file that is not valid UTF-8 is left as it is,
+    with a warning, as text decoded with replacement characters must
+    never be written back (it would lose the original bytes).
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        lg.warning(f"{path}: not valid UTF-8, not repaired ({e})")
+        return None
+
+
 def repair_json(path: Path) -> bool:
     """Repair a JSON file in place. Returns whether it was changed."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _read_utf8(path)
+    if text is None:
+        return False
     try:
         meta = loads(text)
     except json.JSONDecodeError as e:
@@ -181,7 +198,8 @@ def repair_json(path: Path) -> bool:
         unchanged = False
     if unchanged:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8", newline="\n")
     return True
 
 
@@ -194,8 +212,13 @@ def _phasediff(path: Path, meta: dict) -> dict:
     if "EchoTime" not in meta or not magnitude.exists():
         return meta
     try:
-        te1 = loads(magnitude.read_text()).get("EchoTime")
-    except json.JSONDecodeError:
+        # (a magnitude sidecar that is not valid UTF-8 is read with
+        # replacement characters: only its EchoTime, a number, is used,
+        # and it is never written back; `repair_json` itself decodes
+        # strictly)
+        text = magnitude.read_text(encoding="utf-8", errors="replace")
+        te1 = loads(text).get("EchoTime")
+    except (ValueError, OSError, AttributeError):
         return meta
     te2 = meta["EchoTime"]
     if isinstance(te1, (int, float)) and isinstance(te2, (int, float)) \
@@ -228,7 +251,9 @@ def read_rows(text: str) -> list[list[str]]:
 def repair_tsv(path: Path) -> bool:
     """Repair a TSV file in place. Returns whether it was changed."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _read_utf8(path)
+    if text is None:
+        return False
     rows = read_rows(text)
     if not rows:
         return False
@@ -245,7 +270,7 @@ def repair_tsv(path: Path) -> bool:
     out = "".join("\t".join(r) + "\n" for r in [header, *body])
     if out == text:
         return False
-    path.write_text(out)
+    path.write_text(out, encoding="utf-8", newline="\n")
     return True
 
 
@@ -304,7 +329,12 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
     session = subject / rel.parts[1] \
         if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
     try:
-        meta = loads(path.read_text())
+        meta = loads(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as e:
+        # (not rewritten: replacement characters would be lossy)
+        lg.warning(f"{path}: not valid UTF-8, IntendedFor not repaired "
+                   f"({e})")
+        return False
     except (json.JSONDecodeError, OSError):
         return False
     if not isinstance(meta, dict) or "IntendedFor" not in meta:
@@ -343,7 +373,8 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
         fixed.pop("IntendedFor")
     if fixed == meta:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8", newline="\n")
     return True
 
 
@@ -351,7 +382,8 @@ def _bidsignore(root: Path) -> list[str]:
     path = Path(root) / ".bidsignore"
     if not path.exists():
         return []
-    return [line.strip().lstrip("/") for line in path.read_text().splitlines()
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    return [line.strip().lstrip("/") for line in lines
             if line.strip() and not line.startswith("#")]
 
 

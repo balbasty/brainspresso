@@ -68,7 +68,7 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-1/` itself
 import csv
 import tarfile
 from logging import getLogger
-from pathlib import Path, PosixPath
+from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 from typing import Iterable, Iterator, Literal
 
@@ -214,7 +214,7 @@ class Bidsifier:
     def tar2nii(
         self,
         tar: tarfile.TarFile,       # Opened TAR archive
-        src: PosixPath,             # Member to unpack
+        src: PurePosixPath,             # Member to unpack
         dst: Path,                  # Path to output nifti file
         affine: np.ndarray,         # 4x4 matrix
         relabel: bool = False,      # Assume FSL segmentation and relabel
@@ -326,7 +326,7 @@ class Bidsifier:
 
         subjects = {}
         for path in tar.getnames():
-            path = PosixPath(path)
+            path = PurePosixPath(path)
             if 'RAW' not in str(path):
                 continue
             if path.suffix != '.img':
@@ -381,7 +381,7 @@ class Bidsifier:
 
                 if self.json != 'only':
                     name = base + '.nii.gz'
-                    member = PosixPath(f'disc{disc}/OAS1_{id:04d}_MR1/RAW')
+                    member = PurePosixPath(f'disc{disc}/OAS1_{id:04d}_MR1/RAW')
                     member = member / f'OAS1_{id:04d}_MR1_mpr-{run:d}_anon'
                     yield self.tar2nii(tar, member, anat / name, AFFINE_RAW)
 
@@ -406,7 +406,7 @@ class Bidsifier:
             else:
                 lg.error(f'Member not found: {member}')
                 return
-            member = PosixPath(member.format(bias=bias))
+            member = PurePosixPath(member.format(bias=bias))
 
             srcbase = f'bids:raw:sub-{id:04d}/anat/sub-{id:04d}'
             json = {
@@ -455,7 +455,7 @@ class Bidsifier:
             else:
                 lg.error(f'Member not found: {member}')
                 return
-            member = PosixPath(member.format(bias=bias))
+            member = PurePosixPath(member.format(bias=bias))
 
             # json
             srcbase = f'bids:raw:sub-{id:04d}/anat/sub-{id:04d}'
@@ -498,7 +498,7 @@ class Bidsifier:
 
             if self.json != 'only':
                 name = base + '.nii.gz'
-                member = PosixPath(str(member)[:-3] + 'masked_gfc')
+                member = PurePosixPath(str(member)[:-3] + 'masked_gfc')
                 yield self.tar2nii(
                     tar, member, anat / name, AFFINE_TAL
                 )
@@ -523,7 +523,7 @@ class Bidsifier:
             else:
                 lg.error(f'Member not found: {member}')
                 return
-            member = PosixPath(member.format(bias=bias))
+            member = PurePosixPath(member.format(bias=bias))
 
             srcflags = 'space-Talairach_res-1mm_desc-skullstripped'
             json = {
@@ -593,7 +593,7 @@ class Bidsifier:
             if 'fs-all' not in self.keys:
                 if not path.endswith(fs.bidsifiable_outputs):
                     continue
-            path = PosixPath(path)
+            path = PurePosixPath(path)
             try:
                 _, id, ses = path.parts[1].split('_')
             except Exception as e:
@@ -619,7 +619,7 @@ class Bidsifier:
         # Unpack raw freesurfer outputs
         # under "derivatives/oasis-freesurfer/sourcedata/sub-{04d}"
         for path in members:
-            path = PosixPath(path)
+            path = PurePosixPath(path)
             dst = self.fsdrv.source / f'sub-{id:04d}'
             dst = dst.joinpath(*path.parts[2:])
             yield WriteBytes(
@@ -698,7 +698,7 @@ class Bidsifier:
         # Old version, when OASIS was providing a CSV file
 
         def iter_rows():
-            with open(path_csv, 'rt') as finp:
+            with open(path_csv, 'rt', newline='', encoding='utf-8') as finp:
                 yield self.PARTICIPANTS_HEADER
                 reader = csv.reader(
                     finp, delimiter=',', quoting=csv.QUOTE_NONE

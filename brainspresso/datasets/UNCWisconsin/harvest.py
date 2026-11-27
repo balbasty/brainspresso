@@ -96,7 +96,8 @@ class Girder(GirderSource):
             if isinstance(meta, dict):
                 # Subject and session metadata, merged with previous runs
                 path = self.resolve(layout, entry)
-                old = json.loads(path.read_text()) if path.exists() else {}
+                old = (json.loads(path.read_text(encoding="utf-8"))
+                       if path.exists() else {})
                 old.update(meta)
                 entry = RemoteEntry(entry.path, meta={
                     "generated": True,

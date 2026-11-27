@@ -38,7 +38,8 @@ from brainspresso.percolate import plan as plans
 from brainspresso.percolate import run as prun
 
 ROOT = Path(__file__).resolve().parent.parent  # repo, not site-packages
-SECTION = (ROOT / "docs" / "design" / "architecture.md").read_text()
+SECTION = (ROOT / "docs" / "design" / "architecture.md").read_text(
+    encoding="utf-8")
 SECTION = SECTION[SECTION.index("## 7. Grind"):SECTION.index("## 8. ")]
 GRIND = Path(grind.__file__).parent
 PERCOLATE = Path(percolate.__file__).parent
@@ -56,7 +57,7 @@ ALIASES = ("Level", "Need", "Pick", "StageFunction", "Verdict", "IfStale",
 def imports(path: Path) -> set[str]:
     """Modules that a file imports (relative ones: its own package)."""
     found = set()
-    for node in ast.walk(ast.parse(path.read_text())):
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
         if isinstance(node, ast.Import):
             found.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.level == 0:
@@ -143,7 +144,7 @@ def test_layering():
 
 
 def test_docstrings_enforced():
-    text = (ROOT / "pyproject.toml").read_text()
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     pattern = next(line for line in text.splitlines()
                    if line.startswith('"!brainspresso/{'))
     assert "grind/**" in pattern and "percolate/**" in pattern

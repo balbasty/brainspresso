@@ -14,6 +14,7 @@ from brainspresso.actions.runlock import (
     RunLocked,
     held_states,
     hold_shared,
+    pid_alive,
     read_records,
     run_lock,
 )
@@ -284,3 +285,40 @@ def test_compost_site_next_to_roast_of_sibling(two_sites, capsys):
     finally:
         proc.kill()
         proc.wait()
+
+
+# ----------------------------------------------------------------------
+#   Every platform
+# ----------------------------------------------------------------------
+
+def test_pid_alive_live_and_dead_processes():
+    assert pid_alive(os.getpid())
+    assert pid_alive(str(os.getpid()))          # (as in a JSON record)
+    proc = subprocess.Popen([sys.executable, "-c",
+                             "import time; time.sleep(60)"])
+    try:
+        assert pid_alive(proc.pid)
+    finally:
+        proc.kill()
+        proc.wait()
+    # dead: on Windows, its process object outlives it while `proc`
+    # holds a handle, with an exit code (not STILL_ACTIVE)
+    assert not pid_alive(proc.pid)
+    pid = proc.pid
+    del proc
+    assert not pid_alive(pid)
+    # invalid pids count as alive (never delete a record because of one)
+    for pid in (None, "x", -1, 2 ** 64):
+        assert pid_alive(pid)
+
+
+def test_run_lock_without_backend_raises(state, monkeypatch):
+    monkeypatch.delenv("BRAINSPRESSO_LOCKS", raising=False)
+    monkeypatch.setattr(locks, "_MECHANISMS", ())
+    with pytest.raises(LockError, match="BRAINSPRESSO_LOCKS=0"):
+        with run_lock(state, "harvest"):
+            raise AssertionError("not reached")
+    assert read_records(state) == []
+    monkeypatch.setenv("BRAINSPRESSO_LOCKS", "0")
+    with run_lock(state, "harvest") as held:
+        assert held == []

@@ -613,7 +613,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
 * Subjects that are folders of small files (UNC-Wisconsin, Bullitt)
   are read by one shard per subject (`subject_shards`, task id
   `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
-  subject and its sidecar templates).
+  subject that its actions read for the wanted keys, and the sidecar
+  templates they copy; `config`: the keys named by `--keys`).
 * Several gz archives (ABIDE-I, step 5): one shard per gz archive (NITRC
   `<Site>.tgz`, id `roast/raw/<name>`), or per folder that stands for
   one (a site folder of a bucket copy, `RawData/<Site>/`, its files as
@@ -2188,7 +2189,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4 | `Dataset` + `register` (absorbs INDI `Project`, `add_compost`); shared option groups; catalog; `--layout sites:<kind>`; run lock | High-Effort Opus | done (913 passed, 2 skipped, 28 xfailed, after merging #18; §6) |
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
-| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1932 passed, 2 skipped, 10 xfailed) |
+| 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
@@ -2824,3 +2825,13 @@ up as an XPASS failure once fixed (then drop the marker).
   `.brainspresso/orig/` and trim (bad rows skipped with a warning,
   empty cells `n/a`); the derivative dataset files are written with
   any derivative key. DTI is still not converted (no gradient table).
+  Review round 1 of #36: the keys named by `--keys` are read from
+  `--keys` as given (`KeySpec.effective` turns keys that cover every
+  choice into "all"; only no `--keys` or its CLI default name nothing)
+  and are the `config` of the subject shards, so that a run naming
+  more keys does not skip them; shard inputs are the files the actions
+  read for the wanted keys (not DTI); an empty, headless or non-UTF-8
+  `participants.tsv` is an error, read as `utf-8-sig`, header cells
+  stripped. `KeySpec.leaves` checked against every dataset whose roast
+  keys are a `KeyAliases` (ABIDE-I, Bullitt, COBRE, OASIS-I, OASIS-II,
+  UNC-Wisconsin): `effective` is unchanged except for Bullitt.

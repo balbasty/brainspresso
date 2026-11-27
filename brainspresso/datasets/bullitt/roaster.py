@@ -147,7 +147,7 @@ def roast(root, *, subs=(), exclude_subs=(), keys=(), exclude_keys=(),
         keys=select, exclude_keys=exclude,
         subs=sorted(subject_labels(subs, WIDTH)),
         exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        options=roast_options(select), **options,
+        options=roast_options(keys), **options,
     )
 
 
@@ -158,16 +158,22 @@ def roast_options(keys) -> dict:
     Parameters
     ----------
     keys : str | list[str]
-        Effective `--keys` (empty: the default, all keys)
+        `--keys` as given (not `KeySpec.effective`, which turns keys
+        that cover every choice into "all")
 
     Returns
     -------
     dict
         `named`: the leaves that `--keys` names, itself or through a
         group above them (any case); a missing scan of these keys is an
-        error
+        error. Nothing is named without `--keys` or with its CLI
+        default (the seven leaves: the command line passes them when
+        the flag is absent, so they cannot be told apart)
     """
     keys = as_list(keys)
+    if not keys or {str(k).lower() for k in keys} == \
+            {k.lower() for k in ROAST_SPEC.default}:
+        return {"named": []}
     return {"named": sorted(leaf for leaf in (*RAW, *DERIVATIVES)
                             if ROAST_SPEC.selects(keys, leaf))}
 
@@ -252,11 +258,42 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
         yield Fail("no subject folder (Normal-<NNN>) in sourcedata/: "
                    "harvest first", name="sourcedata", tag="subjects")
         return
-    yield from subject_shards(ctx, folders, roast_subject,
-                              inputs=lambda label: inputs(ctx, folders[label]))
+    # (`named` decides which missing scans are errors: a later run that
+    # names more keys must not skip the shards)
+    yield from subject_shards(
+        ctx, folders, roast_subject,
+        inputs=lambda label: shard_inputs(ctx, folders[label]),
+        config={"named": sorted(ctx.options.get("named", ()))},
+    )
 
 
-def inputs(ctx: RoastContext, folder: Path) -> list[Path]:
+def raw_image(folder: Path, key: str) -> Path | None:
+    """
+    Find the image of a raw key in a subject folder.
+
+    Parameters
+    ----------
+    folder : Path
+        Folder of the subject (`Normal-<NNN>`)
+    key : str
+        Raw key (`RAW`)
+
+    Returns
+    -------
+    Path | None
+        The first `.mha` of the folders of the key (with a warning if
+        there are several), or None
+    """
+    images = sorted(
+        image for name, k in FOLDER_KEYS.items() if k == key
+        for image in (folder / name).glob("*.mha") if image.is_file())
+    if len(images) > 1:
+        lg.warning(f"{folder.name}: {len(images)} {key} images, "
+                   f"{images[0].name} is converted")
+    return images[0] if images else None
+
+
+def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
     """
     Return the inputs of a subject shard (its input signature).
 
@@ -270,11 +307,25 @@ def inputs(ctx: RoastContext, folder: Path) -> list[Path]:
     Returns
     -------
     list[Path]
-        Its files and the sidecar templates
+        The files its actions read, for the wanted keys: images, the
+        sidecar templates (when sidecars are written), auxiliary files
     """
-    files = sorted(p for p in folder.rglob("*") if p.is_file())
-    templates = (ctx.resource(f"{suffix}.json") for suffix in RAW.values())
-    return files + [p for p in templates if p is not None]
+    out = []
+    for key, suffix in RAW.items():
+        if not ctx.wants(key):
+            continue
+        image = raw_image(folder, key)
+        if image is None:
+            continue
+        out.append(image)
+        template = ctx.resource(f"{suffix}.json")
+        if template is not None and ctx.accepts("sidecar"):
+            out.append(template)
+    for key, (name, _) in DERIVATIVES.items():
+        src = folder / "AuxillaryData" / name
+        if ctx.wants(key) and src.is_file():
+            out.append(src)
+    return out
 
 
 # ----------------------------------------------------------------------
@@ -305,8 +356,14 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
                    f"templates of the dataset)", name=PARTICIPANTS,
                    tag="meta")
         return
-    yield WriteTSV(participants(src), ctx.layout.original(raw / PARTICIPANTS),
-                   src=src, tag="meta")
+    try:
+        rows = participants(src)
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        yield Fail(f"{src} cannot be read ({type(e).__name__}: {e})",
+                   name=PARTICIPANTS, tag="meta")
+        return
+    yield WriteTSV(rows, ctx.layout.original(raw / PARTICIPANTS), src=src,
+                   tag="meta")
 
 
 def participants(path: Path) -> list[list[str]]:
@@ -325,9 +382,20 @@ def participants(path: Path) -> list[list[str]]:
         empty cells `n/a`; blank rows are skipped, rows whose ID cannot
         be read or whose number of cells differs from the header are
         skipped with a warning
+
+    Raises
+    ------
+    UnicodeDecodeError
+        If it is not UTF-8
+    ValueError
+        If it has no header (`participant_id` first)
     """
-    lines = path.read_text(encoding="utf-8").splitlines()
-    header, rows = lines[0].split("\t"), []
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    header = [cell.strip() for cell in lines[0].split("\t")] \
+        if lines else []
+    if not header or header[0] != "participant_id":
+        raise ValueError("no header (participant_id, ...)")
+    rows = []
     for nrow, line in enumerate(lines[1:], 2):
         if not line.strip():
             continue
@@ -368,20 +436,15 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
         if not ctx.wants(key):
             continue
         dst = anat / f"sub-{sub}_{suffix}"
-        images = sorted(
-            image for sub_folder, k in FOLDER_KEYS.items() if k == key
-            for image in (folder / sub_folder).glob("*.mha"))
-        if not images:
+        image = raw_image(folder, key)
+        if image is None:
             if key in named and ctx.accepts("data"):
                 yield Fail(f"Normal-{sub}: no {key} image (*.mha)",
                            name=f"{dst.name}.nii.gz", tag="subjects")
             else:
                 lg.info(f"Normal-{sub}: no {key} image")
             continue
-        if len(images) > 1:
-            lg.warning(f"Normal-{sub}: {len(images)} {key} images, "
-                       f"{images[0].name} is converted")
-        yield convert(images[0], f"{dst}.nii.gz")
+        yield convert(image, f"{dst}.nii.gz")
         template = ctx.resource(f"{suffix}.json")
         if template is not None:
             yield CopyJSON(template, f"{dst}.json", tag="subjects")

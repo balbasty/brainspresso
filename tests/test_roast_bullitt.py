@@ -1,5 +1,6 @@
 """Tests of the Bullitt roast step."""
 import json
+import re
 import zlib
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from brainspresso.actions.state import read_task_states
 from brainspresso.datasets.bullitt import roaster
 from brainspresso.datasets.bullitt.dataset import Bullitt
 from brainspresso.datasets.bullitt.roaster import roast as roast_api
+from brainspresso.roast import make_context
 
 TEMPLATES = (Path(__file__).parents[1] / "brainspresso" / "datasets"
              / "bullitt" / "templates")
@@ -341,10 +343,73 @@ def test_missing_scans_named(root):
 
 def test_missing_scans_named_cli(root):
     spec = Bullitt().keys_for("roast")
-    keys, _ = spec.effective(spec.default, ())
-    assert roaster.roast_options(keys) == {"named": []}
+    assert roaster.roast_options(spec.default) == {"named": []}
+    assert roaster.roast_options(()) == {"named": []}
     assert roaster.roast_options(["raw"]) == {
         "named": ["T2w", "angio", "flash", "mprage"]}
+    # (keys that cover every choice still name them: review of #36)
+    assert roaster.roast_options(["raw", "derivatives", "meta"]) == {
+        "named": ["T2w", "angio", "flash", "mprage", "skullstripped",
+                  "vessels"]}
+
+
+MISSING_ALL = [     # missing scans and auxiliary files of the fixture
+    "sub-002_acq-flash_desc-brain_T1w.nii.gz",
+    "sub-002_acq-mprage_T1w.nii.gz",
+    "sub-003_T2w.nii.gz",
+    "sub-003_acq-flash_T1w.nii.gz",
+    "sub-003_acq-flash_desc-brain_T1w.nii.gz",
+    "sub-003_angio.nii.gz",
+    "sub-003_desc-vessels_tubes.tre",
+]
+
+
+def errors(root, capsys):
+    """Names of the errors of the last `bx` roast (its display)."""
+    out = capsys.readouterr().out
+    return sorted(set(re.findall(r"(sub-\d{3}_\S+)\s+error", out)))
+
+
+@pytest.mark.parametrize("keys, missing", [
+    (["raw", "derivatives", "meta"], MISSING_ALL),
+    (["raw", "derivatives"], MISSING_ALL),
+    (list(roaster.ROAST_KEYS), []),     # (the CLI default)
+    ([], []),
+])
+def test_missing_scans_named_by_cli_keys(root, capsys, keys, missing):
+    """`--keys` that cover every key name them (only the CLI default,
+    or no `--keys`, names nothing)"""
+    capsys.readouterr()
+    roast(root, *(["--keys", *keys] if keys else []))
+    assert errors(root, capsys) == missing
+
+
+def test_named_keys_rerun_shards(root, capsys):
+    """A run that names more keys does not skip the shards of an earlier
+    run (`named` is part of the shard signature)"""
+    roast(root, "--exclude-keys", "meta")
+    capsys.readouterr()
+    roast(root, "--keys", "raw", "derivatives")
+    assert "sub-002_acq-mprage_T1w.nii.gz" in errors(root, capsys)
+
+
+def test_shard_inputs(root):
+    """Only the files that the actions read, for the wanted keys"""
+    roast_api(root, keys="T2w", json="no", display=False)
+    state = read_task_states(layout_of(root).state)[
+        "roast/subjects/sub-001"]
+    # touching a file that the run does not read: skipped
+    dti = root / "sourcedata" / "Normal-001/DTI/Normal001-DTI.mha"
+    dti.write_bytes(dti.read_bytes() + b"\n")
+    roast_api(root, keys="T2w", json="no", display=False)
+    assert read_task_states(layout_of(root).state)[
+        "roast/subjects/sub-001"] == state
+    ctx = make_context(layout_of(root), roaster.KEYS, select_keys=["T2w"],
+                       json="no", templates=TEMPLATES)
+    assert roaster.shard_inputs(
+        ctx,
+        root / "sourcedata" / "Normal-001") == [
+        root / "sourcedata" / "Normal-001/T2/Normal001-T2.mha"]
 
 
 def test_missing_source(root):
@@ -407,6 +472,26 @@ def test_participants_rows(root, caplog):
     ]
     assert "'sub-x' with 3 cells (skipped)" in caplog.text
     assert "'sub-003' with 2 cells (skipped)" in caplog.text
+
+
+@pytest.mark.parametrize("content", [b"", b"\n", b"age\tsex\n",
+                                     "participant_id\té\n".encode("latin1")])
+def test_participants_unreadable(root, content):
+    """An empty, headless or non-UTF-8 participants table is an error"""
+    (root / "sourcedata" / "participants.tsv").write_bytes(content)
+    report = roast_api(root, keys=["meta", "T2w"], subs=[1],
+                       display=False)
+    assert [name for _, name, _ in report.errors] == ["participants.tsv"]
+    assert raw_tree(root) == META - {"participants.tsv"} | \
+        {"sub-001/anat/sub-001_T2w.nii.gz", "sub-001/anat/sub-001_T2w.json"}
+
+
+def test_participants_bom(root):
+    (root / "sourcedata" / "participants.tsv").write_text(
+        "\ufeffparticipant_id \tage\n001\t54\n", encoding="utf-8")
+    roast_api(root, keys=["meta", "T2w"], display=False)
+    assert read_tsv(raw_file(root, "participants.tsv")) == [
+        ["participant_id", "age"], ["sub-001", "54"]]
 
 
 def test_template_participants():

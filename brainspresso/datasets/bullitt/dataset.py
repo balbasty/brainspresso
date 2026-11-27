@@ -102,7 +102,7 @@ class Bullitt(Dataset):
         Returns
         -------
         dict
-            `named`: the keys whose missing scans are errors
+            `named`: the keys whose missing scans are errors (from
+            `--keys` as given; none with its default)
         """
-        keys, _ = ROAST_SPEC.effective(args.keys.keys, args.keys.exclude_keys)
-        return roast_options(keys)
+        return roast_options(args.keys.keys)

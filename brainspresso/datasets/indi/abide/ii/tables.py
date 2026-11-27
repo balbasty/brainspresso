@@ -55,19 +55,18 @@ def handedness(value: str) -> str:
     Returns
     -------
     str
-        `R`, `L` or `B`; `n/a` for a number (a code that the legend of
-        the legacy roaster does not give: warned once); other values as
-        they are
+        `R`, `L` or `B`; other values as they are, numbers included (a
+        code that the legend of the legacy roaster does not give: warned
+        once, kept until the codes are checked)
     """
     out = HANDEDNESS.get(value.strip().lower())
     if out is not None:
         return out
-    if re.fullmatch(r"-?\d+(\.\d*)?", value.strip()):
-        if "handedness" not in _warned:
-            _warned.add("handedness")
-            lg.warning(f"HANDEDNESS_CATEGORY: numeric codes ({value!r}) "
-                       f"are not known: n/a")
-        return "n/a"
+    if re.fullmatch(r"-?\d+(\.\d*)?", value.strip()) and \
+            "handedness" not in _warned:
+        _warned.add("handedness")
+        lg.warning(f"HANDEDNESS_CATEGORY: numeric codes ({value!r}) are "
+                   f"not known: kept as they are")
     return value
 
 

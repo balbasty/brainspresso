@@ -1,7 +1,11 @@
 """ABIDE-II roast of the NITRC tarballs (engine)."""
 import gzip
+import io
 import json
 import logging
+import os
+import subprocess
+import sys
 
 import nibabel as nib
 import numpy as np
@@ -27,6 +31,7 @@ from brainspresso.datasets.indi.abide.ii.roaster import roast
 from brainspresso.datasets.indi.abide.ii.sites import TEMPLATES
 from brainspresso.datasets.indi.abide.scans import TemplateError
 from brainspresso.datasets.indi.abide.tables import read_csv
+from brainspresso.datasets.indi.engine import format_tsv
 from brainspresso.roast import make_context
 
 PHENOS = tables.PHENOTYPES
@@ -302,9 +307,94 @@ def test_runs_with_sidecars_only(root):
         for n in (1, 2)}
 
 
-def test_sessions_not_together(root, caplog):
+def test_rerun_does_not_spool(root, monkeypatch):
+    """`--if-exists skip` with every output there: no image is spooled
+    (both names it may get exist), the outputs stay"""
+    roast(root, keys="raw", display=False)
+    spooled = []
+    real = roaster.spool
+
+    def spy(src, path):
+        spooled.append(path)
+        return real(src, path)
+
+    monkeypatch.setattr(roaster, "spool", spy)
+    (root / "sourcedata" / "NYU" / "1").mkdir(parents=True)
+    (root / "sourcedata" / "NYU" / "1" / "T1w.json").write_text("{}")
+    report = roast(root, keys="raw", display=False)    # (shard re-runs)
+    assert not report.errors and report.status == "complete"
+    assert not spooled
+    assert raw_tree(root) == RAW
+    report = roast(root, keys="raw", ifexists="overwrite", display=False)
+    assert not report.errors and spooled
+
+
+def test_rerun_with_other_run_names(root):
+    """A session that gained a scan since the last roast (`run-<n>` now):
+    under `--if-exists skip` the new names fail, naming `--if-exists
+    overwrite`, which writes them"""
+    b = "ABIDEII-IP_1/29230/session_1"
+    tarball = root / "sourcedata" / "ABIDEII-IP_1.tar.gz"
+    make_tar(tarball, {f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3))})
+    roast(root, keys="rest", subs=[29230], json="no", display=False)
+    make_tar(tarball, {f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+                       f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3))})
+    report = roast(root, keys="rest", subs=[29230], json="no",
+                   display=False)
+    assert len(report.errors) == 1
+    assert "--if-exists overwrite" in str(report.errors[0])
+    report = roast(root, keys="rest", subs=[29230], json="no",
+                   ifexists="overwrite", display=False)
+    assert not report.errors
+    assert {f"sub-29230/ses-01/func/sub-29230_ses-01_task-rest_run-{n}"
+            f"_bold.nii.gz" for n in (1, 2)} <= raw_tree(root)
+
+
+def test_spool_error_fails_its_output(root, monkeypatch):
+    """An image that cannot be spooled is a `Fail` of that output, not
+    "tarball cannot be read" """
+    monkeypatch.setattr(roaster, "spool",
+                        lambda src, path: "OSError: no space left")
+    report = roast(root, keys="T1w", subs=[29001], display=False)
+    assert len(report.errors) == 1
+    assert "cannot be spooled" in str(report.errors[0])
+    assert "tar.gz: cannot be read" not in str(report.errors[0])
+    assert raw_tree(root) == {
+        "sub-29001/ses-01/anat/sub-29001_ses-01_T1w.json"}
+
+
+def test_spool_write_error(tmp_path):
+    src = io.BytesIO(b"x" * 10)
+    assert roaster.spool(src, tmp_path / "no" / "such" / "file") \
+        .startswith("FileNotFoundError")
+    assert roaster.spool(io.BytesIO(b"abc"), tmp_path / "ok") is None
+    assert (tmp_path / "ok").read_bytes() == b"abc"
+
+
+def test_stale_spools_swept(root):
+    """Spool folders of dead processes of this host are removed at the
+    start of a roast; those of live processes and other hosts stay"""
+    tmp = layout_of(root).state / "tmp"
+    tmp.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.run([sys.executable, "-c", "pass"])
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    host = roaster._host()
+    stale = tmp / f"abide2-{host}-{dead.pid}-abc"
+    alive = tmp / f"abide2-{host}-{os.getppid()}-abc"
+    other = tmp / f"abide2-elsewhere-{dead.pid}-abc"
+    for folder in (stale, alive, other):
+        folder.mkdir()
+        (folder / "0.nii.gz").write_bytes(b"x")
+    del proc
+    report = roast(root, keys="T1w", subs=[29001], display=False)
+    assert not report.errors
+    assert not stale.exists() and alive.exists() and other.exists()
+
+
+def test_sessions_not_together(root):
     """A session whose folders come apart in the tarball: the later ones
-    are skipped with a warning (their names could contradict)"""
+    are skipped, a `Fail` of the session (their names could contradict)"""
     b = "ABIDEII-IP_1/29220/session_1"
     make_tar(root / "sourcedata" / "ABIDEII-IP_1.tar.gz", {
         f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
@@ -312,14 +402,13 @@ def test_sessions_not_together(root, caplog):
             nii_bytes((2, 2, 2, 3)),
         f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
     })
-    with caplog.at_level(logging.WARNING):
-        report = roast(root, keys="rest", subs=["29220", "29221"],
-                       json="no", display=False)
-    assert not report.errors
+    report = roast(root, keys="rest", subs=["29220", "29221"],
+                   json="no", display=False)
     assert raw_tree(root) == {
         f"sub-{i}/ses-01/func/sub-{i}_ses-01_task-rest_bold.nii.gz"
         for i in (29220, 29221)}
-    assert "not together" in caplog.text
+    assert len(report.errors) == 1 and report.status == "partial"
+    assert "sub-29220 ses-01 are not together" in str(report.errors[0])
 
 
 def test_hires_not_a_run(root, caplog):
@@ -881,8 +970,9 @@ def test_column_names_without_case_and_spaces(tmp_path):
     assert cell("vineland", "dailylvng") == "80"
 
 
-def test_quotes_in_cells(root):
-    """A `"` in a cell is written as it is, and survives the trim"""
+def test_quotes_in_cells(root, caplog):
+    """A `"` in a cell becomes `'` (warned once per table), so that no
+    cell needs quoting; the table survives the trim"""
     write_csv(root / "sourcedata" / "ABIDEII-NYU_1.csv", [
         {"SUB_ID": "29001", "NONASD_PSYDX_LABEL": '"ADHD, combined'},
         {"SUB_ID": "29002", "CURRENT_MEDICATION_NAME": 'Ritalin 5" tabs'}],
@@ -891,14 +981,16 @@ def test_quotes_in_cells(root):
     path.write_text(path.read_text().replace(
         '"ADHD, combined', '"""ADHD, combined"').replace(
         'Ritalin 5" tabs', '"Ritalin 5"" tabs"'))
-    report = roast(root, keys=["meta", "T1w"], display=False)
+    with caplog.at_level(logging.WARNING):
+        report = roast(root, keys=["meta", "T1w"], display=False)
     assert not report.errors, report.errors
     for path in (original(root), raw_file(root, "participants.tsv")):
         rows = [line.split("\t") for line in
                 path.read_text(encoding="utf-8").splitlines()]
         got = {r[0]: dict(zip(rows[0], r)) for r in rows[1:]}
-        assert got["sub-29001"]["nonasd_psydx_label"] == '"ADHD, combined'
-        assert got["sub-29002"]["med_name"] == 'Ritalin 5" tabs'
+        assert got["sub-29001"]["nonasd_psydx_label"] == "'ADHD, combined"
+        assert got["sub-29002"]["med_name"] == "Ritalin 5' tabs"
+    assert caplog.text.count("participants.tsv: '\"' replaced") == 1
 
 
 def test_absent_column_warned_once_per_table(root, caplog):
@@ -920,7 +1012,7 @@ def test_absent_column_warned_once_per_table(root, caplog):
 
 def test_handedness(tmp_path, caplog):
     """Categories R, L, B; numeric codes (not in the legend of the legacy
-    roaster) are n/a, with one warning"""
+    roaster) are kept, with one warning, until the codes are checked"""
     root = tmp_path / "ABIDE-2"
     src = root / "sourcedata"
     src.mkdir(parents=True)
@@ -933,7 +1025,7 @@ def test_handedness(tmp_path, caplog):
         roast(root, keys="meta", display=False)
     rows = read_tsv(original(root))
     got = [dict(zip(rows[0], r))["handedness"] for r in rows[1:]]
-    assert got == ["R", "L", "B", "B", "n/a", "n/a", "n/a"]
+    assert got == ["R", "L", "B", "B", "1", "2", "3"]
     assert caplog.text.count("HANDEDNESS_CATEGORY: numeric") == 1
 
 
@@ -966,6 +1058,17 @@ def test_longitudinal_baseline(tmp_path, caplog):
     assert caplog.text.count("ABIDEII-UCLA_Long.csv: 2 rows skipped") == 1
 
 
+@pytest.mark.parametrize("age", ["-9999", "nan", "n/a", "", "inf"])
+def test_baseline_ignores_missing_ages(tmp_path, age):
+    """A missing age (`-9999`, `nan`...) never makes a row the baseline"""
+    path = tmp_path / "ABIDEII-UCLA_Long.csv"
+    path.write_text("SUB_ID,SITE_ID,AGE_AT_SCAN,BMI\n"
+                    "29001,ABIDE-I_UCLA_1,10,base\n"
+                    f"29001,ABIDEII-UCLA_Long,{age},follow\n")
+    rows = list(PARTICIPANTS.rows([path]))
+    assert dict(zip(rows[0], rows[1]))["bmi"] == "base"
+
+
 def test_missing_phenotypes(root):
     for path in (root / "sourcedata").glob("ABIDEII-*.csv"):
         path.unlink()
@@ -990,6 +1093,26 @@ def test_trim_phenotype_sessions_table(tmp_path):
         root / "phenotype" / "cog_sessions.tsv").read_text().splitlines()
             ] == [["participant_id", "session_id"], ["sub-01", "ses-1"],
                   ["sub-01", "ses-2"]]
+
+
+def test_trim_keeps_quoted_cells(tmp_path):
+    """Regression (round 2 of #37): tables written with quotes (INDI
+    `format_tsv`, BIDS quotes a value with a tab) survive the trim byte
+    for byte"""
+    root = tmp_path / "DS"
+    for sub in ("sub-01", "sub-02", "sub-03"):
+        (root / sub).mkdir(parents=True)
+    text = format_tsv([
+        {"participant_id": "sub-01", "notes": "line1\nline2", "age": "10"},
+        {"participant_id": "sub-02", "notes": "a\tb", "age": "11"},
+        {"participant_id": "sub-03", "notes": 'said "x"', "age": "12"},
+        {"participant_id": "sub-04", "notes": "gone", "age": "13"},
+    ], ["participant_id"])
+    orig = tmp_path / "orig.tsv"
+    orig.write_bytes(text.encode("utf-8"))
+    trim_tables(root, {"participants.tsv": orig})
+    assert (root / "participants.tsv").read_bytes().decode("utf-8") == \
+        text.replace("sub-04\tgone\t13\n", "")
 
 
 def test_trim_phenotype_tables(tmp_path):

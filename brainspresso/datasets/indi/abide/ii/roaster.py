@@ -54,6 +54,7 @@ import io
 import os
 import re
 import shutil
+import socket
 import tempfile
 from collections import Counter
 from dataclasses import dataclass, field
@@ -63,6 +64,7 @@ from pathlib import Path, PurePosixPath
 from typing import Iterator, NamedTuple
 
 from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.actions.runlock import pid_alive
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
@@ -136,6 +138,9 @@ GRADIENTS = {".bval": ".bval", ".bvals": ".bval",
 
 #: Bytes of a member read for its NIfTI header (`--sidecars only`)
 HEADER_BYTES = 65536
+
+#: Prefix of the spool folders (`.brainspresso/tmp/abide2-<host>-<pid>-*`)
+SPOOL_PREFIX = "abide2-"
 
 
 class Kind(NamedTuple):
@@ -330,6 +335,7 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
         PARTICIPANTS, PHENOTYPES, pristine_phenotypes=True)
     if not wants_raw(ctx):
         return
+    sweep_spools(ctx)
     bucket = (ctx.source / RAWDATA).is_dir()
     if bucket:
         lg.warning(f"{RAWDATA}/ (the bucket copy, harvested with --source "
@@ -432,6 +438,57 @@ def spool_folder(ctx: RoastContext) -> Path | None:
     return folder
 
 
+def _host() -> str:
+    """Return the name of this host, as a part of a folder name."""
+    return re.sub(r"[^A-Za-z0-9.]", "_", socket.gethostname()) or "host"
+
+
+def spool_prefix() -> str:
+    """Prefix of the spool folder of a shard (`abide2-<host>-<pid>-`)."""
+    return f"{SPOOL_PREFIX}{_host()}-{os.getpid()}-"
+
+
+def sweep_spools(ctx: RoastContext) -> list[Path]:
+    """
+    Remove the spool folders of dead roasts (left by a hard kill).
+
+    A spool folder is named after the host and process of its shard
+    (`abide2-<host>-<pid>-<random>`): those of this host whose process
+    is gone are removed. Roasts hold the run lock of the dataset (shared:
+    other roasts may run, whose processes are alive), so compost does not
+    run meanwhile. Folders of other hosts are left (their processes
+    cannot be checked).
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+
+    Returns
+    -------
+    list[Path]
+        The folders removed
+    """
+    folder = Path(ctx.layout.state) / "tmp"
+    if not folder.is_dir():
+        return []
+    host = _host()
+    removed = []
+    for spool in sorted(folder.glob(f"{SPOOL_PREFIX}*")):
+        match = re.fullmatch(rf"{re.escape(SPOOL_PREFIX)}(?P<host>.+)-"
+                             rf"(?P<pid>\d+)-[^-]+", spool.name)
+        if not (spool.is_dir() and match and match["host"] == host):
+            continue
+        if int(match["pid"]) == os.getpid() or pid_alive(int(match["pid"])):
+            continue
+        shutil.rmtree(spool, ignore_errors=True)
+        removed.append(spool)
+    if removed:
+        lg.info(f"Removed {len(removed)} spool folder(s) of interrupted "
+                f"roasts in {folder}")
+    return removed
+
+
 @dataclass
 class Candidate:
     """
@@ -450,6 +507,8 @@ class Candidate:
     data : bytes | None
         Content of a gradient table, or the first bytes of an image
         (its header, when it is not spooled)
+    error : str | None
+        Why the image could not be spooled
     """
 
     name: str
@@ -457,6 +516,7 @@ class Candidate:
     preferred: bool
     spool: Path | None = None
     data: bytes | None = None
+    error: str | None = None
 
 
 @dataclass
@@ -530,7 +590,7 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     default = tarball_site(path)
     unknown = Counter()
     notes = set()
-    with tempfile.TemporaryDirectory(prefix="abide2-",
+    with tempfile.TemporaryDirectory(prefix=spool_prefix(),
                                      dir=spool_folder(ctx)) as tmp:
         session = None
         done = set()
@@ -558,10 +618,14 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
                     if key in done:
                         if key not in notes:
                             notes.add(key)
-                            lg.warning(
+                            yield Fail(
                                 f"{path.name}: the folders of sub-{key[0]} "
                                 f"ses-{key[1]} are not together: "
-                                f"{member.name} and the later ones skipped")
+                                f"{member.name} and the later ones skipped "
+                                f"(their runs could contradict the names "
+                                f"already written)",
+                                name=f"sub-{key[0]}_ses-{key[1]}",
+                                tag=kind.key)
                         continue
                     if session is None:
                         session = Session(key, Path(tmp))
@@ -599,6 +663,7 @@ class Session:
         self.tmp = tmp
         self.scans: dict[tuple[str, int], Scan] = {}
         self.spooled: list[Path] = []
+        self.previous: dict[tuple[str, str], set] = {}
 
     def add(self, ctx: RoastContext, path: Path, archive, member,
             parsed: Member, kind: Kind, unknown: Counter) -> None:
@@ -642,13 +707,13 @@ class Session:
                     (scan.images and not candidate.preferred):
                 scan.images.append(candidate)   # (never used: not read)
                 return
-            if ctx.accepts("data"):
+            if ctx.accepts("data") and not self.present(ctx, parsed, kind,
+                                                        ext):
                 candidate.spool = self.tmp / f"{len(self.spooled)}{ext}"
-                with archive.extractfile(member) as src, \
-                        open(candidate.spool, "wb") as dst:
-                    shutil.copyfileobj(src, dst)
                 self.spooled.append(candidate.spool)
-            else:                               # (`--sidecars only`)
+                with archive.extractfile(member) as src:
+                    candidate.error = spool(src, candidate.spool)
+            else:       # (`--sidecars only`, or the outputs are there)
                 with archive.extractfile(member) as src:
                     candidate.data = src.read(HEADER_BYTES)
             scan.images.append(candidate)
@@ -664,6 +729,61 @@ class Session:
         scan.gradients.setdefault(ext, []).append(Candidate(
             member.name, ext, preferred(parsed.folder, name, ext),
             data=data))
+
+    def present(self, ctx: RoastContext, parsed: Member, kind: Kind,
+                ext: str) -> bool:
+        """
+        Whether an image need not be spooled (`--if-exists skip`).
+
+        The images of the kind that an earlier roast wrote for this
+        session tell how it named them: without `run-<n>` (one scan), or
+        with it. An image need not be spooled if the name it got then
+        exists: its action will skip it. If the tarball changed so that
+        it now gets another name (a scan was added), its output is a
+        `Fail` that names `--if-exists overwrite`, which spools it.
+
+        Parameters
+        ----------
+        ctx : RoastContext
+            Context of the roast
+        parsed : Member
+            What the name of the image says
+        kind : Kind
+            Its kind of scan
+        ext : str
+            Its extension
+
+        Returns
+        -------
+        bool
+        """
+        if ctx.ifexists != "skip":
+            return False
+        runs = self.written(ctx, parsed, kind, ext)
+        if None in runs:
+            # one scan before: this one, if it is the first of its kind
+            return runs == {None} and not any(
+                s.images for (k, _), s in self.scans.items()
+                if k == kind.key)
+        return parsed.run in runs
+
+    def written(self, ctx: RoastContext, parsed: Member, kind: Kind,
+                ext: str) -> set:
+        """Find the runs of the images of a kind on disk (None: no run)."""
+        key = (kind.key, ext)
+        if key not in self.previous:
+            folder = (ctx.layout.raw / f"sub-{parsed.sub}"
+                      / f"ses-{parsed.ses}" / kind.datatype)
+            head = f"sub-{parsed.sub}_ses-{parsed.ses}_{kind.entities}"
+            name = re.compile(rf"{re.escape(head)}(?:run-(?P<run>\d+)_)?"
+                              rf"{re.escape(kind.suffix + ext)}")
+            runs = set()
+            for file in folder.iterdir() if folder.is_dir() else ():
+                match = name.fullmatch(file.name)
+                if match:
+                    runs.add(int(match["run"]) if match["run"] else None)
+            self.previous[key] = runs
+        return self.previous[key]
 
     def actions(self, ctx: RoastContext, path: Path,
                 notes: set) -> Iterator[Action]:
@@ -694,7 +814,22 @@ class Session:
                     / kind.datatype / kind.name(m.sub, m.ses, run))
             image = scan.chosen(scan.images, path)
             dst = Path(f"{stem}{image.ext}")
-            if image.spool is not None:
+            if image.error is not None:
+                yield Fail(f"{PurePosixPath(image.name).name}: cannot be "
+                           f"spooled ({image.error})", name=dst.name,
+                           tag=kind.key)
+                image.spool = None
+            elif image.spool is None and ctx.accepts("data") and \
+                    not dst.exists():
+                # (not spooled: an earlier roast wrote the other name,
+                # `Session.present`)
+                yield Fail(f"{PurePosixPath(image.name).name}: not "
+                           f"spooled (an earlier roast wrote it with or "
+                           f"without `run-<n>`): roast again with "
+                           f"--if-exists overwrite", name=dst.name,
+                           tag=kind.key)
+            elif image.spool is not None or ctx.accepts("data"):
+                # (not spooled: it is there, and the action skips it)
                 yield Action(path, dst, partial(place, image.spool),
                              input="path", kind="data", tag=kind.key)
             yield from sidecar_actions(ctx, path, scan, stem, dst, image,
@@ -716,8 +851,49 @@ class Session:
                 lg.debug(f"{spool}: {e}")
 
 
-def place(spool: Path, path: str) -> None:
+def spool(src, path: Path) -> str | None:
+    """
+    Copy an archive member to a spool file.
+
+    Errors reading the member (a corrupt archive) are raised; errors
+    writing the spool file are returned (a `Fail` of that output).
+
+    Parameters
+    ----------
+    src : file
+        The member, opened
+    path : Path
+        Spool file
+
+    Returns
+    -------
+    str | None
+        The error writing the spool file, if any
+    """
+    try:
+        dst = open(path, "wb")
+    except OSError as e:
+        error = e
+    else:
+        error = None
+        with dst:
+            while chunk := src.read(1 << 20):
+                if error is not None:
+                    continue            # (read on: forward only)
+                try:
+                    dst.write(chunk)
+                except OSError as e:
+                    error = e
+    return None if error is None else f"{type(error).__name__}: {error}"
+
+
+def place(spool: Path | None, path: str) -> None:
     """Move a spooled image into place (copy it across filesystems)."""
+    if spool is None:
+        raise FileNotFoundError(
+            "the image was not spooled (an earlier roast wrote it under "
+            "the other name: with or without `run-<n>`): roast again with "
+            "--if-exists overwrite")
     try:
         os.replace(spool, path)
     except OSError:

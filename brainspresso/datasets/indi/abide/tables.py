@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 from dataclasses import dataclass, field
 from logging import getLogger
@@ -121,8 +122,15 @@ def read_csv(path: Path) -> list[list[str]]:
 
 
 def _cell(value: str) -> str:
-    """Collapse the whitespace (line breaks, tabs) of a cell."""
-    return re.sub(r"\s*[\r\n\t]+\s*", " ", value).strip()
+    """
+    Make a cell safe for a TSV table.
+
+    Line breaks and tabs are collapsed to a space and `"` becomes `'`,
+    so that a cell never needs quoting (`utils.io.write_tsv` does not
+    quote; `bids.tables.read_tsv` reads quotes).
+    """
+    value = re.sub(r"\s*[\r\n\t]+\s*", " ", value).strip()
+    return value.replace('"', "'")
 
 
 @dataclass(frozen=True)
@@ -193,16 +201,22 @@ class Table:
     def _order(self, row: list[str], index: int | None) -> float:
         """Sort key of a row among those of one subject (`baseline`)."""
         try:
-            return float(row[index])
-        except (TypeError, IndexError, ValueError):
+            value = row[index].strip()
+            order = float(value)
+        except (TypeError, IndexError, ValueError, AttributeError):
             return float("inf")
+        if value in NANS or not math.isfinite(order):
+            return float("inf")             # (missing: `-9999`, `nan`)
+        return order
 
     def rows(self, paths: Iterable[Path],
              name: str = "table") -> Iterator[list[str]]:
         """
         Rows of the table (header first) from CSV files.
 
-        Blank rows are skipped; rows without a subject, or that do not
+        Cells are made safe for a TSV table (`_cell`: line breaks and
+        tabs collapsed, `"` replaced by `'`, warned once). Blank rows
+        are skipped; rows without a subject, or that do not
         reach the subject column, are skipped with a warning. Of the
         rows of a subject listed more than once, one is kept (that of
         the first file, and in it the first row or the `baseline` one),
@@ -224,6 +238,7 @@ class Table:
         yield list(self.columns)
         seen = set()
         found = set()
+        quotes = 0
         paths = [Path(path) for path in paths]
         for path in paths:
             rows = read_csv(path)
@@ -284,8 +299,12 @@ class Table:
                 for column in list(self.columns)[1:]:
                     i = where[column]
                     cell = row[i] if i is not None and i < len(row) else ""
+                    quotes += '"' in cell
                     out.append(self.convert(column, cell))
                 yield out
+        if quotes:
+            _once(f"{name}: '\"' replaced by \"'\" in {quotes} cells "
+                  f"(BIDS tables are not quoted)", paths)
         absent = [c for c in self.columns if c not in found]
         if paths and absent and len(absent) < len(self.columns):
             _once(f"{name}: no CSV file has a column for "

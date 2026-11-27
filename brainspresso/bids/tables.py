@@ -23,23 +23,17 @@ _QUERY = re.compile(r"^\s*([^\s=!<>]+)\s*(==|!=|>=|<=|>|<|=)\s*(.*?)\s*$")
 
 
 def read_tsv(text: str) -> tuple[list[str], list[dict]]:
-    """
-    Parse a TSV table: header, rows.
-
-    BIDS tables are not quoted: a `"` is part of its field (as
-    `utils.io.write_tsv` writes it).
-    """
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t",
-                            quoting=csv.QUOTE_NONE)
+    """Parse a TSV table: header, rows."""
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
     return list(reader.fieldnames or []), list(reader)
 
 
 def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
-    """Write rows (dictionaries) as a TSV table (fields as they are)."""
+    """Write rows (dictionaries) as a TSV table."""
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f, header, delimiter="\t", lineterminator="\n",
-            extrasaction="ignore", quoting=csv.QUOTE_NONE, quotechar=None,
+            extrasaction="ignore",
         )
         writer.writeheader()
         writer.writerows(rows)

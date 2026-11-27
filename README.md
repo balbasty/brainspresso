@@ -146,6 +146,14 @@ runs; compost refuses to start while records of other runs are there (a
 crashed run, or a filesystem that does not share locks between machines:
 `--ignore-runs` once you have checked that nothing runs).
 
+Files are locked while they are read or written, with lock files in
+`.brainspresso/locks/` (Linux, macOS and Windows; see
+`brainspresso/actions/locks.py` for filesystems). `BRAINSPRESSO_LOCKS=0`
+disables every lock, for a filesystem without lock support: the run
+lock, the locks of files, and the lock of each partial download (two
+downloads of one file could then write it at once). It is unsafe while
+other commands use the dataset.
+
 ## OpenNeuro: any dataset, or a filtered subset of it
 
 OpenNeuro datasets are already in BIDS, so `harvest` downloads them

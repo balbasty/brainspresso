@@ -301,6 +301,42 @@ def test_same_relative_path_in_two_datasets_two_entries(tmp_path,
     assert other_process_gets(b / "x.nii")
 
 
+def test_limitation_case_distinct_folders_with_equal_inodes_merge(
+    tmp_path, monkeypatch,
+):
+    """
+    The documented limitation (module docstring, "Limitations"; design
+    note section 6 and amendment A): two *distinct* lock files merge in
+    one process if their (st_dev, st_ino) are equal *and* their paths
+    differ only by case, which needs a case-sensitive filesystem whose
+    inodes are not unique. The alias key is casefolded (so that case
+    aliases on caseless filesystems merge), so it cannot tell them apart.
+    This test asserts that they DO merge, as documented.
+    """
+    upper = dataset(tmp_path / "DS")
+    if (tmp_path / "ds").exists():      # (caseless: macOS, Windows)
+        # simulated: another folder whose path differs only by case,
+        # once the alias key has folded it
+        lower = dataset(tmp_path / "dt")
+        alias_key = locks._alias_key
+        monkeypatch.setattr(locks, "_alias_key", lambda p: alias_key(
+            p).replace(os.sep + "dt" + os.sep, os.sep + "ds" + os.sep))
+    else:                               # case-sensitive: two real folders
+        lower = dataset(tmp_path / "ds")
+    # inodes that are not unique
+    monkeypatch.setattr(locks, "_file_id", lambda fd: (1, 42))
+    monkeypatch.setattr(locks, "_path_id", lambda path: (1, 42))
+    a = FileLock(upper / "x.nii").acquire()
+    b = FileLock(lower / "x.nii").acquire()
+    try:
+        assert a.lockfile != b.lockfile             # two files
+        assert entry_of(a) is entry_of(b)           # one entry: merged
+        assert len(entry_of(a).spares) == 1
+    finally:
+        b.release()
+        a.release()
+
+
 @pytest.mark.skipif(WINDOWS, reason=(
     "Windows cannot delete a lock file that a handle keeps open"))
 def test_live_entry_by_identity_wins_over_a_retired_one_by_path(

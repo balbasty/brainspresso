@@ -149,9 +149,12 @@ Disabling locks
 ---------------
 Locks are disabled only explicitly: `$BRAINSPRESSO_LOCKS` set to "0",
 "no", "off" or "false" (an escape hatch for filesystems without lock
-support; unsafe with concurrent writers; also the lock of each
-download). A platform with neither `fcntl` nor the Windows API raises
-`LockError` instead of running unlocked.
+support; unsafe with concurrent writers). It disables every lock: the
+run lock, the locks of files, and also the lock of each partial
+download (`download.incomplete`, a `FileLock` since fasteners was
+dropped), so two downloads of one file could then write it at once.
+A platform with neither `fcntl` nor the Windows API raises `LockError`
+instead of running unlocked.
 
 A reader whose lock file can neither be created nor opened (e.g. a
 dataset whose `.brainspresso/` is read-only for this user) reads without
@@ -969,6 +972,18 @@ class FileLock:
     locked : bool
         Whether the lock is held (False for a reader that could not
         create its lock file, or with locks disabled)
+
+    Notes
+    -----
+    `timeout` bounds the wait for other holders, in this process and in
+    others. A thread that finds the entry of its lock file retired (its
+    last holder is closing its descriptors) waits for that close, at
+    least `_GONE_GRACE` seconds (10), even with `timeout=0`: a new
+    descriptor of the file may only lock once the old one is closed
+    (invariant I2), and that close is local and short, not contention;
+    a zero timeout (`run_lock(wait=0)`, fail fast) must not fail
+    because another thread of the process is releasing the same file.
+    Only if the close takes longer does it raise `LockTimeout`.
     """
 
     def __init__(

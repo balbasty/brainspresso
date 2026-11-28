@@ -61,9 +61,9 @@ def _label(experiment: str) -> str | None:
 
 
 def roast_ixi(ctx):
-    """Roaster of the IXI sources (imported on use: needs xlrd)"""
+    """Roaster of the IXI sources (imported on use: import cycle)"""
     from brainspresso.datasets.ixi.roaster import (  # noqa: PLC0415
-        roast_ixi,  # lazy: optional dependency (xlrd)
+        roast_ixi,  # lazy: import cycle (roaster -> dataset -> harvest)
     )
     return roast_ixi(ctx)
 

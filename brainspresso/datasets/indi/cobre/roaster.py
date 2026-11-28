@@ -35,7 +35,6 @@ roast that keeps no more (fewer subjects, `meta` toggled) skips it; its
 sidecar templates (paths, hashes) are its `Shard.config`. A corrupt
 tarball is one `Fail` of that shard, named after the tarball.
 """  # noqa: E501
-import csv
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -55,9 +54,9 @@ from brainspresso.roast import (
     scope,
 )
 from brainspresso.roast.sidecars import template_config, template_sidecar
+from brainspresso.roast.tables import read_csv, table_action
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
-from brainspresso.utils.io import write_tsv
 
 lg = getLogger(__name__)
 
@@ -196,11 +195,8 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"{PHENOTYPES} not found", name="participants.tsv",
                    tag="meta")
         return
-    yield Action(
-        phenotypes, ctx.layout.original(raw / "participants.tsv"),
-        partial(write_participants, phenotypes),
-        mode="t", input="path", tag="meta",
-    )
+    yield table_action(ctx, raw / "participants.tsv",
+                       partial(participant_rows, phenotypes), phenotypes)
 
 
 def participant_label(value: str) -> str:
@@ -276,33 +272,36 @@ def participant_row(row: list[str],
     return out
 
 
-def write_participants(path_csv, path_tsv) -> None:
+def participant_rows(path_csv) -> list[list[str]]:
     """
-    Write the participants table (every subject of the CSV file).
+    Read the participants table (every subject of the CSV file).
 
-    A word after a diagnosis code that is not a subtype is warned about
+    Cells are read by position (the CSV header names no subject column);
+    a word after a diagnosis code that is not a subtype is warned about
     once per table (`participant_row`), i.e. once per roast.
 
     Parameters
     ----------
     path_csv : path
-        `COBRE_phenotypic_data.csv`
-    path_tsv : path
-        Output table
+        `COBRE_phenotypic_data.csv` (UTF-8, else Windows-1252)
+
+    Returns
+    -------
+    list[list[str]]
+        Header and rows
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the file cannot be read
     """
     warned = set()
-
-    def iter_rows():
-        with open(path_csv, "rt", newline="", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader)
-            yield PARTICIPANTS_HEADER
-            for row in reader:
-                row = participant_row(list(row), warned)
-                if row is not None:
-                    yield row
-
-    write_tsv(iter_rows(), path_tsv)
+    rows = [PARTICIPANTS_HEADER]
+    for _, row in read_csv(path_csv).rows:
+        row = participant_row(list(row), warned)
+        if row is not None:
+            rows.append(row)
+    return rows
 
 
 # ----------------------------------------------------------------------

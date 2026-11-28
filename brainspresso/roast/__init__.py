@@ -15,6 +15,8 @@ The roast layer of the action engine (`actions.engine`):
   shard), `attempt` (a reader's error as a `Fail`);
 * `archives`: reading source archives (`reading`, `ArchiveError`, the
   spools of ABIDE-II);
+* `tables`: source tables read (`read_csv`, `read_xlsx`, `read_xls`),
+  cells cleaned (`clean`), roasted tables written (`table_action`);
 * `sidecars`: sidecars from templates (`template_config`, sidecar
   templates in a shard's `config`; `copy_sidecar`, `read_template`,
   `bold_sidecar` and the TR policy, `repetition_time`).
@@ -30,13 +32,19 @@ roast_dataset(roast_ixi, root, KEYS, keys=["T1w"], jobs=4)
 ```
 """
 from brainspresso.actions.engine import LocalExecutor, Shard
+from brainspresso.roast import tables
 from brainspresso.roast.context import (
     JsonPolicy,
     RoastContext,
     as_list,
     make_context,
 )
-from brainspresso.roast.helpers import copy_templates, scope, subject_shards
+from brainspresso.roast.helpers import (
+    attempt,
+    copy_templates,
+    scope,
+    subject_shards,
+)
 from brainspresso.roast.policy import SEEN, RoastPolicy
 from brainspresso.roast.run import (
     Roaster,
@@ -47,6 +55,7 @@ from brainspresso.roast.run import (
 
 __all__ = [
     "JsonPolicy", "LocalExecutor", "RoastContext", "RoastPolicy",
-    "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "copy_templates",
-    "make_context", "roast_dataset", "run_roast", "scope", "subject_shards",
+    "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "attempt",
+    "copy_templates", "make_context", "roast_dataset", "run_roast", "scope",
+    "subject_shards", "tables",
 ]

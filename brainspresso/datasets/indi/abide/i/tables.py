@@ -17,7 +17,6 @@ from brainspresso.datasets.indi.abide.tables import (
     WIDTH,
     Table,
     participant_label,
-    write_table,
 )
 
 lg = getLogger(__name__)
@@ -29,7 +28,6 @@ __all__ = [
     "WIDTH",
     "Table",
     "participant_label",
-    "write_table",
 ]
 
 

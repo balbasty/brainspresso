@@ -37,15 +37,15 @@ from the member names. The participants and sessions tables are
 written complete to `.brainspresso/orig/` (all subjects, all sessions
 found in `sourcedata/`) and trimmed to what is on disk.
 """  # noqa: E501
-import csv
+import math
 import re
+from collections import Counter
 from functools import partial
-from io import TextIOWrapper
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
-from brainspresso.actions import Action, Claim, Fail, WriteJSON, WriteTSV
+from brainspresso.actions import Action, Claim, Fail, WriteJSON
 from brainspresso.actions.archive import ExtractMembers
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.oasis.iii.keys import allkeys
@@ -55,9 +55,20 @@ from brainspresso.roast import (
     Shard,
     archives,
     as_list,
+    attempt,
     copy_templates,
     roast_dataset,
     subject_shards,
+    tables,
+)
+from brainspresso.roast.tables import (
+    NANS,
+    Sheet,
+    TableError,
+    clean,
+    integer,
+    row_warning,
+    table_action,
 )
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import read_json
@@ -341,22 +352,52 @@ PARTICIPANTS_ROW_MAP = {
 }
 
 
-def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
-    """Header and rows of the (first) CSV file of a tarball (blank rows
-    dropped; none: no rows); `roast.archives.ArchiveError` if it cannot
-    be read"""
+def read_csv(tarball: Path, **kwargs) -> Sheet:
+    """
+    Read the (first) CSV file of a tarball.
+
+    Parameters
+    ----------
+    tarball : Path
+        `OASIS3_data_files/<form>.tar.gz`
+    **kwargs
+        Options of `roast.tables.read_csv`
+
+    Returns
+    -------
+    Sheet
+        Its header and rows (blank rows dropped), named after the tarball
+
+    Raises
+    ------
+    roast.archives.ArchiveError
+        If the tarball cannot be read
+    roast.tables.TableError
+        If it holds no file, or its CSV file cannot be read
+    """
     with archives.reading(tarball, opener=TarArchive) as tar:
         member = next(iter(tar), None)
         if member is None:
-            return [], []
-        with TextIOWrapper(member.open(), newline="") as f:
-            rows = [r for r in csv.reader(f, **kwargs)
-                    if any(c.strip() for c in r)]
-    return (rows[0], rows[1:]) if rows else ([], [])
+            raise TableError(f"{tarball.name}: no CSV file")
+        with member.open() as f:
+            return tables.read_csv(f, name=tarball.name, **kwargs)
+
+
+#: Errors of a CSV tarball that cannot be read (`attempt`; a `TableError`
+#: is a `ValueError`, and so are the numbers that cannot be read)
+READ_ERRORS = (archives.ArchiveError, ValueError)
 
 
 def roast_meta(ctx: RoastContext, sessions: dict) -> Iterator[Action]:
-    raw, original = ctx.layout.raw, ctx.layout.original
+    """
+    Write the dataset files, the participants and sessions tables.
+
+    The participants table is read when its action runs (a demographics
+    tarball that cannot be read is an error of `participants.tsv`); the
+    ages and diagnoses that the sessions tables need are read first
+    (an error of the sessions tables if they cannot be).
+    """
+    raw = ctx.layout.raw
     yield from copy_templates(ctx, ["README", "dataset_description.json",
                                     "participants.json", "sessions.json"])
 
@@ -365,55 +406,84 @@ def roast_meta(ctx: RoastContext, sessions: dict) -> Iterator[Action]:
     demo = demo if demo.exists() else None
     cdr = cdr if cdr.exists() else None
     if demo:
-        yield WriteTSV(participants(demo), original(raw / "participants.tsv"),
-                       src=demo, tag="meta")
+        yield table_action(ctx, raw / "participants.tsv",
+                           partial(participants, demo), demo)
     else:
         yield Fail(f"sourcedata/{DATA_FILES}/demo.tar.gz not found",
                    name="participants.tsv", tag="meta")
-    ages = entry_ages(demo) if demo else {}
-    visits = diagnoses(cdr) if cdr else {}
+    ages = visits = {}
+    if demo:
+        ages, error = attempt(entry_ages, demo, fail_name="sessions.tsv",
+                              fail_tag="meta", fail_what=demo.name,
+                              fail_errors=READ_ERRORS)
+        if error:
+            yield error
+            return
+    if cdr:
+        visits, error = attempt(diagnoses, cdr, fail_name="sessions.tsv",
+                                fail_tag="meta", fail_what=cdr.name,
+                                fail_errors=READ_ERRORS)
+        if error:
+            yield error
+            return
     for sub, labels in sorted(sessions.items()):
         labels = sorted(labels, key=lambda ses: int(ses[1:]))
         table = raw / f"sub-{sub}" / f"sub-{sub}_sessions.tsv"
-        yield WriteTSV(
+        yield table_action(
+            ctx, table,
             session_rows(labels, ages.get(sub), visits.get(sub, [])),
-            original(table), src=[p for p in (demo, cdr) if p], tag="meta",
-        )
+            [p for p in (demo, cdr) if p])
 
 
 def participants(demo: Path) -> list[list[str]]:
-    header, rows = read_csv(demo)
+    """
+    Read the participants table (every subject of the demographics).
+
+    Rows whose `OASISID` is not one are skipped with a warning.
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the CSV file cannot be read or lacks a column
+    """
+    sheet = read_csv(demo)
+    index = {col: sheet.require(name)
+             for col, name in PARTICIPANTS_HEADER_MAP.items()}
     out = [list(PARTICIPANTS_HEADER_MAP)]
-    for row in rows:
-        row = dict(zip(header, row))
-        out.append([fix(row[PARTICIPANTS_HEADER_MAP[col]])
+    for line, row in sheet.rows:
+        sid = str(sheet.cell(row, index["participant_id"])).strip()
+        if not re.fullmatch(r"OAS3\d+", sid):
+            row_warning(sheet, line, f"row skipped (subject {sid!r})")
+            continue
+        out.append([fix(str(sheet.cell(row, index[col])).strip())
                     for col, fix in PARTICIPANTS_ROW_MAP.items()])
     return out
 
 
 def entry_ages(demo: Path) -> dict[str, float]:
     """{sub: age at entry (day 0)}"""
-    header, rows = read_csv(demo)
+    sheet = read_csv(demo)
+    sid, age = sheet.require("OASISID"), sheet.require("AgeatEntry")
     out = {}
-    for row in rows:
-        row = dict(zip(header, row))
-        if row.get("AgeatEntry"):
-            out[row["OASISID"][4:]] = float(row["AgeatEntry"])
+    for _, row in sheet.rows:
+        if str(sheet.cell(row, age)).strip():
+            out[str(sheet.cell(row, sid)).strip()[4:]] = \
+                float(sheet.cell(row, age))
     return out
 
 
 def diagnoses(cdr: Path) -> dict[str, list[tuple[int, str]]]:
     """{sub: [(days after entry, diagnosis code)]} from the CDR form"""
-    header, rows = read_csv(cdr)
-    header = [h.lower() for h in header]
+    sheet = read_csv(cdr)
+    sid, days = sheet.require("OASISID"), sheet.require("days_to_visit")
+    code = sheet.find("dx1_code")
     out = {}
-    for row in rows:
-        row = dict(zip(header, row))
-        if not row.get("oasisid") or not row.get("days_to_visit"):
+    for _, row in sheet.rows:
+        sub, day = sheet.cell(row, sid), sheet.cell(row, days)
+        if not sub or not day:
             continue                    # (truncated row)
-        out.setdefault(row["oasisid"][4:], []).append(
-            (int(row["days_to_visit"]), row.get("dx1_code") or "n/a")
-        )
+        out.setdefault(sub[4:], []).append(
+            (int(day), sheet.cell(row, code) or "n/a"))
     return out
 
 
@@ -470,14 +540,17 @@ def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
     """
     Phenotype tables (one row per visit) and their data dictionaries.
 
-    The tables are written complete to `.brainspresso/orig/`, with the
+    Each tarball is read when the tables are yielded (one that cannot be
+    is an error of its table only). The tables are written complete to
+    `.brainspresso/orig/`, with the
     `session_id` of the day of each visit (`ses-d<days>`); the visible
     tables are derived from them after every roast (`trim_originals`,
     `bids.tables.trim_tables`), as the participants table: the rows of
     the subjects on disk, and `session_id` `n/a` when the subject has no
     session that day in the raw dataset (the day is kept in `delay`).
     So they follow what is on disk, whatever `--if-exists` says.
-    Truncated rows are skipped (`complete_rows`).
+    Truncated rows are skipped (`complete_rows`); cells are cleaned
+    (`roast.tables.clean`: `"` and tabs replaced, no quoting needed).
     """
     for form, base in PHENOFILES.items():
         name = "pychometrics" if form == "c1" else f"UDS{form}"
@@ -487,17 +560,71 @@ def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
             continue
         out = ctx.layout.phenotype / f"UDS_{base}"
         medications = form.startswith("a4")
-        csv_opt = dict(quotechar='"') if medications else {}
-        header, rows = read_csv(tarball, **csv_opt)
-        header = [fix_pheno_column(h, medications) for h in header]
-        name = f"phenotype/UDS_{base}.tsv"
-        rows = (fix_pheno_row(row, header)
-                for row in complete_rows(rows, header, name))
-        yield WriteTSV([header, *rows],
-                       ctx.layout.original(Path(f"{out}.tsv")), src=tarball,
-                       tag="pheno")
-        yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
-                        src=tarball, tag="pheno")
+        table = f"UDS_{base}.tsv"
+        sheet, error = attempt(read_csv, tarball, fail_name=table,
+                               fail_tag="pheno", fail_what=tarball.name,
+                               fail_errors=READ_ERRORS)
+        if error is None:
+            header, error = attempt(phenotype_header, sheet, medications,
+                                    fail_name=table, fail_tag="pheno")
+        if error is None:
+            sidecar, error = attempt(phenotype_json, ctx, form, header,
+                                     fail_name=f"UDS_{base}.json",
+                                     fail_tag="pheno")
+        if error:
+            yield error
+            continue
+        name = f"phenotype/{table}"
+        yield table_action(ctx, Path(f"{out}.tsv"),
+                           partial(phenotype_rows, sheet, header, name),
+                           tarball, tag="pheno", name=name, sidecar=sidecar)
+        yield WriteJSON(sidecar, f"{out}.json", src=tarball, tag="pheno")
+
+
+def phenotype_header(sheet: Sheet, medications: bool = False) -> list[str]:
+    """
+    Columns of a phenotype table (BIDS names, cleaned once: the table
+    and its data dictionary use the same names).
+
+    Raises
+    ------
+    roast.tables.TableError
+        If a column name cannot be converted, or there is no subject
+        column (`OASISID`)
+    """
+    header = []
+    for column in sheet.header:
+        try:
+            header.append(clean(fix_pheno_column(column, medications),
+                                nans=()))
+        except ValueError as e:
+            raise TableError(f"{sheet.name}: column {column!r} cannot be "
+                             f"read ({e})") from e
+    if "participant_id" not in header:
+        raise TableError(f"{sheet.name}: no column 'OASISID'")
+    return header
+
+
+def phenotype_rows(sheet: Sheet, header: list[str], name: str) -> list:
+    """
+    Rows of a phenotype table (run by its action).
+
+    A row whose subject is not an OASIS-III ID is skipped; a cell of
+    `delay` or `age` that is not a number is `n/a`: one warning per
+    table and column, with a count.
+    """
+    bad = Counter()
+    rows = [header]
+    for row in complete_rows((row for _, row in sheet.rows), header, name):
+        row = fix_pheno_row(row, header, bad)
+        if row is not None:
+            rows.append(row)
+    for column, count in sorted(bad.items()):
+        what = ("row(s) skipped (subject not an OASIS-III ID)"
+                if column == "participant_id" else
+                f"cell(s) of {column} not a number (n/a)")
+        lg.warning(f"{name}: {count} {what}")
+    return rows
 
 
 def complete_rows(rows, header: list[str], name: str):
@@ -533,28 +660,60 @@ def fix_pheno_column(name: str, medications: bool = False) -> str:
     return name.upper()
 
 
-def fix_pheno_row(row: list[str], header: list[str]) -> list:
+def fix_pheno_row(row: list[str], header: list[str],
+                  bad: Counter | None = None) -> list | None:
+    """
+    Convert a row of a phenotype table.
+
+    Parameters
+    ----------
+    row : list[str]
+        Its cells
+    header : list[str]
+        Its columns (`phenotype_header`)
+    bad : Counter, optional
+        Incremented per column whose cell cannot be read
+
+    Returns
+    -------
+    list | None
+        The row (other cells: `roast.tables.clean`, by `table_action`);
+        None if its subject is not an OASIS-III ID
+    """
+    bad = Counter() if bad is None else bad
     out = []
     for value, column in zip(row, header):
+        value = value.strip()
         if column == 'participant_id':
-            value = f"sub-{int(value[4:]):04d}"
+            match = re.fullmatch(r"OAS3(\d+)", value)
+            if not match:
+                bad[column] += 1
+                return None
+            value = f"sub-{int(match[1]):04d}"
         elif column == 'session_id':
             value = "ses-" + value.split('_')[-1]
-        elif not value:
+        elif not value or (column in ('delay', 'age') and value in NANS):
             value = 'n/a'
-        elif column == 'delay':
-            value = int(value)
-        elif column == 'age':
-            value = float(value)
+        elif column in ('delay', 'age'):
+            number = integer(value) if column == 'delay' else \
+                _float(value)
+            if number is None:
+                bad[column] += 1
+            value = 'n/a' if number is None else number
         elif column in ('DX1', 'DX2', 'DX3', 'DX4', 'DX5') and \
                 value in ('A', '.'):
             value = 'n/a'
-        elif isinstance(value, str):
-            # (the tables are read again to be trimmed, `trim_tables`:
-            # no cell may need quoting, as for ABIDE)
-            value = value.replace('"', "'").replace("\t", " ")
         out.append(value)
     return out
+
+
+def _float(value: str) -> float | None:
+    """A finite number, or None."""
+    try:
+        value = float(value)
+    except ValueError:
+        return None
+    return value if math.isfinite(value) else None
 
 
 #: Data dictionary of `session_id` in the phenotype tables

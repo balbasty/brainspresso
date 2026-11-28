@@ -34,10 +34,10 @@ from brainspresso.datasets.indi.abide.ii import roaster, sites, tables
 from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
 from brainspresso.datasets.indi.abide.ii.roaster import roast
 from brainspresso.datasets.indi.abide.ii.sites import TEMPLATES
-from brainspresso.datasets.indi.abide.tables import read_csv
 from brainspresso.datasets.indi.engine import format_tsv
 from brainspresso.roast import make_context
 from brainspresso.roast.sidecars import TemplateError
+from brainspresso.roast.tables import read_csv
 
 PHENOS = tables.PHENOTYPES
 PARTICIPANTS = tables.PARTICIPANTS
@@ -1091,7 +1091,7 @@ def test_csv_encoding_and_cells(tmp_path):
     rows = [line.split("\t") for line in
             original(root).read_text(encoding="utf-8").splitlines()]
     assert dict(zip(rows[0], rows[1]))["med_name"] == "Méthyl phenidate"
-    assert read_csv(src / "ABIDEII-IP_1.csv")[1][0] == "29001"
+    assert read_csv(src / "ABIDEII-IP_1.csv").rows[0][1][0] == "29001"
 
 
 def test_phenotypes(root):

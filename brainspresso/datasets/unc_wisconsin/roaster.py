@@ -33,7 +33,7 @@ import re
 from pathlib import Path
 from typing import Iterator
 
-from brainspresso.actions import Action, Fail, WriteJSON, WriteTSV
+from brainspresso.actions import Action, Fail, WriteJSON
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.convert import Convert
 from brainspresso.datasets.unc_wisconsin.keys import allkeys
@@ -43,6 +43,7 @@ from brainspresso.roast import (
     roast_dataset,
     subject_shards,
 )
+from brainspresso.roast.tables import table_action
 from brainspresso.utils.path import sorted_paths
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -146,13 +147,11 @@ def roast_meta(ctx: RoastContext, meta: dict) -> Iterator[Action]:
                    "--keys meta", name="folders.json", tag="meta")
         return
     src = ctx.source / "folders.json"
-    original = ctx.layout.original
-    yield WriteTSV(participants(meta), original(raw / "participants.tsv"),
-                   src=src, tag="meta")
+    yield table_action(ctx, raw / "participants.tsv", participants(meta),
+                       src)
     for sub in sorted({key.split("/")[0] for key in meta}):
         table = raw / f"sub-{sub}" / f"sub-{sub}_sessions.tsv"
-        yield WriteTSV(sessions(meta, sub), original(table), src=src,
-                       tag="meta")
+        yield table_action(ctx, table, sessions(meta, sub), src)
 
 
 def participants(meta: dict) -> list[list[str]]:

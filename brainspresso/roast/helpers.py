@@ -8,8 +8,8 @@ yield from archive_shards(ctx, tarballs, roast_archive, tag="raw",
                           keys=("T1w", "bold"),
                           config=lambda path: template_config(ctx.resource,
                                                               NAMES))
-header, error = attempt(read_header, path, name="sub-01_T1w.nii.gz",
-                        tag="T1w")
+header, error = attempt(read_header, path, fail_name="sub-01_T1w.nii.gz",
+                        fail_tag="T1w")
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -27,6 +27,7 @@ from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.convert import ConvertError
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
+from brainspresso.roast.tables import TableError
 
 __all__ = ["archive_shards", "attempt", "copy_templates", "scope",
            "subject_shards"]
@@ -240,20 +241,24 @@ def archive_shards(
         )
 
 
-def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
-            errors: tuple[type[BaseException], ...] = (OSError, ValueError),
+def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
+            fail_what: str | None = None,
+            fail_errors: tuple[type[BaseException], ...] = (OSError,
+                                                            ValueError),
             **kwargs) -> tuple[object, Fail | None]:
     """
     Call a reader while producing actions; its error is a `Fail`.
 
-    For sources that must be read when actions are yielded (a template
-    whose content decides the action, a header read to choose a name),
-    so that nothing escapes the producer: the error is that of the
-    output `name` only.
+    For sources that must be read when actions are yielded (a sheet
+    that gives several tables, the header of a table that its data
+    dictionary needs), so that nothing escapes the producer: the error
+    is that of the output `fail_name` only. The parameters of `attempt`
+    are prefixed (`fail_`), so that every other keyword argument is the
+    reader's (`name=`, `tag=`...).
 
     ```python
-    content, error = attempt(read_json, path, name="sub-01_T1w.json",
-                             tag="T1w", what=f"template {path}")
+    sheet, error = attempt(read_xlsx, path, extra="oasis2",
+                           fail_name="participants.tsv", fail_tag="meta")
     if error:
         yield error
         return
@@ -265,14 +270,15 @@ def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
         The reader, `fn(*args, **kwargs)`
     *args
         Its positional arguments
-    name : str
+    fail_name : str
         Output that the error is of (the name of the `Fail`)
-    tag : str
+    fail_tag : str
         Progress group of the `Fail`
-    what : str, optional
-        What is read, in the message (default: `name`); a
-        `convert.ConvertError` names its file itself
-    errors : tuple[type]
+    fail_what : str, optional
+        What is read, in the message (default: `fail_name`); a
+        `roast.tables.TableError` or a `convert.ConvertError` names
+        its file itself
+    fail_errors : tuple[type]
         Errors converted (others propagate)
     **kwargs
         Its keyword arguments
@@ -286,10 +292,10 @@ def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
     """
     try:
         return fn(*args, **kwargs), None
-    except errors as e:
-        if isinstance(e, ConvertError):
+    except fail_errors as e:
+        if isinstance(e, (TableError, ConvertError)):
             message = str(e)
         else:
-            message = (f"{what or name}: cannot be read "
+            message = (f"{fail_what or fail_name}: cannot be read "
                        f"({type(e).__name__}: {e})")
-        return None, Fail(message, name=name, tag=tag)
+        return None, Fail(message, name=fail_name, tag=fail_tag)

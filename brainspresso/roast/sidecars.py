@@ -118,8 +118,8 @@ def read_template(path: Path, stem: Path,
         object
     """
     name = f"{Path(stem).name}.json"
-    content, error = attempt(read_json, path, name=name, tag=key,
-                             what=f"template {path}")
+    content, error = attempt(read_json, path, fail_name=name, fail_tag=key,
+                             fail_what=f"template {path}")
     if error is not None:
         return None, error
     if isinstance(content, dict):

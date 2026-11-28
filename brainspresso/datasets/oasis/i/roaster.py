@@ -78,9 +78,9 @@ from brainspresso.roast import (
     scope,
 )
 from brainspresso.roast.sidecars import read_template, template_config
+from brainspresso.roast.tables import clean, read_xlsx, table_action
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive, member_parts
-from brainspresso.utils.io import write_tsv
 
 lg = getLogger(__name__)
 
@@ -729,6 +729,13 @@ def image_runs(ctx: RoastContext, fs_disc: Path) -> dict[str, list[int]]:
 #   Participants
 # ----------------------------------------------------------------------
 
+#: Columns of the spreadsheet (`ID`, then those of `PARTICIPANTS_HEADER`;
+#: `Delay` is not read)
+XLSX_HEADER = ["ID", "M/F", "Hand", "Age", "Educ", "SES", "MMSE", "CDR",
+               "eTIV", "nWBV", "ASF"]
+#: Values of the spreadsheet that mean "missing"
+NANS = frozenset({"", "N/A"})
+
 PARTICIPANTS_HEADER = [
     "participant_id",
     "sex",
@@ -767,45 +774,50 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"sourcedata/{XLSX} not found: harvest with --keys meta",
                    name="participants.tsv", tag="meta")
         return
-    yield Action(
-        xlsx, ctx.layout.original(raw / "participants.tsv"),
-        partial(write_participants, xlsx), mode="t", input="path",
-        tag="meta",
-    )
+    yield table_action(ctx, raw / "participants.tsv",
+                       partial(participant_rows, xlsx), xlsx)
 
 
-def write_participants(path_xlsx: Path, path_tsv: Path) -> None:
+def participant_rows(path_xlsx: Path) -> list[list]:
     """
-    Write the participants table from the OASIS spreadsheet.
+    Read the participants table from the OASIS spreadsheet.
 
-    Repeat sessions (`MR2`) are dropped, and so is the `Delay` column
-    (time to the repeat). Empty and `N/A` cells are `n/a`; rows without
-    an ID (blank or formatted trailing rows) are skipped.
+    Columns are found by name (`XLSX_HEADER`, else by position, with a
+    warning). Repeat sessions (`MR2`) are dropped, and so is the `Delay`
+    column (time to the repeat). Empty and `N/A` cells are `n/a`; rows
+    without an ID (blank or formatted trailing rows) are skipped, rows
+    whose ID cannot be parsed are skipped with a warning.
 
     Parameters
     ----------
     path_xlsx : Path
         `oasis_cross-sectional.xlsx`
-    path_tsv : Path
-        Output table
+
+    Returns
+    -------
+    list[list]
+        Header and one row per subject
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the spreadsheet cannot be read (or openpyxl is missing)
     """
-    import openpyxl  # noqa: PLC0415  (lazy: optional dependency)
-
-    book = openpyxl.load_workbook(path_xlsx, data_only=True)
-    sheet = book[book.sheetnames[0]]
-
-    def iter_rows():
-        """Header, then one row per subject."""
-        yield PARTICIPANTS_HEADER
-        for nrow in range(2, sheet.max_row + 1):
-            row = sheet[nrow]
-            if not str(row[0].value or "").strip():
-                continue                # blank or formatted trailing row
-            values = [row[i].value for i in range(1, 11)]
-            values = ["n/a" if v in (None, "", "N/A") else v for v in values]
-            _, sub, ses = str(row[0].value).strip().split("_")
-            if int(ses[2:]) == 2:
-                continue
-            yield [f"sub-{int(sub):04d}", *values]
-
-    write_tsv(iter_rows(), path_tsv)
+    sheet = read_xlsx(path_xlsx, extra="oasis1")
+    sid, *index = sheet.locate(XLSX_HEADER)
+    rows = [PARTICIPANTS_HEADER]
+    for nrow, row in sheet.rows:
+        value = str(sheet.cell(row, sid) or "").strip()
+        if not value:
+            continue                    # formatted trailing row
+        match = re.fullmatch(r"OAS1_(\d+)_MR(\d+)", value)
+        if not match:
+            lg.warning(f"{XLSX}, row {nrow}: subject ID {value!r} "
+                       f"(skipped)")
+            continue
+        if int(match[2]) == 2:
+            continue                    # repeat session
+        rows.append([f"sub-{int(match[1]):0{WIDTH}d}",
+                     *(clean(sheet.cell(row, i, None), nans=NANS)
+                       for i in index)])
+    return rows

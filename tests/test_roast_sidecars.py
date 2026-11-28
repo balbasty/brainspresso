@@ -168,14 +168,15 @@ def test_attempt():
     def read(error):
         raise error
 
-    assert attempt(int, "3", name="x.tsv", tag="meta") == (3, None)
-    _, fail = attempt(read, OSError("disk"), name="x.tsv", tag="meta",
-                      what="x.csv")
+    assert attempt(int, "3", fail_name="x.tsv", fail_tag="meta") == \
+        (3, None)
+    _, fail = attempt(read, OSError("disk"), fail_name="x.tsv",
+                      fail_tag="meta", fail_what="x.csv")
     assert fail.message == "x.csv: cannot be read (OSError: disk)"
     assert (fail.name, fail.tag) == ("x.tsv", "meta")
     # (a `ConvertError` names its file itself)
     _, fail = attempt(read, ConvertError("x.mha: truncated data"),
-                      name="sub-1_T2w.nii.gz", tag="subjects")
+                      fail_name="sub-1_T2w.nii.gz", fail_tag="subjects")
     assert fail.message == "x.mha: truncated data"
     with pytest.raises(KeyError):
-        attempt(read, KeyError("x"), name="x", tag="x")
+        attempt(read, KeyError("x"), fail_name="x", fail_tag="x")

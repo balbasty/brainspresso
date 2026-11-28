@@ -2,6 +2,7 @@
 import gzip
 import json
 import os
+import shutil
 
 import nibabel as nib
 import numpy as np
@@ -730,3 +731,27 @@ def test_roast_shards_in_processes(root):
     assert raw_tree(root) == META | raw_runs(1) | raw_runs(2)
     assert f"{SEG}.nii.gz" in drv_tree(root, FS)
     assert len(drv_tree(root)) == 2 * 8 + 1        # + dseg.tsv
+
+
+@pytest.mark.parametrize("template", [None, "{"])
+def test_missing_or_unreadable_sidecar_template(root, tmp_path, monkeypatch,
+                                                template):
+    """No (or an unreadable) `T1w.json`: each sidecar that it gives is a
+    `Fail` of its own; the images are written (was a `TypeError` of the
+    disc)"""
+    templates = tmp_path / "templates"
+    shutil.copytree(roaster.TEMPLATES, templates)
+    (templates / "T1w.json").unlink()
+    if template is not None:
+        (root / "sourcedata" / "T1w.json").write_text(template)
+    monkeypatch.setattr(roaster, "TEMPLATES", templates)
+    report = roast(root, keys={"raw", "avg"}, discs=[1], display=False)
+    names = sorted(name for _, name, _ in report.errors)
+    assert names == sorted(
+        [f"sub-{i:04d}_run-{r}_T1w.json" for i in (1, 2) for r in (1, 2)] +
+        [f"sub-{i:04d}_res-1mm_T1w.json" for i in (1, 2)])
+    message = report.errors[0][2]
+    assert message.startswith("T1w.json not found" if template is None
+                              else "template ")
+    assert raw_tree(root) == {p for p in raw_runs(1) | raw_runs(2)
+                              if p.endswith(".nii.gz")}

@@ -58,12 +58,9 @@ from logging import getLogger
 from pathlib import Path
 from typing import Callable, Iterable, Literal
 
-from brainspresso.actions import (
-    Action,
-    BabelConvert,
-    Freesurfer2Gifti,
-    WriteJSON,
-)
+from brainspresso.actions import Action, WriteJSON
+from brainspresso.convert import BabelConvert
+from brainspresso.freesurfer.actions import Freesurfer2Gifti
 from brainspresso.freesurfer.lookup import write_lookup
 
 lg = getLogger(__name__)

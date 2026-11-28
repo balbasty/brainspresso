@@ -11,9 +11,11 @@ WriteText(io: IO|str, dst: Path): ...       # Write from a text buffer
 CopyJSON(src: Path, dst: Path): ...         # Copy a JSON file
 CopyBytes(io: IO, dst: Path): ...           # Copy a binary file
 Unlink(dst: Path): ...                      # Remove a file
-BabelConvert(src: Path, dst: Path): ...     # Convert a neuroimaging file
-Freesurfer2Gifti(src: Path, dst: Path): ... # Convert a surface file
 ```
+
+Converters of image formats are not here: `brainspresso.convert`
+(`Convert`, `BabelConvert`) and `brainspresso.freesurfer.actions`
+(`Freesurfer2Gifti`); `actions/` imports no format package.
 """
 from datetime import datetime
 from logging import getLogger
@@ -22,11 +24,9 @@ from typing import BinaryIO, Iterable, Iterator, Mapping, TextIO
 
 from brainspresso.actions.action import Action, IfExistsChoice, Kind
 from brainspresso.actions.locks import FileLock
-from brainspresso.freesurfer.io import nibabel_fs2gii
 from brainspresso.utils.io import (
     copy_from_buffer,
     copy_json,
-    nibabel_convert,
     write_from_buffer,
     write_json,
     write_text,
@@ -504,165 +504,6 @@ class WriteText(Action):
     def action(self, file: TextIO):
         """Write the output (the actor of the action)."""
         return write_text(self.text, file)
-
-
-class BabelConvert(Action):
-    """Convert a neuroimaging file with nibabel."""
-
-    def __init__(
-        self,
-        src: str,
-        dst: str,
-        *,
-        inp_format=None,
-        out_format=None,
-        affine=None,
-        ifexists: IfExistsChoice | None = None,
-        kind: Kind | None = None,
-        tag: str | None = None,
-        staging: bool = False,
-        size: int = None,
-        mtime: datetime = None,
-        digests: dict = None,
-        compare: bool | None = None,
-    ):
-        """
-        Build the action.
-
-        Parameters
-        ----------
-        src : str | Path
-            Path to input file
-        dst : str | Path
-            Path to output file
-
-        Other Parameters
-        ----------------
-        inp_format : nibabel.Image subclass
-            Input format (default: guess)
-        out_format : nibabel.Image subclass
-            Output format  (default: guess)
-        affine : np.ndarray
-            Orientation matrix (default: from input)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
-                    'update'}
-            Behaviour if destination file already exists
-        kind : str
-            Kind of output (default: set by the layer that runs it)
-        tag : str
-            Progress group (`actions.engine`)
-        staging : bool
-            Intermediate file, not subject to the JSON policy
-        size : int
-            Expected output size, in bytes
-        mtime : datetime
-            Expected last-modified time
-        digests : dict | None
-            Expected digest(s) of the file.
-            Keys are algorithm names (e.g. "sha256") and values are the
-            digests.
-        compare : bool | None
-            Regenerate and compare the output under "different"
-            (`Action`; default: set by the layer that runs it)
-        """
-        super().__init__(
-            src=src,
-            dst=dst,
-            action=self.action,
-            mode="wb",
-            input="path",
-            ifexists=ifexists,
-            kind=kind,
-            tag=tag,
-            staging=staging,
-            size=size,
-            mtime=mtime,
-            digests=digests,
-            compare=compare,
-        )
-        self.inp_format = inp_format
-        self.out_format = out_format
-        self.affine = affine
-
-    def action(self, path: Path):
-        """Write the output (the actor of the action)."""
-        return nibabel_convert(
-            self.src, path,
-            inp_format=self.inp_format,
-            out_format=self.out_format,
-            affine=self.affine,
-        )
-
-
-class Freesurfer2Gifti(Action):
-    """Convert a FreeSurfer surface file to GIfTI."""
-
-    def __init__(
-        self,
-        src: str,
-        dst: str,
-        *,
-        ifexists: IfExistsChoice | None = None,
-        kind: Kind | None = None,
-        tag: str | None = None,
-        staging: bool = False,
-        size: int = None,
-        mtime: datetime = None,
-        digests: dict = None,
-        compare: bool | None = None,
-    ):
-        """
-        Build the action.
-
-        Parameters
-        ----------
-        src : str | Path
-            Path to input freesurfer file
-        dst : str | Path
-            Path to output gifti file
-
-        Other Parameters
-        ----------------
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
-                    'update'}
-            Behaviour if destination file already exists
-        kind : str
-            Kind of output (default: set by the layer that runs it)
-        tag : str
-            Progress group (`actions.engine`)
-        staging : bool
-            Intermediate file, not subject to the JSON policy
-        size : int
-            Expected output size, in bytes
-        mtime : datetime
-            Expected last-modified time
-        digests : dict | None
-            Expected digest(s) of the file.
-            Keys are algorithm names (e.g. "sha256") and values are the
-            digests.
-        compare : bool | None
-            Regenerate and compare the output under "different"
-            (`Action`; default: set by the layer that runs it)
-        """
-        super().__init__(
-            src=src,
-            dst=dst,
-            action=self.action,
-            mode="wb",
-            input="path",
-            ifexists=ifexists,
-            kind=kind,
-            tag=tag,
-            staging=staging,
-            size=size,
-            mtime=mtime,
-            digests=digests,
-            compare=compare,
-        )
-
-    def action(self, path: Path):
-        """Write the output (the actor of the action)."""
-        return nibabel_fs2gii(self.src, path)
 
 
 class Unlink(Action):

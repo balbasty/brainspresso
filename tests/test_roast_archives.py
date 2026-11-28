@@ -34,8 +34,9 @@ from brainspresso.roast.archives import (
     names,
     reading,
 )
-from brainspresso.roast.helpers import archive_shards, template_config
+from brainspresso.roast.helpers import archive_shards
 from brainspresso.roast.policy import SEEN
+from brainspresso.roast.sidecars import template_config
 from brainspresso.utils.archive import (
     FolderArchive,
     TarArchive,
@@ -533,7 +534,8 @@ def test_template_config(tmp_path):
     (tmp_path / "bold.json").mkdir()                # (cannot be read)
     ctx = SimpleNamespace(resource=lambda name: tmp_path / name
                           if (tmp_path / name).exists() else None)
-    config = template_config(ctx, ["T1w.json", "bold.json", "dwi.json"])
+    config = template_config(ctx.resource,
+                             ["T1w.json", "bold.json", "dwi.json"])
     assert config["T1w.json"] == [
         (tmp_path / "T1w.json").as_posix(),
         "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"]

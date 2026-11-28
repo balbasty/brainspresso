@@ -40,9 +40,10 @@ from logging import getLogger
 from pathlib import Path
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.actions import Action, Fail
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.datasets.oasis.i.roaster import analyze_action
+from brainspresso.convert.analyze import analyze_action
+from brainspresso.convert.volume import make_affine
 from brainspresso.errors import UsageError
 from brainspresso.roast import (
     RoastContext,
@@ -50,7 +51,8 @@ from brainspresso.roast import (
     copy_templates,
     roast_dataset,
 )
-from brainspresso.roast.helpers import archive_shards, attempt, template_config
+from brainspresso.roast.helpers import archive_shards, attempt
+from brainspresso.roast.sidecars import copy_sidecar, template_config
 from brainspresso.roast.tables import (
     TableError,
     clean,
@@ -60,7 +62,6 @@ from brainspresso.roast.tables import (
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
-from brainspresso.utils.vol import make_affine
 
 lg = getLogger(__name__)
 
@@ -199,7 +200,7 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
                 lg.warning(f"{message} (skipped)")
             continue
         found[path] = part
-    config = template_config(ctx, [SIDECAR])
+    config = template_config(ctx.resource, [SIDECAR])
     yield from archive_shards(
         ctx, found, roast_part, tag="parts", keys=("raw",),
         id=lambda path: f"roast/parts/part{found[path]}",
@@ -310,12 +311,8 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
     anat = ctx.layout.raw / f"sub-{sub}" / f"ses-{ses}" / "anat"
     dst = anat / f"sub-{sub}_ses-{ses}_run-{run}_T1w"
     out = []
-    sidecar = ctx.resource(SIDECAR)
-    if sidecar is not None:
-        out.append(([], CopyJSON(sidecar, f"{dst}.json", tag="raw")))
-    elif ctx.accepts("sidecar"):
-        out.append(([], Fail(f"{SIDECAR} not found", name=f"{dst.name}.json",
-                             tag="raw")))
+    out += [([], action) for action in
+            copy_sidecar(ctx, SIDECAR, f"{dst}.json", tag="raw")]
     names = [f"{stem}{ext}" for ext in (".hdr", ".img")]
     missing = [m for m in names if m not in members]
     if missing:
@@ -326,8 +323,8 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         return out
     infos = sorted((members[m] for m in names), key=lambda m: m.offset)
     out.append((infos, analyze_action(
-        archive, path, [m.name for m in infos], f"{dst}.nii.gz", AFFINE_RAW,
-        tag="raw")))
+        archive, path, [m.name for m in infos], f"{dst}.nii.gz",
+        affine=AFFINE_RAW, tag="raw")))
     return out
 
 

@@ -45,11 +45,11 @@ from typing import Iterator
 from brainspresso.actions import (
     Action,
     CopyBytes,
-    CopyJSON,
     Fail,
     WriteJSON,
 )
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert import Convert
 from brainspresso.datasets.base import KeySpec
 from brainspresso.roast import (
     RoastContext,
@@ -59,10 +59,9 @@ from brainspresso.roast import (
     roast_dataset,
     subject_shards,
 )
-from brainspresso.roast.helpers import template_config
+from brainspresso.roast.sidecars import copy_sidecar, template_config
 from brainspresso.roast.tables import TableError, read_csv, table_action
 from brainspresso.sources.base import subject_labels
-from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
@@ -351,14 +350,15 @@ def sidecar_templates(ctx: RoastContext, images: dict[str, Path]) -> dict:
     Returns
     -------
     dict
-        `{name: [path, sha256] | None}` (`roast.helpers.template_config`)
+        `{name: [path, sha256] | None}` (`roast.sidecars.template_config`)
         of the templates of its images when sidecars are written, else
         empty (part of its `config`: a template of a key that is not
         wanted, or that the subject lacks, does not re-run it)
     """
     if not ctx.accepts("sidecar"):
         return {}
-    return template_config(ctx, [f"{RAW[key]}.json" for key in images])
+    return template_config(ctx.resource,
+                           [f"{RAW[key]}.json" for key in images])
 
 
 def shard_inputs(ctx: RoastContext, folder: Path,
@@ -502,13 +502,9 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
             else:
                 lg.info(f"Normal-{sub}: no {key} image")
             continue
-        yield convert(image, f"{dst}.nii.gz")
-        template = ctx.resource(f"{suffix}.json")
-        if template is not None:
-            yield CopyJSON(template, f"{dst}.json", tag="subjects")
-        elif ctx.accepts("sidecar"):
-            yield Fail(f"{suffix}.json not found (sidecar template)",
-                       name=f"{dst.name}.json", tag="subjects")
+        yield Convert(image, f"{dst}.nii.gz", tag="subjects")   # (.mha)
+        yield from copy_sidecar(ctx, f"{suffix}.json", f"{dst}.json",
+                                tag="subjects")
 
     out = ctx.layout.derivative(DERIV_NAME).root / f"sub-{sub}" / "anat"
     for key, (name, suffix) in DERIVATIVES.items():
@@ -526,27 +522,7 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
         if key == "vessels":
             yield CopyBytes(src, dst, tag="subjects")
             continue
-        yield convert(src, dst)
+        yield Convert(src, dst, tag="subjects")
         sidecar = dst.parent / dst.name.replace(".nii.gz", ".json")
         yield WriteJSON({"SkullStripped": True}, sidecar, src=src,
                         tag="subjects")
-
-
-def convert(src: Path, dst) -> Action:
-    """
-    Convert a MetaImage file to NIfTI.
-
-    Parameters
-    ----------
-    src : Path
-        `.mha` file
-    dst : path
-        `.nii.gz` file
-
-    Returns
-    -------
-    Action
-        The conversion (an error of its own output if `src` is corrupt)
-    """
-    return Action(src, Path(dst), lambda path: metaimage_to_nifti(src, path),
-                  input="path", tag="subjects")

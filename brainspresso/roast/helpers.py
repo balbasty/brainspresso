@@ -6,7 +6,10 @@ yield from copy_templates(ctx, ["README", "dataset_description.json"])
 yield from subject_shards(ctx, labels, roast_subject)
 yield from archive_shards(ctx, tarballs, roast_archive, tag="raw",
                           keys=("T1w", "bold"),
-                          config=lambda path: template_config(ctx, NAMES))
+                          config=lambda path: template_config(ctx.resource,
+                                                              NAMES))
+header, error = attempt(read_header, path, fail_name="sub-01_T1w.nii.gz",
+                        fail_tag="T1w")
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -14,7 +17,6 @@ what a dataset converts stays in its roaster.
 """
 from __future__ import annotations
 
-import hashlib
 import os
 from pathlib import Path
 from typing import Callable, Iterable, Iterator, Mapping
@@ -22,12 +24,13 @@ from typing import Callable, Iterable, Iterator, Mapping
 from brainspresso.actions.action import Action, Fail
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
+from brainspresso.convert import ConvertError
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
 from brainspresso.roast.tables import TableError
 
 __all__ = ["archive_shards", "attempt", "copy_templates", "scope",
-           "subject_shards", "template_config"]
+           "subject_shards"]
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -219,7 +222,7 @@ def archive_shards(
         Source files of a shard (default: `[path]`)
     config : callable(path) -> JSON-able
         What else decides its outputs, e.g. its sidecar templates
-        (`template_config`; default: None)
+        (`roast.sidecars.template_config`; default: None)
 
     Yields
     ------
@@ -236,44 +239,6 @@ def archive_shards(
             config=config(path) if config else None,
             scope=scope(keys=keys, subs=SEEN),
         )
-
-
-def template_config(ctx: RoastContext, names: Iterable[str]) -> dict:
-    """
-    Describe sidecar templates, for the `config` of a shard.
-
-    Templates are signed by their content in the shard's `config`, never
-    listed in its `inputs`: a changed template re-runs the shards that
-    use it, and a template found elsewhere (`sourcedata/` instead of the
-    package) re-runs them too.
-
-    Parameters
-    ----------
-    ctx : RoastContext
-        Context of the roast (templates found with `ctx.resource`)
-    names : list[str]
-        Names of the templates that a shard may use
-
-    Returns
-    -------
-    dict
-        `{name: [path, sha256] | None}` (None: not found; a template
-        that cannot be read has the digest `"unreadable: <Type>"`, its
-        sidecars fail when written)
-    """
-    out = {}
-    for name in names:
-        path = ctx.resource(name)
-        if path is None:
-            out[name] = None
-            continue
-        path = Path(path)
-        try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as e:
-            digest = f"unreadable: {type(e).__name__}"
-        out[name] = [path.as_posix(), digest]
-    return out
 
 
 def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
@@ -311,7 +276,8 @@ def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
         Progress group of the `Fail`
     fail_what : str, optional
         What is read, in the message (default: `fail_name`); a
-        `roast.tables.TableError` names its file itself
+        `roast.tables.TableError` or a `convert.ConvertError` names
+        its file itself
     fail_errors : tuple[type]
         Errors converted (others propagate)
     **kwargs
@@ -327,7 +293,7 @@ def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
     try:
         return fn(*args, **kwargs), None
     except fail_errors as e:
-        if isinstance(e, TableError):
+        if isinstance(e, (TableError, ConvertError)):
             message = str(e)
         else:
             message = (f"{fail_what or fail_name}: cannot be read "

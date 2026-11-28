@@ -35,6 +35,7 @@ from typing import Iterator
 
 from brainspresso.actions import Action, Fail, WriteJSON
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert import Convert
 from brainspresso.datasets.unc_wisconsin.keys import allkeys
 from brainspresso.roast import (
     RoastContext,
@@ -43,7 +44,6 @@ from brainspresso.roast import (
     subject_shards,
 )
 from brainspresso.roast.tables import table_action
-from brainspresso.utils.nrrd import nrrd_to_nifti
 from brainspresso.utils.path import sorted_paths
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -232,17 +232,13 @@ def _convert(src: Path, stem: Path, tag: str, dwi=None) -> Action:
     """NRRD -> `<stem>.nii.gz` (+ `<dwi>.bval`, `<dwi>.bvec`)"""
     nii = Path(f"{stem}.nii.gz")
     if not dwi:
-        return Action(src, nii, lambda path: nrrd_to_nifti(src, path),
-                      input="path", tag=tag)
+        return Convert(src, nii, tag=tag)
     dwi = stem if dwi is True else dwi
     # one conversion writes the three files: a data action
     # (`--sidecars only` writes none of them)
-    return Action(
-        src, [nii, Path(f"{dwi}.bval"), Path(f"{dwi}.bvec")],
-        lambda nii, bval, bvec: nrrd_to_nifti(src, nii, bval=bval,
-                                              bvec=bvec),
-        input="path", tag=tag, kind="data",
-    )
+    return Convert(src, nii, outputs={"bval": Path(f"{dwi}.bval"),
+                                      "bvec": Path(f"{dwi}.bvec")},
+                   tag=tag, kind="data")
 
 
 def deriv_sidecar(suffix: str) -> dict:

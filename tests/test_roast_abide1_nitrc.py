@@ -23,11 +23,11 @@ from roast_utils import (
 
 from brainspresso.actions import CopyJSON
 from brainspresso.bids.layout import Layout
-from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.i import roaster, sites, tables
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.i.roaster import roast
 from brainspresso.datasets.indi.abide.i.sites import TEMPLATES
+from brainspresso.roast import sidecars
 
 PHENOS = tables.PHENOTYPES
 COLS = list(dict.fromkeys(
@@ -270,16 +270,16 @@ def test_bold_sidecar_task_name(tmp_path):
     has none (a copy of the template otherwise)"""
     template = tmp_path / "bold.json"
     stem = tmp_path / "sub-1_task-rest_bold"
-    action = scans.bold_sidecar(template, {"RepetitionTime": 2}, stem,
+    action = sidecars.bold_sidecar(template, {"RepetitionTime": 2}, stem,
                                 tmp_path / "x.nii.gz", None, "x.nii.gz")
     assert action.extra == {"TaskName": "rest"}
-    action = scans.bold_sidecar(template, {"RepetitionTime": 2,
+    action = sidecars.bold_sidecar(template, {"RepetitionTime": 2,
                                            "TaskName": "mine"}, stem,
                                 tmp_path / "x.nii.gz", None, "x.nii.gz")
     assert isinstance(action, CopyJSON)
-    assert scans.bold_fields("sub-1_task-rest_acq-A_bold") == \
+    assert sidecars.bold_fields("sub-1_task-rest_acq-A_bold") == \
         {"TaskName": "rest"}
-    assert scans.bold_fields("sub-1_bold") == {}
+    assert sidecars.bold_fields("sub-1_bold") == {}
 
 
 def test_participants_bad_rows(root, caplog):

@@ -58,16 +58,24 @@ def glyph(kind, cx, cy, w, cls, rot=0):
     return (f'<g class="{cls}" transform="translate({cx:.1f} {cy:.1f}) rotate({rot}) '
             f'scale({s:.4f}) translate({-gw/2:.2f} {-gh/2:.2f})">{body}</g>')
 
+DARK_RULES = f'.ink{{fill:{CREAM}}} .ink-s{{stroke:{CREAM}}} .cream{{fill:{INK}}}'
 DARK = f'''@media (prefers-color-scheme: dark) {{
-      .ink{{fill:{CREAM}}} .ink-s{{stroke:{CREAM}}} .cream{{fill:{INK}}}
+      {DARK_RULES}
     }}'''
 
-def style(extra='', themed=True):
+def style(extra='', themed=True, dark=False):
+    """
+    The palette as a <style> element.
+
+    themed: swap it in dark mode (prefers-color-scheme); dark: always use
+    the dark palette (for pages that pick an image per scheme themselves,
+    such as the docs site).
+    """
     return f'''<style>
     .ink{{fill:{INK}}} .ink-s{{fill:none;stroke:{INK}}}
     .cream{{fill:{CREAM}}} .crema{{fill:{CREMA}}} .fixed-ink{{fill:{INK}}}
     .coffee{{fill:{COFFEE}}} .foam{{fill:{FOAM}}}
-    {DARK if themed else ''}{extra}
+    {DARK_RULES if dark else DARK if themed else ''}{extra}
   </style>'''
 
 # ------------------------------------------- brainspresso (espresso, alternate)
@@ -188,8 +196,31 @@ def _glyph_svg(title, shapes, themed):
 '''
 
 
-def brainspresso_icon(themed=True):
-    """A cappuccino cup seen from above, on its saucer."""
+def _theme_icon(name, shapes, crop):
+    """
+    Wrap mask shapes into a theme icon (`overrides/.icons/`).
+
+    The theme inlines it in its pages and colours it with the text around
+    it, so it has no style of its own (fill: currentColor), no fixed size,
+    a mask id of its own, and a view cropped to the drawing.
+    """
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{crop}">
+  <defs>
+    <mask id="{name}-icon" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      {shapes}
+    </mask>
+  </defs>
+  <rect width="512" height="512" fill="currentColor" mask="url(#{name}-icon)"/>
+</svg>
+'''
+
+
+def brainspresso_icon(themed=True, theme_icon=False):
+    """
+    A cappuccino cup seen from above, on its saucer.
+
+    theme_icon: the icon of the docs theme (`overrides/.icons/`).
+    """
     cx, cy = 236, 178           # centre of the rim
     rx, ry = 196, 98
     bot = cy + 214
@@ -205,6 +236,8 @@ def brainspresso_icon(themed=True):
       <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" {W}/>
       <ellipse cx="{cx}" cy="{cy+4}" rx="{rx-34}" ry="{ry-30}" {K}/>
       <ellipse cx="{cx}" cy="{cy+8}" rx="{rx-66}" ry="{ry-52}" {W}/>'''
+    if theme_icon:
+        return _theme_icon('brainspresso', shapes, '4 74 504 366')
     return _glyph_svg('brainspresso', shapes, themed)
 
 
@@ -218,8 +251,14 @@ def _wordmark_text(text):
     raise KeyError(text)
 
 
-def brainspresso_wordmark(themed=True):
-    """The latte logo, and "brainspresso" in the ink of the logo."""
+def brainspresso_wordmark(themed=True, dark=False):
+    """
+    The latte logo, and "brainspresso" in the ink of the logo.
+
+    themed: follow prefers-color-scheme (the README); dark: the dark
+    palette only (with themed=False: the light palette only), for the docs
+    site, which shows the image of its own palette.
+    """
     # the latte logo, cropped to its drawing (saucer, rim and handle)
     lx, ly, lw, lh = 14, 102, 474, 348
     H = 200                                  # height of the logo
@@ -233,7 +272,7 @@ def brainspresso_wordmark(themed=True):
         logo = logo.replace(f'url(#{ref})', f'url(#wm-{ref})')
     logo = logo.replace(' role="img" aria-labelledby="title"', '')
     logo = re.sub(r'<title id="title">[^<]*</title>', '', logo)
-    if themed:                               # the cup follows the palette
+    if themed or dark:                       # the cup follows the palette
         logo = re.sub(r'<style>.*?</style>', '', logo, flags=re.S)
     # the name: x-height centred on the coffee, ascenders near the rim
     upm, advance, (x0, y0, x1, y1), d = _wordmark_text('brainspresso')
@@ -247,7 +286,7 @@ def brainspresso_wordmark(themed=True):
   <title id="title">brainspresso</title>
   {ATTR}
   <!-- Lettering: Inter ExtraBold (rsms.me/inter, SIL OFL 1.1), as outlines. -->
-  {style(themed=themed)}
+  {style(themed=themed, dark=dark)}
   {logo}
   <path class="ink" transform="translate({tx:.2f} {base:.2f}) scale({k:.5f})" d="{d}"/>
 </svg>
@@ -259,3 +298,12 @@ if __name__ == '__main__':
   open(f'{OUT}/brainspresso-logo-espresso.svg', 'w').write(brainspresso())
   open(f'{OUT}/brainspresso-icon.svg', 'w').write(brainspresso_icon())
   open(f'{OUT}/brainspresso-wordmark.svg', 'w').write(brainspresso_wordmark())
+  # the docs site picks the wordmark of its palette (#only-light/#only-dark)
+  open(f'{OUT}/brainspresso-wordmark-light.svg', 'w').write(
+      brainspresso_wordmark(themed=False))
+  open(f'{OUT}/brainspresso-wordmark-dark.svg', 'w').write(
+      brainspresso_wordmark(themed=False, dark=True))
+  # the site icon as a theme icon: the logo of the docs header
+  icons = HERE.parents[2] / 'overrides' / '.icons' / 'brainspresso'
+  icons.mkdir(parents=True, exist_ok=True)
+  (icons / 'icon.svg').write_text(brainspresso_icon(theme_icon=True))

@@ -1,0 +1,131 @@
+[project]
+
+nav = [
+  {"Home" = "index.md"},
+  {"Getting started" = [
+    "getting-started/installation.md",
+    "getting-started/first-dataset.md",
+  ]},
+  {"User guide" = [
+    "guide/layout.md",
+    "guide/selection.md",
+    "guide/harvest.md",
+    "guide/roast.md",
+    "guide/compost.md",
+    "guide/config.md",
+    "guide/concurrency.md",
+  ]},
+  {"Origins" = [
+    "origins/index.md",
+    {"OpenNeuro" = "origins/openneuro.md"},
+    {"INDI" = [
+      "origins/indi/index.md",
+      {"ABIDE-I" = "origins/indi/abide1.md"},
+      {"ABIDE-II" = "origins/indi/abide2.md"},
+      {"ACPI" = "origins/indi/acpi.md"},
+      {"ADHD-200" = "origins/indi/adhd200.md"},
+      {"COBRE" = "origins/indi/cobre.md"},
+      {"CoRR" = "origins/indi/corr.md"},
+      {"FCON1000" = "origins/indi/fcon1000.md"},
+      {"HBN" = "origins/indi/hbn.md"},
+      {"MPI-LEMON" = "origins/indi/mpi-lemon.md"},
+      {"NATVIEW" = "origins/indi/natview.md"},
+      {"NKI-RS" = "origins/indi/nki-rs.md"},
+      {"SALD" = "origins/indi/sald.md"},
+      {"SIMON" = "origins/indi/simon.md"},
+      {"SLIM" = "origins/indi/slim.md"},
+    ]},
+    {"OASIS" = [
+      "origins/oasis/index.md",
+      {"OASIS-1" = "origins/oasis/oasis1.md"},
+      {"OASIS-2" = "origins/oasis/oasis2.md"},
+      {"OASIS-3" = "origins/oasis/oasis3.md"},
+    ]},
+    {"Other datasets" = [
+      {"Bullitt" = "origins/other/bullitt.md"},
+      {"GSP" = "origins/other/gsp.md"},
+      {"IXI" = "origins/other/ixi.md"},
+      {"UNC-Wisconsin" = "origins/other/unc-wisconsin.md"},
+    ]},
+  ]},
+]
+
+site_name = "brainspresso"
+site_description = "Download public neuroimaging datasets and convert them to BIDS."
+site_author = "Yael Balbastre"
+site_url = "https://balbasty.github.io/brainspresso/"
+repo_url = "https://github.com/balbasty/brainspresso"
+repo_name = "balbasty/brainspresso"
+copyright = """
+Copyright &copy; 2026 The authors
+"""
+extra_css = ["stylesheets/extra.css"]
+# Not part of the site: the design notes and the sources of the artwork.
+exclude_docs = """
+design/
+images/README.md
+images/src/
+"""
+
+[project.theme]
+
+language = "en"
+favicon = "images/brainspresso-icon.svg"
+# theme overrides; .icons/ holds our icons (overrides/.icons/brainspresso/)
+custom_dir = "overrides"
+
+features = [
+  "content.code.copy",
+  "content.code.select",
+  "content.tabs.link",
+  "navigation.indexes",
+  "navigation.sections",
+  "navigation.footer",
+]
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+# The site icon, as a theme icon (overrides/.icons/brainspresso/icon.svg,
+# written by docs/images/src/make_logos.py).
+[project.theme.icon]
+logo = "brainspresso/icon"
+repo = "fontawesome/brands/github"
+
+# ----------------------------------------------------------------------------
+# Markdown extensions
+# ----------------------------------------------------------------------------
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums       = true
+line_spans            = "__span"
+pygments_lang_class   = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.snippets]
+[project.markdown_extensions.pymdownx.superfences]
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style       = true
+[project.markdown_extensions.pymdownx.emoji]
+emoji_generator       = "zensical.extensions.emoji.to_svg"
+emoji_index           = "zensical.extensions.emoji.twemoji"
+[project.markdown_extensions.pymdownx.keys]
+[project.markdown_extensions.tables]
+[project.markdown_extensions.toc]
+permalink             = true
+toc_depth             = 3

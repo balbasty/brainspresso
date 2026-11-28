@@ -1,0 +1,57 @@
+name: Docs
+
+# Build the documentation strictly on pull requests; build and publish it to
+# GitHub Pages on pushes to main, or on demand from the Actions tab.
+on:
+  push:
+    branches:
+      - main
+    paths: &paths
+      - docs/**
+      - overrides/**
+      - zensical.toml
+      - setup.cfg
+      - .github/workflows/docs.yaml
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install the documentation tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "zensical >= 0.0.11"
+      - name: Build the site
+        run: zensical build --strict --clean
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

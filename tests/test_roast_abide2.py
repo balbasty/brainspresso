@@ -154,7 +154,7 @@ def test_roast_raw(root):
         == tpl("NYU/1/T1w.json")
     assert sidecar(root, "sub-29100/ses-01/func/"
                          "sub-29100_ses-01_task-rest_bold.json") \
-        == tpl("KUL/3/bold.json")
+        == {**tpl("KUL/3/bold.json"), "TaskName": "rest"}
 
 
 def test_roast_all(root):
@@ -640,7 +640,8 @@ def test_bold_template_without_tr(root):
         assert not report.errors, report.errors
         meta = sidecar(root, "sub-29400/ses-01/func/"
                              "sub-29400_ses-01_task-rest_bold.json")
-        assert meta == {**tpl("UCLA/2/bold.json"), "RepetitionTime": 3.0}
+        assert meta == {**tpl("UCLA/2/bold.json"), "TaskName": "rest",
+                        "RepetitionTime": 3.0}
 
 
 def test_header_sidecar_under_skip_and_update(root, caplog):
@@ -669,7 +670,8 @@ def test_header_sidecar_under_skip_and_update(root, caplog):
     roast(root, keys="rest", subs=[29400, 29401], ifexists="update",
           display=False)
     assert json.loads(paths[0].read_text()) == {
-        **tpl("UCLA/2/bold.json"), "Local": 1, "RepetitionTime": 3.0}
+        **tpl("UCLA/2/bold.json"), "Local": 1, "TaskName": "rest",
+        "RepetitionTime": 3.0}
     assert json.loads(paths[1].read_text()) == {"Mine": True}
     assert "was edited" in caplog.text
 
@@ -876,6 +878,30 @@ def test_participants(root):
     assert dict(zip(rows[0], rows[1]))["sample"] == "KUL"
     # trimmed to the subjects on disk (none yet)
     assert read_tsv(raw_file(root, "participants.tsv")) == [rows[0]]
+
+
+def test_participants_json_samples():
+    """Every value of `sample` (the site, or the site and a sample) is a
+    level of `participants.json`; age in years (BIDS unit "year")"""
+    meta = json.loads((TEMPLATES / "participants.json").read_text())
+    values = {sites.sample_label(f"ABIDEII-{site}") for site in sites.SITES}
+    values |= {sites.sample_label(f"ABIDEII-{site}_{sample}")
+               for site, samples in sites.SAMPLES.items()
+               for sample in samples}
+    values |= {sites.sample_label(s) for s in ("ABIDE-I_UCLA_1",
+                                               "ABIDE-I_PITT")}
+    assert values == set(meta["sample"]["Levels"])
+    assert {"KUL", "UMia", "NYU1", "UPSMLong"} <= values
+    assert meta["age"]["Units"] == "year"
+
+
+def test_phenotype_names_are_bids():
+    """Phenotype tables are named without `.` in their stem (`cbcl_1.5-5`
+    is `cbcl_1p5-5`), each with its data dictionary"""
+    assert "cbcl_1p5-5" in tables.PHENOTYPES
+    for name in tables.PHENOTYPES:
+        assert "." not in name
+        assert (TEMPLATES / "phenotype" / f"{name}.json").is_file()
 
 
 def test_participants_sub_prefix(root):

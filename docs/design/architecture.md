@@ -2667,6 +2667,27 @@ up as an XPASS failure once fixed (then drop the marker).
   Also fixed there: OASIS-I `--discs 12` was never downloaded, OASIS-III
   PET experiments (FDG, PIB, AV45, AV1451) were only harvested with
   `pup`, ABIDE-I xnat sent the XNAT login to the NITRC phenotype URL.
+* ~~BIDS validator (r45, 116 known errors on the fixtures): OASIS-I
+  `oasis-freesurfer` and `oasis-processed`, OASIS-III
+  `oasis-freesurfer` and ABIDE-I xnat `abide-freesurfer` had no
+  `dataset_description.json` (so their top-level `atlas-*_dseg.tsv`
+  and `space-Talairach_res-1mm_dseg.tsv`, and their `space`/`res`/`desc`
+  entities, were read as raw files); the bold sidecars of COBRE,
+  ABIDE-I and ABIDE-II had no `TaskName`, COBRE's no
+  `RepetitionTime`; `participants.json` declared levels or units that
+  the values do not have (ABIDE `sample`, COBRE `icd9_subtype`, IXI
+  `dob`/`study_date`); ABIDE-II `phenotype/cbcl_1.5-5` (a `.` in the
+  stem).~~ Fixed (r46): the roasters write the derivative descriptions
+  (`GeneratedBy`; `SourceDatasets` completed by
+  `DerivativeLayout.write_descriptions`), `abide.scans.bold_sidecar`
+  adds `TaskName` (the task entity of the name) and the header's
+  `RepetitionTime` (also for COBRE; no usable TR: a `Fail` of that
+  sidecar), the data dictionaries were corrected, the table renamed
+  `cbcl_1p5-5`. Still known (`tests/bids_validator_known.json`):
+  OASIS-III per-visit phenotype tables have several rows per
+  participant, and the BIDS 1.11.2 schema indexes phenotype tables by
+  `participant_id` alone (`TSV_INDEX_VALUE_NOT_UNIQUE`), whatever
+  `session_id` says; left until the schema indexes `session_id` too.
 
 ## 9. Open questions
 
@@ -3309,3 +3330,32 @@ up as an XPASS failure once fixed (then drop the marker).
   included, bold sidecars without `TaskName`, COBRE without
   `RepetitionTime`, `participants.json` types, OASIS-III phenotype
   index, an ABIDE-II phenotype name) are left to separate PRs.
+* r46: BIDS-validator findings fixed (§8, known bugs): 116 known
+  errors down to 2. Derivative descriptions of OASIS-I (`oasis-processed`,
+  `oasis-freesurfer`), OASIS-III and ABIDE-I xnat (`*-freesurfer`),
+  written by their roasters (`GeneratedBy`: the provider's pipeline or
+  FreeSurfer and its version, then brainspresso) and completed by
+  `DerivativeLayout.write_descriptions` (`SourceDatasets`); with them,
+  the top-level `dseg.tsv` of a derivative are valid (BIDS 1.11.2:
+  `anat_discrete_segmentation`, inherited). Bold sidecars:
+  `abide.scans.bold_sidecar` (ABIDE-I, ABIDE-II, COBRE) adds the
+  `TaskName` of the task entity and, if the template has none, the
+  `RepetitionTime` of the NIfTI header (`HeaderSidecar`, now with
+  `extra` fields); COBRE writes the image before its sidecar (the
+  header is read from it; under `--sidecars only` from the member). The
+  ABIDE templates of `scripts/make_sidecars.py` are left as they are:
+  `TaskName` is a property of the BIDS name, not of the protocol
+  printout. Data dictionaries: ABIDE `sample` lists every value it
+  takes (the site, or the site and its sample); COBRE `icd9_subtype`
+  is a subtype only if it is one of `depressed`, `bipolar` (another
+  word after the code, as `295.3 Schizophrenia`, is `n/a`, warned
+  once); IXI `dob`/`study_date` are `"Format": "date"` (were numbers
+  with `Units: "yyyy-mm-dd"`); `age` in `"year"` (BIDS unit, was
+  `"years"`: `AGE_UNITS`); OASIS-III `daddem` (was described as
+  `dadem`). OASIS-III phenotype tables: `session_id` is the session of
+  the subject on the day of the visit, else `n/a` (a count warned per
+  table; the day is in `delay`), described in each data dictionary.
+  ABIDE-II `phenotype/cbcl_1.5-5.*` renamed `cbcl_1p5-5.*` (tables of
+  an earlier roast keep the old name: delete them by hand). Study
+  datasets get a `README` pointing at `rawbids/` if they have none
+  (`StudyLayout.write_descriptions`, never replaced).

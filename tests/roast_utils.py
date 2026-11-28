@@ -62,10 +62,14 @@ def raw_file(ds_root: Path, rel: str) -> Path:
     return layout_of(ds_root).raw / rel
 
 
-def nii_bytes(shape=(2, 2, 2), gz=True, value=1) -> bytes:
+def nii_bytes(shape=(2, 2, 2), gz=True, value=1, tr=None) -> bytes:
+    """A tiny NIfTI image (`tr`: a 4D image with this TR, in seconds)."""
     img = nib.Nifti1Image(
         np.full(shape, value, dtype=np.int16), np.diag([2., 2., 2., 1.])
     )
+    if tr is not None:
+        img.header.set_xyzt_units("mm", "sec")
+        img.header.set_zooms((2., 2., 2., tr))
     data = img.to_bytes()
     return gzip.compress(data) if gz else data
 

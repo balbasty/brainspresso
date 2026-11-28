@@ -84,8 +84,8 @@ from brainspresso.datasets.indi.abide.ii.tables import (
 )
 from brainspresso.datasets.indi.abide.scans import (
     ARCHIVE_ERRORS,
-    HeaderSidecar,
     TemplateError,
+    bold_sidecar,
     image_ext,
     member_parts,
     read_template,
@@ -970,13 +970,13 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
     if error is not None:
         yield error
         return
-    if kind.suffix == "bold" and "RepetitionTime" not in content:
+    if kind.suffix == "bold":
         def open_image(image=image):
             if image.spool is not None and image.spool.is_file():
                 return open(image.spool, "rb")
             return io.BytesIO(image.data or b"")
 
-        yield HeaderSidecar(template, f"{stem}.json", image_path,
-                            open_image, image_name, tag=kind.key)
+        yield bold_sidecar(template, content, stem, image_path,
+                           open_image, image_name, tag=kind.key)
         return
     yield CopyJSON(template, f"{stem}.json", tag=kind.key)

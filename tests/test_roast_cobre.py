@@ -29,7 +29,7 @@ from brainspresso.datasets.indi.cobre.roaster import roast
 
 CSV = (
     ",Current Age,Gender,Handedness,Subject Type,Diagnosis\n"
-    "0040000,20,Male,Right,Patient,295.3 Schizophrenia\n"
+    "0040000,20,Male,Right,Patient,295.70 depressed\n"
     "0040001,30,Female,Left,Control,None\n"
     "0040002,Disenrolled,Disenrolled,Disenrolled,Disenrolled,Disenrolled\n"
 )
@@ -42,7 +42,8 @@ def make_source(root):
     (src / "COBRE_phenotypic_data.csv").write_text(CSV)
     make_tar(src / "COBRE_scan_data.tgz", {
         "COBRE/0040000/session_1/anat_1/mprage.nii.gz": nii_bytes(),
-        "COBRE/0040000/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "COBRE/0040000/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3), tr=2.0),
         "COBRE/0040001/session_1/anat_1/mprage.nii.gz": nii_bytes(),
     }, dirs=["COBRE", "COBRE/0040000"])
     return root
@@ -76,6 +77,13 @@ def original(root, name="participants.tsv"):
     return layout_of(root).original(raw_file(root, name))
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json',):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_all(root):
     report = roast(root, keys={"meta", "T1w", "func"}, display=False)
     assert not report.errors
@@ -89,12 +97,46 @@ def test_roast_all(root):
     ) == json.loads((roaster.TEMPLATES / "T1w.json").read_text())
 
 
+BOLD = "sub-0040000/func/sub-0040000_task-rest_bold.json"
+
+
+def test_bold_sidecar(root):
+    """The bold template has no RepetitionTime nor TaskName (REQUIRED):
+    TaskName from the name, RepetitionTime from the NIfTI header (of the
+    member under `--sidecars only`)"""
+    template = json.loads((roaster.TEMPLATES / "bold.json").read_text())
+    assert not {"RepetitionTime", "TaskName"} & set(template)
+    for policy in ("only", "yes"):
+        report = roast(root, keys={"func"}, json=policy,
+                       ifexists="overwrite", display=False)
+        assert not report.errors, report.errors
+        assert json.loads(raw_file(root, BOLD).read_text()) == {
+            **template, "TaskName": "rest", "RepetitionTime": 2.0}
+
+
+def test_bold_sidecar_without_tr(tmp_path):
+    """No usable TR in the header: that sidecar fails, the image and
+    the other files are written"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "flat")
+    make_source(root)
+    make_tar(root / "sourcedata" / "COBRE_scan_data.tgz", {
+        "COBRE/0040000/session_1/anat_1/mprage.nii.gz": nii_bytes(),
+        "COBRE/0040000/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+    })
+    report = roast(root, keys={"T1w", "func"}, display=False)
+    assert len(report.errors) == 1
+    assert report.errors[0][1] == "sub-0040000_task-rest_bold.json"
+    assert "RepetitionTime" in report.errors[0][2]
+    assert raw_tree(root) == {p for p in RAW if "0040000" in p} - {BOLD}
+
+
 def test_participants(root):
     roast(root, display=False)
     rows = read_tsv(raw_file(root, "participants.tsv"))
     assert rows[0] == HEADER
-    assert rows[1] == ["sub-0040000", "20", "M", "R", "Y", "295.3",
-                       "Schizophrenia"]
+    assert rows[1] == ["sub-0040000", "20", "M", "R", "Y", "295.70",
+                       "depressed"]
     assert rows[2][:5] == ["sub-0040001", "30", "F", "L", "N"]
     # trimmed to the subjects on disk; the pristine copy has them all
     assert [r[0] for r in rows[1:]] == ["sub-0040000", "sub-0040001"]
@@ -104,6 +146,23 @@ def test_participants(root):
     assert raw_file(root, "participants.tsv").read_bytes() == \
         b"".join(line for line in original(root).read_bytes()
                  .splitlines(keepends=True) if b"0040002" not in line)
+
+
+def test_participants_subtype(caplog):
+    """The word after a diagnosis code is a subtype only if
+    `participants.json` declares it (else n/a, warned once)"""
+    levels = json.loads((roaster.TEMPLATES / "participants.json")
+                        .read_text())["icd9_subtype"]["Levels"]
+    assert set(roaster.SUBTYPES) == set(levels)
+    row = ["40000", "20", "Male", "Right", "Patient"]
+    roaster._not_subtypes.clear()
+    assert roaster.participant_row(row + ["295.70 Bipolar"])[-2:] == \
+        ["295.70", "bipolar"]
+    assert "WARNING" not in caplog.text
+    for _ in range(2):
+        assert roaster.participant_row(row + ["295.3 Schizophrenia"])[-2:] \
+            == ["295.3", "n/a"]
+    assert caplog.text.count("is not a subtype") == 1
 
 
 def test_participants_meta_only(root):

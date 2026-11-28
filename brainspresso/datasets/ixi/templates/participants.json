@@ -9,7 +9,7 @@
   },
   "age": {
       "Description": "age of the participant",
-      "Units": "years"
+      "Units": "year"
   },
   "sex": {
       "Description": "sex of the participant as reported by the participant",
@@ -28,7 +28,7 @@
   },
   "dob": {
       "Description": "date of birth of the participant",
-      "Units": "yyyy-mm-dd"
+      "Format": "date"
   },
   "ethnicity": {
       "Description": "ethnicity of the participant",
@@ -75,6 +75,6 @@
   },
   "study_date": {
       "Description": "date the study was performed",
-      "Units": "yyyy-mm-dd"
+      "Format": "date"
   }
 }

@@ -57,7 +57,7 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Callable, Iterator
 
-from brainspresso.actions import Action, CopyBytes, Fail
+from brainspresso.actions import Action, CopyBytes, Fail, WriteJSON
 from brainspresso.actions.action import Claim
 from brainspresso.actions.archive import ExtractMember, ExtractMembers
 from brainspresso.bids.keys import KeyAliases
@@ -971,7 +971,7 @@ def fs_source(ctx: RoastContext, sub: str) -> Path:
 
 def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
     """
-    Write the lookup tables of the FreeSurfer segmentations.
+    Write the description and lookup tables of the FreeSurfer derivative.
 
     Parameters
     ----------
@@ -981,10 +981,29 @@ def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
     Yields
     ------
     Action
-        One table per atlas
+        The description of the derivative, then one table per atlas
     """
-    yield from fs.bidsify_toplevel(ctx.layout.derivative(FS_NAME).root,
-                                   FS_VERSION)
+    drv = ctx.layout.derivative(FS_NAME)
+    yield WriteJSON(freesurfer_description(drv), drv.description,
+                    tag="derivatives")
+    yield from fs.bidsify_toplevel(drv.root, FS_VERSION)
+
+
+def freesurfer_description(drv) -> dict:
+    """Describe the FreeSurfer outputs (`derivatives/<fs>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "ABIDE-I - FreeSurfer"
+    desc["GeneratedBy"] = [{
+        "Name": "FreeSurfer",
+        "Version": ".".join(map(str, FS_VERSION)),
+        "Description": "FreeSurfer outputs distributed with the dataset "
+                       "(NITRC-IR assessors).",
+    }, {
+        "Name": "brainspresso",
+        "Description": "Conversion of the ABIDE-I archives to BIDS.",
+        "CodeURL": "https://github.com/balbasty/brainspresso",
+    }]
+    return desc
 
 
 def roast_freesurfer(ctx: RoastContext, sub: str,

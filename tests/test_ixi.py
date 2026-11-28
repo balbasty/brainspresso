@@ -7,6 +7,7 @@ import asyncio
 import gzip
 import io
 import json
+import re
 import socket
 import tarfile
 import threading
@@ -272,6 +273,22 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
     assert lines[0].startswith("participant_id\tsite\tage\tsex")
     ids = {line.split("\t")[0] for line in lines[1:]}
     assert ids == {"sub-002", "sub-012"}
+
+    # dates (BIDS format "date", YYYY-MM-DD), not numbers with units
+    header = lines[0].split("\t")
+    for line in lines[1:]:
+        row = dict(zip(header, line.split("\t")))
+        for key in ("dob", "study_date"):
+            assert re.fullmatch(r"\d{4}-\d{2}-\d{2}|n/a", row[key])
+
+
+def test_participants_json():
+    """Data dictionary: dates in the BIDS "date" format, age in years
+    (BIDS unit "year")"""
+    meta = json.loads((roaster.TEMPLATES / "participants.json").read_text())
+    for key in ("dob", "study_date"):
+        assert meta[key]["Format"] == "date" and "Units" not in meta[key]
+    assert meta["age"]["Units"] == "year"
 
 
 def write_tarballs(src: Path):

@@ -104,6 +104,13 @@ RAW2 = scans(2, 1, 1)
 RAW = RAW1 | RAW2
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json', 'sessions.json'):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_raw(root):
     report = roast(root, keys={"raw"}, parts=[1], display=False)
     assert not report.errors

@@ -5,8 +5,8 @@ Roast helpers shared by ABIDE-I and ABIDE-II.
   `member_parts` (normalised member names), `image_ext`.
 * Sidecars: `TemplateError`, `template_config` (the templates of a
   shard, in its signature), `scan_actions` (an image, then its sidecar),
-  `HeaderSidecar` and `header_tr` (a bold template without
-  `RepetitionTime`).
+  `bold_sidecar`, `HeaderSidecar` and `header_tr` (a bold template
+  without `RepetitionTime` or `TaskName`; also used by COBRE).
 * Metadata: `roast_meta` (dataset files, participants and phenotype
   tables from the phenotypic CSV files).
 """
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import re
 import tarfile
 import zlib
 from functools import partial
@@ -35,6 +36,7 @@ __all__ = [
     "NIFTI",
     "HeaderSidecar",
     "TemplateError",
+    "bold_sidecar",
     "header_tr",
     "image_ext",
     "member_parts",
@@ -152,12 +154,14 @@ def header_tr(fileobj: IO[bytes], name: str = "") -> float | None:
 
 class HeaderSidecar(WriteJSON):
     """
-    A bold sidecar whose template lacks `RepetitionTime` (REQUIRED).
+    A bold sidecar whose template lacks REQUIRED fields.
 
-    It is read from the NIfTI header when the action runs: from the
-    image written next to it if there is one, else from the source
-    (`--sidecars only`: the member being read, so that the archive is
-    still read forward only). An error if the header gives none.
+    `RepetitionTime`, if the template has none, is read from the NIfTI
+    header when the action runs: from the image written next to it if
+    there is one, else from the source (`--sidecars only`: the member
+    being read, so that the archive is still read forward only). An
+    error if the header gives none. The fields of `extra` (`TaskName`)
+    that the template lacks are added.
 
     Parameters
     ----------
@@ -171,21 +175,28 @@ class HeaderSidecar(WriteJSON):
         Opens the source image
     image_name : str
         Name of the source image (`.gz`: compressed)
+    extra : dict, optional
+        Fields added if the template lacks them (`TaskName`)
     **kwargs
         Options of `WriteJSON`
     """
 
     def __init__(self, template, dst, image, open_image: Callable,
-                 image_name: str, **kwargs):
+                 image_name: str, extra: Mapping | None = None, **kwargs):
         self.template = Path(template)
         self.image = Path(image)
         self.open_image = open_image
         self.image_name = image_name
+        self.extra = dict(extra or {})
         super().__init__({}, dst, src=template, **kwargs)
 
     def action(self, file):
         """Write the template, with the RepetitionTime of the header."""
         meta = read_json(self.template)
+        meta = {**meta, **{k: v for k, v in self.extra.items()
+                           if k not in meta}}
+        if "RepetitionTime" in meta:
+            return write_json(meta, file)
         try:
             if self.image.is_file():
                 with open(self.image, "rb") as f:
@@ -203,6 +214,62 @@ class HeaderSidecar(WriteJSON):
                 f"(REQUIRED) and the NIfTI header of {self.image_name} "
                 f"gives none")
         return write_json({**meta, "RepetitionTime": tr}, file)
+
+
+def bold_fields(stem: str | Path) -> dict:
+    """
+    Give the REQUIRED fields of a bold sidecar that its name tells.
+
+    Parameters
+    ----------
+    stem : path
+        Output path of the scan, without extension
+
+    Returns
+    -------
+    dict
+        `{"TaskName": <label of the task entity>}` (empty without one)
+    """
+    match = re.search(r"(?:^|_)task-([A-Za-z0-9]+)(?:_|$)", Path(stem).name)
+    return {"TaskName": match[1]} if match else {}
+
+
+def bold_sidecar(template: Path, content: dict, stem: Path, image: Path,
+                 open_image: Callable, image_name: str,
+                 **kwargs) -> Action:
+    """
+    Make the sidecar of a bold image, with its REQUIRED fields.
+
+    A copy of the template if it has them all; else a `HeaderSidecar`
+    that adds `TaskName` (from the task entity of the name) and reads
+    `RepetitionTime` from the NIfTI header if the template has none.
+
+    Parameters
+    ----------
+    template : Path
+        Sidecar template
+    content : dict
+        Its content
+    stem : Path
+        Output path of the scan, without extension
+    image : Path
+        Output image
+    open_image : callable() -> file
+        Opens the source image
+    image_name : str
+        Name of the source image
+    **kwargs
+        Options of the action (`tag`)
+
+    Returns
+    -------
+    Action
+    """
+    extra = {k: v for k, v in bold_fields(stem).items() if k not in content}
+    if "RepetitionTime" in content and not extra:
+        return CopyJSON(template, f"{stem}.json", **kwargs)
+    return HeaderSidecar(template, f"{stem}.json", image, open_image,
+                         image_name, extra=extra, **kwargs)
 
 
 def read_template(path: Path, stem: Path,
@@ -266,7 +333,8 @@ def scan_actions(
     image_name : str
         Name of the source image
     bold : bool
-        A bold image (its sidecar requires `RepetitionTime`)
+        A bold image (its sidecar requires `RepetitionTime` and
+        `TaskName`, `bold_sidecar`)
 
     Yields
     ------
@@ -287,9 +355,9 @@ def scan_actions(
     if error is not None:
         yield error
         return
-    if bold and "RepetitionTime" not in template:
-        yield HeaderSidecar(path, f"{stem}.json", image, open_image,
-                            image_name, tag=key)
+    if bold:
+        yield bold_sidecar(path, template, stem, image, open_image,
+                           image_name, tag=key)
         return
     yield CopyJSON(path, f"{stem}.json", tag=key)
 

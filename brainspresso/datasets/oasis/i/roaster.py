@@ -179,6 +179,41 @@ def roast(root, *, subs=(), exclude_subs=(), discs=None, **options):
     )
 
 
+#: `GeneratedBy` entry of the conversion
+BRAINSPRESSO = {
+    "Name": "brainspresso",
+    "Description": "Conversion of the OASIS-I discs to BIDS.",
+    "CodeURL": "https://github.com/balbasty/brainspresso",
+}
+
+
+def processed_description(drv) -> dict:
+    """Describe the processed images (`derivatives/<proc>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-I - processed images"
+    desc["GeneratedBy"] = [{
+        "Name": "OASIS",
+        "Description": "Images distributed with the dataset: motion-"
+                       "corrected average of the runs, gain-field "
+                       "corrected and registered to the Talairach and "
+                       "Tournoux atlas (with and without the skull), and "
+                       "its grey/white/CSF segmentation (FSL FAST).",
+    }, BRAINSPRESSO]
+    return desc
+
+
+def freesurfer_description(drv) -> dict:
+    """Describe the FreeSurfer outputs (`derivatives/<fs>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-I - FreeSurfer"
+    desc["GeneratedBy"] = [{
+        "Name": "FreeSurfer",
+        "Version": ".".join(map(str, FS_VERSION)),
+        "Description": "FreeSurfer outputs distributed with the dataset.",
+    }, BRAINSPRESSO]
+    return desc
+
+
 def check_discs(discs) -> None:
     """
     Check disc numbers.
@@ -216,11 +251,17 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
     """
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
+    if any(map(ctx.wants, ("avg", "tal", "fsl"))):
+        drv = ctx.layout.derivative(PROC_NAME)
+        yield WriteJSON(processed_description(drv), drv.description,
+                        tag="derivatives")
     if ctx.wants("fsl"):
         drv = ctx.layout.derivative(PROC_NAME)
         yield WriteTSV(DSEG_TABLE, drv.root / DSEG_NAME, tag="fsl")
     if ctx.wants("fs") or ctx.wants("fs-all"):
         drv = ctx.layout.derivative(FS_NAME)
+        yield WriteJSON(freesurfer_description(drv), drv.description,
+                        tag="derivatives")
         for action in fs.bidsify_toplevel(drv.root, FS_VERSION):
             action.tag = "fs"
             yield action

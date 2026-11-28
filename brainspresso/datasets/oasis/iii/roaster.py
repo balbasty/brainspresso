@@ -66,6 +66,7 @@ lg = getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent / "templates"
 FS_NAME = "oasis-freesurfer"
+FS_VERSION = (5, 3)             # FreeSurfer of the OASIS-3 outputs
 DATA_FILES = "OASIS3_data_files"
 
 
@@ -131,7 +132,7 @@ def roast_oasis3(ctx: RoastContext) -> Iterator:
     if ctx.wants("meta"):
         yield from roast_meta(ctx, sessions)
     if ctx.wants("pheno"):
-        yield from roast_phenotypes(ctx)
+        yield from roast_phenotypes(ctx, sessions)
     if ctx.wants("fs") or ctx.wants("fs-all"):
         yield Shard(roast_freesurfer_tables, tag="fs")
     yield from subject_shards(ctx, sorted(sessions), roast_subject,
@@ -218,9 +219,27 @@ def raw_path(raw: Path, sub: str, ses: str, datatype: str | None,
 
 
 def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
-    """Lookup tables of the FreeSurfer segmentations"""
-    yield from fs.bidsify_toplevel(ctx.layout.derivative(FS_NAME).root,
-                                   (5, 3))
+    """Description and lookup tables of the FreeSurfer derivative"""
+    drv = ctx.layout.derivative(FS_NAME)
+    yield WriteJSON(freesurfer_description(drv), drv.description,
+                    tag="derivatives")
+    yield from fs.bidsify_toplevel(drv.root, FS_VERSION)
+
+
+def freesurfer_description(drv) -> dict:
+    """Describe the FreeSurfer outputs (`derivatives/<fs>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-3 - FreeSurfer"
+    desc["GeneratedBy"] = [{
+        "Name": "FreeSurfer",
+        "Version": ".".join(map(str, FS_VERSION)),
+        "Description": "FreeSurfer outputs distributed with the dataset.",
+    }, {
+        "Name": "brainspresso",
+        "Description": "Conversion of the OASIS-3 tarballs to BIDS.",
+        "CodeURL": "https://github.com/balbasty/brainspresso",
+    }]
+    return desc
 
 
 def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
@@ -438,7 +457,18 @@ PHENOCOLMAP = {
 }
 
 
-def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
+def roast_phenotypes(ctx: RoastContext,
+                     sessions: dict | None = None) -> Iterator[Action]:
+    """
+    Phenotype tables (one row per visit) and their data dictionaries.
+
+    The `session_id` of a visit is the session of the subject on the
+    day of the visit (`ses-d<days>`, of `sessions`: `{sub: {ses: ...}}`,
+    `source_sessions`); `n/a` if the subject has no session that day
+    (warned, with a count per table). The day of the visit is kept in
+    `delay`.
+    """
+    sessions = sessions or {}
     for form, base in PHENOFILES.items():
         name = "pychometrics" if form == "c1" else f"UDS{form}"
         tarball = ctx.source / DATA_FILES / f"{name}.tar.gz"
@@ -450,12 +480,39 @@ def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
         csv_opt = dict(quotechar='"') if medications else {}
         header, rows = read_csv(tarball, **csv_opt)
         header = [fix_pheno_column(h, medications) for h in header]
-        rows = (fix_pheno_row(row, header) for row in rows)
+        rows = visit_sessions(
+            (fix_pheno_row(row, header) for row in rows), header,
+            sessions, f"phenotype/UDS_{base}.tsv")
         yield WriteTSV([header, *rows], f"{out}.tsv", src=tarball,
                        tag="pheno", **({"escapechar": "\\"}
                                        if medications else {}))
         yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
                         src=tarball, tag="pheno")
+
+
+def visit_sessions(rows, header: list[str], sessions: dict, name: str):
+    """
+    Map the `session_id` of visits (`ses-d<days>` of the visit) to the
+    sessions of the subjects (`n/a` if the subject has none that day;
+    warned once, with a count, when the rows are consumed).
+    """
+    if "session_id" not in header:
+        yield from rows
+        return
+    i_sub, i_ses = header.index("participant_id"), header.index("session_id")
+    unmapped = total = 0
+    for row in rows:
+        total += 1
+        sub = str(row[i_sub])[len("sub-"):]
+        ses = str(row[i_ses])[len("ses-"):]
+        if ses not in sessions.get(sub, ()):
+            unmapped += 1
+            row[i_ses] = "n/a"
+        yield row
+    if unmapped:
+        lg.warning(f"{name}: {unmapped} of {total} visits on a day without "
+                   f"a session of the subject: session_id n/a (the day "
+                   f"is in `delay`)")
 
 
 def fix_pheno_column(name: str, medications: bool = False) -> str:
@@ -489,6 +546,14 @@ def fix_pheno_row(row: list[str], header: list[str]) -> list:
             value = 'n/a'
         out.append(value)
     return out
+
+
+#: Data dictionary of `session_id` in the phenotype tables
+SESSION_ID = {
+    "Description": "Session of the subject on the day of the visit "
+                   "(n/a: none that day; the day of the visit is in "
+                   "`delay`)",
+}
 
 
 def phenotype_json(ctx: RoastContext, form: str, header: list[str]) -> dict:
@@ -528,6 +593,8 @@ def phenotype_json(ctx: RoastContext, form: str, header: list[str]) -> dict:
 
     out = {key: lookup(key)[1]
            for key in ("MeasurementToolMetadata", "delay", "age")}
+    if "session_id" in header:
+        out["session_id"] = SESSION_ID
     versions = set()
     for key in header:
         if key not in ("participant_id", "session_id", "delay", "age"):

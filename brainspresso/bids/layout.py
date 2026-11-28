@@ -72,6 +72,7 @@ RAW_DIR = "rawbids"              # raw dataset of a study
 SOURCE_DIR = "sourcedata"
 DERIVATIVES_DIR = "derivatives"
 DESCRIPTION = "dataset_description.json"
+README = "README"                # README of a study (if none)
 
 BIDS_VERSION = "1.11.2"          # version written in generated descriptions
 
@@ -527,12 +528,32 @@ class StudyLayout(Layout):
         return self.root, str(rel)
 
     def write_descriptions(self, keep=()) -> list[Path]:
-        """Write the study description, then those of derivatives."""
+        """
+        Write the study description, then those of derivatives.
+
+        Also a README for the study (BIDS: recommended) if it has none.
+        """
         written = []
-        if _write_json(self.root / DESCRIPTION,
-                       self.dataset_description("study")):
+        desc = self.dataset_description("study")
+        if _write_json(self.root / DESCRIPTION, desc):
             written.append(self.root / DESCRIPTION)
+        readme = self.root / README
+        if not any(self.root.glob(f"{README}*")):
+            readme.write_text(study_readme(desc["Name"]), encoding="utf-8")
+            written.append(readme)
         return written + super().write_descriptions(keep)
+
+
+def study_readme(name: str) -> str:
+    """README of a study dataset (`StudyLayout.write_descriptions`)."""
+    return (f"# {name}\n\n"
+            f"This folder is a BIDS study dataset (DatasetType "
+            f"\"study\"), written by brainspresso.\n\n"
+            f"* `{RAW_DIR}/`: the raw dataset (see `{RAW_DIR}/README` "
+            f"for a description of the data, its license and how to "
+            f"cite it);\n"
+            f"* `{DERIVATIVES_DIR}/`: its derivative datasets, if any;\n"
+            f"* `sourcedata/`: the files it was converted from.\n")
 
 
 class FlatLayout(Layout):

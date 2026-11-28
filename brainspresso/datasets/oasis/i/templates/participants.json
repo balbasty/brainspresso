@@ -15,7 +15,7 @@
   },
   "age": {
     "Description": "Age of the participant at time of image acquisition",
-    "Units": "years"
+    "Units": "year"
   },
   "educ": {
     "Description": "Education",

@@ -45,12 +45,14 @@ def drv(root, name=DRV):
 
 
 def drv_tree(root, name=DRV):
-    """Files of a derivative dataset (without its sourcedata)"""
+    """Files of a derivative dataset (without its sourcedata and its
+    description: `test_derivative_descriptions`)"""
     folder = drv(root, name)
     if not folder.is_dir():
         return set()
     return {p.relative_to(folder).as_posix() for p in folder.rglob("*")
-            if p.is_file() and p.relative_to(folder).parts[0] != "sourcedata"}
+            if p.is_file() and p.relative_to(folder).parts[0] != "sourcedata"
+            and p.relative_to(folder).as_posix() != "dataset_description.json"}
 
 
 def _analyze(members, base, data=None):
@@ -135,6 +137,13 @@ def tal_files(id=1):
     return {f"sub-{id:04d}/anat/sub-{id:04d}_space-Talairach_res-1mm"
             f"{desc}_T1w.{ext}" for ext in ("nii.gz", "json")
             for desc in ("", "_desc-skullstripped")}
+
+
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json',):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
 
 
 def test_roast_raw(root):
@@ -392,6 +401,32 @@ def test_freesurfer(root):
     roast(root, keys={"fs-all"}, json="only", discs=[1])
     # unpacked files are inputs: --sidecars only does not drop them
     assert (unpacked / "stats" / "aseg.stats").exists()
+
+
+@pytest.mark.parametrize("keys", [{"fs"}, {"avg"}, {"tal", "fsl"}])
+def test_derivative_descriptions(root, keys):
+    """Each derivative that a roast writes is a BIDS derivative dataset
+    (`GeneratedBy`, `SourceDatasets`: its top-level dseg.tsv are
+    inherited); only those of the keys"""
+    freesurfer_disc(root / "sourcedata")
+    report = roast(root, keys=keys, discs=[1], display=False)
+    assert not report.errors
+    for name, wanted, generator in ((FS, {"fs"}, "FreeSurfer"),
+                                    (DRV, {"avg", "tal", "fsl"}, "OASIS")):
+        drv = layout_of(root).derivative(name)
+        if not keys & wanted:
+            assert not drv.description.exists()
+            continue
+        desc = json.loads(drv.description.read_text())
+        assert desc["DatasetType"] == "derivative"
+        assert desc["BIDSVersion"]
+        assert [g["Name"] for g in desc["GeneratedBy"]] == [
+            generator, "brainspresso"]
+        assert desc["SourceDatasets"] == [{"URL": drv.source_url}]
+    if "fs" in keys:
+        desc = json.loads(layout_of(root).derivative(FS).description
+                          .read_text())
+        assert desc["GeneratedBy"][0]["Version"] == "4.0"
 
 
 def test_freesurfer_sidecars_only(root):

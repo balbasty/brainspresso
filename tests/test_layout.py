@@ -399,7 +399,9 @@ def test_write_descriptions_study(tmp_path):
 
     written = lay.write_descriptions()
     assert set(written) == {lay.root / "dataset_description.json",
-                            fs.description}
+                            lay.root / "README", fs.description}
+    # a README for the study (BIDS: recommended), pointing at rawbids/
+    assert "rawbids/README" in (lay.root / "README").read_text()
     study = read_json(lay.root / "dataset_description.json")
     assert study == {
         "Name": "IXI", "BIDSVersion": layout_mod.BIDS_VERSION,
@@ -420,6 +422,16 @@ def test_write_descriptions_study(tmp_path):
     assert lay.write_descriptions() == []
 
 
+def test_study_readme_left_alone(tmp_path):
+    """A study README of the user (any extension) is never replaced"""
+    lay = make_layout("study", tmp_path / "IXI")
+    write(lay.description, RAW_DESCRIPTION)
+    (lay.root / "README.md").write_text("mine")
+    assert lay.write_descriptions() == [lay.root / "dataset_description.json"]
+    assert not (lay.root / "README").exists()
+    assert (lay.root / "README.md").read_text() == "mine"
+
+
 def test_write_descriptions_flat(tmp_path):
     lay = make_layout("flat", tmp_path / "IXI")
     write(lay.description, RAW_DESCRIPTION)
@@ -435,7 +447,8 @@ def test_write_descriptions_sites(tmp_path):
     lay = make_layout("sites", tmp_path, child_kind="study")
     site = lay.child("A")
     write(site.description, {"Name": "X: A", "DatasetType": "raw"})
-    assert lay.write_descriptions() == [site.root / "dataset_description.json"]
+    assert lay.write_descriptions() == [site.root / "dataset_description.json",
+                                        site.root / "README"]
     assert read_json(site.root / "dataset_description.json")["Name"] == "X: A"
     assert not (tmp_path / "dataset_description.json").exists()
 

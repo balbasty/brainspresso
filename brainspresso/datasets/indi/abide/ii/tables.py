@@ -463,7 +463,7 @@ PHENOTYPES: dict[str, Table] = {
         },
         baseline=BASELINE,
     ),
-    'cbcl_1.5-5': Table(
+    'cbcl_1p5-5': Table(
         columns={
             'participant_id': 'SUB_ID',
             'emotion': 'CBCL_1.5-5_EMOTION_T',

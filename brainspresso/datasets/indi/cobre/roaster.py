@@ -43,6 +43,7 @@ from typing import Iterator
 from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.datasets.indi.abide.scans import bold_sidecar, read_template
 from brainspresso.roast import (
     SEEN,
     RoastContext,
@@ -75,6 +76,10 @@ SCANS = {
     "mprage.nii.gz": ("T1w", "anat", "", "T1w"),
     "rest.nii.gz": ("func", "func", "task-rest_", "bold"),
 }
+
+#: Subtypes of a diagnosis (`<code> <subtype>`; the `Levels` of
+#: `icd9_subtype` in `participants.json`)
+SUBTYPES = ("depressed", "bipolar")
 
 PARTICIPANTS_HEADER = [
     "participant_id",
@@ -214,6 +219,10 @@ def participant_label(value: str) -> str:
     return f"{int(value):0{WIDTH}d}" if value.isdigit() else value
 
 
+#: Words after a diagnosis code that are not subtypes (warned once)
+_not_subtypes: set = set()
+
+
 def participant_row(row: list[str]) -> list[str] | None:
     """
     Convert a row of `COBRE_phenotypic_data.csv`.
@@ -227,8 +236,10 @@ def participant_row(row: list[str]) -> list[str] | None:
     -------
     list[str] | None
         A row of `participants.tsv` ("n/a" for empty cells and missing
-        diagnoses, all "n/a" for disenrolled subjects); None for a row
-        without a subject or with fewer than 6 cells
+        diagnoses, all "n/a" for disenrolled subjects; a word after the
+        diagnosis code that is not one of `SUBTYPES` is not a subtype:
+        "n/a", warned); None for a row without a subject or with fewer
+        than 6 cells
     """
     row = [cell.strip() for cell in row]
     if not any(row):
@@ -239,6 +250,15 @@ def participant_row(row: list[str]) -> list[str] | None:
         return None
     age, gender, hand, kind, diagnosis = row[1:6]
     codes = diagnosis.split() if diagnosis != "None" else []
+    subtype = " ".join(codes[1:]) or "n/a"
+    if subtype != "n/a" and subtype.lower() not in SUBTYPES:
+        if subtype not in _not_subtypes and "Disenrolled" not in row:
+            _not_subtypes.add(subtype)
+            lg.warning(f"{PHENOTYPES}: {subtype!r} (diagnosis "
+                       f"{diagnosis!r}, subject {row[0]}) is not a "
+                       f"subtype ({', '.join(SUBTYPES)}): icd9_subtype "
+                       f"n/a (warned once)")
+        subtype = "n/a"
     out = [
         f"sub-{participant_label(row[0])}",
         age or "n/a",
@@ -246,7 +266,7 @@ def participant_row(row: list[str]) -> list[str] | None:
         hand[:1] or "n/a",
         ("Y" if kind[0] == "P" else "N") if kind else "n/a",
         codes[0] if codes else "n/a",
-        codes[1] if len(codes) > 1 else "n/a",
+        subtype.lower() if subtype != "n/a" else subtype,
     ]
     if "Disenrolled" in out:
         out = out[:1] + ["n/a"] * 6
@@ -313,7 +333,9 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     Yields
     ------
     Action
-        Per image: its sidecar (a template), then the image
+        Per image: the image, then its sidecar (a template; for bold,
+        with the `TaskName` of its name and the `RepetitionTime` of its
+        NIfTI header, which the template lacks: `abide.scans.bold_sidecar`)
 
     Notes
     -----
@@ -333,11 +355,56 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
                 continue
             stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
                     f"sub-{sub}_{entities}{suffix}")
-            sidecar = ctx.resource(f"{suffix}.json")
-            if sidecar is not None:
-                yield CopyJSON(sidecar, f"{stem}.json", tag=key)
-            elif ctx.accepts("sidecar"):
-                yield Fail(f"{suffix}.json not found",
-                           name=f"{stem.name}.json", tag=key)
-            yield ExtractMember(tar, member, f"{stem}.nii.gz", tag=key)
+            image = Path(f"{stem}.nii.gz")
+            yield ExtractMember(tar, member, image, tag=key)
+            yield from sidecar_actions(ctx, stem, suffix, key, image,
+                                       partial(tar.extractfile, member),
+                                       PurePosixPath(member.name).name)
             ctx.progress(advance=1)
+
+
+def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
+                    image: Path, open_image, image_name: str
+                    ) -> Iterator[Action]:
+    """
+    Write the sidecar of an image (after the image: its header is read).
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    stem : Path
+        Output path of the scan, without extension
+    suffix : str
+        BIDS suffix (the template is `<suffix>.json`)
+    key : str
+        Key of the scan (progress tag)
+    image : Path
+        Output image
+    open_image : callable() -> file
+        Opens the source image (`--sidecars only`)
+    image_name : str
+        Name of the source image
+
+    Yields
+    ------
+    Action
+        A copy of the template (bold: `bold_sidecar`); a `Fail` if it
+        is missing or cannot be read
+    """
+    if not ctx.accepts("sidecar"):
+        return
+    sidecar = ctx.resource(f"{suffix}.json")
+    if sidecar is None:
+        yield Fail(f"{suffix}.json not found", name=f"{stem.name}.json",
+                   tag=key)
+        return
+    if suffix != "bold":
+        yield CopyJSON(sidecar, f"{stem}.json", tag=key)
+        return
+    content, error = read_template(Path(sidecar), stem, key)
+    if error is not None:
+        yield error
+        return
+    yield bold_sidecar(Path(sidecar), content, stem, image, open_image,
+                       image_name, tag=key)

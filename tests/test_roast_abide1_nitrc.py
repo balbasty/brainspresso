@@ -21,8 +21,10 @@ from roast_utils import (
     read_tsv,
 )
 
+from brainspresso.actions import CopyJSON
 from brainspresso.bids.layout import Layout
-from brainspresso.datasets.indi.abide.i import roaster, tables
+from brainspresso.datasets.indi.abide import scans
+from brainspresso.datasets.indi.abide.i import roaster, sites, tables
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.i.roaster import roast
 from brainspresso.datasets.indi.abide.i.sites import TEMPLATES
@@ -126,7 +128,7 @@ def test_roast_sample_template(root):
     roast(root, keys={"T1w", "rest"}, display=False)
     assert tpl("MaxMun_b/bold.json") != tpl("MaxMun_a/bold.json")
     assert sidecar(root, "sub-51340/func/sub-51340_task-rest_bold.json") \
-        == tpl("MaxMun_b/bold.json")
+        == {**tpl("MaxMun_b/bold.json"), "TaskName": "rest"}
     # CMU_a has no anatomical template: fall back to the site template
     assert not (TEMPLATES / "CMU_a/T1w.json").exists()
     assert sidecar(root, "sub-50642/anat/sub-50642_T1w.json") \
@@ -248,6 +250,36 @@ def test_participants_samples_and_sites(tmp_path):
     got = {r[0]: (r[1], r[2]) for r in rows[1:]}
     assert got == {"sub-50102": ("Olin", "Olin"),
                    "sub-51201": ("UCLA", "UCLA1")}
+
+
+def test_participants_json_samples():
+    """Every value of `sample` (the site, or the site and a sample) is a
+    level of `participants.json`; age in years (BIDS unit "year")"""
+    meta = json.loads((TEMPLATES / "participants.json").read_text())
+    values = {tables._sample(site) for site in sites.SITES}
+    values |= {tables._sample(f"{site}_{sample}")
+               for site, samples in sites.SAMPLES.items()
+               for sample in samples}
+    assert values == set(meta["sample"]["Levels"])
+    assert {"Caltech", "CMUa", "MaxMund", "UCLA1"} <= values
+    assert meta["age"]["Units"] == "year"
+
+
+def test_bold_sidecar_task_name(tmp_path):
+    """A bold sidecar gets the `TaskName` of its name, if its template
+    has none (a copy of the template otherwise)"""
+    template = tmp_path / "bold.json"
+    stem = tmp_path / "sub-1_task-rest_bold"
+    action = scans.bold_sidecar(template, {"RepetitionTime": 2}, stem,
+                                tmp_path / "x.nii.gz", None, "x.nii.gz")
+    assert action.extra == {"TaskName": "rest"}
+    action = scans.bold_sidecar(template, {"RepetitionTime": 2,
+                                           "TaskName": "mine"}, stem,
+                                tmp_path / "x.nii.gz", None, "x.nii.gz")
+    assert isinstance(action, CopyJSON)
+    assert scans.bold_fields("sub-1_task-rest_acq-A_bold") == \
+        {"TaskName": "rest"}
+    assert scans.bold_fields("sub-1_bold") == {}
 
 
 def test_participants_bad_rows(root, caplog):

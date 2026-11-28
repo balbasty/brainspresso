@@ -158,7 +158,8 @@ def test_raw(root):
     assert sidecar(root, "sub-51201/anat/sub-51201_acq-hires_T2w.json") == \
         tpl("UCLA_1/acq-hires_T2w.json")
     assert sidecar(root, "sub-50642/func/sub-50642_task-rest_bold.json") \
-        == {**tpl("CMU/bold.json"), "RepetitionTime": 1.5}
+        == {**tpl("CMU/bold.json"), "TaskName": "rest",
+            "RepetitionTime": 1.5}
     img = nib.load(raw_file(root,
                             "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz"))
     assert img.get_fdata().max() == 2
@@ -310,6 +311,14 @@ def test_freesurfer(root, label):
                                                 f"{seg}.json"}
     assert (drv.root / "atlas-Aseg_dseg.tsv").exists()
     assert raw_tree(root) == set()                  # no raw key
+    # a BIDS derivative dataset (its top-level dseg.tsv are inherited)
+    desc = json.loads(drv.description.read_text())
+    assert desc["Name"] == "ABIDE-I - FreeSurfer"
+    assert desc["DatasetType"] == "derivative"
+    assert [g["Name"] for g in desc["GeneratedBy"]] == ["FreeSurfer",
+                                                        "brainspresso"]
+    assert desc["GeneratedBy"][0]["Version"] == "5.1"
+    assert desc["SourceDatasets"] == [{"URL": drv.source_url}]
 
     xnat(root, keys={"fs-all"}, subs=[label[-5:]])
     assert (unpacked / "stats" / "aseg.stats").exists()

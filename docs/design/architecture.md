@@ -2531,7 +2531,9 @@ Each step lands as commits on the refactor branch with its tests green.
   refused), so outputs are
   byte-identical on every platform; `.gitattributes` checks text files
   out with LF everywhere (`* text=auto eol=lf`), since templates are
-  copied byte for byte. A test is skipped on
+  copied byte for byte; listings that become inputs, actions or records
+  are sorted with `utils.path.sorted_paths` (POSIX order: `sorted` of
+  Windows paths ignores case). A test is skipped on
   Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
   feature the platform lacks (POSIX permissions, symbolic links
   without privileges), never to hide a bug.
@@ -3354,4 +3356,10 @@ up as an XPASS failure once fixed (then drop the marker).
   platform (the Windows runner's `core.autocrlf` turned the templates,
   copied byte for byte, into CRLF outputs: the golden check found it);
   the printouts keep their published bytes, binaries stay binary; the
-  wheel and sdist are unchanged. No roaster output changes.
+  wheel and sdist are unchanged. Roasters sort their listings with
+  `utils.path.sorted_paths` (`posix_key`): `sorted` of Windows paths
+  is case-insensitive, so OASIS-III signed and ran the tarballs of a
+  session in another order on Windows (`anat1` before
+  `OAS3..._Freesurfer...`; the golden check found it); ABIDE-I,
+  ABIDE-II, Bullitt and UNC-Wisconsin listings too. No roaster output
+  changes on POSIX.

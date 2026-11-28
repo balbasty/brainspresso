@@ -43,6 +43,7 @@ from brainspresso.roast import (
     subject_shards,
 )
 from brainspresso.utils.nrrd import nrrd_to_nifti
+from brainspresso.utils.path import sorted_paths
 
 TEMPLATES = Path(__file__).parent / "templates"
 
@@ -260,6 +261,6 @@ def deriv_sidecar(suffix: str) -> dict:
 # ----------------------------------------------------------------------
 
 def _dirs(path: Path) -> list[Path]:
-    return sorted(p for p in path.iterdir() if p.is_dir()) \
+    return sorted_paths(p for p in path.iterdir() if p.is_dir()) \
         if path.is_dir() else []
 

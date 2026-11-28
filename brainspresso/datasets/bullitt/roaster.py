@@ -59,6 +59,7 @@ from brainspresso.roast import (
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.metaimage import metaimage_to_nifti
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -215,7 +216,7 @@ def subject_folders(ctx: RoastContext) -> dict[str, Path]:
     out = {}
     if not ctx.source.is_dir():
         return out
-    for path in sorted(ctx.source.iterdir()):
+    for path in sorted_paths(ctx.source.iterdir()):
         label = subject_label(path.name)
         if label is None or not path.is_dir():
             continue

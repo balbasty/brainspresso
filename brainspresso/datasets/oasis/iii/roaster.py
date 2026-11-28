@@ -131,13 +131,35 @@ def roast_oasis3(ctx: RoastContext) -> Iterator:
     sessions = source_sessions(ctx)
     if ctx.wants("meta"):
         yield from roast_meta(ctx, sessions)
-    if ctx.wants("pheno"):
-        yield from roast_phenotypes(ctx, sessions)
     if ctx.wants("fs") or ctx.wants("fs-all"):
         yield Shard(roast_freesurfer_tables, tag="fs")
     yield from subject_shards(ctx, sorted(sessions), roast_subject,
                               inputs=partial(subject_tarballs, ctx),
                               scope_keys=SCOPE_KEYS)
+
+
+def finish_oasis3(ctx: RoastContext) -> Iterator[Action]:
+    """
+    The phenotype tables (the `finalize` hook of `roast_oasis3`).
+
+    Written once the subject shards are done, so that their `session_id`
+    names the sessions of the raw dataset (`raw_sessions`).
+    """
+    if ctx.wants("pheno"):
+        yield from roast_phenotypes(ctx, raw_sessions(ctx))
+
+
+roast_oasis3.finalize = finish_oasis3
+
+
+def raw_sessions(ctx: RoastContext) -> dict[str, set[str]]:
+    """{sub: {session}} of the raw dataset (`sub-*/ses-*/` on disk)"""
+    out = {}
+    for folder in sorted(ctx.layout.raw.glob("sub-*/ses-*")):
+        if folder.is_dir():
+            sub = folder.parent.name[len("sub-"):]
+            out.setdefault(sub, set()).add(folder.name[len("ses-"):])
+    return out
 
 
 def source_sessions(ctx: RoastContext) -> dict[str, dict[str, Path]]:
@@ -340,11 +362,13 @@ PARTICIPANTS_ROW_MAP = {
 
 
 def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
-    """Header and rows of the (first) CSV file of a tarball"""
+    """Header and rows of the (first) CSV file of a tarball (blank rows
+    dropped)"""
     with tarfile.open(tarball, "r:gz") as tar:
         member = next(m for m in tar if m.isfile())
         with TextIOWrapper(tar.extractfile(member), newline="") as f:
-            rows = list(csv.reader(f, **kwargs))
+            rows = [r for r in csv.reader(f, **kwargs)
+                    if any(c.strip() for c in r)]
     return (rows[0], rows[1:]) if rows else ([], [])
 
 
@@ -402,6 +426,8 @@ def diagnoses(cdr: Path) -> dict[str, list[tuple[int, str]]]:
     out = {}
     for row in rows:
         row = dict(zip(header, row))
+        if not row.get("oasisid") or not row.get("days_to_visit"):
+            continue                    # (truncated row)
         out.setdefault(row["oasisid"][4:], []).append(
             (int(row["days_to_visit"]), row.get("dx1_code") or "n/a")
         )
@@ -463,10 +489,11 @@ def roast_phenotypes(ctx: RoastContext,
     Phenotype tables (one row per visit) and their data dictionaries.
 
     The `session_id` of a visit is the session of the subject on the
-    day of the visit (`ses-d<days>`, of `sessions`: `{sub: {ses: ...}}`,
-    `source_sessions`); `n/a` if the subject has no session that day
-    (warned, with a count per table). The day of the visit is kept in
-    `delay`.
+    day of the visit (`ses-d<days>`, of `sessions`: `{sub: {ses}}`, the
+    sessions of the raw dataset, `raw_sessions`); `n/a` if the subject
+    has no session that day (warned, with a count per table). The day of
+    the visit is kept in `delay`. Truncated rows are skipped
+    (`complete_rows`).
     """
     sessions = sessions or {}
     for form, base in PHENOFILES.items():
@@ -480,14 +507,36 @@ def roast_phenotypes(ctx: RoastContext,
         csv_opt = dict(quotechar='"') if medications else {}
         header, rows = read_csv(tarball, **csv_opt)
         header = [fix_pheno_column(h, medications) for h in header]
+        name = f"phenotype/UDS_{base}.tsv"
         rows = visit_sessions(
-            (fix_pheno_row(row, header) for row in rows), header,
-            sessions, f"phenotype/UDS_{base}.tsv")
+            (fix_pheno_row(row, header)
+             for row in complete_rows(rows, header, name)),
+            header, sessions, name)
         yield WriteTSV([header, *rows], f"{out}.tsv", src=tarball,
                        tag="pheno", **({"escapechar": "\\"}
                                        if medications else {}))
         yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
                         src=tarball, tag="pheno")
+
+
+def complete_rows(rows, header: list[str], name: str):
+    """
+    The rows that name a participant (and a visit, if the table has
+    them); the others (truncated rows) are skipped, warned once with a
+    count when the rows are consumed.
+    """
+    ids = [header.index(c) for c in ("participant_id", "session_id")
+           if c in header]
+    skipped = 0
+    for row in rows:
+        if ids and (len(row) <= max(ids) or
+                    not all(row[i].strip() for i in ids)):
+            skipped += 1
+            continue
+        yield row + [""] * (len(header) - len(row))
+    if skipped:
+        lg.warning(f"{name}: {skipped} row(s) skipped (truncated: no "
+                   f"participant or visit)")
 
 
 def visit_sessions(rows, header: list[str], sessions: dict, name: str):

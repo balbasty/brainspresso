@@ -50,6 +50,7 @@ is not written).
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import re
@@ -66,6 +67,7 @@ from typing import Iterator, NamedTuple
 from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.actions.runlock import pid_alive
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.bids.tables import trim_tables
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.ii.keys import allkeys
@@ -321,6 +323,66 @@ def template_folders(source: Path) -> list[tuple[str, str]]:
     return sorted(out)
 
 
+#: Phenotype tables renamed (old name -> new name): a `.` in a stem is
+#: not BIDS
+RENAMED_PHENOTYPES = {"cbcl_1.5-5": "cbcl_1p5-5"}
+
+
+def migrate_renamed_phenotypes(ctx: RoastContext) -> None:
+    """
+    Remove the phenotype tables of an earlier roast under an old name.
+
+    The pristine copy (`.brainspresso/orig/`) is removed, so that the
+    visible table is not derived from it again (`trim_originals`); the
+    visible table and its data dictionary too, unless they were edited
+    (the table differs from its trimmed pristine copy, the dictionary
+    from the hash in the manifest): then they are kept, with a warning.
+    The roast owns these files: done whatever `--if-exists` says.
+    """
+    folder = ctx.layout.phenotype
+    for old, new in RENAMED_PHENOTYPES.items():
+        table, sidecar = folder / f"{old}.tsv", folder / f"{old}.json"
+        pristine = ctx.layout.original(table)
+        if not any(p.exists() for p in (pristine, table, sidecar)):
+            continue
+        ours = {table: _is_trim_of(ctx, table, pristine),
+                sidecar: _is_recorded(ctx, sidecar)}
+        for path, unedited in ours.items():
+            if not path.exists():
+                continue
+            if unedited:
+                path.unlink()
+                lg.info(f"phenotype/{path.name}: removed (renamed "
+                        f"{new}{path.suffix})")
+            else:
+                lg.warning(f"phenotype/{path.name}: renamed {new}"
+                           f"{path.suffix}, but edited since brainspresso "
+                           f"wrote it: kept (delete it by hand)")
+        if pristine.exists():
+            pristine.unlink()
+            lg.info(f"{pristine.relative_to(ctx.root).as_posix()}: removed "
+                    f"(renamed {new}.tsv)")
+
+
+def _is_trim_of(ctx: RoastContext, table: Path, pristine: Path) -> bool:
+    """Whether a visible table is the trimmed copy of its pristine one."""
+    if not table.exists() or not pristine.exists():
+        return False
+    rel = table.relative_to(ctx.root).as_posix()
+    with tempfile.TemporaryDirectory() as tmp:
+        trim_tables(Path(tmp), {rel: pristine}, subjects=ctx.layout.raw)
+        trimmed = Path(tmp) / rel
+        return trimmed.exists() and \
+            trimmed.read_bytes() == table.read_bytes()
+
+
+def _is_recorded(ctx: RoastContext, path: Path) -> bool:
+    """Whether a file holds the hash that the manifest records for it."""
+    digest = ctx.recorded(path)
+    return path.exists() and digest is not None and \
+        hashlib.sha256(path.read_bytes()).hexdigest() == digest
+
+
 def roast_nitrc(ctx: RoastContext) -> Iterator:
     """
     Roast the NITRC tarballs (sources nitrc, s3).
@@ -335,6 +397,7 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
     Action | Shard
         Metadata actions, then one shard per tarball
     """
+    migrate_renamed_phenotypes(ctx)
     yield from scans.roast_meta(
         ctx, phenotype_files(ctx.source), "ABIDEII-<SITE>_<sample>.csv",
         PARTICIPANTS, PHENOTYPES, pristine_phenotypes=True)

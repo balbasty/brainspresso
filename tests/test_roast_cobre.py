@@ -1,4 +1,5 @@
 """Characterization tests for the COBRE roast step (on the roast engine)."""
+import hashlib
 import json
 import os
 
@@ -19,6 +20,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    readme_counts,
 )
 
 from brainspresso.actions.locks import FileLock, find_dataset
@@ -97,6 +99,42 @@ def test_roast_all(root):
     ) == json.loads((roaster.TEMPLATES / "T1w.json").read_text())
 
 
+def test_study_readme(tmp_path, caplog):
+    """A study gets a README through the engine: its hash in the
+    manifest, `--if-exists` as any output (an edit kept by `update`),
+    none if the user has a README of any name or case; none in a flat
+    layout"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "study")
+    make_source(root)
+    readme = root / "README"
+    roast(root, keys={"meta"}, display=False)
+    assert "`rawbids/`" in readme.read_text()
+    files = json.loads((root / ".brainspresso" / "manifest.json")
+                       .read_text())["files"]
+    assert files["README"]["sha256"] == \
+        hashlib.sha256(readme.read_bytes()).hexdigest()
+    readme.write_text("edited")
+    roast(root, keys={"meta"}, ifexists="update", display=False)
+    assert readme.read_text() == "edited"
+    assert "was edited" in caplog.text
+    roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert readme.read_text() != "edited"
+    readme.unlink()
+    (root / "readme.md").write_text("mine")
+    report = roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert "study" not in report.counts
+    assert {p.name for p in root.glob("*") if "eadme" in p.name.lower()} \
+        == {"readme.md"}
+
+    flat = tmp_path / "flat" / "COBRE"
+    init_layout(flat, "flat")
+    make_source(flat)
+    roast(flat, keys={"meta"}, display=False)
+    assert (flat / "README").read_text() == \
+        (roaster.TEMPLATES / "README").read_text()
+
+
 BOLD = "sub-0040000/func/sub-0040000_task-rest_bold.json"
 
 
@@ -114,21 +152,29 @@ def test_bold_sidecar(root):
             **template, "TaskName": "rest", "RepetitionTime": 2.0}
 
 
-def test_bold_sidecar_without_tr(tmp_path):
-    """No usable TR in the header: that sidecar fails, the image and
-    the other files are written"""
+@pytest.mark.parametrize("policy", ["yes", "only"])
+def test_bold_sidecar_without_tr(tmp_path, caplog, policy):
+    """No usable TR in the header (no time unit; out of range): the TR of
+    the COBRE fact sheet (2 s), one warning per roast with a count"""
     root = tmp_path / "COBRE"
     init_layout(root, "flat")
     make_source(root)
     make_tar(root / "sourcedata" / "COBRE_scan_data.tgz", {
-        "COBRE/0040000/session_1/anat_1/mprage.nii.gz": nii_bytes(),
         "COBRE/0040000/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "COBRE/0040001/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3), tr=300.0),
     })
-    report = roast(root, keys={"T1w", "func"}, display=False)
-    assert len(report.errors) == 1
-    assert report.errors[0][1] == "sub-0040000_task-rest_bold.json"
-    assert "RepetitionTime" in report.errors[0][2]
-    assert raw_tree(root) == {p for p in RAW if "0040000" in p} - {BOLD}
+    assert "TR: 2 s" in (roaster.TEMPLATES / "README").read_text()
+    report = roast(root, keys={"func"}, json=policy, display=False)
+    assert not report.errors, report.errors
+    template = json.loads((roaster.TEMPLATES / "bold.json").read_text())
+    for sub in ("0040000", "0040001"):
+        meta = json.loads(raw_file(
+            root, f"sub-{sub}/func/sub-{sub}_task-rest_bold.json").read_text())
+        assert meta == {**template, "TaskName": "rest",
+                        "RepetitionTime": 2.0}
+    assert caplog.text.count("without a usable RepetitionTime") == 1
+    assert "2 bold image(s)" in caplog.text
 
 
 def test_participants(root):
@@ -155,14 +201,28 @@ def test_participants_subtype(caplog):
                         .read_text())["icd9_subtype"]["Levels"]
     assert set(roaster.SUBTYPES) == set(levels)
     row = ["40000", "20", "Male", "Right", "Patient"]
-    roaster._not_subtypes.clear()
-    assert roaster.participant_row(row + ["295.70 Bipolar"])[-2:] == \
-        ["295.70", "bipolar"]
+    warned = set()
+    assert roaster.participant_row(row + ["295.70 Bipolar"], warned)[-2:] \
+        == ["295.70", "bipolar"]
     assert "WARNING" not in caplog.text
     for _ in range(2):
-        assert roaster.participant_row(row + ["295.3 Schizophrenia"])[-2:] \
-            == ["295.3", "n/a"]
+        assert roaster.participant_row(row + ["295.3 Schizophrenia"],
+                                       warned)[-2:] == ["295.3", "n/a"]
     assert caplog.text.count("is not a subtype") == 1
+
+
+def test_participants_subtype_warned_per_roast(tmp_path, caplog):
+    """The "not a subtype" warning: once per roast, not per process"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "flat")
+    make_source(root)
+    (root / "sourcedata" / "COBRE_phenotypic_data.csv").write_text(
+        CSV.splitlines(keepends=True)[0]
+        + "0040000,20,Male,Right,Patient,295.3 Schizophrenia\n"
+        + "0040001,30,Female,Left,Patient,295.3 Schizophrenia\n")
+    for _ in range(2):
+        roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert caplog.text.count("is not a subtype") == 2
 
 
 def test_participants_meta_only(root):
@@ -525,10 +585,12 @@ def test_skipped_shard_counts_what_is_expected(root):
     roast(root, subs=[40001], display=False)
     report = roast(root, keys={"T1w", "func"}, subs=[40000], display=False)
     assert report.summary() == {"T1w": {"skipped": 2},
-                                "func": {"skipped": 2}}
+                                "func": {"skipped": 2},
+                                **readme_counts(root, "skipped")}
     report = roast(root, keys={"T1w", "func"}, display=False)
     assert report.summary() == {"T1w": {"skipped": 4},
-                                "func": {"skipped": 2}}
+                                "func": {"skipped": 2},
+                                **readme_counts(root, "skipped")}
 
 
 def test_jobs(root):

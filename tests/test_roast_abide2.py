@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -902,6 +903,53 @@ def test_phenotype_names_are_bids():
     for name in tables.PHENOTYPES:
         assert "." not in name
         assert (TEMPLATES / "phenotype" / f"{name}.json").is_file()
+
+
+def make_old_cbcl(root):
+    """An earlier roast that wrote `cbcl_1.5-5` (the new files renamed,
+    the manifest entry of the dictionary too)"""
+    roast(root, keys="meta", display=False)
+    lay = layout_of(root)
+    new, old = lay.phenotype / "cbcl_1p5-5", lay.phenotype / "cbcl_1.5-5"
+    for ext in (".tsv", ".json"):
+        Path(f"{new}{ext}").rename(f"{old}{ext}")
+    lay.original(Path(f"{new}.tsv")).rename(lay.original(Path(f"{old}.tsv")))
+    manifest = lay.state / "manifest.json"
+    data = json.loads(manifest.read_text())
+    key = lambda p: Path(p).relative_to(lay.root).as_posix()  # noqa: E731
+    data["files"][key(f"{old}.json")] = data["files"].pop(key(f"{new}.json"))
+    manifest.write_text(json.dumps(data))
+    return lay, old
+
+
+def test_renamed_phenotype_removed(root, caplog):
+    """`cbcl_1.5-5` of an earlier roast: removed (pristine copy, table,
+    dictionary), under pure skip too; it does not come back"""
+    lay, old = make_old_cbcl(root)
+    with caplog.at_level(logging.INFO):
+        report = roast(root, keys="T1w", display=False)
+    assert not report.errors
+    for ext in (".tsv", ".json"):
+        assert not Path(f"{old}{ext}").exists()
+    assert not lay.original(Path(f"{old}.tsv")).exists()
+    assert "cbcl_1.5-5.tsv: removed" in caplog.text
+    assert "WARNING" not in caplog.text
+    roast(root, keys="meta", display=False)
+    assert not Path(f"{old}.tsv").exists()
+    assert (lay.phenotype / "cbcl_1p5-5.tsv").exists()
+
+
+def test_renamed_phenotype_edited_kept(root, caplog):
+    """An edited `cbcl_1.5-5` table or dictionary is kept (warned); the
+    pristine copy is removed, so that it is not derived again"""
+    lay, old = make_old_cbcl(root)
+    Path(f"{old}.tsv").write_text("participant_id\tmine\n")
+    Path(f"{old}.json").write_text('{"mine": {}}')
+    roast(root, keys="T1w", display=False)
+    assert Path(f"{old}.tsv").read_text() == "participant_id\tmine\n"
+    assert Path(f"{old}.json").read_text() == '{"mine": {}}'
+    assert not lay.original(Path(f"{old}.tsv")).exists()
+    assert caplog.text.count("edited since brainspresso wrote it") == 2
 
 
 def test_participants_sub_prefix(root):

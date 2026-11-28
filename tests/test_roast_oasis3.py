@@ -113,8 +113,8 @@ def test_participants_json_columns():
 
 def test_phenotype_sessions(root, caplog):
     """Every per-visit phenotype table: the `session_id` of a visit is
-    the session of the subject on that day, else n/a (warned, with a
-    count); the rows are kept, the day is in `delay`"""
+    the session of the subject on that day in the raw dataset, else n/a
+    (warned, with a count); the rows are kept, the day is in `delay`"""
     a1 = (
         "OASISID,OASIS_session_label,days_to_visit,age at visit,EDUC\n"
         "OAS30002,OAS30002_UDSa1_d0000,0,70.0,16\n"
@@ -122,7 +122,7 @@ def test_phenotype_sessions(root, caplog):
     )
     make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSa1.tar.gz",
              {"a1/a1.csv": a1.encode()})
-    roast(root, keys={"pheno"})
+    roast(root, keys={"pheno", "T2w"})
     cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
     assert [r[:3] for r in cdr[1:]] == [
         ["sub-0001", "n/a", "0"], ["sub-0001", "n/a", "339"],
@@ -136,6 +136,34 @@ def test_phenotype_sessions(root, caplog):
         meta = json.loads(raw_file(root, f"phenotype/{name}.json")
                           .read_text())
         assert meta["session_id"] == roaster.SESSION_ID
+
+
+def test_phenotype_sessions_of_the_raw_dataset(root):
+    """`session_id` names only sessions that the raw dataset has: not a
+    session of sourcedata that is not roasted (unselected key, a
+    FreeSurfer-only folder)"""
+    make_tar(root / "sourcedata" / "OAS30001_MR_d0339" /
+             "OAS30001_Freesurfer53_d0339.tar.gz",
+             {"a/b/c/d/e/f/mri/aseg.mgz": b"x"})
+    roast(root, keys={"pheno", "T1w"})          # (not sub-0002's T2w)
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert [r[1] for r in cdr[1:]] == ["n/a", "n/a", "n/a"]
+
+
+def test_phenotype_truncated_rows(root, caplog):
+    """Blank rows are dropped, truncated rows (no participant or visit)
+    skipped with a warning, short rows padded with n/a"""
+    cdr = (CDR + "\n" + "OAS30001\n" + ",,,\n"
+           + "OAS30002,OAS30002_UDSb4_d0400,400\n")
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": cdr.encode()})
+    report = roast(root, keys={"meta", "pheno"})
+    assert not report.errors
+    rows = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert len(rows) == 1 + 4
+    assert rows[-1] == ["sub-0002", "n/a", "400", "n/a", "n/a", "n/a",
+                        "n/a"]
+    assert "UDS_b4_cdr.tsv: 1 row(s) skipped" in caplog.text
 
 
 def test_meta_only(root):

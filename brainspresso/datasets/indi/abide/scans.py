@@ -159,9 +159,10 @@ class HeaderSidecar(WriteJSON):
     `RepetitionTime`, if the template has none, is read from the NIfTI
     header when the action runs: from the image written next to it if
     there is one, else from the source (`--sidecars only`: the member
-    being read, so that the archive is still read forward only). An
-    error if the header gives none. The fields of `extra` (`TaskName`)
-    that the template lacks are added.
+    being read, so that the archive is still read forward only). If the
+    header gives none: `default_tr` (and `on_default()` is called), else
+    an error. The fields of `extra` (`TaskName`) that the template lacks
+    are added.
 
     Parameters
     ----------
@@ -177,17 +178,25 @@ class HeaderSidecar(WriteJSON):
         Name of the source image (`.gz`: compressed)
     extra : dict, optional
         Fields added if the template lacks them (`TaskName`)
+    default_tr : float, optional
+        RepetitionTime if the header gives none (default: an error)
+    on_default : callable(), optional
+        Called when `default_tr` is used (a count of the dataset)
     **kwargs
         Options of `WriteJSON`
     """
 
     def __init__(self, template, dst, image, open_image: Callable,
-                 image_name: str, extra: Mapping | None = None, **kwargs):
+                 image_name: str, extra: Mapping | None = None,
+                 default_tr: float | None = None,
+                 on_default: Callable[[], None] | None = None, **kwargs):
         self.template = Path(template)
         self.image = Path(image)
         self.open_image = open_image
         self.image_name = image_name
         self.extra = dict(extra or {})
+        self.default_tr = default_tr
+        self.on_default = on_default
         super().__init__({}, dst, src=template, **kwargs)
 
     def action(self, file):
@@ -207,6 +216,10 @@ class HeaderSidecar(WriteJSON):
         except Exception as e:
             lg.debug(f"{self.image_name}: {e}")
             tr = None
+        if tr is None and self.default_tr is not None:
+            tr = self.default_tr
+            if self.on_default is not None:
+                self.on_default()
         if tr is None:
             raise ValueError(
                 f"{Path(self.dst[0]).name}: template {self.template.name} "
@@ -235,7 +248,9 @@ def bold_fields(stem: str | Path) -> dict:
 
 
 def bold_sidecar(template: Path, content: dict, stem: Path, image: Path,
-                 open_image: Callable, image_name: str,
+                 open_image: Callable, image_name: str, *,
+                 default_tr: float | None = None,
+                 on_default: Callable[[], None] | None = None,
                  **kwargs) -> Action:
     """
     Make the sidecar of a bold image, with its REQUIRED fields.
@@ -258,6 +273,9 @@ def bold_sidecar(template: Path, content: dict, stem: Path, image: Path,
         Opens the source image
     image_name : str
         Name of the source image
+    default_tr, on_default
+        RepetitionTime if the header gives none, and its hook
+        (`HeaderSidecar`; default: an error)
     **kwargs
         Options of the action (`tag`)
 
@@ -269,7 +287,8 @@ def bold_sidecar(template: Path, content: dict, stem: Path, image: Path,
     if "RepetitionTime" in content and not extra:
         return CopyJSON(template, f"{stem}.json", **kwargs)
     return HeaderSidecar(template, f"{stem}.json", image, open_image,
-                         image_name, extra=extra, **kwargs)
+                         image_name, extra=extra, default_tr=default_tr,
+                         on_default=on_default, **kwargs)
 
 
 def read_template(path: Path, stem: Path,

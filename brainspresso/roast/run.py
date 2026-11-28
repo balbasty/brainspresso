@@ -35,6 +35,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from brainspresso.actions import WriteText
 from brainspresso.actions.engine import Producer, Report, run
 from brainspresso.bids.harvest import (
     description_hashes,
@@ -42,7 +43,7 @@ from brainspresso.bids.harvest import (
     trim_originals,
 )
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.bids.layout import Layout
+from brainspresso.bids.layout import README, Layout, study_readme
 from brainspresso.roast.context import RoastContext, as_list, make_context
 from brainspresso.roast.policy import RoastPolicy
 
@@ -137,6 +138,32 @@ def run_roast(
     return report
 
 
+def with_study_readme(roaster: Roaster) -> Roaster:
+    """
+    Prefix a roaster with the README of a study dataset.
+
+    A study (`layout.kind == "study"`) gets `<DS>/README`
+    (`bids.layout.study_readme`, BIDS: recommended) through the engine,
+    as any output (`--if-exists`, its hash in the manifest), unless the
+    user has a README of their own (`StudyLayout.readme_of_user`: any
+    `README*` name, in any case). The `finalize` hook of the roaster is
+    kept.
+    """
+    def producer(ctx):
+        layout = ctx.layout
+        if layout.kind == "study" and layout.readme_of_user() is None:
+            name = layout.dataset_description("study")["Name"]
+            yield WriteText(study_readme(name), layout.root / README,
+                            tag="study")
+        yield from roaster(ctx)
+
+    finalize = getattr(roaster, "finalize", None)
+    if finalize is not None:
+        producer.finalize = finalize
+    producer.__name__ = getattr(roaster, "__name__", "roaster")
+    return producer
+
+
 def roast_dataset(
     roaster: Roaster,
     root: str | os.PathLike | Layout,
@@ -181,4 +208,5 @@ def roast_dataset(
     ctx = make_context(root, aliases, select_keys=as_list(keys),
                        exclude_keys=as_list(exclude_keys),
                        templates=templates, **options)
-    return run_roast(roaster, ctx, jobs=jobs, display=display, info=info)
+    return run_roast(with_study_readme(roaster), ctx, jobs=jobs,
+                     display=display, info=info)

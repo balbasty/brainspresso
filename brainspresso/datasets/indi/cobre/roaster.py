@@ -77,6 +77,11 @@ SCANS = {
     "rest.nii.gz": ("func", "func", "task-rest_", "bold"),
 }
 
+#: RepetitionTime (s) of the rest scans, from the COBRE fact sheet
+#: (`templates/README`: "TR: 2 s"): written when a NIfTI header gives
+#: none (warned, with a count)
+DOCUMENTED_TR = 2.0
+
 #: Subtypes of a diagnosis (`<code> <subtype>`; the `Levels` of
 #: `icd9_subtype` in `participants.json`)
 SUBTYPES = ("depressed", "bipolar")
@@ -219,11 +224,8 @@ def participant_label(value: str) -> str:
     return f"{int(value):0{WIDTH}d}" if value.isdigit() else value
 
 
-#: Words after a diagnosis code that are not subtypes (warned once)
-_not_subtypes: set = set()
-
-
-def participant_row(row: list[str]) -> list[str] | None:
+def participant_row(row: list[str],
+                    warned: set | None = None) -> list[str] | None:
     """
     Convert a row of `COBRE_phenotypic_data.csv`.
 
@@ -231,6 +233,9 @@ def participant_row(row: list[str]) -> list[str] | None:
     ----------
     row : list[str]
         Subject, age, gender, handedness, subject type, diagnosis
+    warned : set, optional
+        Words after a diagnosis code already warned about as not
+        subtypes (one table: updated; default: warn every time)
 
     Returns
     -------
@@ -252,8 +257,9 @@ def participant_row(row: list[str]) -> list[str] | None:
     codes = diagnosis.split() if diagnosis != "None" else []
     subtype = " ".join(codes[1:]) or "n/a"
     if subtype != "n/a" and subtype.lower() not in SUBTYPES:
-        if subtype not in _not_subtypes and "Disenrolled" not in row:
-            _not_subtypes.add(subtype)
+        warned = set() if warned is None else warned
+        if subtype not in warned and "Disenrolled" not in row:
+            warned.add(subtype)
             lg.warning(f"{PHENOTYPES}: {subtype!r} (diagnosis "
                        f"{diagnosis!r}, subject {row[0]}) is not a "
                        f"subtype ({', '.join(SUBTYPES)}): icd9_subtype "
@@ -277,6 +283,9 @@ def write_participants(path_csv, path_tsv) -> None:
     """
     Write the participants table (every subject of the CSV file).
 
+    A word after a diagnosis code that is not a subtype is warned about
+    once per table (`participant_row`), i.e. once per roast.
+
     Parameters
     ----------
     path_csv : path
@@ -284,13 +293,15 @@ def write_participants(path_csv, path_tsv) -> None:
     path_tsv : path
         Output table
     """
+    warned = set()
+
     def iter_rows():
         with open(path_csv, "rt", newline="", encoding="utf-8") as f:
             reader = csv.reader(f)
             next(reader)
             yield PARTICIPANTS_HEADER
             for row in reader:
-                row = participant_row(list(row))
+                row = participant_row(list(row), warned)
                 if row is not None:
                     yield row
 
@@ -335,7 +346,8 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     Action
         Per image: the image, then its sidecar (a template; for bold,
         with the `TaskName` of its name and the `RepetitionTime` of its
-        NIfTI header, which the template lacks: `abide.scans.bold_sidecar`)
+        NIfTI header, which the template lacks: `abide.scans.bold_sidecar`;
+        `DOCUMENTED_TR` if the header gives none, one warning per roast)
 
     Notes
     -----
@@ -344,6 +356,7 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     the tarball is decompressed once. Its size is unknown until then,
     so the progress group has no total.
     """
+    defaults = []                   # bold images given `DOCUMENTED_TR`
     with TarArchive(ctx.source / TARBALL) as tar:
         for member in tar:
             parsed = parse_member(member.name)
@@ -357,15 +370,22 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
                     f"sub-{sub}_{entities}{suffix}")
             image = Path(f"{stem}.nii.gz")
             yield ExtractMember(tar, member, image, tag=key)
-            yield from sidecar_actions(ctx, stem, suffix, key, image,
-                                       partial(tar.extractfile, member),
-                                       PurePosixPath(member.name).name)
+            yield from sidecar_actions(
+                ctx, stem, suffix, key, image,
+                partial(tar.extractfile, member),
+                PurePosixPath(member.name).name,
+                on_default=partial(defaults.append, stem.name))
             ctx.progress(advance=1)
+    if defaults:
+        lg.warning(f"{len(defaults)} bold image(s) without a usable "
+                   f"RepetitionTime in their NIfTI header: "
+                   f"{DOCUMENTED_TR} s, the TR of the COBRE fact sheet "
+                   f"(templates/README), e.g. {defaults[0]}")
 
 
 def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
-                    image: Path, open_image, image_name: str
-                    ) -> Iterator[Action]:
+                    image: Path, open_image, image_name: str,
+                    on_default=None) -> Iterator[Action]:
     """
     Write the sidecar of an image (after the image: its header is read).
 
@@ -385,12 +405,16 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
         Opens the source image (`--sidecars only`)
     image_name : str
         Name of the source image
+    on_default : callable(), optional
+        Called when a bold header gives no RepetitionTime
+        (`DOCUMENTED_TR` is written)
 
     Yields
     ------
     Action
-        A copy of the template (bold: `bold_sidecar`); a `Fail` if it
-        is missing or cannot be read
+        A copy of the template (bold: `bold_sidecar`, RepetitionTime of
+        the header, else `DOCUMENTED_TR`); a `Fail` if it is missing or
+        cannot be read
     """
     if not ctx.accepts("sidecar"):
         return
@@ -407,4 +431,5 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
         yield error
         return
     yield bold_sidecar(Path(sidecar), content, stem, image, open_image,
-                       image_name, tag=key)
+                       image_name, default_tr=DOCUMENTED_TR,
+                       on_default=on_default, tag=key)

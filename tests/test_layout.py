@@ -399,9 +399,7 @@ def test_write_descriptions_study(tmp_path):
 
     written = lay.write_descriptions()
     assert set(written) == {lay.root / "dataset_description.json",
-                            lay.root / "README", fs.description}
-    # a README for the study (BIDS: recommended), pointing at rawbids/
-    assert "rawbids/README" in (lay.root / "README").read_text()
+                            fs.description}
     study = read_json(lay.root / "dataset_description.json")
     assert study == {
         "Name": "IXI", "BIDSVersion": layout_mod.BIDS_VERSION,
@@ -422,14 +420,27 @@ def test_write_descriptions_study(tmp_path):
     assert lay.write_descriptions() == []
 
 
-def test_study_readme_left_alone(tmp_path):
-    """A study README of the user (any extension) is never replaced"""
+@pytest.mark.parametrize("name", ["README.md", "readme", "ReadMe.txt"])
+def test_study_readme_of_user(tmp_path, name):
+    """A README of the user: any `README*` name, in any case, but the
+    `README` that the roasts write"""
     lay = make_layout("study", tmp_path / "IXI")
-    write(lay.description, RAW_DESCRIPTION)
-    (lay.root / "README.md").write_text("mine")
-    assert lay.write_descriptions() == [lay.root / "dataset_description.json"]
-    assert not (lay.root / "README").exists()
-    assert (lay.root / "README.md").read_text() == "mine"
+    lay.root.mkdir(parents=True, exist_ok=True)
+    (lay.root / "README").write_text(layout_mod.study_readme("IXI"))
+    assert lay.readme_of_user() is None
+    (lay.root / "README").unlink()
+    (lay.root / name).write_text("mine")
+    assert lay.readme_of_user() == lay.root / name
+
+
+def test_study_readme_text():
+    """The study README names rawbids/ (without claiming its README
+    exists), derivatives/ and sourcedata/"""
+    text = layout_mod.study_readme("IXI")
+    assert text.startswith("# IXI\n")
+    for folder in ("rawbids/", "derivatives/", "sourcedata/"):
+        assert f"`{folder}`" in text
+    assert "rawbids/README" not in text
 
 
 def test_write_descriptions_flat(tmp_path):
@@ -447,8 +458,7 @@ def test_write_descriptions_sites(tmp_path):
     lay = make_layout("sites", tmp_path, child_kind="study")
     site = lay.child("A")
     write(site.description, {"Name": "X: A", "DatasetType": "raw"})
-    assert lay.write_descriptions() == [site.root / "dataset_description.json",
-                                        site.root / "README"]
+    assert lay.write_descriptions() == [site.root / "dataset_description.json"]
     assert read_json(site.root / "dataset_description.json")["Name"] == "X: A"
     assert not (tmp_path / "dataset_description.json").exists()
 

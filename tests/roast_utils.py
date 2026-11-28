@@ -40,6 +40,14 @@ def layout_of(ds_root: Path) -> Layout:
     return layout
 
 
+def readme_counts(ds_root: Path, state: str) -> dict:
+    """Counts of the study README (`roast.run.with_study_readme`): a
+    `study` tag in a study layout, nothing in a flat one"""
+    if layout_of(ds_root).kind != "study":
+        return {}
+    return {"study": {state: 1}}
+
+
 def raw_tree(ds_root: Path) -> set[str]:
     """Files of the raw BIDS dataset, relative to the raw dataset root."""
     layout = Layout.detect(ds_root)

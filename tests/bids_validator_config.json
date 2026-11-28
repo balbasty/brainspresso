@@ -1,0 +1,7 @@
+{
+  "ignore": [
+    {"code": "REPETITION_TIME_MISMATCH"},
+    {"code": "SLICETIMING_ELEMENTS"},
+    {"code": "GZIP_HEADER_MTIME"}
+  ]
+}

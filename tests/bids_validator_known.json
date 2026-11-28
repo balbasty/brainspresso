@@ -1,0 +1,1050 @@
+{
+  "validator": "3.0.2",
+  "schema": "2.0.1",
+  "findings": [
+    {
+      "dataset": "abide1-nitrc",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-nitrc",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'Caltech'"
+    },
+    {
+      "dataset": "abide1-nitrc",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-nitrc",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'Caltech'"
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-50003/anat/sub-50003_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-50003/anat/sub-50003_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-51456/anat/sub-51456_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-51456/anat/sub-51456_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-50642/func/sub-50642_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'Caltech'"
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-50003/anat/sub-50003_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-50003/anat/sub-50003_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-51456/anat/sub-51456_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "derivatives/abide-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-51456/anat/sub-51456_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-50642/func/sub-50642_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide1-xnat",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'Caltech'"
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "EXTENSION_MISMATCH",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "EXTENSION_MISMATCH",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29001/ses-01/func/sub-29001_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29002/ses-01/func/sub-29002_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29100/ses-01/func/sub-29100_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_WITHOUT_DATAFILE",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'KUL'"
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "EXTENSION_MISMATCH",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "EXTENSION_MISMATCH",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29001/ses-01/func/sub-29001_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29002/ses-01/func/sub-29002_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-29100/ses-01/func/sub-29100_ses-01_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_WITHOUT_DATAFILE",
+      "subCode": "",
+      "location": "/phenotype/cbcl_1.5-5.json",
+      "message": ""
+    },
+    {
+      "dataset": "abide2",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "sample",
+      "location": "/participants.tsv",
+      "message": "'KUL'"
+    },
+    {
+      "dataset": "cobre",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "RepetitionTime",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: The time in seconds between the beginning of an acquisition of one volume"
+    },
+    {
+      "dataset": "cobre",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "cobre",
+      "layout": "flat",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "VolumeTiming",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: The time at which each volume was acquired during the acquisition."
+    },
+    {
+      "dataset": "cobre",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "icd9_subtype",
+      "location": "/participants.tsv",
+      "message": "'Schizophrenia'"
+    },
+    {
+      "dataset": "cobre",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "RepetitionTime",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: The time in seconds between the beginning of an acquisition of one volume"
+    },
+    {
+      "dataset": "cobre",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "TaskName",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: Name of the task."
+    },
+    {
+      "dataset": "cobre",
+      "layout": "study",
+      "target": "raw",
+      "code": "SIDECAR_KEY_REQUIRED",
+      "subCode": "VolumeTiming",
+      "location": "/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+      "message": "Field description: The time at which each volume was acquired during the acquisition."
+    },
+    {
+      "dataset": "cobre",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "icd9_subtype",
+      "location": "/participants.tsv",
+      "message": "'Schizophrenia'"
+    },
+    {
+      "dataset": "ixi",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "dob",
+      "location": "/participants.tsv",
+      "message": "'1970-01-30'"
+    },
+    {
+      "dataset": "ixi",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "study_date",
+      "location": "/participants.tsv",
+      "message": "'2005-11-18'"
+    },
+    {
+      "dataset": "ixi",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "dob",
+      "location": "/participants.tsv",
+      "message": "'1970-01-30'"
+    },
+    {
+      "dataset": "ixi",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_VALUE_INCORRECT_TYPE",
+      "subCode": "study_date",
+      "location": "/participants.tsv",
+      "message": "'2005-11-18'"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/space-Talairach_res-1mm_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "flat",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+      "message": "res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+      "message": "space, res not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "ENTITY_NOT_IN_RULE",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+      "message": "space, res, desc not in rule rules.files.raw.anat.nonparametric"
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/space-Talairach_res-1mm_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+      "message": ""
+    },
+    {
+      "dataset": "oasis1",
+      "layout": "study",
+      "target": "derivatives/oasis-processed",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_INDEX_VALUE_NOT_UNIQUE",
+      "subCode": "",
+      "location": "/phenotype/UDS_b4_cdr.tsv",
+      "message": "Row: 3, Value: sub-0001"
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "MISSING_DATASET_DESCRIPTION",
+      "subCode": "",
+      "location": "",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-AsegDesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Aseg_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-DesikanKilliany_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "derivatives/oasis-freesurfer",
+      "code": "NOT_INCLUDED",
+      "subCode": "",
+      "location": "/atlas-Destrieux_dseg.tsv",
+      "message": ""
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_INDEX_VALUE_NOT_UNIQUE",
+      "subCode": "",
+      "location": "/phenotype/UDS_b4_cdr.tsv",
+      "message": "Row: 3, Value: sub-0001"
+    }
+  ]
+}

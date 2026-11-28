@@ -76,15 +76,20 @@ def part(src, number=1, scans=SCANS, top=True):
     return make_tar(src / f"OAS2_RAW_PART{number}.tar.gz", m)
 
 
+def make_source(root):
+    """Write the harvested files of OASIS-II (one part)."""
+    src = root / "sourcedata"
+    src.mkdir(parents=True, exist_ok=True)
+    write_xlsx(src)
+    part(src)
+    return root
+
+
 @pytest.fixture(params=LAYOUTS)
 def root(tmp_path, request):
     root = tmp_path / "OASIS-2"
     init_layout(root, request.param)
-    src = root / "sourcedata"
-    src.mkdir(parents=True)
-    write_xlsx(src)
-    part(src)
-    return root
+    return make_source(root)
 
 
 def scans(sub, ses, run, ext=("nii.gz", "json")):

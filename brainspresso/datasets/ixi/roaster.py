@@ -44,12 +44,13 @@ from brainspresso.datasets.ixi.dataset import KEYS as DATASET_KEYS
 from brainspresso.roast import (
     RoastContext,
     Shard,
+    archives,
     as_list,
     copy_templates,
     roast_dataset,
 )
 from brainspresso.roast.tables import read_xls, table_action, xls_date
-from brainspresso.utils.archive import open_archive
+from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
 
 lg = getLogger(__name__)
 
@@ -156,13 +157,21 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
     yield from copy_templates(ctx, ["README", "dataset_description.json",
                                     "participants.json"])
 
-    # Sites are only given by image names
+    # Sites are only given by image names (an unreadable tarball is the
+    # error of its own shard)
     sites = {}
     for ixi in IXI2BIDS:
-        archive = open_images(ctx, ixi)
-        if archive is not None:
-            with archive:
-                sites.update(map(parse_name, archive.getnames()))
+        tar, folder = ctx.source / f"IXI-{ixi}.tar", ctx.source / f"IXI-{ixi}"
+        path = tar if tar.exists() else folder if folder.is_dir() else None
+        if path is None:
+            continue
+        opener = TarArchive if path == tar else FolderArchive
+        try:
+            sites.update(map(parse_name,
+                             archives.names(path, opener=opener)))
+        except archives.ArchiveError as e:
+            lg.warning(f"{e}: the sites of its subjects are not in "
+                       f"participants.tsv")
     xls = ctx.resource("IXI.xls")
     if xls is None:
         yield Fail("IXI.xls not found", name="participants.tsv", tag="meta")

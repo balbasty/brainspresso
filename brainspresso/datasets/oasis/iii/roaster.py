@@ -39,8 +39,6 @@ found in `sourcedata/`) and trimmed to what is on disk.
 """  # noqa: E501
 import math
 import re
-import tarfile
-import zlib
 from collections import Counter
 from functools import partial
 from logging import getLogger
@@ -55,6 +53,7 @@ from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
     RoastContext,
     Shard,
+    archives,
     as_list,
     attempt,
     copy_templates,
@@ -212,7 +211,7 @@ def roast_subject(ctx: RoastContext, sub: str):
             yield ExtractMembers(
                 tarball, Claim(claim / datatype if datatype else claim),
                 partial(raw_path, ctx.layout.raw, sub, ses, datatype),
-                tag=datatype or "func",
+                root=ctx.layout.root, tag=datatype or "func",
             )
 
 
@@ -274,7 +273,8 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
         return
     # unpacked files are inputs of the roast (`staging`: the
     # JSON policy does not apply to them)
-    yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
+    yield ExtractMembers(tarball, Claim(src), rename, tag="fs",
+                         root=ctx.layout.root, staging=True)
     # (the shard runs after the tree is unpacked: the engine runs each
     # action before asking for the next item)
     yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
@@ -370,19 +370,22 @@ def read_csv(tarball: Path, **kwargs) -> Sheet:
 
     Raises
     ------
+    roast.archives.ArchiveError
+        If the tarball cannot be read
     roast.tables.TableError
-        If the tarball holds no file, or its CSV file cannot be read
+        If it holds no file, or its CSV file cannot be read
     """
-    with tarfile.open(tarball, "r:gz") as tar:
-        member = next((m for m in tar if m.isfile()), None)
+    with archives.reading(tarball, opener=TarArchive) as tar:
+        member = next(iter(tar), None)
         if member is None:
             raise TableError(f"{tarball.name}: no CSV file")
-        return tables.read_csv(tar.extractfile(member), name=tarball.name,
-                               **kwargs)
+        with member.open() as f:
+            return tables.read_csv(f, name=tarball.name, **kwargs)
 
 
-#: Errors of a CSV tarball that cannot be read (`attempt`)
-READ_ERRORS = (OSError, ValueError, tarfile.TarError, EOFError, zlib.error)
+#: Errors of a CSV tarball that cannot be read (`attempt`; a `TableError`
+#: is a `ValueError`, and so are the numbers that cannot be read)
+READ_ERRORS = (archives.ArchiveError, ValueError)
 
 
 def roast_meta(ctx: RoastContext, sessions: dict) -> Iterator[Action]:

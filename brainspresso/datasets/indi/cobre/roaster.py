@@ -31,9 +31,10 @@ once, member by member (subjects that the selection drops are skipped
 before anything is extracted), not by one shard per subject, each of
 which would decompress the tarball up to its own members. Its scope
 (`roast.scope`) is the image keys and the subjects it sees: a later
-roast that keeps no more (fewer subjects, `meta` toggled) skips it.
+roast that keeps no more (fewer subjects, `meta` toggled) skips it; its
+sidecar templates (paths, hashes) are its `Shard.config`. A corrupt
+tarball is one `Fail` of that shard, named after the tarball.
 """  # noqa: E501
-import hashlib
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -48,10 +49,12 @@ from brainspresso.roast import (
     RoastContext,
     RoastReport,
     Shard,
+    archives,
     copy_templates,
     roast_dataset,
     scope,
 )
+from brainspresso.roast.helpers import template_config
 from brainspresso.roast.tables import read_csv, table_action
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -160,16 +163,11 @@ def sidecar_config(ctx: RoastContext) -> dict:
     Returns
     -------
     dict
-        `{name: [path, sha256] | None}`: a changed template re-runs the
-        shard
+        `{name: [path, sha256] | None}` (`roast.helpers.template_config`):
+        a changed template re-runs the shard
     """
-    out = {}
-    for _, _, _, suffix in SCANS.values():
-        path = ctx.resource(f"{suffix}.json")
-        out[f"{suffix}.json"] = None if path is None else [
-            Path(path).as_posix(),
-            hashlib.sha256(Path(path).read_bytes()).hexdigest()]
-    return out
+    return template_config(ctx, [f"{suffix}.json"
+                                 for _, _, _, suffix in SCANS.values()])
 
 
 # ----------------------------------------------------------------------
@@ -346,7 +344,8 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
         Per image: the image, then its sidecar (a template; for bold,
         with the `TaskName` of its name and the `RepetitionTime` of its
         NIfTI header, which the template lacks: `abide.scans.bold_sidecar`;
-        `DOCUMENTED_TR` if the header gives none, one warning per roast)
+        `DOCUMENTED_TR` if the header gives none, one warning per roast);
+        a `Fail` if the tarball cannot be read
 
     Notes
     -----
@@ -356,25 +355,27 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     so the progress group has no total.
     """
     defaults = []                   # bold images given `DOCUMENTED_TR`
-    with TarArchive(ctx.source / TARBALL) as tar:
-        for member in tar:
-            parsed = parse_member(member.name)
-            if parsed is None or not member.isfile():
-                continue
-            sub, (key, datatype, entities, suffix) = parsed
-            # (every subject is reported, before the key prunes it)
-            if not (ctx.keeps_subject(sub) and ctx.wants(key)):
-                continue
-            stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
-                    f"sub-{sub}_{entities}{suffix}")
-            image = Path(f"{stem}.nii.gz")
-            yield ExtractMember(tar, member, image, tag=key)
-            yield from sidecar_actions(
-                ctx, stem, suffix, key, image,
-                partial(tar.extractfile, member),
-                PurePosixPath(member.name).name,
-                on_default=partial(defaults.append, stem.name))
-            ctx.progress(advance=1)
+    try:
+        with archives.reading(ctx.source / TARBALL, opener=TarArchive) as tar:
+            for member in tar:
+                parsed = parse_member(member.path)
+                if parsed is None:
+                    continue
+                sub, (key, datatype, entities, suffix) = parsed
+                # (every subject is reported, before the key prunes it)
+                if not (ctx.keeps_subject(sub) and ctx.wants(key)):
+                    continue
+                stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
+                        f"sub-{sub}_{entities}{suffix}")
+                image = Path(f"{stem}.nii.gz")
+                yield ExtractMember(tar.archive, member.info, image, tag=key)
+                yield from sidecar_actions(
+                    ctx, stem, suffix, key, image, member.open,
+                    PurePosixPath(member.name).name,
+                    on_default=partial(defaults.append, stem.name))
+                ctx.progress(advance=1)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="scans")
     if defaults:
         lg.warning(f"{len(defaults)} bold image(s) without a usable "
                    f"RepetitionTime in their NIfTI header: "

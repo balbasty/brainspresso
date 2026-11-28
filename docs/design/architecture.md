@@ -663,9 +663,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   `inputs`: skipped by signature), not by one shard per subject, each
   of which would decompress it up to its own members (step 5).
 * A gz tarball that holds many subjects (OASIS-I discs) is read by one
-  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc and
-  the templates its actions read, so an unchanged disc is skipped by
-  signature), not one shard per subject: each of those would
+  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc;
+  `config`: the template its actions read, path and sha256; so an
+  unchanged disc is skipped by signature), not one shard per subject: each of those would
   decompress the disc again, up to its own members. The shard lists
   the disc once, then extracts in archive order (actions sorted by the
   offset of their first member, each reading its members in order: a
@@ -675,13 +675,14 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   listing of the image disc of the same number if a tree lacks the
   `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
   OASIS-II parts are read the same way (one shard per part, task id
-  `roast/parts/part<N>`, inputs: the part and the `T1w.json` template;
-  2 decompressions per part).
+  `roast/parts/part<N>`, inputs: the part, config: the `T1w.json`
+  template; 2 decompressions per part).
 * Subjects that are folders of small files (UNC-Wisconsin, Bullitt)
   are read by one shard per subject (`subject_shards`, task id
   `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
-  subject that its actions read for the wanted keys, and the sidecar
-  templates they copy; `config`: the keys named by `--keys`).
+  subject that its actions read for the wanted keys; `config`: the keys
+  named by `--keys` and, when sidecars are written, the templates of the
+  images it converts, path and sha256).
 * Several gz archives (ABIDE-I and ABIDE-II, step 5): one shard per gz
   archive (NITRC `<Site>.tgz`, `ABIDEII-<SITE>_<n>.tar.gz`, id
   `roast/raw/<name>`), or per folder that stands for
@@ -707,6 +708,89 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   after unpacking) is yielded as a sibling shard by the roaster, or as
   actions after the unpacking: a shard that yields shards is never
   skipped by signature.
+* **Archive conventions** (step 6 PR A, `roast/archives.py`; a library,
+  not a framework: the roaster keeps its loop, its `ctx.keeps_subject`
+  calls, its `seen` set and its `Fail`s).
+  * Opening: `with archives.reading(path, opener=TarArchive) as tar`,
+    where `opener` is the roaster's own module-level name, read at call
+    time (tests patch `roaster.TarArchive`; `TarArchive` stays in
+    `utils/archive.py`, which `actions/` can import). The archive is
+    closed through its `__exit__` on every path: end of the members, an
+    error, the roaster's generator closed by the engine.
+  * Members: `for member in tar` is lazy, forward only, in archive
+    order, regular files only, and never lists the archive
+    (`getmembers`); `tar.listing()` / `tar.index()` are the one full
+    pass of the roasters that must know every member first (OASIS-I/II,
+    then `archives.in_order(pairs)` sorts their actions by the offset of
+    their first member); `archives.names(path, opener=)` lists and
+    closes (IXI sites; with `extractable=True`, only the names that
+    `ExtractMembers` gives to `rename`: the sidecars-only FreeSurfer
+    listings, so that `--sidecars only` sees the members that a full
+    roast unpacks). A `Member`
+    has `name` (as stored), `parts`/`path` (normalised by
+    `member_parts`: `\` read as `/`, no `.`, empty parts or leading
+    `/`), `info` (for `ExtractMember(tar.archive, member.info, dst)`),
+    `offset`, `open()` and `read(n)`. Members with a `..` part are
+    skipped, one warning per archive.
+  * Errors: only what the archive does is converted to `ArchiveError`
+    (opening, moving to the next member, listing, opening or reading a
+    member through `Member.open`); code between them (templates,
+    `ctx.resource`, the output folder) raises its own errors, which the
+    engine reports as errors of the shard under their own type (owner
+    decision, step 6: before, an `OSError` listing ABIDE-II's output
+    folder was "tarball cannot be read"). `ArchiveError.fail(tag=,
+    name=, note=)` is the one `Fail` of an unreadable archive, in its
+    shard only: `"<name>: cannot be read (<Type>: <message>)"` (the
+    XNAT archives of ABIDE-I are named `<folder>/<name>`). A member cut
+    by a truncation whose extraction had started is also an error of
+    its own output. `ARCHIVE_ERRORS` is used inside `roast/archives.py`
+    only.
+  * Forward only: a roaster extracts each member when it is reached (the
+    engine runs an action before asking for the next) or lists once and
+    sorts; a second read of a member is from the written file or from
+    bytes kept while on it. `reading(..., strict=True)`, or
+    `BRAINSPRESSO_STRICT_ARCHIVES=1`, raises `BackwardRead` on a member
+    opened (or extracted) before the last one; the roast suites pass
+    with it.
+  * `ExtractMembers` (`actions/archive.py`) drops the members whose name
+    is unsafe before `rename` sees them (OASIS-I and OASIS-III join
+    member parts to the output folder). `utils.archive.is_unsafe` splits
+    the stored name on `/` and judges it on every platform as Windows
+    would too: absolute, a part that is empty or blank, made only of
+    dots and spaces (`..`, `...`), holding a `\` or anchored for
+    `PureWindowsPath` (`C:`). `rename` gets the others normalised
+    (`utils.archive.member_path`: `./a/b` is `a/b`, the `Member.path`
+    of the listing). Second line of defence against a path escape: an
+    output that `rename` puts outside `ExtractMembers(root=)` (the
+    roasters pass the dataset, `ctx.layout.root`; resolved,
+    `os.path.realpath`) is dropped too. It does not enforce the claim:
+    OASIS-III writes a member named after another session than its
+    folder to that session, as before. One warning per archive for
+    each.
+  * Spools (ABIDE-II): `spool_folder(ctx)`, `spool_prefix(name)`,
+    `sweep_spools(ctx, name)`, `spool(src, path)` (member read errors
+    raised, write errors returned), `place(spool, path)`; folders
+    `.brainspresso/tmp/<name>-<host>-<pid>-*`.
+  * Shards: `roast.helpers.archive_shards(ctx, archives, fn, tag=,
+    keys=, id=, inputs=, config=)`, the sibling of `subject_shards`
+    (progress total, `roast/<tag>/<name>` ids, `scope(keys, SEEN)`).
+  * Templates in signatures: every roaster signs the sidecar templates
+    that a shard may use by content in its `Shard.config` (path and
+    sha256: `roast.helpers.template_config(ctx, names)`, `{name: [path,
+    sha256] | None}`, or ABIDE's `{"site", "templates"}`), never in its
+    `inputs` (owner decision, step 6: OASIS-I/II and Bullitt listed them
+    in `inputs`, signed by size and mtime). Bullitt signs those of the
+    images a subject shard converts, when sidecars are written (as its
+    `inputs` did): a template of another key does not re-run it, and
+    a narrower selection still skips it (`subject_shards(config=)` takes
+    a function of the label).
+  * **Upgrade note (step 6 PR A).** The OASIS-I image discs, the
+    OASIS-II parts and the Bullitt subject shards get a new signature
+    (their templates moved from `inputs` to `config`): the first roast
+    after the upgrade re-reads these archives (and Bullitt subjects)
+    once, under `--if-exists skip` too; nothing is rewritten (their
+    outputs exist and are skipped one by one). Shard ids and the other
+    inputs are unchanged; no other roaster's signature changes.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
   (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table helpers (step 6
   PR B: `roast/tables.py`, below; the unused `TableMapper` was removed
@@ -732,8 +816,12 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     when the roaster asks), each run of tabs and line breaks is one
     space, `"` is `'`, text is stripped, and an integral float is
     written in its shortest form (`30.0` is `30`, `0.0` is `0`, `0.5`
-    stays `0.5`; text such as `"70.0"` read from a CSV file is kept as
-    it is). Every roasted table goes through it once, in
+    stays `0.5`). Text that reads as a number is written in the same
+    shortest form only in the columns that the table's data dictionary
+    declares numeric (`numeric_columns`: no `Levels`, and a `Format`
+    `number` or `integer`, or `Units` that are not a date or time
+    format; `"70.0"` is `70`), so IDs, codes (`295.70`), versions and
+    dates stay as in the source. Every roasted table goes through it once, in
     `table_action`, with one warning per table that names how many
     cells it changed; the OASIS-III medications tables are no exception
     since #43 (they are trimmed tables too, written without an escape
@@ -745,15 +833,23 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     `pristine=False`: `dst`, as ABIDE-I phenotypes) with
     `utils.io.write_tsv` (unquoted); `bids.tables.write_tsv` stays the
     quote-aware writer of trimmed and hosted tables. `rows` is a list,
-    or a picklable callable that reads the sources when the action runs.
+    or a picklable callable that reads the sources when the action runs;
+    its data dictionary (`sidecar=`) is by default the resource of the
+    table's JSON name (`sidecar_name`: `participants.json`,
+    `phenotype/<name>.json`, the inherited `sessions.json`), or a dict
+    (OASIS-III builds its phenotype dictionaries).
   * Errors: read in the action (the default), a `TableError` (or any
     error) is an error of that table only, under its tag; read while
     producing (one sheet gives several tables, or a header that a data
     dictionary needs: OASIS-II, OASIS-III, Bullitt), through
-    `roast.attempt(fn, ..., name=, tag=)`, which returns `(result,
-    None)` or `(None, Fail)`. Row level: blank rows dropped silently; a
-    bad row (no subject, an ID that cannot be parsed, short, listed
-    twice) skipped with a warning naming the file and the line or row;
+    `roast.attempt(fn, ..., fail_name=, fail_tag=)` (its own parameters
+    are prefixed, the others are the reader's), which returns
+    `(result, None)` or `(None, Fail)`. Row level: blank rows dropped
+    silently; a bad row (no subject, an ID that cannot be parsed, short,
+    listed twice) skipped with a warning naming the file and the
+    physical line (CSV: the line the record starts on) or row; a cell
+    that a roaster must parse and cannot is `n/a`, one warning per table
+    and column with a count (OASIS-III `delay`, `age`);
     a mapped column that no file has is `n/a` with one warning.
   * Layer 2, `Table`: a table that is a pure mapping of columns
     (`columns`, `values`, `baseline`, `nans`, `label`, `prefix`), the
@@ -3519,7 +3615,43 @@ up as an XPASS failure once fixed (then drop the marker).
   it holds `study_readme`'s text: else it is the user's and never
   written, in any mode; `with_study_readme` keeps the attributes of the
   roaster (`functools.update_wrapper`, `tag`, `source`).
-* r48: step 6, PR B. Shared table helpers (§5 "Table conventions"):
+* r48: step 6, PR A. Shared archive helpers (§5 "Archive conventions"):
+  `roast/archives.py` (`reading`, `Reader`, `Member`, `ArchiveError`
+  with its one message form, `names`, `in_order`, `strict` and
+  `BRAINSPRESSO_STRICT_ARCHIVES`, the ABIDE-II spool mechanics),
+  `roast.helpers.archive_shards` and `template_config`,
+  `utils.archive.member_parts` and `is_unsafe`. Migrated: the archive
+  loops of ABIDE-I (NITRC, XNAT scans, FreeSurfer listing), ABIDE-II,
+  COBRE, OASIS-I and OASIS-II; the CSV opening of OASIS-III; the site
+  listing of IXI. Owner decisions: archive errors narrowed (an
+  `OSError` of a template or of the output folder fails the shard under
+  its own type), one message form (OASIS-I/II gain a colon: `<name>:
+  cannot be read (...)`), a corrupt COBRE tarball is a `Fail` named
+  after it (was an exception of the shard), an unreadable IXI image
+  tarball no longer aborts the metadata (a warning; its shard reports
+  it); `ExtractMembers` drops `..` and absolute members (OASIS-I/III
+  FreeSurfer `rename`); sidecar templates signed in `Shard.config`
+  everywhere (OASIS-I/II, Bullitt: one re-read after upgrading, see the
+  upgrade note). Golden: only the signatures of those shards change.
+  Not migrated here: tables (PR B), converters and sidecars (PR C), the
+  FreeSurfer archive helpers and the OASIS-III FreeSurfer listing
+  (PR D); a corrupt OASIS-III `demo.tar.gz` still stops its top-level
+  roaster (now as an `ArchiveError`; PR B makes it a `Fail` of
+  `participants.tsv`).
+  Review round 1: `is_unsafe` splits on `/` and also rejects empty,
+  blank and dots-only parts, any `\` and Windows-anchored parts (`C:`),
+  on every platform; `ExtractMembers` gives `rename` the normalised name
+  (`member_path`) and drops an output that `rename` puts outside the
+  dataset (`root=ctx.layout.root`: not the claim, OASIS-III takes the
+  session of a member from its name); the sidecars-only FreeSurfer listings of OASIS-I and
+  ABIDE-I list the same names (`archives.names(extractable=True)`), so
+  `--sidecars only` writes the sidecars of a full roast (also for `./`
+  and `/` names); OASIS-I reads the `mri/orig` runs of `./`-prefixed
+  members; Bullitt signs only the templates of the images a subject
+  shard converts, when sidecars are written (a narrower selection
+  skips again: the scope fuzz); `Reader` converts a folder that cannot
+  be listed (`FolderArchive`) to an `ArchiveError`.
+* r49: step 6, PR B. Shared table helpers (§5 "Table conventions"):
   `roast/tables.py` (`read_csv`, `read_xlsx`, `read_xls` -> `Sheet`
   with header lookup by name and alias; `clean`; `TableError`;
   `table_action`, the one action of a roasted table; `warn_once`,
@@ -3544,4 +3676,17 @@ up as an XPASS failure once fixed (then drop the marker).
   `age` of the phenotype and sessions tables (`70.0` -> `70`) change
   once on the next roast; the shard signatures do not change.
   Replaced and removed: `abide.tables.write_table` and `read_csv`
-  (`table_action`, `roast.tables.read_csv`).
+  (`table_action`, `roast.tables.read_csv`). Merged with PR A (r48):
+  OASIS-III reads its CSV tarballs through `archives.reading` (`attempt`
+  errors: `ArchiveError` and `ValueError`).
+  Review round 1: the OASIS-III phenotype rows are built in their
+  action (a `delay` or `age` that is not a number is `n/a`, one warning
+  per table and column; a subject that is not an OASIS-III ID skips its
+  row; a broken header is a `Fail` of its table only), the header is
+  cleaned once for the table and its data dictionary, a tarball without
+  a file is a `TableError`; `read_csv` numbers rows by physical line
+  and refuses empty `encodings`; `attempt` takes `fail_name`,
+  `fail_tag`, `fail_what`, `fail_errors`. Owner decision: numeric text
+  in the columns that a table's data dictionary declares numeric is
+  written in its shortest form (`numeric_columns`, `table_action(sidecar=)`):
+  on the fixtures, OASIS-III `participants.tsv` `age` `70.0` -> `70`.

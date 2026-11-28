@@ -9,8 +9,8 @@
     {
       "code": "SLICETIMING_ELEMENTS",
       "datasets": ["abide1-nitrc", "abide1-xnat", "abide2"],
-      "location": "*_bold.nii.gz",
-      "reason": "The SliceTiming of the site templates has one entry per real slice; the fixture bold images have 2 slices."
+      "location": "*.nii.gz",
+      "reason": "The SliceTiming of the site templates (bold, but also some T2w and dwi templates) has one entry per real slice; the fixture images have 2 slices."
     },
     {
       "code": "GZIP_HEADER_MTIME",

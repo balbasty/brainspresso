@@ -815,7 +815,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     function. DICOM is not in it (no user yet). The registry is keyed by
     the lower-case extension; a companion file (the `.img` of an
     Analyze `.HDR`) is looked for in the case of the source first, then
-    in the other (`analyze.pair`). `SOURCES` gives the files a source
+    in the other, in the listing of its folder (`analyze.pair`: named as
+    on disk, also on case-insensitive file systems). `SOURCES` gives the files a source
     consists of (`sources_of`: a `.mhd` and its data file, a `.nhdr` and
     its data, an Analyze pair; never raises): they are the sources of
     `Convert`, locked while it runs and dating its output.

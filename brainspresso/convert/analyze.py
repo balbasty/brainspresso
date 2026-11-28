@@ -35,6 +35,10 @@ def companion(path: str | os.PathLike, ext: str) -> Path:
     """
     Find the companion of a file: same stem, another extension.
 
+    The name is matched against the listing of the folder, so that the
+    companion is named as it is on disk on every platform (a
+    case-insensitive file system finds `x.img` for `x.IMG` too).
+
     Parameters
     ----------
     path : path
@@ -45,15 +49,27 @@ def companion(path: str | os.PathLike, ext: str) -> Path:
     Returns
     -------
     Path
-        The companion in the case of `path`'s extension (`x.IMG`), else
-        in lower or upper case, whichever exists (the first if none
-        does, for the message of the error that follows)
+        The companion as named on disk: in the case of `path`'s
+        extension (`x.IMG`), else in lower case, else in upper case,
+        else in any case; if there is none, in the case of `path` (for
+        the message of the error that follows)
     """
     path = Path(path)
-    upper = path.suffix.isupper()
-    cases = [ext.upper(), ext] if upper else [ext, ext.upper()]
-    candidates = [path.with_suffix(e) for e in cases]
-    return next((c for c in candidates if c.exists()), candidates[0])
+    stem = path.name[:-len(path.suffix)] if path.suffix else path.name
+    cases = [ext.upper(), ext] if path.suffix.isupper() else \
+        [ext, ext.upper()]
+    try:
+        names = os.listdir(path.parent)
+    except OSError:
+        names = []
+    wanted = f"{stem}{ext}".lower()
+    found = [n for n in names if n.lower() == wanted]
+    for name in [f"{stem}{e}" for e in cases]:
+        if name in found:
+            return path.with_name(name)
+    if found:
+        return path.with_name(sorted(found)[0])
+    return path.with_name(f"{stem}{cases[0]}")
 
 
 def pair(path: str | os.PathLike) -> tuple[Path, Path]:

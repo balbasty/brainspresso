@@ -11,12 +11,12 @@ A single application to **harvest** (download), **roast** (convert to BIDS),
   `<DS>/sourcedata/`.
 * **Roast** converts the source data into a raw BIDS dataset
   (`<DS>/rawbids/` in the study layout, `<DS>/` itself with `--layout flat`).
-* **Grind** preprocesses the raw BIDS dataset with standard pipelines into
-  `<DS>/derivatives/<pipeline>/`.
-* **Percolate** runs a saved plan: `bx <ds> roast|grind --plan PLAN` writes
-  the tasks (one per subject, or per stage and unit) without running them,
-  and `bx percolate PLAN` runs those not done yet, locally or as Slurm, SGE
-  or PBS jobs (`--status` follows them).
+* **Grind** (planned, not available yet) preprocesses the raw BIDS dataset
+  with standard pipelines into `<DS>/derivatives/<pipeline>/`.
+* **Percolate** (planned, not available yet) runs a saved plan:
+  `bx <ds> roast|grind --plan PLAN` writes the tasks (one per subject, or per
+  stage and unit) without running them, and `bx percolate PLAN` runs those not
+  done yet, locally or as Slurm, SGE or PBS jobs (`--status` follows them).
 
 This is a very early work in progress.
 

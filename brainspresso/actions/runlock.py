@@ -239,8 +239,7 @@ def _locked_message(state: Path, command: str, exclusive: bool) -> str:
                        and r.get("pid") == os.getpid())]
     what = "compost" if not exclusive else "harvest or roast"
     lines = "\n".join(f"  {describe(r)}" for r in records) or (
-        f"  (no run record: a {what} of an older version, or one that "
-        f"is starting)")
+        f"  (no run record yet: a {what} that is starting)")
     return (f"Cannot {command} {state.parent}: the dataset is in use\n"
             f"{lines}\nWait for it to finish, or use --lock-wait SECONDS.")
 

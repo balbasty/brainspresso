@@ -60,13 +60,13 @@ NOT_ON_S3 = frozenset({'SU', 'U_MIA'})
 
 
 class SitesOption:
-    """Per-run option `sites` (names of `--site`; empty: all)."""
+    """Per-run option `site` (names of `--site`; empty: all)."""
 
-    sites: frozenset = frozenset()
+    site: frozenset = frozenset()
 
     def keeps_site(self, site: str) -> bool:
         """Whether a site is selected."""
-        return not self.sites or site in self.sites
+        return not self.site or site in self.site
 
 
 class NITRCTarballs(SitesOption, NITRC):

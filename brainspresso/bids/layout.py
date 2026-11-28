@@ -301,7 +301,7 @@ class Layout:
 
         `roast --if-exists update` copies there a file that has no
         recorded hash and differs from what roast writes, before it
-        replaces it (`bids.harvest.MIGRATION_RULE`).
+        replaces it (engine and hosted roasts alike).
 
         Parameters
         ----------

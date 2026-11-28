@@ -181,7 +181,7 @@ def test_subject_filter(root):
 @pytest.mark.parametrize("subs", [["sub-0002"], ["0002"], ["2"], [2],
                                   ["2:3"]])
 def test_subject_values(root, subs):
-    """`roast(subs=)` takes the values of `--sub`"""
+    """`roast(sub=)` takes the values of `--sub`"""
     roast(root, keys={"raw"}, sub=subs)
     assert raw_tree(root) == RAW2
 

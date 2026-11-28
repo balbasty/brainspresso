@@ -809,8 +809,8 @@ def test_old_selection_flags_refused(tmp_path):
     _, bound, _ = app.parse_args(
         ["harvest", str(tmp_path), "--sub", "2", "--exclude-sub", "3"],
         exit_on_error=False, print_error=False)
-    select = bound.arguments["select"]
-    assert (select.sub, select.exclude_sub) == (("2",), ("3",))
+    subjects = bound.arguments["subjects"]
+    assert (subjects.sub, subjects.exclude_sub) == (("2",), ("3",))
 
 
 def test_dataset_selection_bids_names():
@@ -818,9 +818,9 @@ def test_dataset_selection_bids_names():
     sel = IXI().selection(sub=["2"], exclude_sub=["sub-012"], ses=["ses-1"],
                           datatype=["anat"], suffix=["T1w"], task=["rest"],
                           include=["sub-*/anat/*"])
-    assert (sel.subs, sel.exclude_subs, sel.sessions) == (
+    assert (sel.sub, sel.exclude_sub, sel.ses) == (
         {"002"}, {"012"}, {"1"})
-    assert (sel.datatypes, sel.suffixes, sel.tasks) == (
+    assert (sel.datatype, sel.suffix, sel.task) == (
         {"anat"}, {"T1w"}, {"rest"})
     assert list(sel.include) == ["sub-*/anat/*"]
     assert IXI().selection() is None

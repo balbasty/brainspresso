@@ -242,7 +242,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -254,9 +254,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -264,7 +264,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -274,9 +274,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -286,7 +286,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -330,7 +330,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -342,9 +342,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -352,7 +352,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -362,9 +362,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -373,7 +373,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -628,7 +628,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -640,9 +640,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -650,7 +650,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -660,9 +660,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -672,7 +672,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -716,7 +716,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -728,9 +728,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -738,7 +738,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -748,9 +748,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -759,7 +759,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -855,7 +855,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -867,9 +867,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -877,7 +877,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -885,9 +885,9 @@
        "rest"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -897,7 +897,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -921,7 +921,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -933,9 +933,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -943,7 +943,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -951,9 +951,9 @@
        "rest"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -962,7 +962,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -1401,7 +1401,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1413,9 +1413,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1423,7 +1423,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1433,9 +1433,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1445,7 +1445,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -1489,7 +1489,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1501,9 +1501,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1511,7 +1511,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1521,9 +1521,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1532,7 +1532,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -1761,7 +1761,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1773,9 +1773,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1783,7 +1783,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -1793,9 +1793,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1805,7 +1805,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -1842,7 +1842,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1854,9 +1854,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1864,7 +1864,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -1874,9 +1874,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1885,7 +1885,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -2148,7 +2148,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2160,9 +2160,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2170,7 +2170,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2180,9 +2180,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2192,7 +2192,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -2236,7 +2236,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2248,9 +2248,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2258,7 +2258,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2268,9 +2268,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2279,7 +2279,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -2546,7 +2546,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2558,9 +2558,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2568,7 +2568,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2578,9 +2578,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2590,7 +2590,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -2634,7 +2634,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2646,9 +2646,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2656,7 +2656,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2666,9 +2666,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2677,7 +2677,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -2785,7 +2785,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2797,9 +2797,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2807,7 +2807,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2815,9 +2815,9 @@
        "rest"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2827,7 +2827,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -2851,7 +2851,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2863,9 +2863,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2873,7 +2873,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2881,9 +2881,9 @@
        "rest"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2892,7 +2892,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -3361,7 +3361,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3373,9 +3373,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3383,7 +3383,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3393,9 +3393,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3405,7 +3405,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -3449,7 +3449,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3461,9 +3461,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3471,7 +3471,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3481,9 +3481,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3492,7 +3492,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",
@@ -3733,7 +3733,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3745,9 +3745,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3755,7 +3755,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -3765,9 +3765,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3777,7 +3777,7 @@
       "51457"
      ]
     },
-    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "signature": "b510b3ceed47cd0ca9f5b43ccb82430060d26dbd2798d4ef87c0ece4cc4441ec",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/Caltech.tgz",
@@ -3814,7 +3814,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3826,9 +3826,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3836,7 +3836,7 @@
          "T2w",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -3846,9 +3846,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3857,7 +3857,7 @@
       "51330"
      ]
     },
-    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "signature": "371b44682f319a7d5e06a072cb6c4dd8157d61600d1b52e4f540306b173b968b",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/MaxMun_a.tgz",

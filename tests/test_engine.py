@@ -613,15 +613,15 @@ def counted():
     return calls
 
 
-def test_undeclared_shard_signature_is_unchanged(tmp_path, counted):
+def test_undeclared_shard_signature_has_the_fingerprint(tmp_path, counted):
     """Without a scope: the fingerprint is in the signature, equality"""
     toy_run(tmp_path, {"a", "b"}, scoped=False)
     record = toy_record(tmp_path)
     src = tmp_path / "src.txt"
     stat = src.stat()
-    blob = json.dumps({          # (the formula of before scopes)
-        "version": 1, "inputs": [[str(src), stat.st_size,
-                                  stat.st_mtime_ns]],
+    blob = json.dumps({
+        "version": engine_module._SIGNATURE_VERSION,
+        "inputs": [[str(src), stat.st_size, stat.st_mtime_ns]],
         "wanted": ["a", "b"]}, sort_keys=True, default=str)
     assert record["config_hash"] == hashlib.sha256(blob.encode()).hexdigest()
     assert "scopes" not in record and "seen" not in record
@@ -756,25 +756,8 @@ def test_seen_without_a_task_does_nothing(tmp_path):
     assert not run(producer, ctx, display=False).errors
 
 
-def test_legacy_record_is_upgraded(tmp_path, counted):
-    """A record of before scopes: covered if made with this selection"""
-    toy_run(tmp_path, {"a", "b"}, scoped=False)
-    legacy = toy_record(tmp_path)
-    report = toy_run(tmp_path, {"a", "b"})
-    assert report.counts["run"] == {"skipped": 2} and len(counted) == 1
-    record = toy_record(tmp_path)
-    assert record["config_hash"] != legacy["config_hash"]
-    assert record["scopes"] == [{"wanted": ["a", "b"]}]
-    assert "seen" not in record
-    assert record["outputs"] == legacy["outputs"]
-    # (then by coverage, without `seen`: by inclusion)
-    toy_run(tmp_path, {"a"})
-    assert len(counted) == 1
-    toy_run(tmp_path, {"a", "z"})
-    assert len(counted) == 2
-
-
-def test_legacy_record_of_another_selection_runs(tmp_path, counted):
+def test_unscoped_record_does_not_cover_a_scoped_run(tmp_path, counted):
+    """A record signed with the fingerprint (no scope) is not reused"""
     toy_run(tmp_path, {"a", "b"}, scoped=False)
     toy_run(tmp_path, {"a"})
     assert len(counted) == 2

@@ -22,7 +22,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable
 
 from humanize import naturalsize
 
@@ -117,7 +117,7 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
     """
     Apply participant queries (`age>=60`, `sex==F`...).
 
-    The remote `participants.tsv` is read, and `selection.subs`
+    The remote `participants.tsv` is read, and `selection.sub`
     restricted accordingly.
     """
     where = list(where or [])
@@ -136,10 +136,10 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
                 return await r.text()
 
     matching = query_participants(asyncio.run(fetch()), where)
-    if selection.subs:
-        matching &= set(selection.subs)
+    if selection.sub:
+        matching &= set(selection.sub)
     lg.info(f"{len(matching)} participants match {where}")
-    selection.subs = matching or {"__none__"}
+    selection.sub = matching or {"__none__"}
     return selection
 
 
@@ -196,7 +196,7 @@ def check_selected_subjects(selection, entries, found=None) -> None:
     Parameters
     ----------
     selection : Selection
-        The selection (its `subs`)
+        The selection (its `sub`)
     entries : list[RemoteEntry]
         The remote listing
     found : set[str], optional
@@ -207,7 +207,7 @@ def check_selected_subjects(selection, entries, found=None) -> None:
     UsageError
         If no selected subject is in the listing
     """
-    wanted = {str(s) for s in getattr(selection, "subs", None) or ()}
+    wanted = {str(s) for s in getattr(selection, "sub", None) or ()}
     if not wanted:
         return
     if found is None:
@@ -332,7 +332,7 @@ def harvest(
     chunk_size : int, optional
         Download chunk size, in bytes
     check_subjects : bool
-        Warn about selected subjects (`selection.subs`) that match
+        Warn about selected subjects (`selection.sub`) that match
         nothing, and raise `UsageError` if none matches
 
     Returns
@@ -565,12 +565,6 @@ def replace_generated(dst: Path, digest: str | None, if_exists: str) -> bool:
 # `roast.policy`).
 
 MANIFEST_SCHEMA = 1
-
-#: `roast --if-exists update`, engine and hosted roasts alike: a file
-#: without a recorded hash (an older dataset) that differs from what
-#: roast writes is "kept" (with a warning), or "replace"d (copied to
-#: `<state>/replaced/<path>` first, `Layout.replaced`)
-MIGRATION_RULE: Literal["keep", "replace"] = "replace"
 
 
 def record_run(

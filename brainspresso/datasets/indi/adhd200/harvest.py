@@ -39,22 +39,22 @@ class S3(FCP):
       (`Outputs/<pipeline>/`) go to `sourcedata/`;
     * `sourcedata/sub2site.json` maps subjects to sites.
 
-    Per-run options: `sites`, `exclude_sites`, `bidsify`.
+    Per-run options: `site`, `exclude_site`, `bidsify`.
     """
 
     name = "s3"
     provides = frozenset({"raw", "meta", "derivatives"})
     labels = numeric_labels(7)
-    sites: frozenset = frozenset()
-    exclude_sites: frozenset = frozenset()
+    site: frozenset = frozenset()
+    exclude_site: frozenset = frozenset()
     bidsify: bool = True
 
     def __init__(self, **kwargs):
         super().__init__("ADHD200", **kwargs)
 
     def keep_site(self, site) -> bool:
-        return not (site in self.exclude_sites
-                    or (self.sites and site not in self.sites))
+        return not (site in self.exclude_site
+                    or (self.site and site not in self.site))
 
     def list(self, selection=None, keys=None) -> list[RemoteEntry]:
         wants = keys if callable(keys) else Wants(keys, allkeys)

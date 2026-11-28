@@ -48,6 +48,7 @@ from brainspresso.bids.harvest import (
 )
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.layout import README, Layout, study_readme
+from brainspresso.bids.select import check_former_names
 from brainspresso.roast.context import RoastContext, as_list, make_context
 from brainspresso.roast.policy import RoastPolicy
 from brainspresso.sources.base import subject_labels
@@ -215,7 +216,7 @@ def roast_dataset(
         See `run_roast`
     **options
         `make_context` options (`layout`, `json`, `ifexists`, and the
-        `Selection` filters: `subs`, `exclude_subs`, `sessions`...)
+        `Selection` filters: `sub`, `exclude_sub`, `ses`...)
 
     Returns
     -------
@@ -229,43 +230,16 @@ def roast_dataset(
                      display=display, info=info)
 
 
-#: Keyword names of the selection arguments of every `roast()`
-#: (`python_api`), by role: the one place to rename them (the signature,
-#: the docstring and the parsing all read this table)
-SELECTION_ARGS = {
-    "keys": "keys",
-    "exclude_keys": "exclude_keys",
-    "subs": "sub",
-    "exclude_subs": "exclude_sub",
-}
-
-#: Keyword names of the BIDS filters of every `roast()` (named after the
-#: BIDS entities, as on the command line and in brainfilter), by
-#: `Selection` field: the signature, the docstring and the parsing read
-#: this table
-FILTER_ARGS = {
-    "sessions": "ses",
-    "datatypes": "datatype",
-    "suffixes": "suffix",
-    "tasks": "task",
-}
-
-#: Help of the filters of `FILTER_ARGS` (by keyword), in the docstrings
-_FILTER_DOCS = {
+#: The BIDS filters of every `roast()` (`python_api`), named after the
+#: BIDS entities as the `Selection` fields and the command line, with
+#: their help in the docstrings
+FILTERS = {
     "ses": "Only these sessions (labels, with or without `ses-`; as "
            "`--ses`, for a dataset with sessions)",
     "datatype": "Only these datatypes (`anat`, `func`, `dwi`...)",
     "suffix": "Only these suffixes (`T1w`, `bold`, `dwi`...)",
     "task": "Only these tasks (labels, with or without `task-`)",
 }
-
-
-def _renamed(names: Mapping[str, str]) -> dict[str, str]:
-    """Return `Selection` field -> keyword of `roast()`, where they differ."""
-    out = {field: name for field, name in names.items()
-           if field in ("subs", "exclude_subs")}
-    out.update(FILTER_ARGS)
-    return {field: name for field, name in out.items() if field != name}
 
 #: Options of `roast_dataset` (and `make_context`) that every `roast()`
 #: takes, in the docstrings that `python_api` writes
@@ -321,9 +295,10 @@ def python_api(
     * `sub`, `exclude_sub`: `sources.base.subject_labels` with the
       width of the dataset (numbers, labels with or without `sub-`,
       ranges `start:stop[:step]`, files that list one subject per line);
-    * `ses`, `datatype`, `suffix`, `task` (`FILTER_ARGS`): a value or a
-      list, the `Selection` filters `sessions`, `datatypes`, `suffixes`,
-      `tasks`; the old plural names are a `TypeError` that names them;
+    * `ses`, `datatype`, `suffix`, `task` (`FILTERS`): a value or a
+      list, the `Selection` filters of the same names; the former plural
+      names are a `TypeError` that names the new ones
+      (`bids.select.FORMER_NAMES`);
     * `keys`, `exclude_keys`: a name or a list (`as_list`); with a
       `spec`, through `spec.effective` as the command line does (keys
       that cover every choice count as none, `off` keys and add-ons);
@@ -374,8 +349,8 @@ def python_api(
     -------
     callable
         `roast(root, *, keys=(), exclude_keys=(), sub=(),
-        exclude_sub=(), <options>, **options) -> RoastReport` (the
-        names of the selection arguments: `SELECTION_ARGS`)
+        exclude_sub=(), ses=(), datatype=(), suffix=(), task=(),
+        <options>, **options) -> RoastReport`
     """
     sources = roasters if isinstance(roasters, Mapping) else None
     extra = {}
@@ -383,22 +358,15 @@ def python_api(
         extra = {name: param for name, param in
                  list(inspect.signature(options).parameters.items())[1:]}
 
-    names = dict(SELECTION_ARGS)
-    renamed = _renamed(names)
-
     def roast(root, **kwargs) -> RoastReport:
-        # (keyword-only, by `SELECTION_ARGS` and `FILTER_ARGS`: see
-        # `__signature__`)
-        for field, name in renamed.items():
-            if field in kwargs:
-                raise TypeError(f"roast() got an unexpected keyword "
-                                f"argument {field!r} (use {name!r})")
-        keys, exclude_keys, subs, exclude_subs = (
-            as_list(kwargs.pop(names[role], ())) for role in
-            ("keys", "exclude_keys", "subs", "exclude_subs"))
-        for field, name in FILTER_ARGS.items():
+        # (keyword-only: see `__signature__`)
+        check_former_names("roast", kwargs)
+        keys, exclude_keys, sub, exclude_sub = (
+            as_list(kwargs.pop(name, ())) for name in
+            ("keys", "exclude_keys", "sub", "exclude_sub"))
+        for name in FILTERS:
             if name in kwargs:
-                kwargs[field] = as_list(kwargs.pop(name))
+                kwargs[name] = as_list(kwargs[name])
         if sources is not None:
             source = kwargs.pop("source", default_source)
             if source not in sources:
@@ -424,8 +392,8 @@ def python_api(
             templates=templates if templates is not None else getattr(
                 sys.modules.get(module), "TEMPLATES", None),
             keys=select, exclude_keys=exclude,
-            subs=sorted(subject_labels(subs, width)),
-            exclude_subs=sorted(subject_labels(exclude_subs, width)),
+            sub=sorted(subject_labels(sub, width)),
+            exclude_sub=sorted(subject_labels(exclude_sub, width)),
             **kwargs,
         )
 
@@ -436,15 +404,14 @@ def python_api(
         params.append(inspect.Parameter("source", keyword,
                                         default=default_source))
     params += [inspect.Parameter(name, keyword, default=())
-               for name in names.values()]
-    params += [inspect.Parameter(name, keyword, default=())
-               for name in FILTER_ARGS.values()]
+               for name in ("keys", "exclude_keys", "sub", "exclude_sub",
+                            *FILTERS)]
     params += [param.replace(kind=keyword) for param in extra.values()]
     params.append(inspect.Parameter("options",
                                     inspect.Parameter.VAR_KEYWORD))
     roast.__signature__ = inspect.Signature(params,
                                             return_annotation=RoastReport)
-    roast.__doc__ = _roast_doc(names, folder, width, example, sources,
+    roast.__doc__ = _roast_doc(folder, width, example, sources,
                                keys_doc, options_doc)
     if module is None:
         module = sys._getframe(1).f_globals.get("__name__")
@@ -453,7 +420,7 @@ def python_api(
     return roast
 
 
-def _roast_doc(names: dict, folder: str, width: int | None, example: int,
+def _roast_doc(folder: str, width: int | None, example: int,
                sources: dict | None, keys_doc: str, options_doc: str) -> str:
     """Return the docstring of a `roast()` (`python_api`)."""
     if width is None:
@@ -471,14 +438,13 @@ def _roast_doc(names: dict, folder: str, width: int | None, example: int,
                                  "Source whose files are roasted (as "
                                  "`--source`)"))
     entries += [
-        doc_entry(f"{names['keys']}, {names['exclude_keys']} : "
-                  f"str | list[str]",
+        doc_entry("keys, exclude_keys : str | list[str]",
                   "`--keys`, `--exclude-keys` (a name or a list)"
                   + (f"; {keys_doc}" if keys_doc else "")),
-        doc_entry(f"{names['subs']}, {names['exclude_subs']} : "
-                  f"int | str | list[int | str]", subjects),
-        *(doc_entry(f"{name} : str | list[str]", _FILTER_DOCS[name])
-          for name in FILTER_ARGS.values()),
+        doc_entry("sub, exclude_sub : int | str | list[int | str]",
+                  subjects),
+        *(doc_entry(f"{name} : str | list[str]", text)
+          for name, text in FILTERS.items()),
     ]
     if options_doc:
         entries.append(options_doc.strip("\n"))

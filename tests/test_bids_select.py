@@ -78,7 +78,7 @@ def test_select_optional_folders():
 
 
 def test_select_suffix_with_inheritance():
-    kept = set(Selection(suffixes=["T1w"]).select(LISTING))
+    kept = set(Selection(suffix=["T1w"]).select(LISTING))
     assert kept == ALWAYS | {
         "T1w.json",
         "sub-01/sub-01_sessions.tsv",
@@ -90,7 +90,7 @@ def test_select_suffix_with_inheritance():
 
 
 def test_select_task_includes_matching_sidecars_and_events():
-    kept = set(Selection(tasks=["motor"]).select(LISTING))
+    kept = set(Selection(task=["motor"]).select(LISTING))
     assert "sub-01/ses-2/func/sub-01_ses-2_task-motor_bold.nii.gz" in kept
     assert "sub-01/ses-2/func/sub-01_ses-2_task-motor_events.tsv" in kept
     assert "task-motor_bold.json" in kept
@@ -101,7 +101,7 @@ def test_select_task_includes_matching_sidecars_and_events():
 
 
 def test_select_subjects_sessions_datatypes():
-    kept = set(Selection(subs=["sub-02"], datatypes=["dwi"]).select(LISTING))
+    kept = set(Selection(sub=["sub-02"], datatype=["dwi"]).select(LISTING))
     assert {
         "sub-02/ses-1/dwi/sub-02_ses-1_dwi.nii.gz",
         "sub-02/ses-1/dwi/sub-02_ses-1_dwi.bval",
@@ -110,7 +110,7 @@ def test_select_subjects_sessions_datatypes():
     } <= kept
     assert not any(p.startswith("sub-01") for p in kept)
 
-    kept = set(Selection(exclude_subs=["02"], sessions=["2"]).select(LISTING))
+    kept = set(Selection(exclude_sub=["02"], ses=["2"]).select(LISTING))
     data = {p for p in kept if p.endswith(".nii.gz")}
     assert data == {
         "sub-01/ses-2/func/sub-01_ses-2_task-rest_bold.nii.gz",

@@ -31,7 +31,7 @@ when one is unavailable (`SourceUnavailable`).
 ```python
 sources = {"s3": FCP("ABIDE"), "nitrc": NITRCTarballs(...)}
 defaults = {"raw": ["s3", "nitrc"], "meta": ["s3", "nitrc"]}
-harvest_sources(sources, defaults, layout, selection=Selection(subs=...),
+harvest_sources(sources, defaults, layout, selection=Selection(sub=...),
                 keys=Wants({"raw"}, tree), options=DownloadOptions())
 ```
 """
@@ -377,9 +377,9 @@ class LabelMap:
 
         None if all subjects are selected, or labels cannot be mapped back.
         """
-        subs = getattr(selection, "subs", None)
+        subs = getattr(selection, "sub", None)
         if subs is None:
-            subs = getattr(getattr(selection, "base", None), "subs", None)
+            subs = getattr(getattr(selection, "base", None), "sub", None)
         if not subs or self.to_host is None:
             return None
         out = []
@@ -1450,13 +1450,13 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
     return out
 
 
-def subject_selection(subs=(), exclude_subs=(), width: int | None = 0):
+def subject_selection(sub=(), exclude_sub=(), width: int | None = 0):
     """
     Build a `Selection` of subjects from command-line values.
 
     Parameters
     ----------
-    subs, exclude_subs : list
+    sub, exclude_sub : list
         Subjects to include and exclude (see `subject_labels`).
     width : int | None
         Number of digits of numeric labels (None: labels verbatim).
@@ -1465,5 +1465,5 @@ def subject_selection(subs=(), exclude_subs=(), width: int | None = 0):
     -------
     Selection
     """
-    return Selection(subs=subject_labels(subs, width),
-                     exclude_subs=subject_labels(exclude_subs, width))
+    return Selection(sub=subject_labels(sub, width),
+                     exclude_sub=subject_labels(exclude_sub, width))

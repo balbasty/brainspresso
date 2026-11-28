@@ -36,7 +36,7 @@ from brainspresso.roast.tables import (
 IXI_XLS = (Path(tables.__file__).parent.parent / "datasets" / "ixi"
            / "templates" / "IXI.xls")
 KEYS = KeyAliases({"meta": {}, "raw": {"anat": {"T1w"}}},
-                  bids={"T1w": {"suffixes": ["T1w"]}})
+                  bids={"T1w": {"suffix": ["T1w"]}})
 
 
 @pytest.fixture(autouse=True)

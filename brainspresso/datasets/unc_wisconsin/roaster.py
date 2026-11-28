@@ -53,9 +53,9 @@ DERIV_NAME = "unc-wisconsin"
 DERIV_KEYS = ("reg", "dti-qc", "dti-proc")
 
 KEYS = KeyAliases(allkeys, bids={
-    "T1w": {"suffixes": ["T1w"]},
-    "T2w": {"suffixes": ["T2w"]},
-    "dwi": {"suffixes": ["dwi"]},
+    "T1w": {"suffix": ["T1w"]},
+    "T2w": {"suffix": ["T2w"]},
+    "dwi": {"suffix": ["dwi"]},
 }, folders={key: [f"derivatives/{DERIV_NAME}"] for key in DERIV_KEYS})
 
 SPECIES = "Macaca mulatta"

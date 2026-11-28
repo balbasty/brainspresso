@@ -51,7 +51,7 @@ from brainspresso.bids.layout import (
     parse_layout,
     resolve_layout,
 )
-from brainspresso.bids.select import Selection
+from brainspresso.bids.select import Selection, check_former_names
 from brainspresso.datasets import options as opt
 from brainspresso.datasets.compost import run_compost
 from brainspresso.errors import DatasetNotFound, UsageError
@@ -379,7 +379,7 @@ class Args:
     ----------
     command : str
         The command ("harvest", "roast", "compost", "info"...)
-    keys, select, sessions, sites, filters, hosted, source, login, token,
+    keys, subjects, sessions, sites, filters, hosted, source, login, token,
     harvest, roast, compost, layout, log : OptionGroup
         Standard groups (`datasets.options.STANDARD`)
     extras : dict[str, OptionGroup]
@@ -388,7 +388,7 @@ class Args:
 
     command: str
     keys: opt.KeyOptions
-    select: opt.SelectionOptions
+    subjects: opt.SubjectOptions
     sessions: opt.SessionOptions
     sites: opt.SiteOptions
     filters: opt.FilterOptions
@@ -506,7 +506,7 @@ class Dataset:
     subject_width : int | None
         None: subject labels verbatim (strip `sub-`); an int: numbers
         formatted with this many digits, ranges `start:stop`
-    sessions : bool
+    has_sessions : bool
         Whether harvest and roast take `--ses`
     site_names : tuple[str]
         Sites (`--site` is checked against them, case-insensitive)
@@ -555,7 +555,7 @@ class Dataset:
     indi_category: ClassVar[str | None] = None
     keys: ClassVar[KeySpec | None] = None
     subject_width: ClassVar[int | None] = None
-    sessions: ClassVar[bool] = False
+    has_sessions: ClassVar[bool] = False
     site_names: ClassVar[tuple] = ()
     has_sites: ClassVar[bool] = False
     layouts: ClassVar[tuple] = ("study", "flat")
@@ -736,7 +736,7 @@ class Dataset:
         if not exclude:
             return sites
         pool = sites or self.site_names
-        if not pool:            # (the sources apply `exclude_sites`)
+        if not pool:            # (the sources apply `exclude_site`)
             return sites
         sites = tuple(s for s in pool if s not in exclude)
         if not sites:
@@ -758,15 +758,15 @@ class Dataset:
         creds = {"login": ("login",), "token": ("token",)}.get(
             self.credentials, ())
         sites = ("sites",) if self.multisite else ()
-        sessions = ("sessions",) if self.sessions else ()
+        sessions = ("sessions",) if self.has_sessions else ()
         keys = ("keys",) if self.keys_for(command) is not None else ()
         source = ("source",) if self.source_names() else ()
         if command == "harvest":
             hosted = ("filters", "hosted") if self.hosted else ()
-            select = ("select",) if self.harvest_subjects else ()
+            subjects = ("subjects",) if self.harvest_subjects else ()
             # (the order of the options in their panels)
             filters, hosted = hosted[:1], hosted[1:]
-            return (*keys, *select, *sessions, *sites, *filters, *source,
+            return (*keys, *subjects, *sessions, *sites, *filters, *source,
                     *creds, "harvest", *hosted, "layout", "log")
         if command == "roast":
             roasters = {id(s.roaster) for s in self.sources().values()
@@ -775,11 +775,11 @@ class Dataset:
             # hosted datasets: `--site` selects site datasets
             sites = ("sites",) if self.hosted and "sites" in self.layouts \
                 else ()
-            return (*keys, "select", *sessions, *sites, *source, "roast",
+            return (*keys, "subjects", *sessions, *sites, *source, "roast",
                     "layout", "log")
         if command == "compost":
             sites = ("sites",) if "sites" in self.layouts else ()
-            return ("select", "sessions", *sites, "filters", "compost",
+            return ("subjects", "sessions", *sites, "filters", "compost",
                     "layout", "log")
         if command == "info":
             return ("log",)
@@ -923,8 +923,7 @@ class Dataset:
         """
         return subject_labels(values, self.subject_width)
 
-    def selection(self, sub=(), exclude_sub=(), ses=(), datatype=(),
-                  suffix=(), task=(), **filters):
+    def selection(self, sub=(), exclude_sub=(), ses=(), **filters):
         """
         Build the selection of subjects, sessions and BIDS filters.
 
@@ -934,34 +933,29 @@ class Dataset:
             `--sub`, `--exclude-sub` (see `labels`)
         ses : list[str]
             `--ses` (with or without `ses-`)
-        datatype, suffix, task : list[str]
-            `--datatype`, `--suffix`, `--task`
         **filters
-            Other `Selection` filters (`include`, `exclude`, `entities`,
-            `folders`)
+            Other `Selection` filters (`datatype`, `suffix`, `task`,
+            `include`, `exclude`, `entities`, `folders`)
 
         Returns
         -------
         Selection | None
             None if nothing is filtered
+
+        Raises
+        ------
+        TypeError
+            For a former name of a filter (`subs`...), naming the new one
         """
-        renamed = {"subs": "sub", "exclude_subs": "exclude_sub",
-                   "sessions": "ses", "datatypes": "datatype",
-                   "suffixes": "suffix", "tasks": "task"}
-        old = sorted(renamed.keys() & filters.keys())
-        if old:
-            raise TypeError(f"selection() got an unexpected keyword "
-                            f"argument {old[0]!r} (use {renamed[old[0]]!r})")
-        subs, exclude_subs = self.labels(sub), self.labels(exclude_sub)
-        sessions = {s[4:] if str(s).startswith("ses-") else str(s)
-                    for s in ses or ()}
-        filters = {k: v for k, v in {
-            "datatypes": datatype, "suffixes": suffix, "tasks": task,
-            **filters}.items() if v}
-        if not (subs or exclude_subs or sessions or filters):
+        check_former_names("selection", filters)
+        sub, exclude_sub = self.labels(sub), self.labels(exclude_sub)
+        ses = {s[4:] if str(s).startswith("ses-") else str(s)
+               for s in ses or ()}
+        filters = {k: v for k, v in filters.items() if v}
+        if not (sub or exclude_sub or ses or filters):
             return None
-        return Selection(subs=subs, exclude_subs=exclude_subs,
-                         sessions=sessions, **filters)
+        return Selection(sub=sub, exclude_sub=exclude_sub, ses=ses,
+                         **filters)
 
     def wants(self, command: str, keys=(), exclude_keys=()):
         """
@@ -1071,8 +1065,8 @@ class Dataset:
             args.roast.sidecar_policy      # sidecar flags that conflict
         args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
-        self.labels(args.select.sub)
-        self.labels(args.select.exclude_sub)
+        self.labels(args.subjects.sub)
+        self.labels(args.subjects.exclude_sub)
 
     @staticmethod
     def lock_states(layout) -> tuple[list, list]:
@@ -1172,7 +1166,8 @@ class Dataset:
         """
         options = args.harvest.runtime(**self.download)
         sources = self.configured_sources(args)
-        selection = self.selection(args.select.sub, args.select.exclude_sub,
+        selection = self.selection(args.subjects.sub,
+                                   args.subjects.exclude_sub,
                                    args.sessions.ses)
         wants = self.wants("harvest", args.keys.keys, args.keys.exclude_keys)
         override = list(args.source.source) or None
@@ -1214,8 +1209,8 @@ class Dataset:
                              f"dataset per site is not supported")
         spec = self.keys_for("roast") or KeySpec()
         filters = {}
-        if self.sessions:
-            filters["sessions"] = sorted(
+        if self.has_sessions:
+            filters["ses"] = sorted(
                 s[4:] if s.startswith("ses-") else s
                 for s in args.sessions.ses)
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
@@ -1223,8 +1218,8 @@ class Dataset:
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
             json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
             templates=self.template_dir, options=self.roast_options(args),
-            subs=sorted(self.labels(args.select.sub)),
-            exclude_subs=sorted(self.labels(args.select.exclude_sub)),
+            sub=sorted(self.labels(args.subjects.sub)),
+            exclude_sub=sorted(self.labels(args.subjects.exclude_sub)),
             **filters,
         )
         source, roaster = self.select_roaster(ctx, args.source.source)
@@ -1275,8 +1270,8 @@ class Dataset:
                                   tables=c.trim)
         return run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,
-            sub=sorted(self.labels(args.select.sub)),
-            exclude_sub=sorted(self.labels(args.select.exclude_sub)),
+            sub=sorted(self.labels(args.subjects.sub)),
+            exclude_sub=sorted(self.labels(args.subjects.exclude_sub)),
             ses=args.sessions.ses,
             where=args.filters.where, derivatives=c.derivatives,
             # (hosted: the roast after the deletion trims the tables it
@@ -1326,9 +1321,9 @@ class Dataset:
         if args is None:
             return Selection()
         return Selection(
-            subs=self.labels(args.select.sub),
-            exclude_subs=self.labels(args.select.exclude_sub),
-            sessions={s[4:] if s.startswith("ses-") else s
+            sub=self.labels(args.subjects.sub),
+            exclude_sub=self.labels(args.subjects.exclude_sub),
+            ses={s[4:] if s.startswith("ses-") else s
                       for s in args.sessions.ses},
         )
 

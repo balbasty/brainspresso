@@ -10,8 +10,8 @@ from brainspresso.roast.context import RoastContext
 
 KEYS = KeyAliases(
     {"meta": {}, "raw": {"T1w": {}, "bold": {}}, "fs": {}},
-    bids={"T1w": {"datatypes": ["anat"], "suffixes": ["T1w"]},
-          "bold": {"datatypes": ["func"], "suffixes": ["bold"]}},
+    bids={"T1w": {"datatype": ["anat"], "suffix": ["T1w"]},
+          "bold": {"datatype": ["func"], "suffix": ["bold"]}},
     folders={"fs": ["derivatives/fs"]},
 )
 POLICY = RoastPolicy()
@@ -38,7 +38,7 @@ def covers(root, declared, old, new, seen=None):
                          scope_of(root, declared, **new), seen or {})
 
 
-IMAGES = scope(keys=("T1w", "bold"), subs=SEEN)
+IMAGES = scope(keys=("T1w", "bold"), sub=SEEN)
 
 
 # ----------------------------------------------------------------------
@@ -46,12 +46,12 @@ IMAGES = scope(keys=("T1w", "bold"), subs=SEEN)
 # ----------------------------------------------------------------------
 
 def test_scope_declaration():
-    assert scope() == {"keys": None, "subs": None}
-    assert scope(keys="T1w", subs=SEEN) == {"keys": ["T1w"], "subs": "seen"}
-    assert scope(keys=("b", "a", "a"), subs=["sub-02", "01"]) == \
-        {"keys": ["a", "b"], "subs": ["01", "02"]}
+    assert scope() == {"keys": None, "sub": None}
+    assert scope(keys="T1w", sub=SEEN) == {"keys": ["T1w"], "sub": "seen"}
+    assert scope(keys=("b", "a", "a"), sub=["sub-02", "01"]) == \
+        {"keys": ["a", "b"], "sub": ["01", "02"]}
     with pytest.raises(ValueError):
-        scope(subs="01")
+        scope(sub="01")
 
 
 def test_no_scope_without_a_declaration_or_a_key_selection(root):
@@ -63,20 +63,20 @@ def test_no_scope_without_a_declaration_or_a_key_selection(root):
 
 
 def test_scope_describes_the_roast(root):
-    got = scope_of(root, IMAGES, exclude_keys=["meta"], subs=["01"],
-                   sessions=["1"])
+    got = scope_of(root, IMAGES, exclude_keys=["meta"], sub=["01"],
+                   ses=["1"])
     assert got["fixed"]["json"] == "yes"
     assert got["fixed"]["declared"] == {"keys": ["T1w", "bold"],
-                                        "subs": "seen"}
-    assert got["fixed"]["base"]["sessions"] == ["1"]
-    assert "subs" not in got["fixed"]["base"]
-    assert "exclude_subs" not in got["fixed"]["base"]
+                                        "sub": "seen"}
+    assert got["fixed"]["base"]["ses"] == ["1"]
+    assert "sub" not in got["fixed"]["base"]
+    assert "exclude_sub" not in got["fixed"]["base"]
     assert got["keys"] == ["T1w", "bold"] and got["mode"] == "all"
-    assert got["subs"] == {"subs": ["01"], "exclude": []}
-    got = scope_of(root, scope(keys=("T1w",), subs=["01", "02"]),
-                   keys=["T1w"], exclude_subs=["02"])
+    assert got["sub"] == {"sub": ["01"], "exclude_sub": []}
+    got = scope_of(root, scope(keys=("T1w",), sub=["01", "02"]),
+                   keys=["T1w"], exclude_sub=["02"])
     assert got["keys"] == ["T1w"] and got["mode"] == "keys"
-    assert got["subs"] == {"kept": ["01"]}
+    assert got["sub"] == {"kept": ["01"]}
     assert scope_of(root, IMAGES, exclude_keys=["bold"])["mode"] == "exclude"
     assert scope_of(root, scope(keys=["fs"]), keys=["T1w"])["mode"] is None
     assert scope_of(root, scope(), keys=["fs"])["keys"] == ["fs"]
@@ -120,40 +120,40 @@ def test_mode_ignored_for_categories(root):
 
 
 def test_covers_declared_subjects(root):
-    one = scope(keys=["T1w"], subs=["01"])
-    assert covers(root, one, {}, {"subs": ["02"]})
-    assert covers(root, one, {"subs": ["01"]}, {"exclude_subs": ["03"]})
-    assert not covers(root, one, {"subs": ["02"]}, {"subs": ["01"]})
-    assert not covers(root, one, {"exclude_subs": ["01"]}, {})
+    one = scope(keys=["T1w"], sub=["01"])
+    assert covers(root, one, {}, {"sub": ["02"]})
+    assert covers(root, one, {"sub": ["01"]}, {"exclude_sub": ["03"]})
+    assert not covers(root, one, {"sub": ["02"]}, {"sub": ["01"]})
+    assert not covers(root, one, {"exclude_sub": ["01"]}, {})
 
 
 @pytest.mark.parametrize("old, new, expected", [
     # old: all subjects
-    ({}, {"subs": ["01"]}, True),
-    ({}, {"exclude_subs": ["01"]}, True),
-    ({}, {"subs": ["01"], "exclude_subs": ["01"]}, True),
+    ({}, {"sub": ["01"]}, True),
+    ({}, {"exclude_sub": ["01"]}, True),
+    ({}, {"sub": ["01"], "exclude_sub": ["01"]}, True),
     # old: some excluded
-    ({"exclude_subs": ["01"]}, {}, False),
-    ({"exclude_subs": ["01"]}, {"exclude_subs": ["01", "02"]}, True),
-    ({"exclude_subs": ["01"]}, {"subs": ["02"]}, True),
-    ({"exclude_subs": ["01"]}, {"subs": ["01", "02"]}, False),
-    ({"exclude_subs": ["01"]}, {"subs": ["01"], "exclude_subs": ["01"]},
+    ({"exclude_sub": ["01"]}, {}, False),
+    ({"exclude_sub": ["01"]}, {"exclude_sub": ["01", "02"]}, True),
+    ({"exclude_sub": ["01"]}, {"sub": ["02"]}, True),
+    ({"exclude_sub": ["01"]}, {"sub": ["01", "02"]}, False),
+    ({"exclude_sub": ["01"]}, {"sub": ["01"], "exclude_sub": ["01"]},
      True),
     # old: a list
-    ({"subs": ["01", "02"]}, {}, False),
-    ({"subs": ["01", "02"]}, {"exclude_subs": ["03"]}, False),
-    ({"subs": ["01", "02"]}, {"subs": ["02"]}, True),
-    ({"subs": ["01"]}, {"subs": ["01", "02"]}, False),
-    ({"subs": ["01", "02"]}, {"subs": ["02", "03"],
-                              "exclude_subs": ["03"]}, True),
+    ({"sub": ["01", "02"]}, {}, False),
+    ({"sub": ["01", "02"]}, {"exclude_sub": ["03"]}, False),
+    ({"sub": ["01", "02"]}, {"sub": ["02"]}, True),
+    ({"sub": ["01"]}, {"sub": ["01", "02"]}, False),
+    ({"sub": ["01", "02"]}, {"sub": ["02", "03"],
+                              "exclude_sub": ["03"]}, True),
     # old: a list and exclusions
-    ({"subs": ["01", "02"], "exclude_subs": ["02"]}, {"subs": ["02"]},
+    ({"sub": ["01", "02"], "exclude_sub": ["02"]}, {"sub": ["02"]},
      False),
-    ({"subs": ["01", "02"], "exclude_subs": ["02"]}, {"subs": ["01"]},
+    ({"sub": ["01", "02"], "exclude_sub": ["02"]}, {"sub": ["01"]},
      True),
 ])
 def test_covers_subject_filters(root, old, new, expected):
-    """Subjects unknown (`subs=None`, or no `seen`): by the filters"""
+    """Subjects unknown (`sub=None`, or no `seen`): by the filters"""
     for declared in (scope(keys=["T1w"]), IMAGES):
         assert covers(root, declared, old, new) is expected
 
@@ -161,23 +161,23 @@ def test_covers_subject_filters(root, old, new, expected):
 def test_covers_seen_subjects(root):
     """With `seen`: only the subjects that the shard holds matter"""
     seen = {"sub": ["01", "02"]}
-    assert covers(root, IMAGES, {"subs": ["01"]}, {"subs": ["01", "03"]},
+    assert covers(root, IMAGES, {"sub": ["01"]}, {"sub": ["01", "03"]},
                   seen)
-    assert not covers(root, IMAGES, {"subs": ["01"]},
-                      {"subs": ["01", "02"]}, seen)
-    assert covers(root, IMAGES, {"exclude_subs": ["02"]},
-                  {"exclude_subs": ["03"], "subs": ["01", "03"]}, seen)
-    assert not covers(root, IMAGES, {"exclude_subs": ["02"]}, {}, seen)
-    assert covers(root, IMAGES, {"subs": ["01", "02"]}, {}, seen)
+    assert not covers(root, IMAGES, {"sub": ["01"]},
+                      {"sub": ["01", "02"]}, seen)
+    assert covers(root, IMAGES, {"exclude_sub": ["02"]},
+                  {"exclude_sub": ["03"], "sub": ["01", "03"]}, seen)
+    assert not covers(root, IMAGES, {"exclude_sub": ["02"]}, {}, seen)
+    assert covers(root, IMAGES, {"sub": ["01", "02"]}, {}, seen)
     # (an archive without subjects is covered by any filter)
-    assert covers(root, IMAGES, {"subs": ["01"]}, {}, {"sub": []})
+    assert covers(root, IMAGES, {"sub": ["01"]}, {}, {"sub": []})
     # (`seen` counts for SEEN shards only)
-    assert not covers(root, scope(keys=["T1w"]), {"subs": ["01"]},
-                      {"subs": ["01", "03"]}, seen)
+    assert not covers(root, scope(keys=["T1w"]), {"sub": ["01"]},
+                      {"sub": ["01", "03"]}, seen)
 
 
 @pytest.mark.parametrize("change", [
-    {"json": "no"}, {"json": "only"}, {"sessions": ["1"]},
+    {"json": "no"}, {"json": "only"}, {"ses": ["1"]},
     {"include": ["*T1w*"]},
 ])
 def test_other_options_must_be_equal(root, change):
@@ -188,7 +188,7 @@ def test_other_options_must_be_equal(root, change):
 
 def test_other_declarations_never_cover(root):
     old = scope_of(root, IMAGES)
-    new = scope_of(root, scope(keys=["T1w"], subs=SEEN))
+    new = scope_of(root, scope(keys=["T1w"], sub=SEEN))
     assert not POLICY.covers(old, new, {})
     assert not POLICY.covers(None, new, {})
 
@@ -198,7 +198,7 @@ def test_other_declarations_never_cover(root):
 # ----------------------------------------------------------------------
 
 def test_expects(root):
-    ctx = ctx_of(root, keys=["T1w"], subs=["01"])
+    ctx = ctx_of(root, keys=["T1w"], sub=["01"])
     raw = ctx.layout.raw
     assert POLICY.expects(raw / "sub-01/anat/sub-01_T1w.nii.gz", ctx)
     assert not POLICY.expects(raw / "sub-02/anat/sub-02_T1w.nii.gz", ctx)
@@ -220,17 +220,17 @@ def test_audit(root):
                                     {"sub": ["01"]})
     assert "folder of fs" in POLICY.audit(ctx, declared, [fs], seen)
     declared = POLICY.scope(ctx, Shard(lambda c: (), scope=scope(
-        keys=["T1w"], subs=["01"])))
+        keys=["T1w"], sub=["01"])))
     assert "key 'bold'" in POLICY.audit(ctx, declared, [bold], {})
     assert "sub-02" in POLICY.audit(ctx, scope_of(root, scope(
-        subs=["01"])), [bold], {})
+        sub=["01"])), [bold], {})
     # (no declared keys or subjects: nothing to check)
     assert POLICY.audit(ctx, scope_of(root, scope()), [t1w, bold, fs],
                         {}) is None
 
 
 def test_keeps_subject_reports_the_subject(root):
-    ctx = ctx_of(root, subs=["01"])
+    ctx = ctx_of(root, sub=["01"])
     reported = []
 
     class Reporter:

@@ -65,7 +65,7 @@ def prepare(
     selection = selection or Selection()
     chosen = project.select_sites(sites)
     if site_labels:
-        for attr in ("subs", "exclude_subs"):
+        for attr in ("sub", "exclude_sub"):
             labels = set(getattr(selection, attr))
             setattr(selection, attr, labels | {
                 s.label(x) for s in chosen for x in labels
@@ -120,9 +120,9 @@ def site_selection(selection: Selection, site: Site) -> Selection:
         out = {site_label(x, site) for x in labels}
         return {x for x in out if x is not None}
     out = copy.copy(selection)
-    if selection.subs:
-        out.subs = local(selection.subs) or {"__none__"}
-    out.exclude_subs = local(selection.exclude_subs)
+    if selection.sub:
+        out.sub = local(selection.sub) or {"__none__"}
+    out.exclude_sub = local(selection.exclude_sub)
     return out
 
 

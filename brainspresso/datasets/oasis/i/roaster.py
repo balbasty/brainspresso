@@ -109,7 +109,7 @@ DISC_KEYS = {"raw": ("raw", "avg", "tal", "fsl"), "fs": ("fs", "fs-all")}
 # (folders of the derivatives, or metadata)
 KEYS = KeyAliases(
     set(ROAST_KEYS),
-    bids={"raw": {"datatypes": ["anat"], "suffixes": ["T1w"]}},
+    bids={"raw": {"datatype": ["anat"], "suffix": ["T1w"]}},
     folders={
         **{key: [f"derivatives/{PROC_NAME}"] for key in ("avg", "tal", "fsl")},
         **{key: [f"derivatives/{FS_NAME}"] for key in ("fs", "fs-all")},
@@ -237,7 +237,7 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
                 id=f"roast/discs/{kind}-disc{disc:02d}", inputs=[path],
                 config=(template_config(ctx.resource, [SIDECAR])
                         if kind == "raw" else None),
-                scope=scope(keys=DISC_KEYS[kind], subs=SEEN),
+                scope=scope(keys=DISC_KEYS[kind], sub=SEEN),
             ))
     ctx.progress(total=len(shards), tag="discs")
     yield from shards

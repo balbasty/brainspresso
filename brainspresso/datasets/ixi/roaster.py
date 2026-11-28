@@ -63,7 +63,7 @@ IXI2BIDS = {"T1": "T1w", "T2": "T2w", "PD": "PDw", "MRA": "angio",
             "DTI": "dwi"}
 KEYS = KeyAliases(
     {"meta", "trace", *IXI2BIDS.values()},
-    bids={key: {"suffixes": [key]} for key in IXI2BIDS.values()},
+    bids={key: {"suffix": [key]} for key in IXI2BIDS.values()},
     folders={"trace": ["derivatives/ixi-scanner"]},
 )
 #: `--keys` of the roast (`IXI.keys_for("roast")`)

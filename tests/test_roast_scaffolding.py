@@ -145,11 +145,11 @@ def test_python_api_subjects(calls, tmp_path):
     assert roast("root", sub=[1, "sub-2", "003", "5:7", str(listed)],
                  exclude_sub="12") == "report"
     call, = calls
-    assert call["subs"] == ["001", "002", "003", "005", "006", "009", "010"]
-    assert call["exclude_subs"] == ["012"]
+    assert call["sub"] == ["001", "002", "003", "005", "006", "009", "010"]
+    assert call["exclude_sub"] == ["012"]
     # labels verbatim without a width
     run.python_api(roast_a, KEYS, folder="X")("root", sub=["sub-a1", "07"])
-    assert calls[-1]["subs"] == ["07", "a1"]
+    assert calls[-1]["sub"] == ["07", "a1"]
 
 
 @pytest.mark.parametrize("old,new", [
@@ -169,17 +169,16 @@ def test_python_api_refuses_old_names(calls, old, new):
 
 def test_python_api_bids_filters(calls):
     """`ses=`, `datatype=`, `suffix=`, `task=`: the `Selection` filters
-    `sessions`, `datatypes`, `suffixes`, `tasks` (a value or a list)"""
+    of the same names (a value or a list)"""
     roast = run.python_api(roast_a, KEYS, folder="X", width=3)
     roast("root", ses=["1"], datatype="anat", suffix=["T1w", "T2w"],
           task="rest")
     call, = calls
-    assert call["sessions"] == ["1"] and call["datatypes"] == ["anat"]
-    assert call["suffixes"] == ["T1w", "T2w"] and call["tasks"] == ["rest"]
-    assert not {"ses", "datatype", "suffix", "task"} & set(call)
+    assert call["ses"] == ["1"] and call["datatype"] == ["anat"]
+    assert call["suffix"] == ["T1w", "T2w"] and call["task"] == ["rest"]
     # not given: not passed (the defaults of `Selection`)
     roast("root")
-    assert not {"sessions", "datatypes", "suffixes", "tasks"} & set(calls[-1])
+    assert not {"ses", "datatype", "suffix", "task"} & set(calls[-1])
 
 
 def test_python_api_subject_paths(calls, tmp_path):
@@ -188,10 +187,10 @@ def test_python_api_subject_paths(calls, tmp_path):
     listed.write_text("sub-009\n")
     roast = run.python_api(roast_a, KEYS, folder="X", width=3)
     roast("root", sub=listed, exclude_sub=[listed])
-    assert (calls[-1]["subs"], calls[-1]["exclude_subs"]) == (["009"],
+    assert (calls[-1]["sub"], calls[-1]["exclude_sub"]) == (["009"],
                                                               ["009"])
     run.python_api(roast_a, KEYS, folder="X")("root", sub=[listed])
-    assert calls[-1]["subs"] == ["009"]
+    assert calls[-1]["sub"] == ["009"]
     assert as_list(listed) == [str(listed)]
     assert subject_labels(listed, 3) == subject_labels([listed], 3) == {
         "009"}

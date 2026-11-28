@@ -161,7 +161,7 @@ def test_orphan_metadata_is_kept():
     listing = ["sub-01/eeg/sub-01_space-CapTrak_electrodes.tsv",
                "sub-02/eeg/sub-02_space-CapTrak_electrodes.tsv"]
     assert Selection().select(listing) == listing
-    assert Selection(subs=["01"]).select(listing) == listing[:1]
+    assert Selection(sub=["01"]).select(listing) == listing[:1]
 
 
 # ----------------------------------------------------------------------
@@ -169,38 +169,38 @@ def test_orphan_metadata_is_kept():
 # ----------------------------------------------------------------------
 
 def test_eeg_companions():
-    kept = select(datatypes=["eeg"], subs=["01"])
+    kept = select(datatype=["eeg"], sub=["01"])
     assert kept == DATASET | SESSIONS | {"task-rest_eeg.json"} \
         | under("sub-01/eeg/")
 
 
 def test_ieeg_companions():
-    kept = select(datatypes=["ieeg"])
+    kept = select(datatype=["ieeg"])
     assert kept == DATASET | SESSIONS | under("sub-01/ieeg/")
 
 
 def test_subject_filter_drops_other_companions():
-    kept = select(subs=["02"])
+    kept = select(sub=["02"])
     assert kept == DATASET | {"task-rest_eeg.json"} | under("sub-02/")
 
 
 def test_pet_blood_companions():
     pet = SESSIONS | under("sub-01/pet/")
-    assert select(suffixes=["pet"]) == DATASET | pet
-    assert select(datatypes=["pet"], subs=["01"]) == DATASET | pet
+    assert select(suffix=["pet"]) == DATASET | pet
+    assert select(datatype=["pet"], sub=["01"]) == DATASET | pet
     # blood requested explicitly
-    assert select(suffixes=["blood"]) == DATASET | SESSIONS | {
+    assert select(suffix=["blood"]) == DATASET | SESSIONS | {
         p for p in pet if "_blood." in p
     }
-    assert select(suffixes=["pet"], subs=["02"]) == DATASET
+    assert select(suffix=["pet"], sub=["02"]) == DATASET
 
 
 def test_meg_companions():
-    kept = select(suffixes=["meg"], subs=["01"])
+    kept = select(suffix=["meg"], sub=["01"])
     assert kept == DATASET | SESSIONS | under("sub-01/meg/")
     # session-level files (headshape, coordsystem, crosstalk) serve
     # every task; channels follow their recording
-    kept = select(datatypes=["meg"], tasks=["rest"])
+    kept = select(datatype=["meg"], task=["rest"])
     assert kept == DATASET | SESSIONS | under("sub-02/meg/") | under(CTF) | {
         "sub-01/meg/sub-01_task-rest_meg.json",
         "sub-01/meg/sub-01_task-rest_channels.tsv",
@@ -213,17 +213,17 @@ def test_meg_companions():
 
 def test_nirs_motion_beh_companions():
     for kwargs, folder in [
-        ({"datatypes": ["nirs"]}, "nirs"),
+        ({"datatype": ["nirs"]}, "nirs"),
         # `_motion.tsv` and `_beh.tsv` are data files
-        ({"suffixes": ["motion"]}, "motion"),
-        ({"suffixes": ["beh"]}, "beh"),
+        ({"suffix": ["motion"]}, "motion"),
+        ({"suffix": ["beh"]}, "beh"),
     ]:
         assert select(**kwargs) == \
             DATASET | SESSIONS | under(f"sub-01/{folder}/")
 
 
 def test_mri_companions():
-    kept = select(datatypes=["func"], entities={"run": ["1"]})
+    kept = select(datatype=["func"], entities={"run": ["1"]})
     assert kept == DATASET | {
         "task-rest_bold.json",
         "sub-01/sub-01_sessions.tsv",
@@ -232,7 +232,7 @@ def test_mri_companions():
         "sub-01/func/sub-01_task-rest_run-01_recording-cardiac_physio.json",
         "sub-01/func/sub-01_task-rest_events.tsv",
     }
-    kept = select(suffixes=["asl"])
+    kept = select(suffix=["asl"])
     assert kept == DATASET | {
         "sub-01/sub-01_sessions.tsv",
         "sub-01/perf/sub-01_asl.nii.gz",
@@ -243,7 +243,7 @@ def test_mri_companions():
 
 
 def test_companion_requested_explicitly():
-    kept = select(suffixes=["events"], datatypes=["func"])
+    kept = select(suffix=["events"], datatype=["func"])
     assert kept == DATASET | SESSIONS | {
         "sub-01/func/sub-01_task-rest_events.tsv",
     }
@@ -307,7 +307,7 @@ def test_entities_filter():
         # crosstalk files: `acq-` only qualifies them, they follow the
         # MEG recordings, none of which has `acq-mprage`
     }
-    kept = select(entities={"run": ["1", "02"]}, suffixes=["bold"])
+    kept = select(entities={"run": ["1", "02"]}, suffix=["bold"])
     assert {p for p in kept if p.endswith("_bold.nii.gz")} == {
         "sub-01/func/sub-01_task-rest_run-01_bold.nii.gz",
         "sub-01/func/sub-01_task-rest_run-02_bold.nii.gz",
@@ -316,15 +316,15 @@ def test_entities_filter():
 
 def test_entities_shortcuts():
     sel = Selection(entities={"sub": ["sub-01"], "ses": "1", "acq": []})
-    assert sel.subs == {"01"} and sel.sessions == {"1"}
+    assert sel.sub == {"01"} and sel.ses == {"1"}
     assert sel.entities == {}
     assert Selection(entities={"acq": ["acq-x"]}).entities == {"acq": {"x"}}
     with pytest.raises(ValueError):
-        Selection(subs=["01"], entities={"sub": ["02"]})
+        Selection(sub=["01"], entities={"sub": ["02"]})
     # shortcuts may still be changed after construction
     sel = Selection()
-    sel.subs = {"02"}
-    assert sel.select(LISTING) == sorted(select(subs=["02"]))
+    sel.sub = {"02"}
+    assert sel.select(LISTING) == sorted(select(sub=["02"]))
 
 
 # ----------------------------------------------------------------------
@@ -332,10 +332,10 @@ def test_entities_shortcuts():
 # ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("kwargs", [
-    {}, {"subs": ["01"]}, {"datatypes": ["meg"], "tasks": ["rest"]},
-    {"suffixes": ["pet"]}, {"entities": {"sample": ["A"]}},
+    {}, {"sub": ["01"]}, {"datatype": ["meg"], "task": ["rest"]},
+    {"suffix": ["pet"]}, {"entities": {"sample": ["A"]}},
     {"include": ["*_meg.ds"]}, {"exclude": ["*.json"]},
-    {"folders": ["derivatives"], "subs": ["01"]},
+    {"folders": ["derivatives"], "sub": ["01"]},
 ])
 def test_keeps_agrees_with_select(kwargs):
     sel = Selection(**kwargs)
@@ -351,7 +351,7 @@ def test_keeps_agrees_with_select(kwargs):
 
 
 def test_keeps():
-    sel = Selection(subs=["01"], tasks=["rest"])
+    sel = Selection(sub=["01"], task=["rest"])
     assert sel.keeps("sub-01/func/sub-01_task-rest_run-01_bold.nii.gz")
     assert not sel.keeps("sub-02/eeg/sub-02_task-rest_eeg.edf")
     assert not sel.keeps("sub-01/meg/sub-01_task-noise_meg.fif")
@@ -378,36 +378,36 @@ def test_keeps():
 
 
 def test_keeps_subject():
-    sel = Selection(subs=["01", "02"], exclude_subs=["02"])
+    sel = Selection(sub=["01", "02"], exclude_sub=["02"])
     assert sel.keeps_subject("01") and sel.keeps_subject("sub-01")
     assert not sel.keeps_subject("02") and not sel.keeps_subject("03")
     assert sel.keep_subject("01")       # former name
 
 
 def test_keeps_claims():
-    sel = Selection(subs=["01"])
+    sel = Selection(sub=["01"])
     assert sel.keeps("sub-02", partial=True) is False
     assert sel.keeps("sub-01", partial=True) is True
     assert sel.keeps("sub-01/ses-1/anat", partial=True) is True
 
-    sel = Selection(subs=["01"], sessions=["1"], datatypes=["anat"])
+    sel = Selection(sub=["01"], ses=["1"], datatype=["anat"])
     assert sel.keeps("sub-01", partial=True) is None
     assert sel.keeps("sub-01/ses-2", partial=True) is False
     assert sel.keeps("sub-01/ses-1/func", partial=True) is False
     assert sel.keeps("sub-01/ses-1/anat", partial=True) is True
 
-    sel = Selection(entities={"acq": ["mprage"]}, suffixes=["T1w"])
+    sel = Selection(entities={"acq": ["mprage"]}, suffix=["T1w"])
     claim = "sub-01/anat/sub-01_acq-{}"
     assert sel.keeps(claim.format("mprage"), partial=True) is None
     assert sel.keeps(claim.format("mprage_T1w"), partial=True) is True
     assert sel.keeps(claim.format("mprage_T2w"), partial=True) is False
     assert sel.keeps(claim.format("space"), partial=True) is False
     # unknown: what include/exclude globs would say
-    sel = Selection(subs=["01"], exclude=["*.json"])
+    sel = Selection(sub=["01"], exclude=["*.json"])
     assert sel.keeps("sub-01/anat", partial=True) is None
     assert sel.keeps("sub-02/anat", partial=True) is False
     # optional folders
-    sel = Selection(subs=["01"], folders=["derivatives"])
+    sel = Selection(sub=["01"], folders=["derivatives"])
     assert sel.keeps("derivatives/fs/sub-02", partial=True) is False
     assert sel.keeps("derivatives/fs/sub-01", partial=True) is True
     assert sel.keeps("derivatives/fs", partial=True) is None

@@ -185,7 +185,7 @@ class S3(FCP):
     name = "s3"
     provides = frozenset({"raw", "meta"})
     labels = LABELS
-    sites: frozenset = frozenset()
+    site: frozenset = frozenset()
 
     def __init__(self, **kwargs):
         super().__init__("CORR/RawData", **kwargs)
@@ -199,7 +199,7 @@ class S3(FCP):
         if not wants("raw") or len(rel.parts) != 5:
             return False
         site, sub = rel.parts[:2]
-        if self.sites and site.split("_")[0] not in self.sites:
+        if self.site and site.split("_")[0] not in self.site:
             return False
         return self.keeps_subject(selection, sub)
 
@@ -213,7 +213,7 @@ class NITRCTarballs(NITRC):
     """CoRR tarballs and phenotypes from NITRC (login)"""
 
     provides = frozenset({"raw", "meta"})
-    sites: frozenset = frozenset()
+    site: frozenset = frozenset()
     urls = {
         key: [NITRC.entry(url, site=site)
               for site, per_key in URLS.items() for url in per_key[key]]
@@ -221,7 +221,7 @@ class NITRCTarballs(NITRC):
     }
 
     def keep(self, entry, selection, wants) -> bool:
-        return not self.sites or entry.meta["site"] in self.sites
+        return not self.site or entry.meta["site"] in self.site
 
 
 def sources() -> dict:
@@ -238,17 +238,17 @@ def download_s3(
     src: Path,
     *,
     keys: set[str],
-    sites: set[str],
-    subs: set[int],
-    exclude_subs: set[int],
+    site: set[str],
+    sub: set[int],
+    exclude_sub: set[int],
     if_exists: IfExists.Choice,
     packet: int | str,
     jobs: int | None,
 ) -> None:
     """Download CoRR from s3://fcp-indi/data/Projects/CORR/RawData into
     the folder `src`"""
-    S3().configure(sites=frozenset(sites)).harvest(
-        src, subject_selection(subs, exclude_subs), Wants(keys),
+    S3().configure(site=frozenset(site)).harvest(
+        src, subject_selection(sub, exclude_sub), Wants(keys),
         DownloadOptions(ifexists=if_exists, jobs=jobs,
                         chunk_size=human2bytes(packet)),
     )

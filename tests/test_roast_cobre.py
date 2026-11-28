@@ -326,7 +326,7 @@ def test_keys_and_subject_filters(root):
 ])
 def test_bids_filters_in_python_api(root, filters, kept):
     """`roast(datatype=, suffix=, task=)`: the BIDS filters of the
-    selection, as their command-line options (`FILTER_ARGS`)"""
+    selection, as their command-line options (`FILTERS`)"""
     report = roast(root, keys={"T1w", "func"}, display=False, **filters)
     assert not report.errors
     tree = raw_tree(root)

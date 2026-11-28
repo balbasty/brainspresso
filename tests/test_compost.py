@@ -190,7 +190,7 @@ def test_nothing_to_compost(roasted):
 
 
 def test_exclude_subs(roasted):
-    compost(roasted, selection=Selection(exclude_subs=["002"]), yes=True)
+    compost(roasted, selection=Selection(exclude_sub=["002"]), yes=True)
     left = files(roasted)
     # filters do not touch source data by default
     assert "sourcedata/IXI-T1.tar" in left
@@ -206,7 +206,7 @@ def test_exclude_subs(roasted):
 
 def test_filters_and_sourcedata(roasted):
     compost(
-        roasted, selection=Selection(subs=["001"]), sourcedata=True,
+        roasted, selection=Selection(sub=["001"]), sourcedata=True,
         yes=True,
     )
     left = files(roasted)
@@ -217,7 +217,7 @@ def test_filters_and_sourcedata(roasted):
 
 
 def test_suffixes(roasted):
-    compost(roasted, selection=Selection(suffixes=["T1w"]), yes=True)
+    compost(roasted, selection=Selection(suffix=["T1w"]), yes=True)
     left = files(roasted)
     assert raw(roasted, "sub-001/anat/sub-001_T2w.nii.gz") not in left
     assert raw(roasted, "sub-001/anat/sub-001_T2w.json") not in left
@@ -246,7 +246,7 @@ def test_where_derivatives(roasted):
 
 
 def test_harvested(harvested):
-    compost(harvested, selection=Selection(datatypes=["anat"]), yes=True)
+    compost(harvested, selection=Selection(datatype=["anat"]), yes=True)
     left = files(harvested)
     assert not (harvested / "sub-01/func").exists()
     scans = (harvested / "sub-01/sub-01_scans.tsv").read_text()
@@ -254,7 +254,7 @@ def test_harvested(harvested):
     assert "bold" not in scans
     assert ".brainspresso/manifest.json" in left
 
-    compost(harvested, selection=Selection(subs=["02"]), yes=True)
+    compost(harvested, selection=Selection(sub=["02"]), yes=True)
     # trimmed from the untouched copy kept by harvest
     assert participants(harvested / "participants.tsv") == ["sub-02"]
     manifest = json.loads(
@@ -262,12 +262,12 @@ def test_harvested(harvested):
     )
     assert list(manifest["files"]) == ["sub-02/anat/sub-02_T1w.nii.gz"]
     assert manifest["runs"][-1]["stage"] == "compost"
-    assert manifest["runs"][-1]["filters"] == {"subs": ["02"]}
+    assert manifest["runs"][-1]["filters"] == {"sub": ["02"]}
 
 
 def test_plan_kept_subjects(roasted):
     plan = plan_compost(
-        roasted, sourcedata=False, selection=Selection(subs=["003"])
+        roasted, sourcedata=False, selection=Selection(sub=["003"])
     )
     assert plan.kept_subjects == {"sub-003"}
     assert raw(roasted, "sub-003/anat/sub-003_T1w.nii.gz") not in plan.data

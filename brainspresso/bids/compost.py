@@ -15,7 +15,7 @@ Two things can be composted:
 
 2. **BIDS data** that falls outside a selection. The filters are the
    same as for `harvest`, and describe what is *kept*: composting with
-   `subs=["01", "02"]` leaves exactly what harvesting with the same
+   `sub=["01", "02"]` leaves exactly what harvesting with the same
    filters would have downloaded. Metadata that still applies to a kept
    data file (BIDS inheritance principle) is kept, dataset-level files
    are never touched, and participants/sessions/scans tables (and the
@@ -179,10 +179,10 @@ def restrict_participants(
     if table is None:
         raise UsageError("--where requires a participants.tsv file")
     matching = query_participants(table.read_text(encoding="utf-8"), where)
-    if selection.subs:
-        matching &= set(selection.subs)
+    if selection.sub:
+        matching &= set(selection.sub)
     lg.info(f"{len(matching)} participants match {where}")
-    selection.subs = matching or {"__none__"}
+    selection.sub = matching or {"__none__"}
     return selection
 
 
@@ -193,8 +193,8 @@ def is_filtering(selection: Selection | None, where=()) -> bool:
     if selection is None:
         return False
     return any((
-        selection.subs, selection.exclude_subs, selection.sessions,
-        selection.datatypes, selection.suffixes, selection.tasks,
+        selection.sub, selection.exclude_sub, selection.ses,
+        selection.datatype, selection.suffix, selection.task,
         selection.entities, selection.include, selection.exclude,
     ))
 
@@ -369,9 +369,9 @@ def plan_compost(
         if derivatives:
             # Only subject/session filters make sense for derivatives
             subsel = Selection(
-                subs=selection.subs,
-                exclude_subs=selection.exclude_subs,
-                sessions=selection.sessions,
+                sub=selection.sub,
+                exclude_sub=selection.exclude_sub,
+                ses=selection.ses,
             )
             pipelines = [d.root for d in layout.list_derivatives()]
             for pipeline in pipelines:

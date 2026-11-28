@@ -30,9 +30,7 @@ normalisation) by default, so two spellings of one file must share its
 lock, and Linux, macOS and Windows clients of one shared dataset must
 agree on it. Two files whose names differ only by case, on a
 case-sensitive filesystem, share one lock file too: they exclude each
-other needlessly, which is safe. (Lock files of earlier versions were
-named from the path as given: during an upgrade, runs of an older and
-a newer version do not exclude each other.)
+other needlessly, which is safe.
 
 Nothing is ever created next to the file: a source may be shared or
 read-only.

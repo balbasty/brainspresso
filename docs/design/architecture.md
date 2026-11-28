@@ -194,7 +194,7 @@ harvest, roast, compost and grind. Before anything else depends on it, it must:
 
 Implemented (step 2a): built-in companion table (checked against
 `bidsschematools` in an optional test), any directory inside a datatype
-folder is a recording unit, `entities=` with `subs`/`sessions`/`tasks` as
+folder is a recording unit, `entities=` with `sub`/`ses`/`task` as
 shortcuts. Not yet: links outside inheritance (`IntendedFor` field maps,
 ASL `m0scan`), a CLI flag for `entities`, filters on derivative datasets
 beyond subject/session.
@@ -204,12 +204,16 @@ Names (r52): the command line, the config keys, the
 `run_compost`, `Dataset.selection`) name the filters after the BIDS
 entities, as brainfilter does (`BidsPath.filter(sub=, ses=, datatype=,
 suffix=, task=)`): `--sub`, `--exclude-sub`, `--ses`, `--site`,
-`--exclude-site`, `--datatype`, `--suffix`, `--task`. The fields of
-`Selection` keep their plural names (`subs`, `exclude_subs`,
-`sessions`, `datatypes`, `suffixes`, `tasks`): they are the internal
-vocabulary of the key specs (`KeyAliases(bids=)`) and of the roast scope
-records (`.brainspresso/tasks/`, whose `fixed.base` holds them), which
-a rename would re-sign on every existing dataset.
+`--exclude-site`, `--datatype`, `--suffix`, `--task`. So do the
+internals (r53): the fields of `Selection` (`sub`, `exclude_sub`, `ses`,
+`datatype`, `suffix`, `task`), the key specs (`KeyAliases(bids=)`),
+`roast.scope(sub=)` and the scope records (`.brainspresso/tasks/`), the
+per-run source options `site`/`exclude_site`,
+`sources.base.subject_selection(sub, exclude_sub)`, the grind `Query`
+(`datatype`, `suffix`, `extension`) and `GrindOverrides.exclude_sub`:
+no table maps one vocabulary onto the other. A former plural keyword
+of `roast()` or `Dataset.selection` is a `TypeError` that names the new
+one (`bids.select.FORMER_NAMES`, `check_former_names`).
 
 Dataset-specific **keys** (`raw`, `meta`, `fs`, ...) remain as per-dataset
 aliases expanding to selection predicates and/or non-BIDS categories
@@ -255,7 +259,7 @@ Implemented (step 3):
   attributes `name`, `provides`, `roaster` (a function declared on the
   class is not a method), `labels`, `folder` (sub-folder of
   `layout.source`), `insecure`, `jobs`, plus per-run options (`user`,
-  `password`, `token`, `sites`...) given to `__init__`, `configure(**o)`
+  `password`, `token`, `site`...) given to `__init__`, `configure(**o)`
   (copy; unknown options and None ignored, so a command offers its
   options to every source) or `with_options(**o)` (strict). Methods:
   `list(selection=None, keys=None) -> list[RemoteEntry]`, `fetch(entries,
@@ -433,9 +437,9 @@ Interactions (decided):
   listing, not the disk), in this harvest and in later roasts; a later
   harvest that fetches it makes it an ordinary entry, a compost forgets
   those its filters drop.
-* Selection: a harvest roasts what it selected (keys, subs, sessions,
-  sites, datatypes, globs, `--where`) and every roasted file of the
-  subjects it touched (new images re-trim `IntendedFor` and scans
+* Selection: a harvest roasts what it selected (keys, subjects,
+  sessions, sites, datatypes, globs, `--where`) and every roasted file
+  of the subjects it touched (new images re-trim `IntendedFor` and scans
   tables of files placed earlier); a roast takes `--sub`,
   `--exclude-sub`, `--ses` (and `--site` for sites layouts).
   Tables are trimmed to what is on disk, so successive partial harvests
@@ -466,7 +470,7 @@ Interactions (decided):
   |---|---|---|---|---|
   | `skip` (default) | write | left alone | left alone | left alone |
   | `skip`, trimmed table or field map with `IntendedFor` | write | as `update` | as `update` | as `update` |
-  | `update` | write | rewritten iff the render differs | identical to the render: adopted; else kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else `MIGRATION_RULE` "replace": backup in `<state>/replaced/`, then replaced |
+  | `update` | write | rewritten iff the render differs | identical to the render: adopted; else kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else backup in `<state>/replaced/`, then replaced |
   | `different` | write | rewritten iff the render differs | same (edit lost) | same |
   | `overwrite` | write | rewritten | rewritten | rewritten |
   | `refresh` | write | by the mtime of the base | same | same |
@@ -570,12 +574,11 @@ authoritative copy first):
   the user's keys and takes `IntendedFor` from the render), left alone
   under `skip` (tables and field maps: as `update`);
   `--if-exists different|overwrite` replaces it.
-* No recorded hash (an older dataset), under `update`: a file equal to
-  the render is adopted; any other follows `bids.harvest.MIGRATION_RULE`
-  ("keep": kept, with a warning; "replace": copied to
-  `<state>/replaced/<path>` by the action core as it writes it, which
-  replaces it atomically; nothing is copied or lost if no action
-  writes). Default "replace" (owner decision).
+* No recorded hash (e.g. a dataset of a brainspresso that recorded
+  none), under `update`: a file equal to the render is adopted; any
+  other is copied to `<state>/replaced/<path>` by the action core as it
+  writes it, which replaces it atomically; nothing is copied or lost if
+  no action writes (owner decision).
 * Only `_record` writes the hashes of roasted files: that of a file
   holding the render, whatever its state was (an edit replaced with
   `--if-exists overwrite` is ours again; a merged field map or a
@@ -797,13 +800,6 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     `inputs` did): a template of another key does not re-run it, and
     a narrower selection still skips it (`subject_shards(config=)` takes
     a function of the label).
-  * **Upgrade note (step 6 PR A).** The OASIS-I image discs, the
-    OASIS-II parts and the Bullitt subject shards get a new signature
-    (their templates moved from `inputs` to `config`): the first roast
-    after the upgrade re-reads these archives (and Bullitt subjects)
-    once, under `--if-exists skip` too; nothing is rewritten (their
-    outputs exist and are skipped one by one). Shard ids and the other
-    inputs are unchanged; no other roaster's signature changes.
 * **Converter conventions** (step 6 PR C, `brainspresso/convert/`; a
   library of functions, no class hierarchy).
   * Modules: `metaimage` (`.mha`, `.mhd` + raw: `read_header`, `read`,
@@ -894,9 +890,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     own options (`--discs`, `--parts`, `fs_named`, `named`) from
     `options(keys, **extra)` into `RoastContext.options`, `source` among
     several roasters (ABIDE-I; `options=` itself is then a `TypeError`),
-    the keyword names in one table (`SELECTION_ARGS`). Its signature and
-    docstring are built
-    from the same parameters; the templates are the module's
+    the BIDS filters (`FILTERS`, with their help) passed as they are to
+    the `Selection` fields of the same names. Its signature and
+    docstring are built from the same parameters; the templates are the module's
     `TEMPLATES`, read at each call.
   * A missing optional input: `named_keys(spec, keys, leaves)` (the
     leaves that `--keys` names, itself or through a group, in any case;
@@ -1070,9 +1066,7 @@ layer in 2b-iv):
   platform, so that two spellings of a file on a caseless filesystem
   (macOS, Windows) and the Linux, macOS and Windows clients of one
   shared dataset agree on its lock file, at the price of files that
-  differ only by case sharing one; lock files of earlier versions were
-  named from the path as given, so runs of an older and a newer version
-  do not exclude each other during an upgrade); outside datasets
+  differ only by case sharing one); outside datasets
   (package templates, other source folders) in a private per-user local
   folder (`$BRAINSPRESSO_LOCK_DIR`, else
   `$XDG_RUNTIME_DIR/brainspresso/locks`, else
@@ -1207,7 +1201,7 @@ layer in 2b-iv):
   | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
   |---|---|---|---|---|
   | `skip` (default) | write | left alone | left alone | left alone |
-  | `update` | write | rewritten iff the content differs | compared: identical (a stale hash, e.g. of a killed roast): adopted; else kept, warning (`Action.keep_edit`) | identical: adopted (hash recorded); else backup in `<state>/replaced/<path>` (`Layout.replaced`, `Action.backup`; an existing backup is kept, the copy goes to `<path>.1`, `.2`...), then replaced (`bids.harvest.MIGRATION_RULE` "replace"; "keep": as edited) |
+  | `update` | write | rewritten iff the content differs | compared: identical (a stale hash, e.g. of a killed roast): adopted; else kept, warning (`Action.keep_edit`) | identical: adopted (hash recorded); else backup in `<state>/replaced/<path>` (`Layout.replaced`, `Action.backup`; an existing backup is kept, the copy goes to `<path>.1`, `.2`...), then replaced |
   | `different` | write | rewritten iff the content differs | rewritten iff the content differs (edit lost) | rewritten iff the content differs |
   | `overwrite` | write | rewritten | rewritten | rewritten |
   | `refresh` | write | rewritten iff its mtime differs from its sources' | same | same |
@@ -1234,22 +1228,23 @@ layer in 2b-iv):
   design (`roast --if-exists update` renders them).
 * **Scope of a shard** (problem 1 of the engine follow-ups). A shard
   may declare what of the roast can change its outputs:
-  `Shard(scope=roast.scope(keys=[...], subs=[labels] | SEEN | None))`.
+  `Shard(scope=roast.scope(keys=[...], sub=[labels] | SEEN | None))`.
   `keys`: every key whose being wanted can change what it writes (the
   BIDS keys of its raw outputs, the categories it reads with
-  `ctx.wants`; None: all); `subs`: the subjects it writes for (a list),
+  `ctx.wants`; None: all); `sub`: the subjects it writes for (a list),
   `SEEN` (it asks `ctx.keeps_subject(label)` for every subject its
   inputs hold, before any other pruning, on every run; that call
   reports the subject, `Context.seen`, then prunes), or None (unknown).
-  `subject_shards(..., scope_keys=)` declares `subs=[label]`. A scoped
+  `subject_shards(..., scope_keys=)` declares `sub=[label]`. A scoped
   shard's signature holds only its inputs and `config` (`"scoped":
   true`, no fingerprint); `RoastPolicy.scope` describes the roast for
   it: `fixed` (JSON policy, the base selection without its subject
   filters, the declaration: must be equal), `keys` (wanted keys among
   the declared ones), `mode` (`all` > `exclude` > `keys`, rules 2, 6,
   3-5 of `bids/keys.py`; ignored when the declared keys hold no BIDS
-  key) and `subs` (the declared subjects kept, or the subject
-  filters). The record keeps the scopes (`scopes`, most recent last, at
+  key) and `sub` (the declared subjects kept, `{"kept": [...]}`, or the
+  subject filters, `{"sub": [...], "exclude_sub": [...]}`; the base
+  selection holds the `Selection` fields, `ses`, `datatype`...). The record keeps the scopes (`scopes`, most recent last, at
   most 8) and, on a complete run, the subjects seen (`seen: {"sub":
   [...]}`). Under `skip` the shard is skipped if one recorded scope
   **covers** the new one (`RoastPolicy.covers`: keys and mode no wider,
@@ -1283,10 +1278,10 @@ layer in 2b-iv):
   `tal`, `fsl`): per-roaster tests check that `seen` is complete, that
   adding each key a shard reads re-runs it, and a differential test
   (`tests/test_roast_scope_fuzz.py`) compares incremental roasts with
-  fresh ones. A record
-  of before scopes whose signature equals the old formula for this
-  roast is upgraded in place (scoped signature, `scopes: [scope]`):
-  no re-run after the upgrade, no `_SIGNATURE_VERSION` bump. Declared:
+  fresh ones. A record whose signature is not that of the shard is
+  never reused (no record of another format is upgraded: the
+  signature version, `_SIGNATURE_VERSION`, is in every signature).
+  Declared:
   COBRE (`roast/scans`: `T1w`, `func`, `SEEN`), OASIS-I
   (`roast/discs/raw-*`: `raw`, `avg`, `tal`, `fsl`; `fs-*`: `fs`,
   `fs-all`; `SEEN`), OASIS-II (`roast/parts/*`: `raw`, `SEEN`),
@@ -1322,7 +1317,7 @@ layer in 2b-iv):
   `subject_shards(ctx, labels, fn, *args, inputs=, scope_keys=)`
   (pruning, progress total, one `Shard` per subject with id
   `roast/subjects/sub-<label>`, advanced when done; `scope_keys`: each
-  declares `scope(keys=..., subs=[label])`), `scope(keys=, subs=)` and
+  declares `scope(keys=..., sub=[label])`), `scope(keys=, sub=)` and
   `SEEN` (the scope of a shard, above). Missing inputs are `Fail`s,
   never warnings only.
 
@@ -1360,7 +1355,7 @@ class Dataset:
     keys: KeySpec | None = None   # tree, choices, default, off of --keys
     subject_width: int | None = None   # None: labels verbatim (strip
                                   #   `sub-`); int: numbers, ranges, width
-    sessions: bool = False        # SessionOptions in harvest/roast
+    has_sessions: bool = False    # SessionOptions in harvest/roast
     site_names: tuple[str, ...] = ()   # SiteOptions; names in the help
     layouts: tuple[str, ...] = ("study", "flat")   # multi-site: ALL_LAYOUTS
     template_dir: Path | None = None
@@ -1429,7 +1424,7 @@ def cli(self, app: App) -> None   # add or replace commands (after defaults)
 ```
 
 `Args` (a documented dataclass) has one always-populated field per
-standard group (`keys`, `select`, `sessions`, `sites`, `filters`,
+standard group (`keys`, `subjects`, `sessions`, `sites`, `filters`,
 `hosted`, `source`, `login`, `token`, `harvest`, `roast`, `compost`,
 `layout`, `log`; defaults filled in for groups a command does not show)
 and `extras: dict[str, OptionGroup]` for dataset groups, whose fields
@@ -1437,7 +1432,7 @@ never reuse a standard name. `args.source_options()` is the union of the
 groups' `source_options()` (sites, credentials, extras such as OASIS-I
 `discs`), offered to every source through `Source.configure` (unknown
 options ignored, §4; a test checks that each is accepted by a source).
-`Args.of(ds, "harvest", select=...)` is the Python API. The default
+`Args.of(ds, "harvest", subjects=...)` is the Python API. The default
 `harvest` is `harvest_sources(self.configured_sources(args),
 self.defaults, layout, selection, wants, options, override=--source)`
 after `record_run` (without `defaults`: the first source, or the one of
@@ -1481,8 +1476,8 @@ break under `from __future__ import annotations`.
 | Group | Flags | Used by |
 |-------|-------|---------|
 | `KeyOptions` | `--keys`, `--exclude-keys` (`keys_for(command)`) | harvest, roast |
-| `SelectionOptions` | `--sub`, `--exclude-sub` | harvest, roast, compost |
-| `SessionOptions` | `--ses` | compost; harvest/roast if `sessions` |
+| `SubjectOptions` | `--sub`, `--exclude-sub` | harvest, roast, compost |
+| `SessionOptions` | `--ses` | compost; harvest/roast if `has_sessions` |
 | `SiteOptions` | `--site`, `--exclude-site` (str, `select_sites`) | harvest if `site_names`/`has_sites`; compost if `sites` layouts |
 | `FilterOptions` | `--datatype`, `--suffix`, `--task`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
 | `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
@@ -1994,7 +1989,7 @@ what this contract replaces.
   `group`. A dataset without sessions has one `session` unit per
   subject (no `ses`).
 * **Requirement**: a named input of a stage. `query` (a `Query`:
-  datatypes, suffixes, extensions, entities, reserved sidecar
+  `datatype`, `suffix`, `extension`, `entities`, reserved sidecar
   conditions), from the raw dataset (default), from an earlier `stage`
   of the pipeline, or from a `pipeline` listed in `requires`; `min` and
   `max` matches per unit (`max=1`, the default, with several candidates
@@ -2374,9 +2369,7 @@ Owner decisions; roast and grind share all of this.
   `LocalSource` or `--source` may put outside the dataset), the sites
   parent; an input under none of them keeps its absolute path, and
   its shard is then only skipped where that path is the same. This
-  changes every signature: `_SIGNATURE_VERSION` is bumped, so every
-  roast shard runs once more after the upgrade (its inputs are read
-  again; outputs that exist are kept by `IfExists`). Also: a
+  changes every signature: `_SIGNATURE_VERSION` is bumped. Also: a
   `CommitTree` action (below); extra record fields merged
   into the existing record (`Shard(record=)`, `update_task_state`);
   the `waiting` status; a scope filter on top-level shards (roast
@@ -2532,7 +2525,7 @@ in the job's own environment (brainspresso must be importable there).
 ### Dataset overrides (`grind/overrides.py`)
 
 `GrindOverrides` is data that a `Dataset` may declare as its `grind`
-attribute: `exclude_subs`, `exclude` (globs never used as inputs),
+attribute: `exclude_sub`, `exclude` (globs never used as inputs),
 `inputs` (`{requirement name or suffix: Query}` that narrows a
 requirement, i.e. "which T1w"), `species`, `template`, `config`
 (`{pipeline: {field: value}}`) and `resources`. The same fields may
@@ -3933,3 +3926,42 @@ up as an XPASS failure once fixed (then drop the marker).
   of images without a `task` entity (`Selection.keeps` of metadata:
   "may apply"), e.g. `T1w.json` without its image; with `datatype=` it
   does not arise.
+* r53: internal selection names match the command line; record
+  back-compat dropped (owner decision: the shard signatures, task and
+  scope records and manifest formats of the refactor were never used
+  in production). Renamed (§3, §5): the `Selection` fields `sub`,
+  `exclude_sub`, `ses`, `datatype`, `suffix`, `task` (and the key specs
+  of every roaster), `roast.scope(sub=)` and the scope records (`sub`;
+  `{"kept": [...]}` or `{"sub": [...], "exclude_sub": [...]}`), the
+  per-run source options `site`/`exclude_site`,
+  `subject_selection(sub, exclude_sub)` (and the harvest helpers of IXI
+  and CoRR), `FilterOptions.filters()` (`datatype`, `suffix`, `task`),
+  the `Args` group `select` (now `subjects`, `SubjectOptions`), the
+  `Dataset.sessions` flag (now `has_sessions`, as `has_sites`),
+  `GrindOverrides.exclude_sub` and the grind `Query` fields
+  (`datatype`, `suffix`, `extension`; the contract tests follow). The
+  translation layers of r52 are gone: `SELECTION_ARGS` and
+  `FILTER_ARGS` (`roast()` passes its filters as they are; `FILTERS`
+  holds their help) and the mapping of `Dataset.selection`; the former
+  plural keywords are still a `TypeError` that names the new one
+  (`bids.select.FORMER_NAMES`, `check_former_names`). Removed: the
+  in-place upgrade of task records of before scopes (`Engine.plan`,
+  `_rewrite`; r44) and its "no re-run after the upgrade" promise, the
+  upgrade notes of step 6 PR A and of the step-7 signature bump, the
+  note on lock files of earlier refactor versions (§4), and the "keep"
+  branch of `MIGRATION_RULE`, with the constant itself: under
+  `--if-exists update`, a file with no recorded hash that differs from
+  the render is backed up to `<state>/replaced/` and replaced, engine
+  and hosted roasts alike (owner-approved rule, unchanged).
+  `_SIGNATURE_VERSION` is bumped to 2 (simpler than resetting the
+  format: a record of any earlier format has another signature, so it
+  is never reused, scoped or not). Kept, for datasets written by
+  `main` (not by this refactor): manifests without `schema` read as is
+  (and `scripts/migrate_layout.py`), the earlier SLIM template hash
+  (`PREVIOUS_TEMPLATES`), ABIDE-II's renamed phenotype tables, the
+  `<name>.lock` note of the download locks, `Selection.keep_subject`
+  and the deprecated command-line aliases. Tests removed: the upgrade
+  test of the engine and the "keep" variants of the hosted and engine
+  no-hash tests; the "keep"-only ones now check "replace". Golden: only
+  the task records change (the names in the scope records, and the
+  signatures: version 2); no output file, manifest or log line.

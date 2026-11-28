@@ -55,7 +55,7 @@ class INDIDataset(Dataset):
     """
 
     keys = None
-    sessions = True
+    has_sessions = True
     has_sites = True
     hosted = True
     layouts = ALL_LAYOUTS
@@ -141,7 +141,7 @@ class INDIDataset(Dataset):
             local = selection
             if site is not None:
                 expanded = copy.copy(selection)
-                for attr in ("subs", "exclude_subs"):
+                for attr in ("sub", "exclude_sub"):
                     labels = set(getattr(selection, attr))
                     setattr(expanded, attr, labels | {
                         site.label(x) for x in labels})
@@ -206,9 +206,9 @@ class INDIDataset(Dataset):
         sessions = {s[4:] if s.startswith("ses-") else s
                     for s in args.sessions.ses}
         selection = Selection(
-            subs=self.labels(args.select.sub),
-            exclude_subs=self.labels(args.select.exclude_sub),
-            sessions=sessions, folders=list(args.hosted.folders),
+            sub=self.labels(args.subjects.sub),
+            exclude_sub=self.labels(args.subjects.exclude_sub),
+            ses=sessions, folders=list(args.hosted.folders),
             **f.filters(),
         )
         sites = self.chosen_sites(args)

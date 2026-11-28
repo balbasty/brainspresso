@@ -178,7 +178,7 @@ class RoastContext(Context):
         """
         Whether a subject is kept, and report it as seen.
 
-        A shard that declares `scope(subs=SEEN)` asks this for every
+        A shard that declares `scope(sub=SEEN)` asks this for every
         subject its inputs hold, before any other pruning: the subjects
         seen by a complete run tell a later run whether it adds one that
         this shard holds (`RoastPolicy.covers`).
@@ -374,8 +374,8 @@ def make_context(
     source : path
         Source folder (default: `layout.source`)
     **filters
-        `Selection` filters (`subs`, `exclude_subs`, `sessions`...:
-        the fields of `--sub`, `--exclude-sub`, `--ses`...)
+        `Selection` filters (`sub`, `exclude_sub`, `ses`...: those of
+        `--sub`, `--exclude-sub`, `--ses`...)
 
     Returns
     -------

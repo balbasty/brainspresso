@@ -112,9 +112,9 @@ RAWDATA = "RawData"
 KEYS = KeyAliases(
     {"all": {**allkeys["all"], "meta": {"meta", "pheno"}}},
     bids={
-        "T1w": {"datatypes": ["anat"], "suffixes": ["T1w"]},
-        "T2w": {"datatypes": ["anat"], "suffixes": ["T2w"]},
-        "rest": {"datatypes": ["func"], "suffixes": ["bold"]},
+        "T1w": {"datatype": ["anat"], "suffix": ["T1w"]},
+        "T2w": {"datatype": ["anat"], "suffix": ["T2w"]},
+        "rest": {"datatype": ["func"], "suffix": ["bold"]},
     },
     folders={
         "pheno": ["phenotype"],
@@ -568,7 +568,7 @@ def roast_xnat(ctx: RoastContext) -> Iterator:
                 inputs=[a for f in folders for a in scan_archives(f)],
                 config=[template_config(ctx, folder_site(f))
                         for f in folders],
-                scope=scope(keys=RAW_KEYS, subs=[label]),
+                scope=scope(keys=RAW_KEYS, sub=[label]),
             )
     if freesurfer:
         yield from freesurfer_shards(ctx, subjects)
@@ -617,7 +617,7 @@ def freesurfer_shards(ctx: RoastContext,
         yield Shard(roast_freesurfer, label, archive, tag="fs",
                     advance="fs", id=f"roast/fs/sub-{label}",
                     unit={"sub": label}, inputs=[archive],
-                    scope=scope(keys=FS_KEYS, subs=[label]))
+                    scope=scope(keys=FS_KEYS, sub=[label]))
 
 
 def wants_fs(ctx: RoastContext) -> bool:

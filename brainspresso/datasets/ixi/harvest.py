@@ -189,8 +189,8 @@ def nitrc_downloaders(
     src: Path,
     *,
     keys: set[str],
-    subs: set[int] = frozenset(),
-    exclude_subs: set[int] = frozenset(),
+    sub: set[int] = frozenset(),
+    exclude_sub: set[int] = frozenset(),
     user: str | None = None,
     password: str | None = None,
     ifexists: IfExists.Choice = "skip",
@@ -203,6 +203,6 @@ def nitrc_downloaders(
     source = NitrcIR(server, project).configure(user=user,
                                                 password=password)
     options = DownloadOptions(ifexists=ifexists, chunk_size=chunk_size)
-    entries = source.list(subject_selection(subs, exclude_subs, width=3),
+    entries = source.list(subject_selection(sub, exclude_sub, width=3),
                           Wants(keys))
     return source.downloaders(entries, src, options)

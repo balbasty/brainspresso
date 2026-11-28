@@ -506,7 +506,7 @@ keys = []
     args, _ = parse("ixi", "harvest", tmp_path)
     assert value(args, "keys", "keys") == ("T1w",)
     assert value(args, "keys", "exclude_keys") == ("dwi", "angio")
-    assert value(args, "select", "sub") == ("2", "sub-012", "3:5")
+    assert value(args, "subjects", "sub") == ("2", "sub-012", "3:5")
     # an empty list replaces a non-empty default
     args, _ = parse("unc-wisconsin", "harvest", tmp_path)
     assert value(args, "keys", "keys") == ()

@@ -31,8 +31,9 @@ architecture.md`, §4, "State model"):
 * a visible file is edited iff its SHA-256 differs from the recorded
   one; an edit is kept under `update` (an edited field map keeps the
   user's keys and takes `IntendedFor` from the render); without a
-  record (an older dataset), a file equal to the render is adopted,
-  any other follows `bids.harvest.MIGRATION_RULE` (re-exported here);
+  record (e.g. a dataset harvested by a brainspresso that recorded no
+  hashes), a file equal to the render is adopted, any other is copied
+  to `<state>/replaced/<path>` (`Layout.replaced`), then replaced;
 * only `_record` writes the hashes, of the files that hold the render.
 
 It runs after the images are placed (repairs read siblings:
@@ -81,9 +82,7 @@ from humanize import naturalsize
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import Unlink
-from brainspresso.bids import harvest
 from brainspresso.bids.harvest import (
-    MIGRATION_RULE,
     InlineEntry,
     _filters,
     manifest_files,
@@ -128,7 +127,7 @@ from brainspresso.sources.base import write_content
 
 lg = getLogger(__name__)
 
-__all__ = ["MIGRATION_RULE", "RENDER_VERSION", "RoastMetadata",
+__all__ = ["RENDER_VERSION", "RoastMetadata",
            "harvest_hosted", "hosted_files", "roast_hosted",
            "roast_metadata"]
 
@@ -234,7 +233,7 @@ def harvest_hosted(
     chunk_size : int, optional
         Download chunk size, in bytes
     check_subjects : bool
-        Check `selection.subs` against the listing
+        Check `selection.sub` against the listing
     sidecars : {"yes", "no", "only"}
         Placement policy (see the module)
     fill : list[FillTemplate]
@@ -589,14 +588,14 @@ def _plan(
             i["source"] is None and i["subject"] is None)]
         orphans = [o for o in orphans
                    if o["subject"] is None or o["subject"] in touched]
-    if selection is not None and (selection.sessions or selection.subs
-                                  or selection.exclude_subs):
+    if selection is not None and (selection.ses or selection.sub
+                                  or selection.exclude_sub):
         # files of subjects that describe no selected data are left alone
         listed = sorted(present | {i["rel"] for i in items
                                    if i["dataset"] == str(raw)})
-        kept = set(Selection(subs=selection.subs,
-                             exclude_subs=selection.exclude_subs,
-                             sessions=selection.sessions).select(listed))
+        kept = set(Selection(sub=selection.sub,
+                             exclude_sub=selection.exclude_sub,
+                             ses=selection.ses).select(listed))
         items = [i for i in items if i["dataset"] != str(raw)
                  or i["subject"] is None or i["rel"] in kept]
     if existing_only:
@@ -803,7 +802,7 @@ def _state(item: dict) -> str:
     {"absent", "ours", "edited", "unknown"}
         "ours": its hash is the recorded one (or that of a known earlier
         version of its template); "edited": another hash; "unknown": no
-        hash recorded (an older dataset)
+        hash recorded
     """
     dst = Path(item["target"])
     if not dst.is_file():
@@ -812,33 +811,6 @@ def _state(item: dict) -> str:
     if digest in {item["sha256"], *item["previous"]} - {None}:
         return "ours"
     return "edited" if item["sha256"] else "unknown"
-
-
-def _migrate(ctx: RoastContext, item: dict, rule: str
-             ) -> tuple[bool, Path | None]:
-    """
-    Apply the migration rule to a file without a recorded hash.
-
-    Called when the file differs from the render. "keep": it is kept,
-    with a warning; "replace": it is copied to `<state>/replaced/<path>`
-    as the action writes it (which replaces it atomically; if no action
-    writes, it stays as it is), with a warning naming the backup.
-
-    Returns
-    -------
-    write : bool
-        Whether the file is to be written
-    backup : Path | None
-        Where the action copies it first
-    """
-    dst = Path(item["target"])
-    if rule == "replace":
-        # (`Action.backup`: the copy and its warning)
-        return True, ctx.layout.replaced(dst)
-    lg.warning(f"{dst} differs from what brainspresso writes and has no "
-               f"recorded hash (an older harvest, or edited): kept "
-               f"(--if-exists different or overwrite replaces it)")
-    return False, None
 
 
 def _trimmed(item: dict) -> bool:
@@ -906,9 +878,8 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
         except (OSError, ValueError):
             same = False
         if not same:
-            write, backup = _migrate(ctx, item, harvest.MIGRATION_RULE)
-            if not write:
-                return
+            # (`Action.backup`: the copy and its warning)
+            backup = ctx.layout.replaced(dst)
     yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag, backup=backup)
 
 
@@ -1127,8 +1098,8 @@ def roast_hosted(
     ctx = RoastContext(
         layout=layout,
         selection=KeySelection(base=Selection(
-            subs=base.subs, exclude_subs=base.exclude_subs,
-            sessions=base.sessions, folders=OPTIONAL_FOLDERS,
+            sub=base.sub, exclude_sub=base.exclude_sub,
+            ses=base.ses, folders=OPTIONAL_FOLDERS,
         )),
         json=json, ifexists=ifexists, tag=TAG,
     )

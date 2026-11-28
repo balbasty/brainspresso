@@ -256,9 +256,9 @@ class Action:
       before the action replaces it, with a warning naming the copy;
       nothing is copied if the action does not write (an identical
       compare, a failure). Roast sets it for a file it cannot tell from
-      an edit (no recorded hash, `bids.harvest.MIGRATION_RULE`). A
-      backup that exists is never replaced: the copy goes to
-      `<backup>.1`, `<backup>.2`... (the first free name);
+      an edit (no recorded hash: `Layout.replaced`). A backup that
+      exists is never replaced: the copy goes to `<backup>.1`,
+      `<backup>.2`... (the first free name);
     * `keep_edit`: a warning; under a compare, outputs that differ from
       what the action renders are kept (not replaced) and the warning is
       logged; identical ones count as rendered (roast: a file the user

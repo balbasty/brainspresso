@@ -87,12 +87,12 @@ WIDTH = 4               # subject labels: `sub-0001`
 
 
 def _anat(*suffixes, **entities):
-    return {"datatypes": ["anat"], "suffixes": list(suffixes),
+    return {"datatype": ["anat"], "suffix": list(suffixes),
             **({"entities": entities} if entities else {})}
 
 
 def _pet(tracer):
-    return {"datatypes": ["pet"], "suffixes": ["pet"],
+    return {"datatype": ["pet"], "suffix": ["pet"],
             "entities": {"acq": [tracer]}}
 
 
@@ -108,16 +108,16 @@ KEYS = KeyAliases({"all": {**allkeys, "meta": {"meta", "pheno"}}}, bids={
     "T2star": _anat("t2starw", "T2starw", "T2star"),
     "angio": _anat("angio"),
     "swi": _anat("swi"),
-    "bold": {"datatypes": ["func"], "suffixes": ["bold"]},
-    "pasl": {"datatypes": ["perf"], "suffixes": ["pasl"]},
-    "asl": {"datatypes": ["perf"], "suffixes": ["asl"]},
-    "fmap": {"datatypes": ["fmap"]},
-    "dwi": {"datatypes": ["dwi"]},
+    "bold": {"datatype": ["func"], "suffix": ["bold"]},
+    "pasl": {"datatype": ["perf"], "suffix": ["pasl"]},
+    "asl": {"datatype": ["perf"], "suffix": ["asl"]},
+    "fmap": {"datatype": ["fmap"]},
+    "dwi": {"datatype": ["dwi"]},
     "FDG": _pet("FDG"),
     "PIB": _pet("PIB"),
     "AV45": _pet("AV45"),
     "AV1451": _pet("AV1451"),
-    "CT": {"datatypes": ["ct"], "suffixes": ["CT"]},
+    "CT": {"datatype": ["ct"], "suffix": ["CT"]},
 }, folders={"fs": [f"derivatives/{FS_NAME}"],
             "fs-all": [f"derivatives/{FS_NAME}"],
             "pheno": ["phenotype"]})

@@ -517,7 +517,7 @@ def test_archive_shards(tmp_path):
     assert [s.inputs for s in shards] == [[p] for p in paths]
     assert all(s.config is None and s.tag == s.advance == "raw"
                for s in shards)
-    assert shards[0].scope == {"keys": ["T1w", "bold"], "subs": SEEN}
+    assert shards[0].scope == {"keys": ["T1w", "bold"], "sub": SEEN}
     assert shards[0].args == (paths[0],)
     shards = list(archive_shards(
         ctx, paths, print, tag="discs", keys=None,

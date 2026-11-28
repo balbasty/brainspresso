@@ -108,9 +108,9 @@ RAWDATA = "RawData"
 KEYS = KeyAliases(
     {"all": {**allkeys["all"], "meta": {"meta", "pheno"}}},
     bids={
-        "T1w": {"datatypes": ["anat"], "suffixes": ["T1w"]},
-        "rest": {"datatypes": ["func"], "suffixes": ["bold"]},
-        "dti": {"datatypes": ["dwi"], "suffixes": ["dwi"]},
+        "T1w": {"datatype": ["anat"], "suffix": ["T1w"]},
+        "rest": {"datatype": ["func"], "suffix": ["bold"]},
+        "dti": {"datatype": ["dwi"], "suffix": ["dwi"]},
     },
     folders={"pheno": ["phenotype"]},
 )

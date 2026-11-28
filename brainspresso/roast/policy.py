@@ -37,7 +37,7 @@ engine:
     warning (one that holds the render is adopted: a stale hash, e.g.
     of a killed roast, is no edit), and backs up a file without a
     recorded hash that differs to `<state>/replaced/<path>`
-    (`bids.harvest.MIGRATION_RULE`) before it replaces it; a tracked
+    (`Layout.replaced`) before it replaces it; a tracked
     file that holds what roast writes gets its hash recorded (manifest
     origin "converted", `Report.digests`), whatever the mode;
   * other tables (several outputs): compared under `update` and
@@ -51,17 +51,17 @@ engine:
 
 Scope of a shard
 ----------------
-A shard that declares `scope=roast.scope(keys=..., subs=...)` is signed
+A shard that declares `scope=roast.scope(keys=..., sub=...)` is signed
 by its inputs and `config` only (`actions.engine`); `RoastPolicy.scope`
 describes the run as far as it matters to the shard:
 
 ```
 {"fixed": {"json": ..., "base": <selection minus subjects>,
-           "declared": {"keys": [...] | None, "subs": [...] | "seen" | None}},
+           "declared": {"keys": [...] | None, "sub": [...] | "seen" | None}},
  "keys": [wanted keys among the declared ones],
  "mode": "all" | "exclude" | "keys" | None,
- "subs": {"kept": [declared subjects kept]}
-       | {"subs": [...], "exclude": [...]}}
+ "sub": {"kept": [declared subjects kept]}
+      | {"sub": [...], "exclude_sub": [...]}}
 ```
 
 A recorded scope **covers** a new one (`covers`: the new run writes no
@@ -88,7 +88,6 @@ from pathlib import Path, PurePosixPath
 
 from brainspresso.actions.action import Action, IfExists
 from brainspresso.actions.engine import Policy, Rejected
-from brainspresso.bids import harvest
 from brainspresso.bids.keys import KeySelection, normalize
 from brainspresso.bids.kinds import kinds_of
 from brainspresso.bids.layout import ORIG_DIR
@@ -98,7 +97,7 @@ lg = getLogger(__name__)
 
 __all__ = ["RoastPolicy", "SEEN"]
 
-#: `scope(subs=SEEN)`: the shard reports every subject its inputs hold
+#: `scope(sub=SEEN)`: the shard reports every subject its inputs hold
 #: (`RoastContext.keeps_subject`)
 SEEN = "seen"
 #: Key modes, from the one that keeps the least
@@ -107,9 +106,9 @@ _MODES = {"keys": 0, "exclude": 1, "all": 2}
 
 def _keeps(filters: dict, label: str) -> bool:
     """`Selection.keeps_subject` on recorded subject filters."""
-    subs = filters.get("subs") or ()
-    return (not subs or label in subs) \
-        and label not in (filters.get("exclude") or ())
+    sub = filters.get("sub") or ()
+    return (not sub or label in sub) \
+        and label not in (filters.get("exclude_sub") or ())
 
 
 class RoastPolicy(Policy):
@@ -221,7 +220,7 @@ class RoastPolicy(Policy):
             return
         dst = declared[0]
         state = _state(ctx, dst)
-        if state == "unknown" and harvest.MIGRATION_RULE == "replace":
+        if state == "unknown":
             # replaced (if it differs) with a backup: `Action.backup`
             action.backup = ctx.layout.replaced(dst)
         elif state == "edited":
@@ -229,11 +228,6 @@ class RoastPolicy(Policy):
             # not recorded, e.g. a killed roast) is adopted, not kept
             action.keep_edit = (
                 f"{dst} was edited since brainspresso wrote it: kept "
-                f"(--if-exists different or overwrite replaces it)")
-        elif state == "unknown":            # MIGRATION_RULE "keep"
-            action.keep_edit = (
-                f"{dst} has no recorded hash (an older roast, or edited) "
-                f"and differs from what brainspresso writes: kept "
                 f"(--if-exists different or overwrite replaces it)")
 
     def fingerprint(self, ctx: RoastContext) -> dict:
@@ -280,7 +274,7 @@ class RoastPolicy(Policy):
         selection = ctx.selection
         if declared is None or not isinstance(selection, KeySelection):
             return None
-        keys, subs = declared.get("keys"), declared.get("subs")
+        keys, sub = declared.get("keys"), declared.get("sub")
         wanted = selection.wanted
         if wanted is None:
             kept = None if keys is None else sorted(keys)
@@ -294,21 +288,21 @@ class RoastPolicy(Policy):
         else:
             mode = "exclude" if selection.exclude_only else "keys"
         base = {k: v for k, v in normalize(selection.base).items()
-                if k not in ("subs", "exclude_subs")}
-        if isinstance(subs, list):
-            kept_subs = {"kept": [s for s in subs
-                                  if selection.keeps_subject(s)]}
+                if k not in ("sub", "exclude_sub")}
+        if isinstance(sub, list):
+            kept_sub = {"kept": [s for s in sub
+                                 if selection.keeps_subject(s)]}
         else:
-            kept_subs = {"subs": sorted(selection.base.subs),
-                         "exclude": sorted(selection.base.exclude_subs)}
+            kept_sub = {"sub": sorted(selection.base.sub),
+                        "exclude_sub": sorted(selection.base.exclude_sub)}
         # (as it reads back from a record)
         return json.loads(json.dumps({
             "fixed": {"json": ctx.json, "base": base,
                       "declared": {"keys": None if keys is None
-                                   else sorted(keys), "subs": subs}},
+                                   else sorted(keys), "sub": sub}},
             "keys": kept,
             "mode": mode,
-            "subs": kept_subs,
+            "sub": kept_sub,
         }, default=str))
 
     def covers(self, old: dict, new: dict, seen: dict) -> bool:
@@ -341,18 +335,18 @@ class RoastPolicy(Policy):
         if new["mode"] is not None and \
                 _MODES[new["mode"]] > _MODES.get(old.get("mode"), -1):
             return False
-        before, after = old.get("subs") or {}, new["subs"]
+        before, after = old.get("sub") or {}, new["sub"]
         if "kept" in after:
             return set(after["kept"]) <= set(before.get("kept", ()))
-        if new["fixed"]["declared"]["subs"] == SEEN and "sub" in seen:
+        if new["fixed"]["declared"]["sub"] == SEEN and "sub" in seen:
             return all(_keeps(before, s) for s in seen["sub"]
                        if _keeps(after, s))
         # (subjects unknown: by the filters themselves)
-        if not before.get("subs"):
+        if not before.get("sub"):
             return all(not _keeps(after, s)
-                       for s in before.get("exclude") or ())
-        return bool(after.get("subs")) and all(
-            _keeps(before, s) for s in after["subs"] if _keeps(after, s))
+                       for s in before.get("exclude_sub") or ())
+        return bool(after.get("sub")) and all(
+            _keeps(before, s) for s in after["sub"] if _keeps(after, s))
 
     def expects(self, path: Path, ctx: RoastContext) -> bool:
         """
@@ -407,10 +401,10 @@ class RoastPolicy(Policy):
         without each one (`roast_utils.check_keys_rerun`).
         """
         declared = scope["fixed"]["declared"]
-        keys, subs = declared["keys"], declared["subs"]
-        if isinstance(subs, list):
-            subjects = set(subs)
-        elif subs == SEEN:
+        keys, sub = declared["keys"], declared["sub"]
+        if isinstance(sub, list):
+            subjects = set(sub)
+        elif sub == SEEN:
             subjects = set(seen.get("sub") or ())
         else:
             subjects = None
@@ -432,7 +426,7 @@ class RoastPolicy(Policy):
             if subjects is not None:
                 label = _subject(output)
                 if label is not None and label not in subjects:
-                    what = "seen" if subs == SEEN else "declared"
+                    what = "seen" if sub == SEEN else "declared"
                     return (f"{output} is a file of sub-{label}, which the "
                             f"shard has not {what}")
         return None
@@ -463,7 +457,8 @@ def _state(ctx: RoastContext, path) -> str:
     -------
     {"absent", "ours", "edited", "unknown"}
         "ours": its SHA-256 is the recorded one; "edited": another;
-        "unknown": no hash recorded (an older roast)
+        "unknown": no hash recorded (e.g. written by a brainspresso that
+        recorded none, or by the user)
     """
     path = Path(path)
     if not path.is_file():

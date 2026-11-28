@@ -1194,7 +1194,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "61c4798394237e49de90e6ddf34b1e8d8b5c3abace5f356c9f045d7b733bad8c",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "b6945f5343ad1f9dca8f121b2813f6df26d3230a339f448733bdad7b6de4194f",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "3363cf72da30c6e900af9bdaab075f6e88cd7d57b2364a16bfb89cfd6dc4e261",
-   "README": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020",
+   "README": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7",
    "dataset_description.json": "bff8cdf3a16c6f14c5f0fc949ecaf725a92a1c3b4749f2386b679133dc1d3e53",
    "rawbids/README": "05471c595d0316c2177b6a275f01dfa63f93bac3deddc76ea1b154476d9e0b57",
    "rawbids/dataset_description.json": "0e09cfdfaa7fc5223a477b4af5daf93d94928fd424e757467c37a9562284ae06",
@@ -1216,7 +1216,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020"
+     "sha256": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -1434,7 +1434,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "61c4798394237e49de90e6ddf34b1e8d8b5c3abace5f356c9f045d7b733bad8c",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "b6945f5343ad1f9dca8f121b2813f6df26d3230a339f448733bdad7b6de4194f",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "3363cf72da30c6e900af9bdaab075f6e88cd7d57b2364a16bfb89cfd6dc4e261",
-   "README": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020",
+   "README": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7",
    "dataset_description.json": "bff8cdf3a16c6f14c5f0fc949ecaf725a92a1c3b4749f2386b679133dc1d3e53",
    "rawbids/README": "05471c595d0316c2177b6a275f01dfa63f93bac3deddc76ea1b154476d9e0b57",
    "rawbids/dataset_description.json": "0e09cfdfaa7fc5223a477b4af5daf93d94928fd424e757467c37a9562284ae06",
@@ -1456,7 +1456,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020"
+     "sha256": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -1888,7 +1888,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "61c4798394237e49de90e6ddf34b1e8d8b5c3abace5f356c9f045d7b733bad8c",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "b6945f5343ad1f9dca8f121b2813f6df26d3230a339f448733bdad7b6de4194f",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "3363cf72da30c6e900af9bdaab075f6e88cd7d57b2364a16bfb89cfd6dc4e261",
-   "README": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020",
+   "README": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7",
    "dataset_description.json": "bff8cdf3a16c6f14c5f0fc949ecaf725a92a1c3b4749f2386b679133dc1d3e53",
    "rawbids/README": "05471c595d0316c2177b6a275f01dfa63f93bac3deddc76ea1b154476d9e0b57",
    "rawbids/dataset_description.json": "0e09cfdfaa7fc5223a477b4af5daf93d94928fd424e757467c37a9562284ae06",
@@ -1900,7 +1900,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020"
+     "sha256": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -1969,7 +1969,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "61c4798394237e49de90e6ddf34b1e8d8b5c3abace5f356c9f045d7b733bad8c",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "b6945f5343ad1f9dca8f121b2813f6df26d3230a339f448733bdad7b6de4194f",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "3363cf72da30c6e900af9bdaab075f6e88cd7d57b2364a16bfb89cfd6dc4e261",
-   "README": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020",
+   "README": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7",
    "dataset_description.json": "bff8cdf3a16c6f14c5f0fc949ecaf725a92a1c3b4749f2386b679133dc1d3e53",
    "rawbids/README": "05471c595d0316c2177b6a275f01dfa63f93bac3deddc76ea1b154476d9e0b57",
    "rawbids/dataset_description.json": "0e09cfdfaa7fc5223a477b4af5daf93d94928fd424e757467c37a9562284ae06",
@@ -1991,7 +1991,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020"
+     "sha256": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -2251,7 +2251,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "61c4798394237e49de90e6ddf34b1e8d8b5c3abace5f356c9f045d7b733bad8c",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "b6945f5343ad1f9dca8f121b2813f6df26d3230a339f448733bdad7b6de4194f",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "3363cf72da30c6e900af9bdaab075f6e88cd7d57b2364a16bfb89cfd6dc4e261",
-   "README": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020",
+   "README": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7",
    "dataset_description.json": "bff8cdf3a16c6f14c5f0fc949ecaf725a92a1c3b4749f2386b679133dc1d3e53",
    "rawbids/README": "05471c595d0316c2177b6a275f01dfa63f93bac3deddc76ea1b154476d9e0b57",
    "rawbids/dataset_description.json": "0e09cfdfaa7fc5223a477b4af5daf93d94928fd424e757467c37a9562284ae06",
@@ -2269,7 +2269,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "739212229283aaaf99afa7352b428adf9125b577e3a3081dab2958fc8f2c5020"
+     "sha256": "3062059c467f74f4374df4b11a80df3223a08fe1f2fc2406a2cfb39a5eda5bf7"
     },
     "rawbids/README": {
      "origin": "converted",

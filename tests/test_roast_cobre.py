@@ -100,15 +100,17 @@ def test_roast_all(root):
 
 
 def test_study_readme(tmp_path, caplog):
-    """A study gets a README through the engine: its hash in the
-    manifest, `--if-exists` as any output (an edit kept by `update`),
-    none if the user has a README of any name or case; none in a flat
-    layout"""
-    root = tmp_path / "COBRE"
+    """A study gets a README through the engine, after the roaster (its
+    title: the name of the raw description, not of the folder): its hash
+    in the manifest, `--if-exists` as any output (an edit kept by
+    `update`); none if the user has a README of any name or case; none
+    in a flat layout"""
+    root = tmp_path / "cobre-local"
     init_layout(root, "study")
     make_source(root)
     readme = root / "README"
     roast(root, keys={"meta"}, display=False)
+    assert readme.read_text().startswith("# COBRE\n")
     assert "`rawbids/`" in readme.read_text()
     files = json.loads((root / ".brainspresso" / "manifest.json")
                        .read_text())["files"]
@@ -133,6 +135,24 @@ def test_study_readme(tmp_path, caplog):
     roast(flat, keys={"meta"}, display=False)
     assert (flat / "README").read_text() == \
         (roaster.TEMPLATES / "README").read_text()
+
+
+@pytest.mark.parametrize("policy", ["skip", "different", "overwrite",
+                                    "update"])
+def test_study_readme_of_user_never_written(tmp_path, policy):
+    """A `<DS>/README` that we did not write (no hash in the manifest,
+    not our text) is the user's: never written or replaced"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "study")
+    make_source(root)
+    (root / "README").write_text("my study")
+    report = roast(root, keys={"meta"}, ifexists=policy, display=False)
+    assert not report.errors
+    assert (root / "README").read_text() == "my study"
+    assert "study" not in report.counts
+    files = json.loads((root / ".brainspresso" / "manifest.json")
+                       .read_text())["files"]
+    assert "README" not in files
 
 
 BOLD = "sub-0040000/func/sub-0040000_task-rest_bold.json"

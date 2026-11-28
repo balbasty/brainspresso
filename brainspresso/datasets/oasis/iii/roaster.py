@@ -132,35 +132,13 @@ def roast_oasis3(ctx: RoastContext) -> Iterator:
     sessions = source_sessions(ctx)
     if ctx.wants("meta"):
         yield from roast_meta(ctx, sessions)
+    if ctx.wants("pheno"):
+        yield from roast_phenotypes(ctx)
     if ctx.wants("fs") or ctx.wants("fs-all"):
         yield Shard(roast_freesurfer_tables, tag="fs")
     yield from subject_shards(ctx, sorted(sessions), roast_subject,
                               inputs=partial(subject_tarballs, ctx),
                               scope_keys=SCOPE_KEYS)
-
-
-def finish_oasis3(ctx: RoastContext) -> Iterator[Action]:
-    """
-    The phenotype tables (the `finalize` hook of `roast_oasis3`).
-
-    Written once the subject shards are done, so that their `session_id`
-    names the sessions of the raw dataset (`raw_sessions`).
-    """
-    if ctx.wants("pheno"):
-        yield from roast_phenotypes(ctx, raw_sessions(ctx))
-
-
-roast_oasis3.finalize = finish_oasis3
-
-
-def raw_sessions(ctx: RoastContext) -> dict[str, set[str]]:
-    """{sub: {session}} of the raw dataset (`sub-*/ses-*/` on disk)"""
-    out = {}
-    for folder in sorted(ctx.layout.raw.glob("sub-*/ses-*")):
-        if folder.is_dir():
-            sub = folder.parent.name[len("sub-"):]
-            out.setdefault(sub, set()).add(folder.name[len("ses-"):])
-    return out
 
 
 def source_sessions(ctx: RoastContext) -> dict[str, dict[str, Path]]:
@@ -484,19 +462,19 @@ PHENOCOLMAP = {
 }
 
 
-def roast_phenotypes(ctx: RoastContext,
-                     sessions: dict | None = None) -> Iterator[Action]:
+def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
     """
     Phenotype tables (one row per visit) and their data dictionaries.
 
-    The `session_id` of a visit is the session of the subject on the
-    day of the visit (`ses-d<days>`, of `sessions`: `{sub: {ses}}`, the
-    sessions of the raw dataset, `raw_sessions`); `n/a` if the subject
-    has no session that day (warned, with a count per table). The day of
-    the visit is kept in `delay`. Truncated rows are skipped
-    (`complete_rows`).
+    The tables are written complete to `.brainspresso/orig/`, with the
+    `session_id` of the day of each visit (`ses-d<days>`); the visible
+    tables are derived from them after every roast (`trim_originals`,
+    `bids.tables.trim_tables`), as the participants table: the rows of
+    the subjects on disk, and `session_id` `n/a` when the subject has no
+    session that day in the raw dataset (the day is kept in `delay`).
+    So they follow what is on disk, whatever `--if-exists` says.
+    Truncated rows are skipped (`complete_rows`).
     """
-    sessions = sessions or {}
     for form, base in PHENOFILES.items():
         name = "pychometrics" if form == "c1" else f"UDS{form}"
         tarball = ctx.source / DATA_FILES / f"{name}.tar.gz"
@@ -509,13 +487,11 @@ def roast_phenotypes(ctx: RoastContext,
         header, rows = read_csv(tarball, **csv_opt)
         header = [fix_pheno_column(h, medications) for h in header]
         name = f"phenotype/UDS_{base}.tsv"
-        rows = visit_sessions(
-            (fix_pheno_row(row, header)
-             for row in complete_rows(rows, header, name)),
-            header, sessions, name)
-        yield WriteTSV([header, *rows], f"{out}.tsv", src=tarball,
-                       tag="pheno", **({"escapechar": "\\"}
-                                       if medications else {}))
+        rows = (fix_pheno_row(row, header)
+                for row in complete_rows(rows, header, name))
+        yield WriteTSV([header, *rows],
+                       ctx.layout.original(Path(f"{out}.tsv")), src=tarball,
+                       tag="pheno")
         yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
                         src=tarball, tag="pheno")
 
@@ -538,31 +514,6 @@ def complete_rows(rows, header: list[str], name: str):
     if skipped:
         lg.warning(f"{name}: {skipped} row(s) skipped (truncated: no "
                    f"participant or visit)")
-
-
-def visit_sessions(rows, header: list[str], sessions: dict, name: str):
-    """
-    Map the `session_id` of visits (`ses-d<days>` of the visit) to the
-    sessions of the subjects (`n/a` if the subject has none that day;
-    warned once, with a count, when the rows are consumed).
-    """
-    if "session_id" not in header:
-        yield from rows
-        return
-    i_sub, i_ses = header.index("participant_id"), header.index("session_id")
-    unmapped = total = 0
-    for row in rows:
-        total += 1
-        sub = str(row[i_sub])[len("sub-"):]
-        ses = str(row[i_ses])[len("ses-"):]
-        if ses not in sessions.get(sub, ()):
-            unmapped += 1
-            row[i_ses] = "n/a"
-        yield row
-    if unmapped:
-        lg.warning(f"{name}: {unmapped} of {total} visits on a day without "
-                   f"a session of the subject: session_id n/a (the day "
-                   f"is in `delay`)")
 
 
 def fix_pheno_column(name: str, medications: bool = False) -> str:
@@ -594,6 +545,10 @@ def fix_pheno_row(row: list[str], header: list[str]) -> list:
         elif column in ('DX1', 'DX2', 'DX3', 'DX4', 'DX5') and \
                 value in ('A', '.'):
             value = 'n/a'
+        elif isinstance(value, str):
+            # (the tables are read again to be trimmed, `trim_tables`:
+            # no cell may need quoting, as for ABIDE)
+            value = value.replace('"', "'").replace("\t", " ")
         out.append(value)
     return out
 

@@ -29,6 +29,7 @@ wrote (`Report.digests`, origin "converted": the edit test of
 """
 from __future__ import annotations
 
+import functools
 import os
 import traceback
 from logging import getLogger
@@ -140,27 +141,38 @@ def run_roast(
 
 def with_study_readme(roaster: Roaster) -> Roaster:
     """
-    Prefix a roaster with the README of a study dataset.
+    Add the README of a study dataset to a roaster.
 
     A study (`layout.kind == "study"`) gets `<DS>/README`
     (`bids.layout.study_readme`, BIDS: recommended) through the engine,
     as any output (`--if-exists`, its hash in the manifest), unless the
     user has a README of their own (`StudyLayout.readme_of_user`: any
-    `README*` name, in any case). The `finalize` hook of the roaster is
-    kept.
+    `README*` name, in any case, or a `README` that we did not write):
+    that one is never written, in any mode. It is written by the
+    `finalize` hook, after that of the roaster: the raw description
+    (the name of the study) exists by then. The attributes of the
+    roaster are kept (`functools.update_wrapper`, `tag`, `source`).
     """
     def producer(ctx):
-        layout = ctx.layout
-        if layout.kind == "study" and layout.readme_of_user() is None:
-            name = layout.dataset_description("study")["Name"]
-            yield WriteText(study_readme(name), layout.root / README,
-                            tag="study")
         yield from roaster(ctx)
 
-    finalize = getattr(roaster, "finalize", None)
-    if finalize is not None:
-        producer.finalize = finalize
-    producer.__name__ = getattr(roaster, "__name__", "roaster")
+    def finalize(ctx):
+        inner = getattr(roaster, "finalize", None)
+        if inner is not None:
+            yield from inner(ctx)
+        layout = ctx.layout
+        if layout.kind != "study" or \
+                layout.readme_of_user(ctx.recorded) is not None:
+            return
+        name = layout.dataset_description("study")["Name"]
+        yield WriteText(study_readme(name), layout.root / README,
+                        tag="study")
+
+    functools.update_wrapper(producer, roaster)
+    for attr in ("tag", "source"):
+        if hasattr(roaster, attr):
+            setattr(producer, attr, getattr(roaster, attr))
+    producer.finalize = finalize
     return producer
 
 

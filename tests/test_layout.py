@@ -433,6 +433,20 @@ def test_study_readme_of_user(tmp_path, name):
     assert lay.readme_of_user() == lay.root / name
 
 
+def test_study_readme_ours_or_users(tmp_path):
+    """`README` is ours if the manifest records a hash for it, or it
+    holds our text; else it is the user's"""
+    lay = make_layout("study", tmp_path / "IXI")
+    lay.root.mkdir(parents=True, exist_ok=True)
+    readme = lay.root / "README"
+    readme.write_text("my study")
+    assert lay.readme_of_user() == readme
+    assert lay.readme_of_user(lambda path: None) == readme
+    assert lay.readme_of_user(lambda path: "abc") is None
+    readme.write_text(layout_mod.study_readme("IXI"))
+    assert lay.readme_of_user() is None
+
+
 def test_study_readme_text():
     """The study README names rawbids/ (without claiming its README
     exists), derivatives/ and sourcedata/"""

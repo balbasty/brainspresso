@@ -2404,7 +2404,7 @@
  "study/default": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
-   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -2438,7 +2438,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
     },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
@@ -2945,7 +2945,7 @@
  "study/keys-all": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
-   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -2979,7 +2979,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
     },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
@@ -3762,7 +3762,7 @@
  "study/keys-meta": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
-   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
@@ -3773,7 +3773,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -3836,7 +3836,7 @@
  "study/rerun": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
-   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -3870,7 +3870,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
     },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
@@ -4428,7 +4428,7 @@
  "study/sidecars-only": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
-   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -4451,7 +4451,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
     },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",

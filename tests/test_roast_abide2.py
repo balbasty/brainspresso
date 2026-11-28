@@ -922,21 +922,39 @@ def make_old_cbcl(root):
     return lay, old
 
 
+def manifest_files(lay):
+    return json.loads((lay.state / "manifest.json").read_text())["files"]
+
+
 def test_renamed_phenotype_removed(root, caplog):
     """`cbcl_1.5-5` of an earlier roast: removed (pristine copy, table,
-    dictionary), under pure skip too; it does not come back"""
+    dictionary, their manifest entries) by a roast that writes the
+    phenotypes, under pure skip too; it does not come back"""
     lay, old = make_old_cbcl(root)
+    key = Path(f"{old}.json").relative_to(lay.root).as_posix()
+    assert key in manifest_files(lay)
     with caplog.at_level(logging.INFO):
-        report = roast(root, keys="T1w", display=False)
+        report = roast(root, keys="pheno", display=False)
     assert not report.errors
     for ext in (".tsv", ".json"):
         assert not Path(f"{old}{ext}").exists()
     assert not lay.original(Path(f"{old}.tsv")).exists()
+    assert key not in manifest_files(lay)
     assert "cbcl_1.5-5.tsv: removed" in caplog.text
     assert "WARNING" not in caplog.text
-    roast(root, keys="meta", display=False)
+    roast(root, keys="T1w", display=False)
     assert not Path(f"{old}.tsv").exists()
     assert (lay.phenotype / "cbcl_1p5-5.tsv").exists()
+
+
+def test_renamed_phenotype_kept_without_pheno(root):
+    """A roast that does not write the phenotypes (`--keys T1w`) leaves
+    the old table alone (no new one would replace it)"""
+    lay, old = make_old_cbcl(root)
+    roast(root, keys="T1w", display=False)
+    for ext in (".tsv", ".json"):
+        assert Path(f"{old}{ext}").exists()
+    assert lay.original(Path(f"{old}.tsv")).exists()
 
 
 def test_renamed_phenotype_edited_kept(root, caplog):
@@ -945,11 +963,24 @@ def test_renamed_phenotype_edited_kept(root, caplog):
     lay, old = make_old_cbcl(root)
     Path(f"{old}.tsv").write_text("participant_id\tmine\n")
     Path(f"{old}.json").write_text('{"mine": {}}')
-    roast(root, keys="T1w", display=False)
+    roast(root, keys="pheno", display=False)
     assert Path(f"{old}.tsv").read_text() == "participant_id\tmine\n"
     assert Path(f"{old}.json").read_text() == '{"mine": {}}'
     assert not lay.original(Path(f"{old}.tsv")).exists()
     assert caplog.text.count("edited since brainspresso wrote it") == 2
+
+
+def test_renamed_phenotype_malformed(root, caplog):
+    """A malformed leftover (a pristine copy that is not UTF-8) is
+    warned about; the roast goes on"""
+    lay, old = make_old_cbcl(root)
+    lay.original(Path(f"{old}.tsv")).write_bytes(b"\xff\xfe\x00bad")
+    report = roast(root, keys="pheno", display=False)
+    assert not report.errors
+    assert Path(f"{old}.tsv").exists()              # (could not be checked)
+    assert "cbcl_1.5-5.tsv (renamed cbcl_1p5-5.tsv): not removed" \
+        in caplog.text
+    assert (lay.phenotype / "cbcl_1p5-5.tsv").exists()
 
 
 def test_participants_sub_prefix(root):

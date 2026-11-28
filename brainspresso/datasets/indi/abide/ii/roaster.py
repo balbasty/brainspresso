@@ -66,6 +66,7 @@ from typing import Iterator, NamedTuple
 
 from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.actions.runlock import pid_alive
+from brainspresso.bids.harvest import update_files
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.tables import trim_tables
 from brainspresso.datasets.base import KeySpec
@@ -334,36 +335,59 @@ def migrate_renamed_phenotypes(ctx: RoastContext) -> None:
     """
     Remove the phenotype tables of an earlier roast under an old name.
 
-    The pristine copy (`.brainspresso/orig/`) is removed, so that the
-    visible table is not derived from it again (`trim_originals`); the
-    visible table and its data dictionary too, unless they were edited
-    (the table differs from its trimmed pristine copy, the dictionary
-    from the hash in the manifest): then they are kept, with a warning.
-    The roast owns these files: done whatever `--if-exists` says.
+    Only when the roast writes the phenotype tables (`pheno`), so that
+    the new table replaces the old one. The pristine copy
+    (`.brainspresso/orig/`) is removed, so that the visible table is not
+    derived from it again (`trim_originals`); the visible table and its
+    data dictionary too, unless they were edited (the table differs
+    from its trimmed pristine copy, the dictionary from the hash in the
+    manifest): then they are kept, with a warning. The manifest entries
+    of the files removed are dropped. The roast owns these files: done
+    whatever `--if-exists` says. A file that cannot be checked or
+    removed is warned about and left.
     """
+    if not ctx.wants("pheno"):
+        return
     folder = ctx.layout.phenotype
+    removed = []
     for old, new in RENAMED_PHENOTYPES.items():
         table, sidecar = folder / f"{old}.tsv", folder / f"{old}.json"
         pristine = ctx.layout.original(table)
         if not any(p.exists() for p in (pristine, table, sidecar)):
             continue
-        ours = {table: _is_trim_of(ctx, table, pristine),
-                sidecar: _is_recorded(ctx, sidecar)}
-        for path, unedited in ours.items():
+        checks = {table: partial(_is_trim_of, ctx, table, pristine),
+                  sidecar: partial(_is_recorded, ctx, sidecar)}
+        for path, unedited in checks.items():
             if not path.exists():
                 continue
-            if unedited:
+            try:
+                if not unedited():
+                    lg.warning(f"phenotype/{path.name}: renamed {new}"
+                               f"{path.suffix}, but edited since "
+                               f"brainspresso wrote it: kept (delete it "
+                               f"by hand)")
+                    continue
                 path.unlink()
-                lg.info(f"phenotype/{path.name}: removed (renamed "
-                        f"{new}{path.suffix})")
-            else:
-                lg.warning(f"phenotype/{path.name}: renamed {new}"
-                           f"{path.suffix}, but edited since brainspresso "
-                           f"wrote it: kept (delete it by hand)")
+            except Exception as e:
+                lg.warning(f"phenotype/{path.name} (renamed {new}"
+                           f"{path.suffix}): not removed "
+                           f"({type(e).__name__}: {e})")
+                continue
+            removed.append(path)
+            lg.info(f"phenotype/{path.name}: removed (renamed "
+                    f"{new}{path.suffix})")
         if pristine.exists():
-            pristine.unlink()
-            lg.info(f"{pristine.relative_to(ctx.root).as_posix()}: removed "
-                    f"(renamed {new}.tsv)")
+            rel = pristine.relative_to(ctx.root).as_posix()
+            try:
+                pristine.unlink()
+            except OSError as e:
+                lg.warning(f"{rel}: not removed ({type(e).__name__}: {e})")
+                continue
+            removed.append(pristine)
+            lg.info(f"{rel}: removed (renamed {new}.tsv)")
+    if removed:
+        update_files(ctx.layout, deleted=[
+            p.relative_to(ctx.root).as_posix() for p in removed])
 
 
 def _is_trim_of(ctx: RoastContext, table: Path, pristine: Path) -> bool:
@@ -372,7 +396,8 @@ def _is_trim_of(ctx: RoastContext, table: Path, pristine: Path) -> bool:
         return False
     rel = table.relative_to(ctx.root).as_posix()
     with tempfile.TemporaryDirectory() as tmp:
-        trim_tables(Path(tmp), {rel: pristine}, subjects=ctx.layout.raw)
+        trim_tables(Path(tmp), {rel: pristine}, subjects=ctx.layout.raw,
+                    sessions=True)
         trimmed = Path(tmp) / rel
         return trimmed.exists() and \
             trimmed.read_bytes() == table.read_bytes()

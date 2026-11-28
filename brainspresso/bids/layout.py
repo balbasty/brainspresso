@@ -537,18 +537,37 @@ class StudyLayout(Layout):
             written.append(self.root / DESCRIPTION)
         return written + super().write_descriptions(keep)
 
-    def readme_of_user(self) -> Path | None:
+    def readme_of_user(self, recorded=None) -> Path | None:
         """
-        Find a README of the user (not `study_readme`'s path).
+        Find a README of the user (one that `study_readme` did not write).
 
-        Any `README*` name, in any case (`readme.md`, `ReadMe.txt`), but
-        `README` itself; None if there is none.
+        Any `README*` name, in any case (`readme.md`, `ReadMe.txt`); also
+        `README` itself, unless it is ours: the manifest records a hash
+        for it (`recorded(path)`, e.g. `RoastContext.recorded`), or it
+        holds `study_readme` of this study. None if there is none.
+
+        Parameters
+        ----------
+        recorded : callable(path) -> str | None, optional
+            Hash that the manifest records for a file (default: none)
         """
         if not self.root.is_dir():
             return None
-        return next((p for p in sorted(self.root.iterdir())
-                     if p.name.lower().startswith(README.lower())
-                     and p.name != README), None)
+        found = sorted(p for p in self.root.iterdir()
+                       if p.name.lower().startswith(README.lower()))
+        for path in found:
+            if path.name != README:
+                return path
+            if recorded is not None and recorded(path) is not None:
+                continue
+            name = self.dataset_description("study")["Name"]
+            try:
+                ours = path.read_text(encoding="utf-8") == study_readme(name)
+            except (OSError, UnicodeDecodeError):
+                ours = False
+            if not ours:
+                return path
+        return None
 
 
 def study_readme(name: str) -> str:

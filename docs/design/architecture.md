@@ -2708,9 +2708,12 @@ up as an XPASS failure once fixed (then drop the marker).
   (`GeneratedBy`; `SourceDatasets` completed by
   `DerivativeLayout.write_descriptions`), `abide.scans.bold_sidecar`
   adds `TaskName` (the task entity of the name) and the header's
-  `RepetitionTime` (also for COBRE; no usable TR: a `Fail` of that
-  sidecar), the data dictionaries were corrected, the table renamed
-  `cbcl_1p5-5` (the old tables removed by the ABIDE-II roast). Still known (`tests/bids_validator_known.json`):
+  `RepetitionTime` (ABIDE: no usable TR is a `Fail` of that sidecar;
+  COBRE: 2 s, the TR of the COBRE fact sheet quoted in its
+  `templates/README`, `DOCUMENTED_TR`, with one warning per roast that
+  counts the images), the data dictionaries were corrected, the table
+  renamed `cbcl_1p5-5` (the old tables removed by the ABIDE-II roast).
+  Still known (`tests/bids_validator_known.json`):
   OASIS-III per-visit phenotype tables have several rows per
   participant, and the BIDS 1.11.2 schema indexes phenotype tables by
   `participant_id` alone (`TSV_INDEX_VALUE_NOT_UNIQUE`), whatever
@@ -3423,8 +3426,8 @@ up as an XPASS failure once fixed (then drop the marker).
   with `Units: "yyyy-mm-dd"`); `age` in `"year"` (BIDS unit, was
   `"years"`: `AGE_UNITS`); OASIS-III `daddem` (was described as
   `dadem`). OASIS-III phenotype tables: `session_id` is the session of
-  the subject on the day of the visit, else `n/a` (a count warned per
-  table; the day is in `delay`), described in each data dictionary.
+  the subject on the day of the visit, else `n/a` (the day is in
+  `delay`), described in each data dictionary.
   ABIDE-II `phenotype/cbcl_1.5-5.*` renamed `cbcl_1p5-5.*`. Study
   datasets get a `README` (`bids.layout.study_readme`). Review round 1:
   the ABIDE-II roast removes the tables of an earlier roast under the
@@ -3437,12 +3440,28 @@ up as an XPASS failure once fixed (then drop the marker).
   `Fail`); the "not a subtype" warning is once per roast (per table).
   OASIS-III: blank CSV rows are dropped and truncated phenotype rows
   skipped (warned; short rows padded with `n/a`); the phenotype tables
-  are written by the `finalize` hook (`finish_oasis3`), so that
-  `session_id` names a session of the raw dataset on disk, never one of
-  `sourcedata/` that is not roasted. The study README goes through the
+  are mapped against the sessions of the raw dataset on disk, never
+  those of `sourcedata/` that are not roasted (round 2: by trimming). The study README goes through the
   engine (`roast.run.with_study_readme`, for `roast_dataset` and the
   command line: `--if-exists`, its hash in the manifest, tag `study`),
   unless the user has a README of any name or case
   (`StudyLayout.readme_of_user`); hosted roasts do not write one.
   OASIS-I writes the description and lookup table of `oasis-processed`
-  in its `finalize` hook, only when the derivative has images.
+  in its `finalize` hook, only when the derivative has images. Review
+  round 2: the OASIS-III phenotype tables are trimmed tables (a
+  visible table follows what is on disk, whatever `--if-exists` says):
+  written complete to `.brainspresso/orig/` with the visit's day as
+  `session_id`, the visible ones derived after every roast by
+  `trim_originals`; `bids.tables.trim_tables` sets the `session_id` of
+  a phenotype row that names no session on disk to `n/a`
+  (`known_sessions`, an info line with a count; the `finalize` hook of
+  round 1 is gone); cells with `"` or a tab are replaced so that the
+  tables need no quoting. The ABIDE-II migration runs only when the
+  roast writes the phenotypes (`pheno`), drops the manifest entries of
+  the files it removes, and warns and goes on if a leftover cannot be
+  checked or removed. The study README is written by the `finalize`
+  hook, after the roaster (its title: the raw description's name), and
+  a `<DS>/README` is ours only if the manifest records a hash for it or
+  it holds `study_readme`'s text: else it is the user's and never
+  written, in any mode; `with_study_readme` keeps the attributes of the
+  roaster (`functools.update_wrapper`, `tag`, `source`).

@@ -2,6 +2,7 @@
  "flat/default": {
   "files": {
    ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
    "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
@@ -68,10 +69,6 @@
     "phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "sessions.json": {
      "origin": "converted",
@@ -162,9 +159,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -448,6 +443,7 @@
  "flat/keys-all": {
   "files": {
    ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
    "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
@@ -514,10 +510,6 @@
     "phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "sessions.json": {
      "origin": "converted",
@@ -611,9 +603,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -1207,6 +1197,7 @@
  "flat/keys-meta": {
   "files": {
    ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
    "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
@@ -1214,7 +1205,7 @@
    "participants.json": "39b4705359d18b6407b934b7cfbae69bfc03213908e9b3878f7190d23feb0275",
    "participants.tsv": "cff440e94663de930c8664f4522c5b87cb6fbc761db5dd380f918634cf1a5775",
    "phenotype/UDS_b4_cdr.json": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f",
-   "phenotype/UDS_b4_cdr.tsv": "7b660030702e5357bfe41fb1e2b700b1acb44a76eefdd6a9f04a41da0c455996",
+   "phenotype/UDS_b4_cdr.tsv": "bf10c1c6965ac23156bb16c28519de632cd0a3a3cd00987a8cc23a3707ca55e2",
    "sessions.json": "caf9f6ecf377835ade03c9f1238f00c9674e9182e447a6610bbcd0ec6cd461b4"
   },
   "manifest": {
@@ -1234,10 +1225,6 @@
     "phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "7b660030702e5357bfe41fb1e2b700b1acb44a76eefdd6a9f04a41da0c455996"
     },
     "sessions.json": {
      "origin": "converted",
@@ -1285,9 +1272,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 3 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -1458,6 +1443,7 @@
  "flat/rerun": {
   "files": {
    ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
    "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
@@ -1524,10 +1510,6 @@
     "phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "sessions.json": {
      "origin": "converted",
@@ -1664,9 +1646,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    },
    {
     "args": [],
@@ -1692,9 +1672,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -1978,6 +1956,7 @@
  "flat/sidecars-only": {
   "files": {
    ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
    "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
@@ -2041,10 +2020,6 @@
     "phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "sessions.json": {
      "origin": "converted",
@@ -2138,9 +2113,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -2403,9 +2376,10 @@
  "study/default": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
-   "README": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd",
+   "README": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011",
    "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
@@ -2434,7 +2408,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd"
+     "sha256": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011"
     },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
@@ -2475,10 +2449,6 @@
     "rawbids/phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "rawbids/phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "rawbids/sessions.json": {
      "origin": "converted",
@@ -2575,9 +2545,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -2861,9 +2829,10 @@
  "study/keys-all": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
-   "README": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd",
+   "README": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011",
    "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
@@ -2892,7 +2861,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd"
+     "sha256": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011"
     },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
@@ -2933,10 +2902,6 @@
     "rawbids/phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "rawbids/phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "rawbids/sessions.json": {
      "origin": "converted",
@@ -3036,9 +3001,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -3644,23 +3607,24 @@
  "study/keys-meta": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
-   "README": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd",
+   "README": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011",
    "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
    "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
    "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
    "rawbids/participants.json": "39b4705359d18b6407b934b7cfbae69bfc03213908e9b3878f7190d23feb0275",
    "rawbids/participants.tsv": "cff440e94663de930c8664f4522c5b87cb6fbc761db5dd380f918634cf1a5775",
    "rawbids/phenotype/UDS_b4_cdr.json": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f",
-   "rawbids/phenotype/UDS_b4_cdr.tsv": "7b660030702e5357bfe41fb1e2b700b1acb44a76eefdd6a9f04a41da0c455996",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "bf10c1c6965ac23156bb16c28519de632cd0a3a3cd00987a8cc23a3707ca55e2",
    "rawbids/sessions.json": "caf9f6ecf377835ade03c9f1238f00c9674e9182e447a6610bbcd0ec6cd461b4"
   },
   "manifest": {
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd"
+     "sha256": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011"
     },
     "rawbids/README": {
      "origin": "converted",
@@ -3677,10 +3641,6 @@
     "rawbids/phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "rawbids/phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "7b660030702e5357bfe41fb1e2b700b1acb44a76eefdd6a9f04a41da0c455996"
     },
     "rawbids/sessions.json": {
      "origin": "converted",
@@ -3734,9 +3694,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 3 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -3907,9 +3865,10 @@
  "study/rerun": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
-   "README": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd",
+   "README": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011",
    "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
@@ -3938,7 +3897,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd"
+     "sha256": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011"
     },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
@@ -3979,10 +3938,6 @@
     "rawbids/phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "rawbids/phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "rawbids/sessions.json": {
      "origin": "converted",
@@ -4128,9 +4083,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    },
    {
     "args": [],
@@ -4159,9 +4112,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {
@@ -4445,9 +4396,10 @@
  "study/sidecars-only": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
    ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
    ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
-   "README": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd",
+   "README": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011",
    "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
@@ -4473,7 +4425,7 @@
    "files": {
     "README": {
      "origin": "converted",
-     "sha256": "3878256cd7257d99f10e289cfdb7a84f52e213c38af9bdff0e658386b515a0dd"
+     "sha256": "222a03ad58c1e14064753ed48ce7bac83c546243a410ab5e325bd3631dacd011"
     },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
@@ -4514,10 +4466,6 @@
     "rawbids/phenotype/UDS_b4_cdr.json": {
      "origin": "converted",
      "sha256": "483fec524b6bdd47f6c1c1b961dc2a73f9e8bba4f806ebde0d069c0d57d1983f"
-    },
-    "rawbids/phenotype/UDS_b4_cdr.tsv": {
-     "origin": "converted",
-     "sha256": "85fcb050b466733f254d5e3fa0f0749c0a6e2e74311937bad872f4220f9861c9"
     },
     "rawbids/sessions.json": {
      "origin": "converted",
@@ -4617,9 +4565,7 @@
      "errors": [],
      "status": "complete"
     },
-    "warnings": [
-     "WARNING: brainspresso.datasets.oasis.iii.roaster: phenotype/UDS_b4_cdr.tsv: 2 of 3 visits on a day without a session of the subject: session_id n/a (the day is in `delay`)"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {

@@ -244,7 +244,7 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
         files = {p for p in raw_tree(ds_root)
                  if p.startswith(f"sub-{label_b}/")}
         assert files
-        compost(ds_root, selection=Selection(exclude_subs=[label_b]),
+        compost(ds_root, selection=Selection(exclude_sub=[label_b]),
                 yes=True)
         assert not written(label_b)
         del opened[:]

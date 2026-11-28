@@ -420,7 +420,7 @@ class KeyOptions(OptionGroup):
 
 
 @option_group("Selection", Panel.SELECTION)
-class SelectionOptions(OptionGroup):
+class SubjectOptions(OptionGroup):
     """`--sub`, `--exclude-sub`."""
 
     sub: Annotated[Strings, _many(
@@ -456,7 +456,7 @@ class SiteOptions(OptionGroup):
                          f"{', '.join(names)}"}
 
     def source_options(self, dataset):
-        """Return the `sites` (and `exclude_sites`) of the sources."""
+        """Return the per-run `site` (and `exclude_site`) of the sources."""
         sites = set(dataset.select_sites(self.site))
         exclude = set(dataset.select_sites(self.exclude_site))
         out = {}
@@ -465,8 +465,8 @@ class SiteOptions(OptionGroup):
             if not sites:
                 raise UsageError("Every site is excluded")
         elif exclude:
-            out["exclude_sites"] = frozenset(exclude)
-        out["sites"] = frozenset(sites)
+            out["exclude_site"] = frozenset(exclude)
+        out["site"] = frozenset(sites)
         return out
 
 
@@ -495,8 +495,8 @@ class FilterOptions(OptionGroup):
 
     def filters(self) -> dict[str, Strings]:
         """Return the `Selection` filters (without `where`)."""
-        return {"datatypes": self.datatype, "suffixes": self.suffix,
-                "tasks": self.task, "include": self.include,
+        return {"datatype": self.datatype, "suffix": self.suffix,
+                "task": self.task, "include": self.include,
                 "exclude": self.exclude}
 
 
@@ -960,7 +960,7 @@ class LogOptions(OptionGroup):
 #: Standard groups: `Args` field -> group
 STANDARD: Mapping[str, type] = {
     "keys": KeyOptions,
-    "select": SelectionOptions,
+    "subjects": SubjectOptions,
     "sessions": SessionOptions,
     "sites": SiteOptions,
     "filters": FilterOptions,

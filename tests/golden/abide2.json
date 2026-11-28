@@ -416,7 +416,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -428,9 +428,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -438,7 +438,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -448,9 +448,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -459,7 +459,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -607,7 +607,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -619,9 +619,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -629,7 +629,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -639,9 +639,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -651,7 +651,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -1079,7 +1079,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1091,9 +1091,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1101,7 +1101,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1111,9 +1111,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1122,7 +1122,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -1270,7 +1270,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1282,9 +1282,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1292,7 +1292,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1302,9 +1302,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1314,7 +1314,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -1400,7 +1400,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1412,9 +1412,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1422,7 +1422,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1430,9 +1430,9 @@
        "dti"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1441,7 +1441,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -1527,7 +1527,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1539,9 +1539,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1549,7 +1549,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1557,9 +1557,9 @@
        "dti"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1569,7 +1569,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -2342,7 +2342,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2354,9 +2354,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2364,7 +2364,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2374,9 +2374,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2385,7 +2385,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -2533,7 +2533,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2545,9 +2545,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2555,7 +2555,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2565,9 +2565,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2577,7 +2577,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -2983,7 +2983,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2995,9 +2995,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3005,7 +3005,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -3015,9 +3015,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3026,7 +3026,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -3132,7 +3132,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3144,9 +3144,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3154,7 +3154,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -3164,9 +3164,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3176,7 +3176,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -3613,7 +3613,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3625,9 +3625,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3635,7 +3635,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3645,9 +3645,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3656,7 +3656,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -3804,7 +3804,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3816,9 +3816,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3826,7 +3826,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3836,9 +3836,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3848,7 +3848,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -4288,7 +4288,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4300,9 +4300,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4310,7 +4310,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4320,9 +4320,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4331,7 +4331,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -4479,7 +4479,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4491,9 +4491,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4501,7 +4501,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4511,9 +4511,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4523,7 +4523,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -4621,7 +4621,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4633,9 +4633,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4643,7 +4643,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4651,9 +4651,9 @@
        "dti"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4662,7 +4662,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -4748,7 +4748,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4760,9 +4760,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4770,7 +4770,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4778,9 +4778,9 @@
        "dti"
       ],
       "mode": "keys",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4790,7 +4790,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -5593,7 +5593,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5605,9 +5605,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5615,7 +5615,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -5625,9 +5625,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -5636,7 +5636,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -5784,7 +5784,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5796,9 +5796,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5806,7 +5806,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -5816,9 +5816,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -5828,7 +5828,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",
@@ -6246,7 +6246,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6258,9 +6258,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -6268,7 +6268,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -6278,9 +6278,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -6289,7 +6289,7 @@
       "29100"
      ]
     },
-    "signature": "a13a8d2536fc24fa662db3d8d9a78a8d460c5dc1830d5dfa5d7ed8c9d7407c6a",
+    "signature": "b0b089f9e14c39d73296ba942a199f1432c917a2e1405766d12d2f23b62df60f",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-KUL_3.tar.gz",
@@ -6395,7 +6395,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6407,9 +6407,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -6417,7 +6417,7 @@
          "dti",
          "rest"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -6427,9 +6427,9 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -6439,7 +6439,7 @@
       "29002"
      ]
     },
-    "signature": "986d413de0e5cb61bb925ba8b7c01618539fc2d640dc5c8f2e2e136a1f4dbd82",
+    "signature": "bdbecd45a27e2954ed3871af25b25ed591d8ecf9f983c9c58a4288f93d9a5b3d",
     "stage": "roast",
     "status": "done",
     "task": "roast/raw/ABIDEII-NYU_1.tar.gz",

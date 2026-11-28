@@ -28,7 +28,7 @@ class UNCWisconsin(Dataset):
     title = "the UNC-Wisconsin database"
     help = HELP
     keys = KeySpec(allkeys, None, ("raw", "meta"))
-    sessions = True
+    has_sessions = True
     credentials = "token"
     template_dir = Path(__file__).parent / "templates"
     requires = {"roast": ("nrrd",)}

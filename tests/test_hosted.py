@@ -20,7 +20,6 @@ import pytest
 from fake_s3 import bucket_app, serve
 
 from brainspresso.actions.state import read_task_states
-from brainspresso.bids import harvest as harvest_mod
 from brainspresso.bids.compost import compost
 from brainspresso.bids.harvest import InlineEntry, sha256, update_files
 from brainspresso.bids.hosted import (
@@ -778,11 +777,9 @@ def test_edited_fill_in_sidecar_is_kept(tmp_path, templates, caplog):
     assert "was edited since brainspresso wrote it: kept" in caplog.text
 
 
-def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
-    """A manifest of before hashes were recorded: a file that equals
-    the roasted output is adopted, any other is kept under the "keep"
-    migration rule (the "replace" default is tested below)."""
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
+def test_datasets_without_hashes(tmp_path, openneuro, caplog):
+    """A manifest without hashes: a file that equals the roasted output
+    is adopted, any other is backed up, then replaced."""
     lay = on("harvest", tmp_path, "--sub", "01")
     files = read_manifest(lay.state)["files"]
     update_files(lay, {k: {"sha256": None} for k in files})
@@ -795,9 +792,10 @@ def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
     assert "--if-exists" not in caplog.text
     assert "sha256" not in manifest_entry(lay, readme)
     on("roast", tmp_path, "--sub", "01", "--if-exists", "update")
-    assert read_json(t1w) == {"EchoTime": 1}
-    assert "--if-exists different or overwrite" in caplog.text
-    assert "sha256" not in manifest_entry(lay, t1w)
+    assert read_json(t1w) != {"EchoTime": 1}
+    assert (lay.state / "replaced/rawbids/sub-01/anat/sub-01_T1w.json"
+            ).read_text() == '{"EchoTime": 1}\n'
+    assert manifest_entry(lay, t1w)["sha256"] == sha256(t1w.read_bytes())
     # unedited: adopted (its hash recorded)
     assert manifest_entry(lay, readme)["sha256"] == \
         sha256(readme.read_bytes())
@@ -1078,11 +1076,9 @@ def test_edited_field_map_after_compost(tmp_path, openneuro, with_pristine):
         assert "IntendedFor" in read_json(fmap)
 
 
-@pytest.mark.parametrize("rule", ["keep", "replace"])
-def test_upgraded_dataset_gets_its_fill_ins(tmp_path, templates, rule,
-                                            monkeypatch, caplog):
-    """An older harvest (no hashes, no fill-in): the migration rule."""
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
+def test_dataset_without_hashes_gets_its_fill_ins(tmp_path, templates,
+                                                  caplog):
+    """No hashes, no fill-in: backed up, then replaced by the merge."""
     nki = templates / "nki-rs"
     aside = tmp_path / "aside"
     aside.mkdir()
@@ -1104,11 +1100,6 @@ def test_upgraded_dataset_gets_its_fill_ins(tmp_path, templates, rule,
     # (skip: an existing file is left alone; a roast with `update` merges)
     assert t1w.read_bytes() == old and "WARNING" not in caplog.text
     bx("nki-rs", "roast", out, "--if-exists", "update")
-    if rule == "keep":
-        assert t1w.read_bytes() == old
-        assert "has no recorded hash" in caplog.text
-        assert "sha256" not in manifest_entry(lay, t1w)
-        return
     merged = read_json(t1w)
     assert merged["EchoTime"] == 0.00247 and merged["RepetitionTime"] == 2.5
     template = read_json(nki / "T1w.json")
@@ -1294,7 +1285,7 @@ def test_orphans_outside_the_selection_are_kept_for_later(tmp_path,
     (coded / "B/T1w.json").unlink()
     roast_hosted(lay, display=False)            # skip: nothing removed
     assert one.exists() and two.exists()
-    roast_hosted(lay, selection=Selection(subs=["B01"]), ifexists="update",
+    roast_hosted(lay, selection=Selection(sub=["B01"]), ifexists="update",
                  display=False)
     assert not one.exists() and two.exists()
     assert manifest_entry(lay, two)["fill"] == ["B/T1w.json"]
@@ -1304,10 +1295,8 @@ def test_orphans_outside_the_selection_are_kept_for_later(tmp_path,
         read_manifest(lay.state)["files"]
 
 
-@pytest.mark.parametrize("rule", ["keep", "replace"])
-def test_older_field_maps_with_remapped_targets(tmp_path, templates, caplog,
-                                                rule, monkeypatch):
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
+def test_field_maps_without_hashes_with_remapped_targets(tmp_path,
+                                                         templates, caplog):
     INDIDataset(Coded()).execute("harvest", path=tmp_path)
     lay = Layout.detect(tmp_path / "CODED")
     epi = lay.raw / "sub-A01/fmap/sub-A01_dir-AP_epi.json"
@@ -1318,14 +1307,11 @@ def test_older_field_maps_with_remapped_targets(tmp_path, templates, caplog,
                        read_manifest(lay.state)["files"]})
     caplog.clear()
     old = epi.read_bytes()
-    roast_hosted(lay, selection=Selection(subs=["A01"]), display=False)
+    roast_hosted(lay, selection=Selection(sub=["A01"]), display=False)
     assert "has no recorded hash" in caplog.text
-    if rule == "keep":
-        assert epi.read_bytes() == old
-    else:
-        assert epi.read_bytes() == relabelled
-        assert (lay.state / "replaced/rawbids/sub-A01/fmap/"
-                "sub-A01_dir-AP_epi.json").read_bytes() == old
+    assert epi.read_bytes() == relabelled
+    assert (lay.state / "replaced/rawbids/sub-A01/fmap/"
+            "sub-A01_dir-AP_epi.json").read_bytes() == old
 
 
 def test_old_tables_without_copies_are_left_alone(tmp_path, openneuro):
@@ -1417,10 +1403,7 @@ def test_no_trim_tables_survive_a_compost(tmp_path, openneuro, caplog):
     assert "was edited" not in caplog.text
 
 
-@pytest.mark.parametrize("rule", ["keep", "replace"])
-def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
-                                          rule, monkeypatch):
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
+def test_unrepaired_dataset_without_hashes(tmp_path, openneuro, caplog):
     lay = on("harvest", tmp_path, "--no-repair")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     pristine = ON["sub-03/anat/sub-03_T1w.json"]
@@ -1434,16 +1417,12 @@ def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
     assert "has no recorded hash" not in caplog.text
     on("roast", tmp_path, "--if-exists", "update")
     assert "has no recorded hash" in caplog.text
-    if rule == "keep":
-        assert t1w.read_bytes() == pristine
-    else:
-        assert read_json(t1w) == {"MagneticFieldStrength": 3}
-        assert (lay.state / "replaced/rawbids/sub-03/anat/sub-03_T1w.json"
-                ).read_bytes() == pristine
+    assert read_json(t1w) == {"MagneticFieldStrength": 3}
+    assert (lay.state / "replaced/rawbids/sub-03/anat/sub-03_T1w.json"
+            ).read_bytes() == pristine
 
 
-def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
-                                          monkeypatch):
+def test_field_map_without_hash_that_grows(tmp_path, openneuro, caplog):
     lay = on("harvest", tmp_path, "--sub", "01", "--datatype", "anat",
              "fmap")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
@@ -1451,10 +1430,11 @@ def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
     caplog.clear()
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
     on("harvest", tmp_path, "--sub", "01")
-    # (MIGRATION_RULE "keep": an older file that differs is kept)
-    assert fmap.read_bytes() == old
+    # (a file without a hash that differs: backed up, then replaced)
+    assert fmap.read_bytes() != old
+    assert (lay.state / "replaced/rawbids/sub-01/fmap/"
+            "sub-01_dir-AP_epi.json").read_bytes() == old
     assert "has no recorded hash" in caplog.text
 
 
@@ -1634,13 +1614,12 @@ def test_old_tables_are_still_trimmed_by_compost(tmp_path, openneuro):
 @pytest.mark.parametrize("failure", ["policy", "write"])
 def test_replace_never_loses_the_file(tmp_path, openneuro, monkeypatch,
                                       failure):
-    """N3: the migration rule "replace" copies, the action replaces."""
+    """N3: a file without a hash is copied, the action replaces it."""
     lay = on("harvest", tmp_path, "--no-repair")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     before = t1w.read_bytes()
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "replace")
     if failure == "policy":
         on("roast", tmp_path, "--sidecars", "no")
         assert t1w.read_bytes() == before

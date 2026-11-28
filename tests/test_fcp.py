@@ -184,8 +184,8 @@ def test_corr_harvest_s3(tmp_path):
     from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
-        src, keys={"raw", "meta"}, sites={"BMB", "IBA"}, subs=set(),
-        exclude_subs={3002}, if_exists="skip", packet="1MB", jobs=2,
+        src, keys={"raw", "meta"}, site={"BMB", "IBA"}, sub=set(),
+        exclude_sub={3002}, if_exists="skip", packet="1MB", jobs=2,
     )
     assert files(src) == {
         "CoRR_AggregatedPhenotypicData.csv",
@@ -199,7 +199,7 @@ def test_corr_harvest_s3_raw_only(tmp_path):
     from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
-        src, keys={"raw"}, sites={"BMB"}, subs={3002}, exclude_subs=set(),
+        src, keys={"raw"}, site={"BMB"}, sub={3002}, exclude_sub=set(),
         if_exists="skip", packet="1MB", jobs=None,
     )
     assert files(src) == {

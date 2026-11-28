@@ -66,8 +66,8 @@ PHENOTYPES = "COBRE_phenotypic_data.csv"
 WIDTH = 7               # subject labels: `sub-0040000`
 
 KEYS = KeyAliases({"meta", "T1w", "func"}, bids={
-    "T1w": {"datatypes": ["anat"], "suffixes": ["T1w"]},
-    "func": {"datatypes": ["func"], "suffixes": ["bold"]},
+    "T1w": {"datatype": ["anat"], "suffix": ["T1w"]},
+    "func": {"datatype": ["func"], "suffix": ["bold"]},
 })
 
 # member name -> (key, datatype, entities, suffix)
@@ -119,7 +119,7 @@ def roast_cobre(ctx: RoastContext) -> Iterator:
             return
         yield Shard(roast_scans, tag="scans", id="roast/scans",
                     inputs=[tarball], config=sidecar_config(ctx),
-                    scope=scope(keys=("T1w", "func"), subs=SEEN))
+                    scope=scope(keys=("T1w", "func"), sub=SEEN))
 
 
 def sidecar_config(ctx: RoastContext) -> dict:

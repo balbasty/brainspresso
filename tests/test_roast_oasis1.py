@@ -161,7 +161,7 @@ def test_roast_raw(root):
 
 @pytest.mark.parametrize("subs", [["sub-0002"], ["2"], [2], ["2:3"]])
 def test_subject_values(root, subs, tmp_path):
-    """`roast(subs=)` takes the values of `--sub`"""
+    """`roast(sub=)` takes the values of `--sub`"""
     roast(root, keys={"raw"}, discs=[1], sub=subs)
     assert raw_tree(root) == raw_runs(2)
 

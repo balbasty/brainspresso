@@ -6,7 +6,7 @@ Each dataset names what can be converted with its own keys (IXI: `T1w`,
 them to:
 
 * **BIDS predicates**: `Selection` filters on the paths of the raw
-  dataset (`{"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}}`);
+  dataset (`{"suffix": ["T2w"], "entities": {"acq": ["TSE"]}}`);
 * **categories**: anything that is not a set of raw BIDS files
   (metadata, phenotypes, a derivative pipeline, source-only files).
   Roasters ask `ctx.wants(category)`. A category may also be mapped to
@@ -92,7 +92,7 @@ def _restrict(base: Selection, predicate: Mapping) -> Selection:
 
 def _scans(predicate: Mapping) -> dict | None:
     """Predicate of the scans of a key (suffix filter removed) or None."""
-    out = {k: v for k, v in predicate.items() if k != "suffixes" and v}
+    out = {k: v for k, v in predicate.items() if k != "suffix" and v}
     return out or None
 
 
@@ -291,8 +291,8 @@ class KeyAliases:
     ```python
     KEYS = KeyAliases(
         {"meta": {"pheno"}, "raw": {"anat": {"T1w", "TSE"}}},
-        bids={"TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}},
-              "T1w": {"suffixes": ["T1w"]}},
+        bids={"TSE": {"suffix": ["T2w"], "entities": {"acq": ["TSE"]}},
+              "T1w": {"suffix": ["T1w"]}},
         folders={"pheno": ["phenotype"]},
     )
     ```
@@ -304,7 +304,7 @@ class KeyAliases:
         members of sets and the dictionary keys that map to nothing.
         Empty group names (`""`) are transparent.
     bids : dict[str, dict]
-        Leaf -> `Selection` filters (`suffixes`, `datatypes`,
+        Leaf -> `Selection` filters (`suffix`, `datatype`,
         `entities`...), in classification order (first match wins).
         Leaves not listed are categories.
     folders : dict[str, list[str]]
@@ -408,8 +408,8 @@ class KeyAliases:
         exclude_keys : list[str]
             Keys not to convert
         **filters
-            `Selection` filters (`subs`, `exclude_subs`, `sessions`...:
-            the fields of `--sub`, `--exclude-sub`, `--ses`...)
+            `Selection` filters (`sub`, `exclude_sub`, `ses`...: those of
+            `--sub`, `--exclude-sub`, `--ses`...)
         """
         filters.setdefault("folders", OPTIONAL_FOLDERS)
         base = Selection(**filters)

@@ -184,7 +184,7 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
     server, requests = xnat
     src = tmp_path / "IXI" / "sourcedata"
     before = requests["files"]
-    harvest(server, src, keys={"T1w"}, subs={12})
+    harvest(server, src, keys={"T1w"}, sub={12})
     assert files(src) == {
         "nitrc_experiments.json", "IXI-T1/IXI012-HH-1211-T1.nii.gz",
     }
@@ -716,7 +716,7 @@ def test_missing_dti_named_by_trace(tmp_path):
 @pytest.mark.parametrize("subs", [
     ["sub-012"], ["012"], [12], "12", "10:13", "file"])
 def test_python_subs_labels_ranges_files(tmp_path, subs):
-    """`roast(subs=)` takes what `--sub` takes: numbers, labels with or
+    """`roast(sub=)` takes what `--sub` takes: numbers, labels with or
     without `sub-`, ranges, files (`roast.run.python_api`)"""
     root = tmp_path / "IXI"
     write_tarballs(root / "sourcedata")

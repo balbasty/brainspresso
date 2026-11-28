@@ -19,9 +19,9 @@ from brainspresso.roast import (
 
 KEYS = KeyAliases(
     {"meta": {}, "raw": {"anat": {"T1w", "TSE"}, "dwi": {}}},
-    bids={"T1w": {"suffixes": ["T1w"]},
-          "TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}},
-          "dwi": {"datatypes": ["dwi"]}},
+    bids={"T1w": {"suffix": ["T1w"]},
+          "TSE": {"suffix": ["T2w"], "entities": {"acq": ["TSE"]}},
+          "dwi": {"datatype": ["dwi"]}},
 )
 
 
@@ -74,7 +74,7 @@ def test_key_aliases():
         f"{anat}_T1w.json", f"{anat}_T1w.nii.gz"]
 
     # all keys: everything, even files that no key describes
-    sel = KEYS.selection(subs=["01"])
+    sel = KEYS.selection(sub=["01"])
     assert sel.wants("meta")
     assert sel.keeps("sub-01/func/sub-01_task-rest_bold.nii.gz")
     assert not sel.keeps("sub-02/anat/sub-02_T1w.nii.gz")
@@ -113,7 +113,7 @@ def test_selection_on_outputs(layout):
         yield text(layout.source / "sub-02" / "unpacked.txt")
 
     report = run(roaster, ctx_of(layout, select_keys=["T1w", "dwi"],
-                                 exclude_subs=["01"]))
+                                 exclude_sub=["01"]))
     assert tree(raw) - tree(layout.source) - tree(layout.derivatives) >= {
         "sub-02/anat/sub-02_T1w.nii.gz", "sub-02/dwi/sub-02_dwi.nii.gz"}
     assert not (raw / "sub-01").exists()
@@ -153,7 +153,7 @@ def test_claims(layout, tmp_path):
             yield ExtractMembers(archive, Claim(anat), rename,
                                  opener=opener, tag="anat")
 
-    ctx = ctx_of(layout, select_keys=["T1w"], subs=["02"], json="no")
+    ctx = ctx_of(layout, select_keys=["T1w"], sub=["02"], json="no")
     report = run(roaster, ctx)
     # the claim of sub-01 cannot be selected: its archive is not opened
     assert len(opened) == 1
@@ -164,7 +164,7 @@ def test_claims(layout, tmp_path):
         raw / "sub-02/ses-1/anat/sub-02_ses-1_T1w.nii.gz"]
 
     # second run: the claim still runs (outputs unknown), members exist
-    report = run(roaster, ctx_of(layout, select_keys=["T1w"], subs=["02"]))
+    report = run(roaster, ctx_of(layout, select_keys=["T1w"], sub=["02"]))
     assert report.counts["anat"] == {"skipped": 1, "done": 1}
     assert (raw / "sub-02/ses-1/anat/sub-02_ses-1_T1w.json").exists()
 
@@ -253,7 +253,7 @@ def test_multi_output_and_ifexists(layout):
     assert calls == [3, 3, 3]
 
     # not selected at all (other subject): not run, not counted
-    report = run(roaster, ctx_of(layout, subs=["02"], ifexists="overwrite"))
+    report = run(roaster, ctx_of(layout, sub=["02"], ifexists="overwrite"))
     assert calls == [3, 3, 3] and report.total("done") == 0
 
 
@@ -343,7 +343,7 @@ def sharded(ctx):
 
 @pytest.mark.parametrize("jobs", [1, 2])
 def test_shards(layout, jobs):
-    report = run(sharded, ctx_of(layout, exclude_subs=["02"]), jobs=jobs)
+    report = run(sharded, ctx_of(layout, exclude_sub=["02"]), jobs=jobs)
     raw = layout.raw
     assert raw_tree(layout.root) == {
         "README", *(f"sub-{s}/anat/sub-{s}_{x}.nii.gz"
@@ -393,7 +393,7 @@ def test_tables_trimmed_and_finalize(layout):
         yield text(raw / "sub-02/ses-1/anat/sub-02_ses-1_T1w.nii.gz")
 
     roaster.finalize = finalize
-    run(roaster, ctx_of(layout, exclude_subs=["03"]))
+    run(roaster, ctx_of(layout, exclude_sub=["03"]))
     assert seen["subjects"] == ["sub-01"]
     assert read_tsv(raw / "participants.tsv") == [
         ["participant_id", "age"], ["sub-01", "1"], ["sub-02", "2"]]
@@ -408,7 +408,7 @@ def test_tables_trimmed_and_finalize(layout):
     assert len(read_tsv(layout.original(raw / "participants.tsv"))) == 4
 
     # a later roast (other subjects) trims from the pristine tables again
-    run(roaster, ctx_of(layout, subs=["03"]))
+    run(roaster, ctx_of(layout, sub=["03"]))
     assert [r[0] for r in read_tsv(raw / "participants.tsv")] == [
         "participant_id", "sub-01", "sub-02", "sub-03"]
     assert read_tsv(raw / "sub-03/sub-03_sessions.tsv") == [
@@ -495,11 +495,11 @@ def test_key_classification():
     keys = KeyAliases(
         {"meta": {}, "fs": {}, "anat": {"TSE", "T2w"}, "func": {"bold"},
          "perf": {"asl"}, "ct": {"CT"}},
-        bids={"TSE": {"suffixes": ["T2w"], "entities": {"acq": ["TSE"]}},
-              "T2w": {"suffixes": ["T2w"], "datatypes": ["anat"]},
-              "bold": {"datatypes": ["func"], "suffixes": ["bold"]},
-              "asl": {"datatypes": ["perf"], "suffixes": ["asl"]},
-              "CT": {"datatypes": ["ct"], "suffixes": ["CT"]}},
+        bids={"TSE": {"suffix": ["T2w"], "entities": {"acq": ["TSE"]}},
+              "T2w": {"suffix": ["T2w"], "datatype": ["anat"]},
+              "bold": {"datatype": ["func"], "suffix": ["bold"]},
+              "asl": {"datatype": ["perf"], "suffix": ["asl"]},
+              "CT": {"datatype": ["ct"], "suffix": ["CT"]}},
     )
     b = "sub-1/ses-1/"
     tse = b + "anat/sub-1_ses-1_acq-TSE_T2w.nii.gz"
@@ -735,7 +735,7 @@ def test_staging_and_category_folders(layout):
     exemption of sourcedata/); writes in the folder of an unwanted
     category are dropped by the runner"""
     keys = KeyAliases({"meta", "T1w", "fs"}, bids={"T1w": {
-        "suffixes": ["T1w"]}}, folders={"fs": ["derivatives/fs"]})
+        "suffix": ["T1w"]}}, folders={"fs": ["derivatives/fs"]})
     drv = layout.derivative("fs")
     unpacked = drv.source / "sub-01" / "mri" / "aseg.mgz"
     loose = layout.source / "sub-01" / "loose.nii.gz"
@@ -796,7 +796,7 @@ def test_task_state_and_skip(layout, tmp_path, jobs):
     assert report.counts["anat"] == {"skipped": 1}
     assert report.progress["units"] == (1, 1)
     # another selection, policy or input: run again
-    for kw in ({"exclude_subs": ["02"]}, {"ifexists": "overwrite"}):
+    for kw in ({"exclude_sub": ["02"]}, {"ifexists": "overwrite"}):
         run(roaster, ctx_of(layout, **kw), jobs=jobs)
         assert opened.exists()
         opened.unlink()
@@ -881,7 +881,7 @@ def test_helpers(layout, tmp_path):
         yield from subject_shards(ctx, ["01", "02", "03"], subject, "x")
 
     report = run(roaster, ctx_of(layout, templates=templates,
-                                 exclude_subs=["02"]))
+                                 exclude_sub=["02"]))
     assert (layout.raw / "README").read_text() == "readme"
     assert report.counts["meta"] == {"done": 2, "error": 1}
     assert "missing.json not found" in report.errors[0][2]
@@ -907,7 +907,7 @@ def test_missing_resource_is_a_clear_error(layout):
 def test_exclude_keys_alone_keeps_unmatched():
     # `--exclude-keys` alone: files that match no key are kept
     keys = KeyAliases({"T1w", "T2w"}, bids={
-        "T1w": {"suffixes": ["T1w"]}, "T2w": {"suffixes": ["T2w"]},
+        "T1w": {"suffix": ["T1w"]}, "T2w": {"suffix": ["T2w"]},
     })
     anat = "sub-01/anat/sub-01"
     sel = keys.selection(exclude_keys=["T2w"])

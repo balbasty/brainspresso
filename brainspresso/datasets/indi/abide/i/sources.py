@@ -62,13 +62,13 @@ def _pheno_site(name: str) -> str:
 
 
 class SitesOption:
-    """Per-run option `sites` (upper-cased site names; empty: all)."""
+    """Per-run option `site` (upper-cased site names; empty: all)."""
 
-    sites: frozenset = frozenset()
+    site: frozenset = frozenset()
 
     def keeps_site(self, site: str) -> bool:
         """Whether a site is selected (case-insensitive)."""
-        sites = {s.upper() for s in self.sites}
+        sites = {s.upper() for s in self.site}
         return not sites or site.upper() in sites
 
 

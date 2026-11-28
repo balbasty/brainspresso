@@ -36,7 +36,7 @@ Selection rules
    suffix (sidecars only). Entities that only qualify a companion
    (`space-` of `_electrodes.tsv`, `recording-` of `_blood.tsv`) are not
    compared. A metadata file that applies to no data file of the listing,
-   or whose suffix is requested explicitly (`suffixes=["events"]`), is
+   or whose suffix is requested explicitly (`suffix=["events"]`), is
    judged as a data file instead (rule 1).
 3. Dataset files are always kept.
 4. `derivatives/`, `sourcedata/`, `code/`, `stimuli/`, `docs/`, `logs/`
@@ -111,6 +111,37 @@ TOP_LEVEL_FILES = frozenset({
 })
 
 _DIR_ENTITY = re.compile(r"(sub|ses)-([A-Za-z0-9]+)")
+
+#: Former keyword names of the filters -> their names (those of the
+#: BIDS entities and of the command line): a `TypeError` names the new
+#: one (`check_former_names`)
+FORMER_NAMES = {
+    "subs": "sub", "exclude_subs": "exclude_sub", "sessions": "ses",
+    "datatypes": "datatype", "suffixes": "suffix", "tasks": "task",
+}
+
+
+def check_former_names(function: str, kwargs) -> None:
+    """
+    Refuse a former name of a filter, naming the new one.
+
+    Parameters
+    ----------
+    function : str
+        Name of the function, in the message
+    kwargs : Collection[str]
+        Its keyword arguments
+
+    Raises
+    ------
+    TypeError
+        `<function>() got an unexpected keyword argument 'subs' (use
+        'sub')`, for the first former name (in alphabetical order)
+    """
+    old = sorted(FORMER_NAMES.keys() & set(kwargs))
+    if old:
+        raise TypeError(f"{function}() got an unexpected keyword argument "
+                        f"{old[0]!r} (use {FORMER_NAMES[old[0]]!r})")
 
 
 @dataclass(frozen=True)
@@ -286,13 +317,14 @@ class Selection:
 
     Parameters
     ----------
-    subs, exclude_subs, sessions, tasks : list[str]
+    sub, exclude_sub, ses, task : list[str]
         Shortcuts for `entities={"sub": ..., "ses": ..., "task": ...}`
         (subjects to keep or drop, sessions and tasks to keep). Labels are
-        given with or without their `sub-`/`ses-`/`task-` prefix.
-    datatypes : list[str]
+        given with or without their `sub-`/`ses-`/`task-` prefix. Named
+        after the BIDS entities, as the command line (`--sub`...).
+    datatype : list[str]
         Datatype directories to keep (`anat`, `eeg`, `micr`...).
-    suffixes : list[str]
+    suffix : list[str]
         Suffixes of the data files to keep (`T1w`, `bold`, `eeg`...).
     include, exclude : list[str]
         Glob patterns matched against the path relative to the dataset
@@ -308,12 +340,12 @@ class Selection:
         `echo`...) compare as numbers: `"1"` matches `run-01`.
     """
 
-    subs: Collection[str] = ()
-    exclude_subs: Collection[str] = ()
-    sessions: Collection[str] = ()
-    datatypes: Collection[str] = ()
-    suffixes: Collection[str] = ()
-    tasks: Collection[str] = ()
+    sub: Collection[str] = ()
+    exclude_sub: Collection[str] = ()
+    ses: Collection[str] = ()
+    datatype: Collection[str] = ()
+    suffix: Collection[str] = ()
+    task: Collection[str] = ()
     include: Collection[str] = ()
     exclude: Collection[str] = ()
     folders: Collection[str] = ()     # subset of OPTIONAL_FOLDERS
@@ -328,23 +360,22 @@ class Selection:
             values = {_strip(v, f"{key}-") for v in values}
             if values:
                 entities[key] = values
-        shortcuts = {"sub": "subs", "ses": "sessions", "task": "tasks"}
-        for key, attr in shortcuts.items():
+        for key in ("sub", "ses", "task"):
             if key not in entities:
                 continue
-            if getattr(self, attr):
+            if getattr(self, key):
                 raise ValueError(
-                    f"`{attr}` and `entities['{key}']` are the same "
+                    f"`{key}` and `entities['{key}']` are the same "
                     f"filter: give only one of them"
                 )
-            setattr(self, attr, entities.pop(key))
+            setattr(self, key, entities.pop(key))
         self.entities = entities
-        self.subs = {_strip(s, "sub-") for s in self.subs}
-        self.exclude_subs = {_strip(s, "sub-") for s in self.exclude_subs}
-        self.sessions = {_strip(s, "ses-") for s in self.sessions}
-        self.tasks = {_strip(s, "task-") for s in self.tasks}
-        self.datatypes = set(self.datatypes)
-        self.suffixes = set(self.suffixes)
+        self.sub = {_strip(s, "sub-") for s in self.sub}
+        self.exclude_sub = {_strip(s, "sub-") for s in self.exclude_sub}
+        self.ses = {_strip(s, "ses-") for s in self.ses}
+        self.task = {_strip(s, "task-") for s in self.task}
+        self.datatype = set(self.datatype)
+        self.suffix = set(self.suffix)
         self.folders = set(self.folders)
         unknown = self.folders - set(OPTIONAL_FOLDERS)
         if unknown:
@@ -361,9 +392,9 @@ class Selection:
         the members of a subject that is dropped anyway).
         """
         label = _strip(label, "sub-")
-        if self.subs and label not in self.subs:
+        if self.sub and label not in self.sub:
             return False
-        return label not in self.exclude_subs
+        return label not in self.exclude_sub
 
     keep_subject = keeps_subject      # backward compatibility
 
@@ -499,7 +530,7 @@ class Selection:
             verdict = _inherits(m, by_dir)
             if verdict:
                 kept.add(m.path)
-            elif (verdict is None or m.suffix in self.suffixes) \
+            elif (verdict is None or m.suffix in self.suffix) \
                     and self._keeps_data(m, filters):
                 kept.add(m.path)
                 index(m, True, promoted)
@@ -518,8 +549,8 @@ class Selection:
     # ------------------------------------------------------------------
     def _filters(self) -> dict[str, set[str]]:
         """Entity filters (shortcuts included), with normalised values."""
-        filters = {"sub": self.subs, "ses": self.sessions,
-                   "task": self.tasks, **self.entities}
+        filters = {"sub": self.sub, "ses": self.ses,
+                   "task": self.task, **self.entities}
         return {k: {_norm(k, v) for v in values}
                 for k, values in filters.items() if values}
 
@@ -557,15 +588,15 @@ class Selection:
             yield missing if value is None else _norm(key, value) in values
         sub = entities.get("sub")
         if sub is not None:
-            yield sub not in self.exclude_subs
-        elif self.exclude_subs and missing is None:
+            yield sub not in self.exclude_sub
+        elif self.exclude_sub and missing is None:
             yield None
-        if self.datatypes:
+        if self.datatype:
             yield missing if name.datatype is None else \
-                name.datatype in self.datatypes
-        if self.suffixes and own is None:
+                name.datatype in self.datatype
+        if self.suffix and own is None:
             yield missing if name.suffix is None else \
-                name.suffix in self.suffixes
+                name.suffix in self.suffix
         if self.include:
             yield self._glob(name.unit or name.path, self.include) \
                 if missing is False else missing
@@ -586,10 +617,10 @@ class Selection:
         verdicts = []
         if "sub" in entities:
             verdicts.append(self.keeps_subject(entities["sub"]))
-        elif self.subs or self.exclude_subs:
+        elif self.sub or self.exclude_sub:
             verdicts.append(missing)
-        if self.sessions:
-            verdicts.append(entities["ses"] in self.sessions
+        if self.ses:
+            verdicts.append(entities["ses"] in self.ses
                             if "ses" in entities else missing)
         return _fold(verdicts)
 

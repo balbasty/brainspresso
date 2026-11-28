@@ -77,7 +77,7 @@ PARTS = (1, 2)
 # "raw" is the only key of the raw dataset; "meta" is a category
 KEYS = KeyAliases(
     set(ROAST_KEYS),
-    bids={"raw": {"datatypes": ["anat"], "suffixes": ["T1w"]}},
+    bids={"raw": {"datatype": ["anat"], "suffix": ["T1w"]}},
 )
 
 # OASIS images are stored in ASL orientation
@@ -226,7 +226,7 @@ def roast_part(ctx: RoastContext, path: Path) -> Iterator[Action]:
                            name=path.name, tag="parts")
                 return
             actions = []            # [(members, action)]
-            sessions = ctx.selection.base.sessions
+            sessions = ctx.selection.base.ses
             for scan in found:
                 if ctx.keeps_subject(scan[0]) and (
                         not sessions or str(scan[1]) in sessions):

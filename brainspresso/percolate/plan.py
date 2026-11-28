@@ -21,7 +21,7 @@ pipeline: {name: fs-long, version: '7.4.1', variant: null}
 variants: {}                    # variant of each required pipeline
 if_stale: error
 images: {fs-long: {image: 'freesurfer/freesurfer:7.4.1', digest: null}}
-options: {subs: ['sub-01']}     # snapshot of the command options
+options: {sub: ['sub-01']}       # snapshot of the command options
 home: /data/bx/IXI              # where group outputs and the plan live
 datasets:
 - ref: IXI

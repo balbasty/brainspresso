@@ -299,7 +299,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -311,16 +311,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -330,7 +330,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -338,7 +338,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -391,7 +391,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -403,16 +403,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -422,7 +422,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -430,7 +430,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -476,7 +476,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -488,9 +488,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -498,7 +498,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -510,7 +510,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -518,7 +518,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -564,7 +564,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -576,9 +576,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -586,7 +586,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -598,7 +598,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -606,7 +606,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -669,7 +669,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -681,9 +681,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -691,7 +691,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -703,7 +703,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -711,7 +711,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -757,7 +757,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -769,9 +769,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -779,7 +779,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -791,7 +791,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -799,7 +799,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -862,7 +862,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -874,9 +874,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -884,7 +884,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -896,7 +896,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -904,7 +904,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -1226,7 +1226,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1238,16 +1238,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -1258,7 +1258,7 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -1266,7 +1266,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -1326,7 +1326,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1338,16 +1338,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -1358,7 +1358,7 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -1366,7 +1366,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -1412,7 +1412,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1424,9 +1424,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1434,7 +1434,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -1446,7 +1446,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -1454,7 +1454,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -1500,7 +1500,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1512,9 +1512,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1522,7 +1522,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -1534,7 +1534,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -1542,7 +1542,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -1605,7 +1605,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1617,9 +1617,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1627,7 +1627,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -1639,7 +1639,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -1647,7 +1647,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -1693,7 +1693,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1705,9 +1705,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1715,7 +1715,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -1727,7 +1727,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -1735,7 +1735,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -1798,7 +1798,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1810,9 +1810,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1820,7 +1820,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -1832,7 +1832,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -1840,7 +1840,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -1986,7 +1986,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1998,16 +1998,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -2017,7 +2017,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -2025,7 +2025,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -2078,7 +2078,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2090,16 +2090,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -2109,7 +2109,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -2117,7 +2117,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -2641,7 +2641,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2653,16 +2653,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -2672,7 +2672,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -2680,7 +2680,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -2733,7 +2733,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2745,16 +2745,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -2764,7 +2764,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -2772,7 +2772,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -2818,7 +2818,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2830,9 +2830,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2840,7 +2840,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -2852,7 +2852,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -2860,7 +2860,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -2906,7 +2906,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2918,9 +2918,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2928,7 +2928,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -2940,7 +2940,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -2948,7 +2948,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -3011,7 +3011,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3023,9 +3023,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3033,7 +3033,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -3045,7 +3045,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -3053,7 +3053,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -3099,7 +3099,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3111,9 +3111,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3121,7 +3121,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -3133,7 +3133,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -3141,7 +3141,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -3204,7 +3204,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3216,9 +3216,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3226,7 +3226,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -3238,7 +3238,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -3246,7 +3246,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -3533,7 +3533,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3545,16 +3545,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -3564,7 +3564,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -3572,7 +3572,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -3611,7 +3611,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3623,16 +3623,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -3642,7 +3642,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -3650,7 +3650,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -3689,7 +3689,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3701,9 +3701,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3711,7 +3711,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -3723,7 +3723,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -3731,7 +3731,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -3770,7 +3770,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3782,9 +3782,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3792,7 +3792,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -3804,7 +3804,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -3812,7 +3812,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -3861,7 +3861,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3873,9 +3873,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3883,7 +3883,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -3895,7 +3895,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -3903,7 +3903,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -3942,7 +3942,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3954,9 +3954,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3964,7 +3964,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -3976,7 +3976,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -3984,7 +3984,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -4033,7 +4033,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4045,9 +4045,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4055,7 +4055,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -4067,7 +4067,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -4075,7 +4075,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -4397,7 +4397,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4409,16 +4409,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -4428,7 +4428,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -4436,7 +4436,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -4489,7 +4489,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4501,16 +4501,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -4520,7 +4520,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -4528,7 +4528,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -4574,7 +4574,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4586,9 +4586,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4596,7 +4596,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -4608,7 +4608,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -4616,7 +4616,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -4662,7 +4662,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4674,9 +4674,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4684,7 +4684,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -4696,7 +4696,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -4704,7 +4704,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -4767,7 +4767,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4779,9 +4779,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4789,7 +4789,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -4801,7 +4801,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -4809,7 +4809,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -4855,7 +4855,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4867,9 +4867,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4877,7 +4877,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -4889,7 +4889,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -4897,7 +4897,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -4960,7 +4960,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4972,9 +4972,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4982,7 +4982,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -4994,7 +4994,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -5002,7 +5002,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -5336,7 +5336,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5348,16 +5348,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -5368,7 +5368,7 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -5376,7 +5376,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -5436,7 +5436,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5448,16 +5448,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -5468,7 +5468,7 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -5476,7 +5476,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -5522,7 +5522,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5534,9 +5534,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5544,7 +5544,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -5556,7 +5556,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -5564,7 +5564,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -5610,7 +5610,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5622,9 +5622,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5632,7 +5632,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -5644,7 +5644,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -5652,7 +5652,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -5715,7 +5715,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5727,9 +5727,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5737,7 +5737,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -5749,7 +5749,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -5757,7 +5757,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -5803,7 +5803,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5815,9 +5815,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5825,7 +5825,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -5837,7 +5837,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -5845,7 +5845,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -5908,7 +5908,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5920,9 +5920,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5930,7 +5930,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -5942,7 +5942,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -5950,7 +5950,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -6108,7 +6108,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6120,16 +6120,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -6139,7 +6139,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -6147,7 +6147,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -6200,7 +6200,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6212,16 +6212,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -6231,7 +6231,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -6239,7 +6239,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -6793,7 +6793,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6805,16 +6805,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -6824,7 +6824,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -6832,7 +6832,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -6885,7 +6885,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6897,16 +6897,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -6916,7 +6916,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -6924,7 +6924,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -6970,7 +6970,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -6982,9 +6982,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -6992,7 +6992,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -7004,7 +7004,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -7012,7 +7012,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -7058,7 +7058,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7070,9 +7070,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7080,7 +7080,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -7092,7 +7092,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -7100,7 +7100,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -7163,7 +7163,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7175,9 +7175,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7185,7 +7185,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -7197,7 +7197,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -7205,7 +7205,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -7251,7 +7251,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7263,9 +7263,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7273,7 +7273,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -7285,7 +7285,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -7293,7 +7293,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -7356,7 +7356,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7368,9 +7368,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7378,7 +7378,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -7390,7 +7390,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -7398,7 +7398,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",
@@ -7697,7 +7697,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7709,16 +7709,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -7728,7 +7728,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -7736,7 +7736,7 @@
      }
     ],
     "seen": {},
-    "signature": "f99161e78a4c85b1de5054918cec3b0991180586af99f58b3377d15201b890c6",
+    "signature": "acaaa915e3fca245bd6694171367feb540f2da6957ca1246e752919dfadc4d83",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-50003",
@@ -7775,7 +7775,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7787,16 +7787,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -7806,7 +7806,7 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -7814,7 +7814,7 @@
      }
     ],
     "seen": {},
-    "signature": "3223f845d796964e7bd29d0093a690b827c0f4d30bbb5c1710d4a99cdd4f3886",
+    "signature": "6947e43baf489bf9d5f2fd195081fb45af58b125c164b6368bece00b46170cb7",
     "stage": "roast",
     "status": "done",
     "task": "roast/fs/sub-51456",
@@ -7853,7 +7853,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7865,9 +7865,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7875,7 +7875,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50003"
         ]
        },
@@ -7887,7 +7887,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50003"
        ]
@@ -7895,7 +7895,7 @@
      }
     ],
     "seen": {},
-    "signature": "fc93781d82644620f74a527eb2177691538a9aaa86be227d3a1a2022f3a60b72",
+    "signature": "2106578e027dec9036e0e41a18a70a021f6788dc10f4388523fbbb19fabfed02",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50003",
@@ -7934,7 +7934,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -7946,9 +7946,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -7956,7 +7956,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "50642"
         ]
        },
@@ -7968,7 +7968,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "50642"
        ]
@@ -7976,7 +7976,7 @@
      }
     ],
     "seen": {},
-    "signature": "221128cd7f0572a741d9a088aca2c3be534391add194265f5f0eb378776a5fde",
+    "signature": "682dd3b2384a17e3f53d0346f43863852e8f35bfc8f0eaf6f0de2294c1d4ea28",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-50642",
@@ -8025,7 +8025,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -8037,9 +8037,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -8047,7 +8047,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51201"
         ]
        },
@@ -8059,7 +8059,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51201"
        ]
@@ -8067,7 +8067,7 @@
      }
     ],
     "seen": {},
-    "signature": "77a6630079356790bf60f10cc12497e81e7838acfd88d82dc49c4cd182c232cc",
+    "signature": "417a0376916d28f7f46923c8d814cba9ca74fe30406366da54524db397d79a8f",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51201",
@@ -8106,7 +8106,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -8118,9 +8118,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -8128,7 +8128,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51330"
         ]
        },
@@ -8140,7 +8140,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51330"
        ]
@@ -8148,7 +8148,7 @@
      }
     ],
     "seen": {},
-    "signature": "9129a6e5e925d0c3214a0578c4c046890641e8b17ed2252fdb25c97760a1c0b1",
+    "signature": "a1e66dd36f265cc5be7f820f79cd0552f8e2168187342eadfeb77c5e8e095835",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51330",
@@ -8197,7 +8197,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -8209,9 +8209,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -8219,7 +8219,7 @@
          "T2w",
          "rest"
         ],
-        "subs": [
+        "sub": [
          "51456"
         ]
        },
@@ -8231,7 +8231,7 @@
        "rest"
       ],
       "mode": "all",
-      "subs": {
+      "sub": {
        "kept": [
         "51456"
        ]
@@ -8239,7 +8239,7 @@
      }
     ],
     "seen": {},
-    "signature": "fbaf91fa6a8a7ba205d09ee6d369efd9a23f6b6088ac0f323dbd27aebe86ff39",
+    "signature": "f89f8cd47c7e61d018fb992cb90b19cf7ac8cdbc11980a830c7e0034f04f8499",
     "stage": "roast",
     "status": "done",
     "task": "roast/subjects/sub-51456",

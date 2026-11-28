@@ -40,7 +40,7 @@ lg = logging.getLogger(__name__)
 
 
 def scope(keys: Iterable[str] | None = None,
-          subs: Iterable[str] | str | None = None) -> dict:
+          sub: Iterable[str] | str | None = None) -> dict:
     """
     Declare what of a roast can change the outputs of a shard.
 
@@ -57,7 +57,7 @@ def scope(keys: Iterable[str] | None = None,
         Every key whose being wanted can change what the shard writes:
         the BIDS keys of its raw outputs and the categories it reads
         with `ctx.wants`; None: all keys
-    subs : list[str] | SEEN | None
+    sub : list[str] | SEEN | None
         Its subjects: a list of labels (it writes only for them);
         `SEEN`: it asks `ctx.keeps_subject(label)` for every subject its
         inputs hold, before any other pruning, on every run; None:
@@ -70,14 +70,14 @@ def scope(keys: Iterable[str] | None = None,
     """
     if isinstance(keys, str):
         keys = [keys]
-    if isinstance(subs, str) and subs != SEEN:
-        raise ValueError(f"subs must be a list of labels, SEEN or None: "
-                         f"{subs!r}")
-    if subs is not None and subs != SEEN:
-        subs = sorted({str(s)[4:] if str(s).startswith("sub-") else str(s)
-                       for s in subs})
+    if isinstance(sub, str) and sub != SEEN:
+        raise ValueError(f"sub must be a list of labels, SEEN or None: "
+                         f"{sub!r}")
+    if sub is not None and sub != SEEN:
+        sub = sorted({str(s)[4:] if str(s).startswith("sub-") else str(s)
+                      for s in sub})
     return {"keys": None if keys is None else sorted(set(keys)),
-            "subs": subs}
+            "sub": sub}
 
 
 def copy_templates(
@@ -164,7 +164,7 @@ def subject_shards(
         same for every subject, or a function of its label
     scope_keys : list[str] | "all" | None
         Keys that a subject shard can write (`scope`: each shard gets
-        `scope(keys=scope_keys, subs=[label])`, "all": every key);
+        `scope(keys=scope_keys, sub=[label])`, "all": every key);
         None: no scope declared
     **kwargs
         Keyword arguments of `fn`
@@ -179,7 +179,7 @@ def subject_shards(
     ctx.progress(total=len(labels), tag=tag)
     for label in labels:
         declared = None if scope_keys is None else scope(
-            keys=None if scope_keys == "all" else scope_keys, subs=[label])
+            keys=None if scope_keys == "all" else scope_keys, sub=[label])
         yield Shard(
             fn, label, *args, tag=tag, advance=tag,
             id=f"roast/{tag}/sub-{label}", unit={"sub": label},
@@ -207,7 +207,7 @@ def archive_shards(
     (a gz tarball is read by one shard, once): the number of archives is
     the total of the progress group `tag`, each shard advances it when
     done, and declares the keys it may write and the subjects it sees
-    (`scope(keys=keys, subs=SEEN)`: `fn` calls `ctx.keeps_subject` for
+    (`scope(keys=keys, sub=SEEN)`: `fn` calls `ctx.keeps_subject` for
     every subject of the archive, before any other pruning).
 
     Parameters
@@ -243,7 +243,7 @@ def archive_shards(
             id=id(path) if id else f"roast/{tag}/{path.name}",
             inputs=inputs(path) if inputs else [path],
             config=config(path) if config else None,
-            scope=scope(keys=keys, subs=SEEN),
+            scope=scope(keys=keys, sub=SEEN),
         )
 
 

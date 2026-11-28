@@ -355,7 +355,7 @@ def test_numeric_labels():
     assert labels.to_bids("OAS30001") == "0001"
     assert labels.to_bids("0AS_data_files") is None
     assert labels.to_host("sub-0001") == "OAS30001"
-    selection = Selection(subs=["0001", "0003"], exclude_subs=["0003"])
+    selection = Selection(sub=["0001", "0003"], exclude_sub=["0003"])
     assert labels.keeps(selection, "OAS30001")
     assert not labels.keeps(selection, "OAS30002")
     assert not labels.keeps(selection, "OAS30003")
@@ -788,7 +788,7 @@ def test_abide2_s3_sidecars_filtered_by_site():
 
     from brainspresso.datasets.indi.abide.ii.harvest import S3
     s3 = S3()
-    s3.sites = frozenset({"ETH"})
+    s3.site = frozenset({"ETH"})
 
     def keep(path):
         entry = SimpleNamespace(relpath=Path(path))

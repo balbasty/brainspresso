@@ -229,7 +229,7 @@ def test_dataclasses():
     assert (req["min"], req["max"], req["pick"], req["need"]) == (
         1, 1, "error", "any")
     assert list(fields(model.Query)) == [
-        "datatypes", "suffixes", "extensions", "entities", "include",
+        "datatype", "suffix", "extension", "entities", "include",
         "exclude", "metadata"]
     assert list(fields(model.Output)) == [
         "name", "template", "source", "claim", "optional"]
@@ -246,7 +246,7 @@ def test_dataclasses():
         "name", "version", "stages", "config", "requires", "container",
         "description", "code_url"]
     assert list(fields(grind.GrindOverrides)) == [
-        "exclude_subs", "exclude", "inputs", "species", "template",
+        "exclude_sub", "exclude", "inputs", "species", "template",
         "config", "resources"]
     assert grind.GrindOverrides() == grind.GrindOverrides()
     assert list(fields(graph.Scope)) == [
@@ -278,7 +278,7 @@ def body(ctx, work):
 
 def test_declaration_example():
     """The example of `grind.model` builds: pipelines are plain data."""
-    t1w = model.Requirement("t1w", model.Query(suffixes=("T1w",)))
+    t1w = model.Requirement("t1w", model.Query(suffix=("T1w",)))
     pipeline = model.Pipeline("fs-long", "7.4.1", stages=(
         model.FunctionStage("cross", "session", fn=body, inputs=(t1w,)),
         model.FunctionStage("base", "subject", fn=body, inputs=(

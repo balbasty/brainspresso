@@ -29,7 +29,7 @@ class GrindOverrides:
 
     Attributes
     ----------
-    exclude_subs : tuple[str, ...]
+    exclude_sub : tuple[str, ...]
         Subjects that are never ground (labels, with or without `sub-`)
     exclude : tuple[str, ...]
         Glob patterns of files never used as inputs (bad scans)
@@ -47,7 +47,7 @@ class GrindOverrides:
         Resource overrides per `"<pipeline>/<stage>"` (large images)
     """
 
-    exclude_subs: tuple[str, ...] = ()
+    exclude_sub: tuple[str, ...] = ()
     exclude: tuple[str, ...] = ()
     inputs: Mapping[str, Query] = field(default_factory=dict)
     species: str = "homo sapiens"

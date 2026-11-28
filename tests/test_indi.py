@@ -774,7 +774,7 @@ def test_complete_participants():
 
 
 def test_selection_filters_derivatives():
-    sel = Selection(subs=["01"], sessions=["a"], folders=["derivatives"])
+    sel = Selection(sub=["01"], ses=["a"], folders=["derivatives"])
     paths = [
         "derivatives/x/dataset_description.json",
         "derivatives/x/sub-01/ses-a/anat/sub-01_ses-a_desc-brain_T1w.nii.gz",

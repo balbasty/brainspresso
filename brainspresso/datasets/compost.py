@@ -2,7 +2,7 @@
 Body of the `compost` command, shared by all datasets.
 
 `Dataset.compost` calls `run_compost`; the options are those of
-`datasets.options.CompostOptions`, `SelectionOptions`, `SessionOptions`
+`datasets.options.CompostOptions`, `SubjectOptions`, `SessionOptions`
 and `FilterOptions`.
 """
 from pathlib import Path
@@ -98,7 +98,7 @@ def run_compost(
     """
     found = resolve_layout(root, layout)
     sites = [str(s) for s in site or ()]
-    exclude_sites = {str(s).lower() for s in exclude_site or ()}
+    excluded = {str(s).lower() for s in exclude_site or ()}
     options = dict(
         sourcedata=sourcedata, nested=nested, keep=keep, sub=sub,
         exclude_sub=exclude_sub, ses=ses, datatype=datatype,
@@ -113,7 +113,7 @@ def run_compost(
             datasets = [d for d in datasets
                         if Path(d.root).name.lower() in names]
         datasets = [d for d in datasets
-                    if Path(d.root).name.lower() not in exclude_sites]
+                    if Path(d.root).name.lower() not in excluded]
         if not datasets:
             raise UsageError(f"No site dataset found in {found.root}")
         plans = []
@@ -121,15 +121,15 @@ def run_compost(
             print(f"--- {Path(dataset.root).name}")
             plans.append(run_compost(dataset, **options))
         return plans
-    if sites or exclude_sites:
+    if sites or excluded:
         raise UsageError(
             f"--site/--exclude-site only apply to a dataset harvested "
             f"with one dataset per site (--layout sites); {found.root} has "
             f"layout {found.kind!r}"
         )
     selection = Selection(
-        subs=sub, exclude_subs=exclude_sub, sessions=ses,
-        datatypes=datatype, suffixes=suffix, tasks=task,
+        sub=sub, exclude_sub=exclude_sub, ses=ses,
+        datatype=datatype, suffix=suffix, task=task,
         include=include, exclude=exclude,
     )
     return compost(

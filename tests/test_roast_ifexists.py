@@ -17,7 +17,6 @@ from roast_utils import init_layout, layout_of
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, WriteJSON, WriteText
-from brainspresso.bids import harvest as harvest_mod
 from brainspresso.bids.compost import compost
 from brainspresso.bids.harvest import update_files
 from brainspresso.bids.keys import KeyAliases
@@ -402,9 +401,7 @@ def _forget_all(root):
     update_files(lay, deleted=list(files))
 
 
-@pytest.mark.parametrize("rule", ["keep", "replace"])
-def test_older_dataset_under_update(tmp_path, caplog, monkeypatch, rule):
-    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
+def test_older_dataset_under_update(tmp_path, caplog):
     root = make_root(tmp_path)
     roast(root)
     _forget_all(root)
@@ -416,15 +413,7 @@ def test_older_dataset_under_update(tmp_path, caplog, monkeypatch, rule):
     # identical: adopted (hash recorded), without a warning
     assert entry(root, SIDECAR)["sha256"] == digest(sidecar)
     assert not warned(caplog, sidecar.name)
-    if rule == "keep":
-        # (compared, then kept with a warning: the README and the
-        # derivative description, rewritten by `finish_roast`)
-        assert readme.read_text() == "old README\n"
-        assert warned(caplog, "has no recorded hash")
-        assert len([r for r in caplog.records
-                    if "has no recorded hash" in r.getMessage()]) == 2
-        assert not entry(root, "README") and not backup.exists()
-        return
+    # different: backed up, then replaced
     assert readme.read_text() == "new\n"
     assert backup.read_text() == "old README\n"
     assert "replaced, the old file is in" in caplog.text
@@ -442,7 +431,7 @@ def test_compost_drops_entries_then_roast_writes_again(tmp_path):
     root = make_root(tmp_path)
     roast(root)
     assert entry(root, SIDECAR)
-    compost(root, selection=Selection(exclude_subs={"01"}),
+    compost(root, selection=Selection(exclude_sub={"01"}),
             sourcedata=False, yes=True)
     assert not raw(root, SIDECAR).exists() and not entry(root, SIDECAR)
     assert entry(root, "README")

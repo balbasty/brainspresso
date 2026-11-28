@@ -474,7 +474,7 @@ def test_scope_of_subject_shards(root, monkeypatch):
     assert not roast(root, keys={"T1w", "T2w"}, display=False).errors
     assert sorted(calls) == ["0001", "0002"]
     scope = scoped_records(root)["roast/subjects/sub-0001"]["scopes"][0]
-    assert scope["fixed"]["declared"]["subs"] == ["0001"]
+    assert scope["fixed"]["declared"]["sub"] == ["0001"]
     assert "meta" not in scope["fixed"]["declared"]["keys"]
     del calls[:]
     for options in ({"keys": {"T1w", "T2w", "meta", "pheno"}},
@@ -523,7 +523,7 @@ def test_key_classification():
 @pytest.mark.parametrize("subs", [
     ["sub-0002"], ["0002"], [2], "2", "2:3", "file"])
 def test_python_subs_labels_ranges_files(root, tmp_path, subs):
-    """`roast(subs=)` takes what `--sub` takes: numbers, labels with or
+    """`roast(sub=)` takes what `--sub` takes: numbers, labels with or
     without `sub-`, ranges, files (`roast.run.python_api`)"""
     if subs == "file":
         subs = tmp_path / "subs.txt"

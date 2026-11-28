@@ -103,10 +103,10 @@ ROAST_KEYS = ("meta", "flash", "mprage", "T2w", "angio", "skullstripped",
 KEYS = KeyAliases(
     TREE,
     bids={
-        "flash": {"suffixes": ["T1w"], "entities": {"acq": ["flash"]}},
-        "mprage": {"suffixes": ["T1w"], "entities": {"acq": ["mprage"]}},
-        "T2w": {"suffixes": ["T2w"]},
-        "angio": {"suffixes": ["angio"]},
+        "flash": {"suffix": ["T1w"], "entities": {"acq": ["flash"]}},
+        "mprage": {"suffix": ["T1w"], "entities": {"acq": ["mprage"]}},
+        "T2w": {"suffix": ["T2w"]},
+        "angio": {"suffix": ["angio"]},
     },
     folders={key: [f"derivatives/{DERIV_NAME}"] for key in DERIVATIVES},
 )

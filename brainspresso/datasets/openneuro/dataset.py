@@ -60,7 +60,7 @@ class OpenNeuroDataset(Dataset):
     help = HELP
     arguments = (Argument("dataset", str,
                           "Accession number (e.g. ds000224)"),)
-    sessions = True
+    has_sessions = True
     hosted = True
     credentials = "token"
     harvest_jobs = 8
@@ -118,9 +118,9 @@ class OpenNeuroDataset(Dataset):
         sessions = {s[4:] if s.startswith("ses-") else s
                     for s in args.sessions.ses}
         selection = Selection(
-            subs=self.labels(args.select.sub),
-            exclude_subs=self.labels(args.select.exclude_sub),
-            sessions=sessions, folders=list(args.hosted.folders),
+            sub=self.labels(args.subjects.sub),
+            exclude_sub=self.labels(args.subjects.exclude_sub),
+            ses=sessions, folders=list(args.hosted.folders),
             **f.filters(),
         )
         options = args.harvest.runtime()

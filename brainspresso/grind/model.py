@@ -17,7 +17,7 @@ lambdas or closures.
 fs_long = Pipeline(
     "fs-long", "7.4.1", config=FsConfig, stages=(
         FunctionStage("cross", "session", fn=cross, inputs=(
-            Requirement("t1w", Query(suffixes=("T1w",))),)),
+            Requirement("t1w", Query(suffix=("T1w",))),)),
         FunctionStage("base", "subject", fn=base, inputs=(
             Requirement("cross", stage="cross", max=None, need="all"),)),
         FunctionStage("long", "session", fn=long, inputs=(
@@ -206,15 +206,16 @@ class Query:
     Files of a BIDS dataset that a requirement matches.
 
     Empty filters match everything. Only data files match (sidecars and
-    inherited metadata follow them).
+    inherited metadata follow them). Named after the BIDS entities, as
+    the fields of `bids.select.Selection`.
 
     Attributes
     ----------
-    datatypes : tuple[str, ...]
+    datatype : tuple[str, ...]
         Datatype folders (`anat`, `func`...)
-    suffixes : tuple[str, ...]
+    suffix : tuple[str, ...]
         Suffixes (`T1w`, `bold`...)
-    extensions : tuple[str, ...]
+    extension : tuple[str, ...]
         Extensions, with the leading dot (`.nii.gz`)
     entities : Mapping[str, tuple[str, ...]]
         Values to keep per entity (`{"acq": ("mprage",)}`), as in
@@ -226,9 +227,9 @@ class Query:
         reserved, format decided in step 7
     """
 
-    datatypes: tuple[str, ...] = ()
-    suffixes: tuple[str, ...] = ()
-    extensions: tuple[str, ...] = ()
+    datatype: tuple[str, ...] = ()
+    suffix: tuple[str, ...] = ()
+    extension: tuple[str, ...] = ()
     entities: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     include: tuple[str, ...] = ()
     exclude: tuple[str, ...] = ()

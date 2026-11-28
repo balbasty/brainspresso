@@ -296,7 +296,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -308,16 +308,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -326,9 +326,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -337,7 +337,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -544,7 +544,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -556,9 +556,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -567,7 +567,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -578,9 +578,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -590,7 +590,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -904,7 +904,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -916,16 +916,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -934,9 +934,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -945,7 +945,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -1152,7 +1152,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1164,9 +1164,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -1175,7 +1175,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1186,9 +1186,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1198,7 +1198,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -1344,7 +1344,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1356,16 +1356,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1373,9 +1373,9 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1384,7 +1384,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -1842,7 +1842,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -1854,16 +1854,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -1872,9 +1872,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -1883,7 +1883,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -2090,7 +2090,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2102,9 +2102,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2113,7 +2113,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2124,9 +2124,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2136,7 +2136,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -2424,7 +2424,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2436,16 +2436,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -2454,9 +2454,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2465,7 +2465,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -2588,7 +2588,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2600,9 +2600,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -2611,7 +2611,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -2622,9 +2622,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2634,7 +2634,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -2951,7 +2951,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -2963,16 +2963,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -2981,9 +2981,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -2992,7 +2992,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -3199,7 +3199,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3211,9 +3211,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3222,7 +3222,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3233,9 +3233,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3245,7 +3245,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -3571,7 +3571,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3583,16 +3583,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3601,9 +3601,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3612,7 +3612,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -3819,7 +3819,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -3831,9 +3831,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -3842,7 +3842,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -3853,9 +3853,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -3865,7 +3865,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -4023,7 +4023,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4035,16 +4035,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4052,9 +4052,9 @@
        "fs"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4063,7 +4063,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -4551,7 +4551,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4563,16 +4563,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4581,9 +4581,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4592,7 +4592,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -4799,7 +4799,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -4811,9 +4811,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -4822,7 +4822,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "yes"
       },
@@ -4833,9 +4833,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -4845,7 +4845,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",
@@ -5145,7 +5145,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5157,16 +5157,16 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
          "fs",
          "fs-all"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -5175,9 +5175,9 @@
        "fs-all"
       ],
       "mode": null,
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -5186,7 +5186,7 @@
       "0001"
      ]
     },
-    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "signature": "894115839f94c669ceadb4fd24c8c54329897506e630c8dce9f594dd87988ab4",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/fs-disc01",
@@ -5309,7 +5309,7 @@
      {
       "fixed": {
        "base": {
-        "datatypes": [],
+        "datatype": [],
         "entities": {},
         "exclude": [],
         "folders": [
@@ -5321,9 +5321,9 @@
          "stimuli"
         ],
         "include": [],
-        "sessions": [],
-        "suffixes": [],
-        "tasks": []
+        "ses": [],
+        "suffix": [],
+        "task": []
        },
        "declared": {
         "keys": [
@@ -5332,7 +5332,7 @@
          "raw",
          "tal"
         ],
-        "subs": "seen"
+        "sub": "seen"
        },
        "json": "only"
       },
@@ -5343,9 +5343,9 @@
        "tal"
       ],
       "mode": "all",
-      "subs": {
-       "exclude": [],
-       "subs": []
+      "sub": {
+       "exclude_sub": [],
+       "sub": []
       }
      }
     ],
@@ -5355,7 +5355,7 @@
       "0002"
      ]
     },
-    "signature": "1358480bf9bb71c808b2e64e0390e6bc5717ca8efff3dcb048ccdfad43280739",
+    "signature": "a8d49e0e60c44d586c4b56ef138afce1d9d182bb0276032fb22231e0e31758b7",
     "stage": "roast",
     "status": "done",
     "task": "roast/discs/raw-disc01",

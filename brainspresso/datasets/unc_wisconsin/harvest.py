@@ -57,7 +57,7 @@ class Girder(GirderSource):
         parts = p.parts
         if len(parts) >= 1 and not self.keeps_subject(selection, parts[0]):
             return False
-        sessions = getattr(selection, "sessions", None)
+        sessions = getattr(selection, "ses", None)
         if len(parts) >= 2 and sessions and parts[1] not in sessions:
             return False
         if len(parts) == 3:

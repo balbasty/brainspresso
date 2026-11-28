@@ -156,7 +156,7 @@ OUTCOMES = ("done", "skipped", "error", "empty")
 POLL_INTERVAL = 0.2
 #: Seconds between writes of a task state on outcomes (progress: always)
 WRITE_INTERVAL = 0.5
-_SIGNATURE_VERSION = 1
+_SIGNATURE_VERSION = 2
 
 
 # ----------------------------------------------------------------------
@@ -1324,16 +1324,6 @@ class Engine:
         def expected() -> bool:
             return all(p.exists() for p in outputs if self._expects(p))
 
-        if "scopes" not in record:
-            # a record of before scopes: covered if it was made with
-            # this very selection (its signature with the fingerprint);
-            # it is upgraded in place
-            legacy = _signature(self.ctx, self.policy, shard)
-            if record.get("config_hash") == legacy and expected():
-                record.update(config_hash=plan.signature, scopes=[scope])
-                self._rewrite(shard.id, record)
-                plan.skip = record
-            return plan
         if record.get("config_hash") != plan.signature:
             return plan
         seen = record.get("seen") or {}
@@ -1350,16 +1340,9 @@ class Engine:
     def _covers(self, old, new: dict, seen: dict) -> bool:
         try:
             return bool(self.policy.covers(old, new, seen))
-        except Exception as e:      # (a record of another version)
+        except Exception as e:      # (a malformed record)
             lg.debug(f"covers: {type(e).__name__}: {e}")
             return False
-
-    def _rewrite(self, task: str, record: dict) -> None:
-        """Write a task record again (upgraded in place)."""
-        try:
-            write_task_state(self.ctx.state, task, record)
-        except OSError as e:      # (skipped all the same)
-            lg.warning(f"Could not write the state of {task}: {e}")
 
     def submit(self, shard, tag: str, plan: _Plan | None = None) -> None:
         """

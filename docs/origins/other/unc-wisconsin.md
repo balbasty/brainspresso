@@ -18,9 +18,9 @@ registration, brain masks, quality-controlled diffusion data and tensor maps.
 | Population | Rhesus macaques, 2 weeks to 3 years, longitudinal |
 | Modalities | T1w, T2w, DWI |
 | Derivatives | Atlas-registered images, brain masks, QC'd DWI, DTI maps |
+| Size | About 260 GB |
 | Access | Open, no registration |
 | Host | [data.kitware.com](https://data.kitware.com/#collection/54b582c38d777f4362aa9cb3) (Girder) |
-| Size | About 260 GB |
 | Website | <https://www.nitrc.org/projects/uncuw_macdevmri/> |
 
 </div>

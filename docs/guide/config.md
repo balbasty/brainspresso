@@ -1,7 +1,7 @@
 # Configuration files
 
 Most options can be given defaults in TOML files, so that the command line only
-needs to say what differs. Values are read from the following places, with
+specifies what differs. Values are read from the following places, with
 later ones taking precedence:
 
 1. the built-in defaults;

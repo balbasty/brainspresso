@@ -3,8 +3,8 @@
 SIMON (*Single Individual volunteer for Multiple Observations across
 Networks*) follows one healthy man scanned in about 70 sessions over more than
 fifteen years, from age 29 to 46, on many scanners at different sites. It
-measures how much MRI measurements vary between scanners and over time within
-the same brain, which makes it useful to calibrate multi-site studies.
+quantifies how MRI measurements vary between scanners and over time within the
+same brain, which makes it useful to calibrate multi-site studies.
 
 <div class="glance" markdown>
 

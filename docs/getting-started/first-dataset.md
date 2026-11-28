@@ -1,7 +1,7 @@
 # Your first dataset
 
 This page walks through a complete run on [IXI](../origins/other/ixi.md), a
-dataset of about 600 healthy adults that is freely available without
+dataset of nearly 600 healthy adults that is freely available without
 registration.
 
 ## 1. Inspect the dataset

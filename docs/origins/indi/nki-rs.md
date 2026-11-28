@@ -31,8 +31,11 @@ phenotyping. Many participants have several visits.
 
 Sessions are named after the visit: `ses-BAS1`, `ses-BAS2`, `ses-FLU1`, ...
 
-The phenotypic data is not on the bucket. It is distributed by NKI under a data
-usage agreement.
+## Access
+
+The imaging data is downloaded anonymously from the INDI bucket. The phenotypic
+data is not on the bucket: it is distributed by NKI under a data usage
+agreement.
 
 ## Curation
 

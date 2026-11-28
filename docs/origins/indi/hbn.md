@@ -35,8 +35,13 @@ resting-state and naturalistic movie-viewing scans, acquired at four sites.
 The sites are `Site-SI` (Staten Island, a mobile 1.5 T scanner), `Site-RU`
 (Rutgers), `Site-CBIC` (CitiGroup Biomedical Imaging Center) and `Site-CUNY`.
 
-The phenotypic data is distributed separately under a data usage agreement,
-and the preprocessed derivatives on the bucket are not included.
+The preprocessed derivatives on the bucket are not included.
+
+## Access
+
+The imaging data is downloaded anonymously from the INDI bucket. The
+phenotypic data is distributed separately by the Child Mind Institute, under a
+data usage agreement.
 
 ## Curation
 

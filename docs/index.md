@@ -5,8 +5,7 @@
 
 brainspresso downloads public neuroimaging datasets and converts them to
 [BIDS](https://bids.neuroimaging.io). Each supported dataset, or *origin*, is a
-command of the `bx` program, and every origin understands the same small set of
-subcommands.
+command of the `bx` program, and every origin has the same subcommands.
 
 ![The brainspresso workflow: harvest, roast, grind and percolate](images/brainspresso-workflow.svg){ .diagram }
 

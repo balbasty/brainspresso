@@ -31,7 +31,7 @@ diffusion and resting-state imaging, alongside behavioural measures.
 ## Curation
 
 * The bucket has no functional sidecars. brainspresso writes one with a
-  repetition time of 2 s. The NIfTI headers of most first-session scans say
+  repetition time of 2 s. The NIfTI headers of most first-session scans give
   1 s, but the acquisition matches that of SALD, whose DICOM-derived sidecars
   give 2 s.
 * The T1w and DWI sidecars are completed from protocol templates.

@@ -14,8 +14,8 @@ Sample has a category of its own. `bx <dataset> info` shows the category.
 ## Two kinds of INDI datasets
 
 * **Ported datasets** ([ABIDE-I](abide1.md), [ABIDE-II](abide2.md),
-  [COBRE](cobre.md)) are distributed as archives and tables. brainspresso
-  harvests them and converts them to BIDS with a roaster of its own.
+  [COBRE](cobre.md)) are distributed as archives and tables, and converted to
+  BIDS by code specific to each dataset.
   [ADHD-200](adhd200.md) and [CoRR](corr.md) are in the same group, but are
   only harvested for now.
 * **Hosted projects** ([ACPI](acpi.md), [FCON1000](fcon1000.md),
@@ -25,12 +25,11 @@ Sample has a category of its own. `bx <dataset> info` shows the category.
   the [hybrid placement](../../guide/harvest.md#datasets-hosted-in-bids) used
   for OpenNeuro, and accept the same
   [BIDS filters](../../guide/selection.md#bids-filters). Only the selected
-  subjects are listed, so a small selection of a large project starts at once.
+  subjects are listed, so a small selection starts quickly.
 
 ## Curation of the hosted projects
 
-The bucket copies are rarely valid BIDS as they are, so each project is
-curated:
+The bucket copies are rarely valid BIDS, so each project is curated:
 
 * file names with typos or entities out of order are fixed;
 * missing dataset descriptions, READMEs and sidecars are generated;

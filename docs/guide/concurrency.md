@@ -1,15 +1,16 @@
 # Concurrency and shared filesystems
 
 Several brainspresso commands can work on the same dataset at once, from one
-machine or from several machines that share a filesystem. Two mechanisms keep
-them from interfering.
+machine or from several machines that share a filesystem. Two mechanisms prevent
+conflicts.
 
 ## Run locks
 
 Harvest and roast take a *shared* lock on the dataset, and compost takes an
 *exclusive* one. Two harvests can therefore run together, but a dataset cannot
 be composted while it is being harvested or roasted, and the other way round.
-The second command fails at once and names the command that holds the lock.
+The second command fails immediately and names the command that holds the
+lock.
 `--lock-wait SECONDS` makes it wait instead.
 
 Each running command also leaves a record in `.brainspresso/runs/`. Compost

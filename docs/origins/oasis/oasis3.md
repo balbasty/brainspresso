@@ -48,9 +48,9 @@ The keys form a tree: `raw` (`mri`, `pet`, `ct`), `derivatives` and `meta`.
 
 ## Access
 
-Access is granted after an application on the
-[OASIS website](https://sites.wustl.edu/oasisbrains/), which links it to a
-NITRC account. See [OASIS](index.md#access-and-terms) for the terms of use.
+Access requires an application on the
+[OASIS website](https://sites.wustl.edu/oasisbrains/), which is then linked
+to your NITRC account. See [OASIS](index.md#access-and-terms) for the terms of use.
 
 ## Conversion
 

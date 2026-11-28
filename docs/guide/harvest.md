@@ -66,9 +66,8 @@ source. Credentials are looked up in this order:
 
 Secrets are never read from [configuration files](config.md).
 
-Creating an account and accepting the data-use terms of a dataset is done on
-the provider's website, outside brainspresso. Each [origin](../origins/index.md)
-page says what is required.
+Accounts are created, and data-use terms accepted, on the provider's website.
+Each [origin](../origins/index.md) page says what is required.
 
 ## Existing files
 
@@ -97,9 +96,9 @@ For these, harvest uses a *hybrid placement*:
   descriptions) is downloaded to `sourcedata/<source>/` as an untouched
   *pristine* copy, then roasted into the BIDS dataset.
 
-Roasting the metadata repairs common defects: numbers stored as text, invalid
-JSON, slice timing in milliseconds, sessions tables without `session_id`, field
-maps whose `IntendedFor` is a tag rather than a path. The pristine copies are
+Roasting the metadata repairs common defects, such as numbers stored as text,
+invalid JSON, slice timing in milliseconds, sessions tables without
+`session_id`, and field maps whose `IntendedFor` is a tag rather than a path. The pristine copies are
 never modified. `--no-repair` keeps their content as is.
 
 The tables (`participants.tsv`, `*_sessions.tsv`, `*_scans.tsv`) are rewritten

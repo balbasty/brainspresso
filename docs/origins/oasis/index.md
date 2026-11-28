@@ -3,7 +3,7 @@
 The *Open Access Series of Imaging Studies* (OASIS) is a series of neuroimaging
 datasets released by the Knight Alzheimer Disease Research Center at
 Washington University in St. Louis, to make MRI data on normal ageing and
-Alzheimer's disease freely available. Each release adds to the previous one:
+Alzheimer's disease freely available. The releases differ in design and scope:
 
 | Dataset | Design | Subjects | Ages | Modalities | Access |
 |---------|--------|---------:|------|------------|--------|

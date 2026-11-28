@@ -5,7 +5,7 @@
 ## Deleting the source data
 
 Without filters, compost deletes `sourcedata/` once its content has been
-roasted. The archives it contains are rarely needed after conversion.
+roasted.
 
 ```shell
 bx ixi compost /data --dry-run          # list what would be deleted
@@ -24,7 +24,7 @@ or `sourcedata/fcp-indi/` is kept: it is small, and roast needs it.
 
 With [BIDS filters](selection.md#bids-filters) or subject options, compost
 deletes the BIDS data that does **not** match them. The filters describe what
-is kept: composting with some filters leaves what harvesting with the same
+is kept: after composting, the dataset holds what a harvest with the same
 filters would have downloaded.
 
 ```shell

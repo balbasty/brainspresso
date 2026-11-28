@@ -62,6 +62,8 @@ bx abide2 roast /data --keys dti pheno
 
 ## How to cite
 
+Acknowledge the funding sources listed on the ABIDE-II website, and cite:
+
 !!! references "References"
 
     1. Di Martino A, O'Connor D, Chen B, Alaerts K, Anderson JS, Assaf M, et al.
@@ -69,5 +71,3 @@ bx abide2 roast /data --keys dti pheno
        imaging data exchange II.*
        Sci Data **4**:170010, 2017.
        [doi:10.1038/sdata.2017.10](https://doi.org/10.1038/sdata.2017.10)
-
-Also acknowledge the funding sources listed on the ABIDE-II website.

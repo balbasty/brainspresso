@@ -1,7 +1,7 @@
 # IXI
 
-The IXI dataset (*Information eXtraction from Images*) contains nearly 600 MR
-scans of healthy adults. It was collected for the EPSRC-funded IXI project
+The IXI dataset (*Information eXtraction from Images*) contains MR scans of
+nearly 600 healthy adults. It was collected for the EPSRC-funded IXI project
 (GR/S21533/02) at three London hospitals: Guy's Hospital (Philips 1.5 T),
 Hammersmith Hospital (Philips 3 T) and the Institute of Psychiatry (GE 1.5 T).
 Each subject has T1-, T2- and PD-weighted images, an MR angiogram and a

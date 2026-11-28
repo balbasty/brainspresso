@@ -9,9 +9,9 @@ bx oasis2 roast /data
 bx oasis2 roast /data --subs 1:20 --keys T1w
 ```
 
-Roast reads only what is in `sourcedata/` and does not access the network. It
-converts what has been harvested. A missing input is an error only when the
-selection explicitly asks for it, for example with `--keys`.
+Roast reads only `sourcedata/` and does not access the network. A missing
+input is an error only when the selection explicitly asks for it, for example
+with `--keys`.
 
 `--jobs` runs the conversion in several processes.
 
@@ -27,9 +27,6 @@ The details depend on the dataset and are described on each
 * Derived data distributed with the dataset (segmentations, registered images,
   FreeSurfer outputs) is written to `derivatives/<name>/`.
 * Files that BIDS does not describe are listed in `.bidsignore`.
-* The roasters are tested in CI by running them on synthetic data and
-  checking the result with the
-  [BIDS validator](https://github.com/bids-standard/bids-validator).
 
 For [datasets hosted in BIDS](harvest.md#datasets-hosted-in-bids), roast only
 processes the metadata: it renders the pristine copies in

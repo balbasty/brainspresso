@@ -911,9 +911,12 @@ layer in 2b-iv):
   also when the roast is partial; a derivative description that
   `write_descriptions` rewrites gets the hash of the file as left on
   disk if it held what roast wrote (rendered by this roast, or
-  unedited before the rewrite); an edited one keeps its recorded hash
-  (the `SourceDatasets` that `write_descriptions` adds are layout
-  bookkeeping, part of keeping it), so it stays an edit. Tracked files:
+  unedited before the rewrite); an edited one that this roast did not
+  render is left exactly as it is (`write_descriptions(keep=)`: no
+  `SourceDatasets` added, no new hash), so it stays an edit; under
+  `different`/`overwrite`, or once backed up and replaced under
+  `update` (no recorded hash), the render replaces it and is
+  completed. Tracked files:
 
   | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
   |---|---|---|---|---|
@@ -3137,8 +3140,10 @@ up as an XPASS failure once fixed (then drop the marker).
   compared first (`Action.keep_edit`): one that holds the render (a
   hash not recorded because the roast was killed) is adopted, any other
   kept with a warning, in engine and hosted roasts alike (the "keep"
-  migration rule likewise); `finish_roast` re-hashes a rewritten
-  derivative description only if it held what roast wrote, so an
-  edited one survives every `update`; a backup never replaces an
+  migration rule likewise); `finish_roast` leaves an edited derivative
+  description exactly as it is (`Layout.write_descriptions(keep=)`:
+  no `SourceDatasets` added, not re-hashed), so it survives every
+  `update` byte for byte, and re-hashes a completed one only if it
+  held what roast wrote; a backup never replaces an
   earlier one (`<path>.1`, `.2`...); the recorded hashes are cached per
   process and manifest version (`roast.context._recorded_hashes`).

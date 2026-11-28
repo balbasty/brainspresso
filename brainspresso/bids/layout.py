@@ -42,7 +42,7 @@ import os
 import posixpath
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from typing import Iterator, Literal
+from typing import Iterable, Iterator, Literal
 
 from brainspresso.actions.locks import (
     LOCKS_DIR,
@@ -165,6 +165,11 @@ def _read_json(path: Path) -> dict | None:
     except (OSError, ValueError):
         return None
     return out if isinstance(out, dict) else None
+
+
+def _same(path: str | os.PathLike) -> str:
+    """Key of a path, to compare files (absolute, case as the OS)."""
+    return os.path.normcase(os.path.abspath(path))
 
 
 def _write_json(path: Path, obj: dict) -> bool:
@@ -437,7 +442,8 @@ class Layout:
             out.update({k: raw[k] for k in _STUDY_FIELDS if k in raw})
         return out
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep: Iterable[str | os.PathLike] = ()
+                           ) -> list[Path]:
         """
         Write the descriptions that depend on the layout.
 
@@ -450,11 +456,17 @@ class Layout:
         The raw description (copied from templates or downloaded) is
         not generated here: it lives at `raw/dataset_description.json`.
 
+        Parameters
+        ----------
+        keep : list[path]
+            Derivative descriptions left exactly as they are (files the
+            user edited, `bids.harvest.finish_roast`)
+
         Returns the files written.
         """
         written = []
         for drv in self.list_derivatives():
-            written += drv.write_descriptions()
+            written += drv.write_descriptions(keep)
         return written
 
     # ------------------------------------------------------------------
@@ -515,13 +527,13 @@ class StudyLayout(Layout):
             return self.raw, "/".join(parts[1:]) or "."
         return self.root, str(rel)
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Write the study description, then those of derivatives."""
         written = []
         if _write_json(self.root / DESCRIPTION,
                        self.dataset_description("study")):
             written.append(self.root / DESCRIPTION)
-        return written + super().write_descriptions()
+        return written + super().write_descriptions(keep)
 
 
 class FlatLayout(Layout):
@@ -596,9 +608,11 @@ class DerivativeLayout(Layout):
             out["SourceDatasets"] = [{"URL": self.source_url}]
         return out
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Complete the description of the derivative, if it exists."""
-        desc = _read_json(self.description)
+        kept = {_same(p) for p in keep}
+        desc = None if _same(self.description) in kept \
+            else _read_json(self.description)
         written = []
         if desc is not None:
             desc = dict(desc)
@@ -612,7 +626,7 @@ class DerivativeLayout(Layout):
             desc["SourceDatasets"] = sources
             if _write_json(self.description, desc):
                 written.append(self.description)
-        return written + super().write_descriptions()
+        return written + super().write_descriptions(keep)
 
     def to_manifest(self):
         """Layout fields of the manifest."""
@@ -722,11 +736,11 @@ class SitesLayout(Layout):
         """Local path of a path relative to the parent folder."""
         return self.root.joinpath(*PurePosixPath(relpath).parts)
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Write the descriptions of every site."""
         written = []
         for child in self.children.values():
-            written += child.write_descriptions()
+            written += child.write_descriptions(keep)
         return written
 
     def to_manifest(self):

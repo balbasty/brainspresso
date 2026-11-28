@@ -455,6 +455,8 @@ def test_compost_drops_entries_then_roast_writes_again(tmp_path):
 # ----------------------------------------------------------------------
 
 def test_edited_derivative_description_survives_updates(tmp_path, caplog):
+    """An edited description is left exactly as it is (no
+    `SourceDatasets` added); `different` replaces it with the render"""
     root = make_root(tmp_path)
     roast(root)
     lay = layout_of(root)
@@ -465,18 +467,38 @@ def test_edited_derivative_description_survives_updates(tmp_path, caplog):
         mine = {**json.loads(path.read_text()), "Name": "MY EDIT"}
         if drop:
             mine.pop("SourceDatasets")
-        path.write_text(json.dumps(mine))
-        for _ in range(2):
+        path.write_bytes(json.dumps(mine).encode())
+        edit = path.read_bytes()
+        for mode in ("update", "update", "skip"):
             caplog.clear()
-            roast(root, ifexists="update")
-            desc = json.loads(path.read_text())
-            # the user's keys stay; `SourceDatasets` is the layout's
-            assert desc["Name"] == "MY EDIT" and "SourceDatasets" in desc
-            assert warned(caplog, "was edited")
+            roast(root, ifexists=mode)
+            assert path.read_bytes() == edit
+            assert warned(caplog, "was edited") == (mode == "update")
             # (still an edit: the hash of what roast wrote is kept)
             assert read_manifest(lay.state)["files"][key]["sha256"] == \
                 recorded
     assert not lay.replaced(path).exists()
+    roast(root, ifexists="different")
+    desc = json.loads(path.read_text())
+    assert desc["Name"] == "toy" and "SourceDatasets" in desc
+    assert read_manifest(lay.state)["files"][key]["sha256"] == digest(path)
+
+
+def test_unrecorded_derivative_description_under_update(tmp_path):
+    """No recorded hash, differs: backed up, then replaced by the render,
+    completed with `SourceDatasets`"""
+    root = make_root(tmp_path)
+    roast(root)
+    lay = layout_of(root)
+    path = lay.derivatives / "toy" / DESCRIPTION_NAME
+    key = path.relative_to(lay.root).as_posix()
+    update_files(lay, {key: {"sha256": None}})
+    path.write_bytes(b'{"Name": "theirs"}')
+    roast(root, ifexists="update")
+    assert lay.replaced(path).read_bytes() == b'{"Name": "theirs"}'
+    desc = json.loads(path.read_text())
+    assert desc["Name"] == "toy" and "SourceDatasets" in desc
+    assert read_manifest(lay.state)["files"][key]["sha256"] == digest(path)
 
 
 def test_stale_hash_is_no_edit(tmp_path, caplog):

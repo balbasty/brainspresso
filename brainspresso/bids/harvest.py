@@ -812,38 +812,41 @@ def finish_roast(layout: Layout, files: dict[str, dict] | None = None,
     layout : Layout
     files : dict[str, dict]
         Entries to merge into the manifest (`"converted"` files and
-        their `sha256`), by path relative to `layout.root`. A file that
-        `write_descriptions` rewrites (a derivative description) gets
-        the hash of the file as left on disk if it held what roast wrote:
-        rendered by this roast (in `files`), or unedited before the
-        rewrite (its hash was the recorded one). An edited description
-        keeps its recorded hash, so that it is still an edit (the
-        `SourceDatasets` that `write_descriptions` adds to it are part of
-        keeping it: layout bookkeeping, the user's keys stay).
+        their `sha256`), by path relative to `layout.root`. A
+        derivative description that `write_descriptions` completes
+        (`SourceDatasets`) gets the hash of the file as left on disk if it
+        held what roast wrote: rendered by this roast (in `files`), or
+        unedited (its hash is the recorded one). An edited one (its hash
+        differs from the recorded one, and this roast did not render it)
+        is left exactly as it is: neither completed nor re-hashed.
     **info
         Fields of the run
     """
     files = dict(files or {})
     known = manifest_files(layout)
-    # hashes of recorded descriptions before they are rewritten
-    before = {}
+    # recorded descriptions that this roast did not render: unedited
+    # ones are completed and re-hashed, edited ones left as they are
+    unedited, edited = set(), []
     for key, entry in known.items():
         if entry.get("origin") != "converted" or key in files or \
                 PurePosixPath(key).name != DESCRIPTION:
             continue
+        path = Path(layout.root) / key
         try:
-            before[key] = sha256((Path(layout.root) / key).read_bytes())
+            digest = sha256(path.read_bytes())
         except OSError:
-            pass
-    for path in layout.write_descriptions():
+            continue
+        if digest == entry.get("sha256"):
+            unedited.add(key)
+        else:
+            edited.append(path)
+    for path in layout.write_descriptions(keep=edited):
         try:
             key = Path(path).relative_to(layout.root).as_posix()
         except ValueError:
             continue
-        if key not in files and (
-                key not in before
-                or before[key] != known[key].get("sha256")):
-            continue                # (not ours, or edited: left as is)
+        if key not in files and key not in unedited:
+            continue                # (not one of ours)
         try:
             digest = sha256(Path(path).read_bytes())
         except OSError:

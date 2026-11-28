@@ -40,7 +40,7 @@ Usage: brainspresso COMMAND
 ┃       Brainspresso : Harvest, Roast and Grind public neuroimaging datasets        ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
- • Plantation : A public neuroimaging dataset supported brainspresso
+ • Origin     : A public neuroimaging dataset supported by brainspresso
  • Harvest    : Download raw data
  • Roast      : Convert source data to BIDS
  • Grind      : Preprocess data with standard pipelines
@@ -50,7 +50,7 @@ Usage: brainspresso COMMAND
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
-╭─ Plantations ─────────────────────────────────────────────────────────────────────╮
+╭─ Origins ─────────────────────────────────────────────────────────────────────────╮
 │ ixi        IXI dataset (controls)                                                 │
 │ oasis1     OASIS-1 dataset (adult lifespan, dementia)                             │
 │ oasis2     OASIS-2 dataset (longitudinal, dementia)                               │

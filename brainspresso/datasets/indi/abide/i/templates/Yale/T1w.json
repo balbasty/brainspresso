@@ -1,0 +1,60 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "TrioTim",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP",
+    "MatrixCoilMode": "Auto (Triple)",
+    "CoilCombinationMethod": "Adaptive Combine",
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR",
+        "PFP"
+    ],
+    "SequenceName": "tfl",
+    "PulseSequenceDetails": "%SiemensSeq%\\tfl",
+    "MRAcquisitionType": "3D",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "SpoilingRFPhaseIncrement": 50.0,
+    "B0ShimmingTechnique": "Tune up",
+    "ParallelReductionFactorInPlane": 2,
+    "ParallelReductionFactorOutOfPlane": 1,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "PartialFourier": 0.75,
+    "PartialFourierDirection": "COMBINATION",
+    "EchoTime": 0.00296,
+    "InversionTime": 0.9,
+    "SliceEncodingDirection": "i-",
+    "DwellTime": 1.2207e-05,
+    "FlipAngle": 9.0,
+    "RepetitionTime": 1.9000000000000001,
+    "RepetitionTimeExcitation": 0.0074,
+    "RepetitionTimePreparation": 1.9000000000000001,
+    "Modality": "MR",
+    "ProtocolName": "Sag_3D_short_ipat",
+    "SeriesDescription": "Sag_3D_short_ipat",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "BaseResolution": 256,
+    "AcquisitionMatrixPE": 256,
+    "ReconMatrixPE": 256,
+    "PercentPhaseFOV": 100.0,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 192,
+    "PixelBandwidth": 160.0,
+    "SliceThickness": 1.0,
+    "NumberOfAverages": 1
+}

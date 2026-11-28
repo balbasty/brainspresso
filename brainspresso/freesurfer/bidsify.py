@@ -53,15 +53,14 @@ anat/
     sub-{03d}_hemi-{L|R}_atlas-Destrieux_dseg.label.gii         [<-{l|r}h.aparc.a2009s.annot]
 
 """  # noqa: E501
-from logging import getLogger
 from functools import partial
-from typing import Literal, Iterable
+from logging import getLogger
 from pathlib import Path
+from typing import Callable, Iterable, Literal
 
-from brainspresso.actions import Action
-from brainspresso.actions import WriteJSON
-from brainspresso.actions import BabelConvert
-from brainspresso.actions import Freesurfer2Gifti
+from brainspresso.actions import Action, WriteJSON
+from brainspresso.convert import BabelConvert
+from brainspresso.freesurfer.actions import Freesurfer2Gifti
 from brainspresso.freesurfer.lookup import write_lookup
 
 lg = getLogger(__name__)
@@ -108,8 +107,8 @@ def bidsify_toplevel(
     FreeSurfer segmentations
 
     * atlas-Aseg_dseg.tsv
-    * atlas-AsegDesikanKillian_dseg.tsv
-    * atlas-Desikan-Killian_dseg.tsv
+    * atlas-AsegDesikanKilliany_dseg.tsv
+    * atlas-DesikanKilliany_dseg.tsv
     * atlas-Destrieux_dseg.tsv
 
     Parameters
@@ -132,13 +131,13 @@ def bidsify_toplevel(
     )
 
     yield Action(
-        [], dst / 'atlas-AsegDesikanKillian_dseg.tsv',
+        [], dst / 'atlas-AsegDesikanKilliany_dseg.tsv',
         partial(write_lookup, mode='aparc+aseg'),
         mode="t", input="path",
     )
 
     yield Action(
-        [], dst / 'atlas-Desikan-Killian_dseg.tsv',
+        [], dst / 'atlas-DesikanKilliany_dseg.tsv',
         partial(write_lookup, mode='ak'),
         mode="t", input="path",
     )
@@ -155,7 +154,8 @@ def bidsify(
         src: str | Path,
         dst: str | Path,
         source_t1: str | Iterable[str] | None = None,
-        json: Literal['yes', 'no', 'only'] | bool = False
+        json: Literal['yes', 'no', 'only'] | bool = False,
+        exists: Callable[[Path], bool] | None = None,
 ) -> Iterable[Action]:
     """
     Yield actions that bidsify a single Freesurfer subject
@@ -170,6 +170,10 @@ def bidsify(
     source_t1 : [list of] str | None
         Path to raw T1w data that was used as input to FreeSurfer
     json : bool or {'yes', 'no, 'only'}
+    exists : callable(Path) -> bool
+        Whether a file of the FreeSurfer subject exists (default:
+        `Path.exists`; e.g. a test on the members of an archive, to
+        write sidecars without unpacking the tree)
 
     Yields
     ------
@@ -187,6 +191,8 @@ def bidsify(
         source_t1 = [source_t1]
     source_t1 = list(map(str, source_t1))
 
+    exists = exists or Path.exists
+
     # Folders
     src = Path(src)
     dst = Path(dst)
@@ -202,7 +208,7 @@ def bidsify(
 
     # --- helpers ------------------------------------------------------
     def make_base(convert: Action, pathinp: Path, pathout: Path, json: dict):
-        if not pathinp.exists():
+        if not exists(pathinp):
             return
         if json_mode != 'only':
             lg.info(f'write {pathout.name}')
@@ -222,7 +228,7 @@ def bidsify(
     # --- average in native space --------------------------------------
     # this is specific to OASIS (I think)
     res = ''
-    if (mri / 'rawavg.mgz').exists():
+    if exists(mri / 'rawavg.mgz'):
         res = '_res-1mm'
 
     yield from make_nii(

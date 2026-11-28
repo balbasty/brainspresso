@@ -1,0 +1,192 @@
+"""
+Actions that extract members of archives (`utils.archive`).
+
+```python
+ExtractMember(archive, member, dst)       # one member of an open archive
+ExtractMembers(path, claim, rename)       # members only known once opened
+```
+"""
+from __future__ import annotations
+
+import os
+from logging import getLogger
+from pathlib import Path
+from typing import Callable, Iterator
+
+from brainspresso.actions.action import Action, Claim, Kind
+from brainspresso.utils.archive import TarArchive, member_path
+from brainspresso.utils.io import copy_from_buffer
+
+lg = getLogger(__name__)
+
+
+class ExtractMember(Action):
+    """
+    Copy one member of an *open* archive to `dst`.
+
+    The archive (`TarArchive`, `FolderArchive`, `tarfile.TarFile`) must
+    stay open until the action has run (the engine, `actions.engine`,
+    runs each action before asking its producer for the next one).
+
+    Parameters
+    ----------
+    archive : TarArchive | FolderArchive | tarfile.TarFile
+        The open archive
+    member : str | TarInfo
+        The member
+    dst : str | PathLike
+        Output file
+    kind, tag, **kwargs
+        See `Action`
+    """
+
+    def __init__(
+        self,
+        archive,
+        member,
+        dst: str | os.PathLike,
+        *,
+        kind: Kind | None = None,
+        tag: str | None = None,
+        **kwargs,
+    ):
+        name = getattr(member, "name", member)
+        sources = getattr(archive, "sources", None)
+        src = sources(name) if sources else [archive.name]
+        self.archive = archive
+        self.member = member
+        super().__init__(
+            src, dst, self.extract, mode="wb", input="file",
+            kind=kind, tag=tag, **kwargs,
+        )
+
+    def extract(self, file) -> None:
+        """Copy the member into an opened output file."""
+        with self.archive.extractfile(self.member) as f:
+            copy_from_buffer(f, file)
+
+
+class ExtractMembers(Action):
+    """
+    Extract the members of an archive (outputs known once it is opened).
+
+    A claim on one folder or a list of folders. Each member is extracted
+    by an `ExtractMember` sub-action, which the engine accepts (and to
+    which it applies `IfExists`) like any other action.
+
+    Members whose name is unsafe (absolute, a `..` part, a part that
+    Windows reads as anchored: `utils.archive.is_unsafe`) are dropped
+    before `rename` sees them; `rename` gets the others normalised
+    (`utils.archive.member_path`: `./a/b` is `a/b`), the names that
+    `roast.archives.Member.path` lists. A second line of defence against
+    a path escape: an output that `rename` puts outside `root`
+    (resolved) is dropped too; outputs inside `root` but outside the
+    claimed folders are written (OASIS-III takes the session of a member
+    from its name). One warning per archive for each.
+
+    Parameters
+    ----------
+    archive : str | PathLike
+        Path of the archive
+    claim : Claim | str | PathLike
+        Claimed outputs (a folder, a list of folders, or a `Claim`)
+    rename : callable(member_name) -> Path | None
+        Output path of a member, from its normalised name (None: ignore
+        it); never called for an unsafe name
+    opener : callable(path) -> archive
+        Opens the archive (default: `TarArchive`)
+    root : str | PathLike | None
+        Folder that every output must stay inside (roast: the dataset,
+        `ctx.layout.root`); default: the claimed folders
+    tag : str
+        Progress group
+    staging : bool
+        Intermediate files (see `Action`)
+    **kwargs
+        Options of the `ExtractMember` sub-actions
+    """
+
+    def __init__(
+        self,
+        archive: str | os.PathLike,
+        claim: Claim | str | os.PathLike,
+        rename: Callable[[str], Path | None],
+        *,
+        opener: Callable = TarArchive,
+        root: str | os.PathLike | None = None,
+        tag: str | None = None,
+        staging: bool = False,
+        **kwargs,
+    ):
+        if not isinstance(claim, Claim):
+            claim = Claim(claim)
+        self.archive = Path(archive)
+        self.rename = rename
+        self.opener = opener
+        self.root = None if root is None else Path(root)
+        self.kwargs = kwargs
+        super().__init__(
+            self.archive, None, self.extract, claim=claim, tag=tag,
+            staging=staging,
+        )
+
+    def extract(self) -> Iterator[Action]:
+        """Open the archive and yield one `ExtractMember` per member."""
+        unsafe, outside = [], []
+        bounds = self.claim.folders if self.root is None else [self.root]
+        roots = [os.path.normcase(os.path.realpath(f)) for f in bounds]
+        try:
+            with self.opener(self.archive) as archive:
+                for member in archive:
+                    if getattr(member, "isfile", lambda: True)() is False:
+                        continue
+                    name = member_path(member.name)
+                    if name is None:
+                        unsafe.append(member.name)
+                        continue
+                    dst = self.rename(name)
+                    if dst is None:
+                        continue
+                    if not inside(dst, roots):
+                        outside.append(member.name)
+                        continue
+                    yield ExtractMember(
+                        archive, member, dst, tag=self.tag,
+                        staging=self.staging, **self.kwargs
+                    )
+        finally:
+            if unsafe:
+                lg.warning(f"{self.archive.name}: {len(unsafe)} member(s) "
+                           f"outside the archive (`..`, an absolute or a "
+                           f"Windows-anchored name) skipped, e.g. "
+                           f"{unsafe[0]}")
+            if outside:
+                lg.warning(f"{self.archive.name}: {len(outside)} member(s) "
+                           f"renamed outside "
+                           f"{self.root or self.claim.folders[0]} "
+                           f"skipped, e.g. {outside[0]}")
+
+
+def inside(path: str | os.PathLike, roots: list[str]) -> bool:
+    """
+    Whether a path, resolved, is inside one of some folders.
+
+    Parameters
+    ----------
+    path : path
+        The path
+    roots : list[str]
+        Folders, resolved (`os.path.realpath`, then `os.path.normcase`)
+
+    Returns
+    -------
+    bool
+    """
+    path = os.path.normcase(os.path.realpath(path))
+    for root in roots:
+        try:
+            if os.path.commonpath([path, root]) == root and path != root:
+                return True
+        except ValueError:      # (another drive, on Windows)
+            continue
+    return False

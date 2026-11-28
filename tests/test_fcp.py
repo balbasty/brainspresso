@@ -12,6 +12,7 @@ from xml.sax.saxutils import escape
 
 import pytest
 from aiohttp import web
+from cli_utils import bx
 
 from brainspresso.sources import fcp
 from brainspresso.sources.s3 import S3Bucket
@@ -119,8 +120,8 @@ def same(path: Path, key: str) -> bool:
 # ----------------------------------------------------------------------
 
 def test_abide1_harvest_s3(tmp_path):
-    from brainspresso.datasets.ABIDE.I.download_s3 import download_s3
-    download_s3(tmp_path, sites=["Caltech"], subs=[51456])
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
+       "Caltech", "--sub", 51456)
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "phenotypic_CALTECH.csv",
@@ -134,26 +135,30 @@ def test_abide1_harvest_s3(tmp_path):
 
 
 def test_abide1_harvest_s3_keys_and_samples(tmp_path):
-    from brainspresso.datasets.ABIDE.I.download_s3 import download_s3
-    # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes;
-    # a single (non-list) key is accepted.
-    download_s3(tmp_path, sites=["MaxMun"], keys="T1w")
+    # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
+       "MaxMun", "--keys", "T1w")
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "RawData/MaxMun_a/0051330/session_1/anat_1/mprage.nii.gz",
     }
-    download_s3(tmp_path, sites=["MaxMun"], keys=["meta"])
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
+       "MaxMun", "--keys", "meta")
     assert "phenotypic_MAX_MUN.csv" in files(src)
 
 
-def test_abide1_roast_from_s3_folder(tmp_path):
-    from brainspresso.datasets.ABIDE.I.download_s3 import download_s3
-    from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
-    download_s3(tmp_path, sites=["Caltech"], keys=["raw"])
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_abide1_roast_from_s3_folder(tmp_path, layout):
+    from brainspresso.bids.layout import Layout
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
+       "Caltech", "--keys", "raw", "--layout", layout)
     root = tmp_path / "ABIDE-1"
-    Bidsifier(root, keys={"T1w", "rest"}).run()
-    raw = root / "rawdata"
-    assert files(raw) == {
+    bx("abide1", "roast", tmp_path, "--keys", "T1w", "rest")
+    found = Layout.detect(root)
+    assert found.kind == layout
+    raw = found.raw
+    assert {p for p in files(raw) if not p.startswith((
+        "sourcedata/", ".brainspresso/"))} == {
         "sub-51456/anat/sub-51456_T1w.nii.gz",
         "sub-51456/anat/sub-51456_T1w.json",
         "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
@@ -176,11 +181,11 @@ def test_abide1_roast_from_s3_folder(tmp_path):
 # ----------------------------------------------------------------------
 
 def test_corr_harvest_s3(tmp_path):
-    from brainspresso.datasets.CoRR.download import download_s3
+    from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
-        src, keys={"raw", "meta"}, sites={"BMB", "IBA"}, subs=set(),
-        exclude_subs={3002}, if_exists="skip", packet="1MB", jobs=2,
+        src, keys={"raw", "meta"}, site={"BMB", "IBA"}, sub=set(),
+        exclude_sub={3002}, if_exists="skip", packet="1MB", jobs=2,
     )
     assert files(src) == {
         "CoRR_AggregatedPhenotypicData.csv",
@@ -191,10 +196,10 @@ def test_corr_harvest_s3(tmp_path):
 
 
 def test_corr_harvest_s3_raw_only(tmp_path):
-    from brainspresso.datasets.CoRR.download import download_s3
+    from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
-        src, keys={"raw"}, sites={"BMB"}, subs={3002}, exclude_subs=set(),
+        src, keys={"raw"}, site={"BMB"}, sub={3002}, exclude_sub=set(),
         if_exists="skip", packet="1MB", jobs=None,
     )
     assert files(src) == {
@@ -206,16 +211,21 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 #   ADHD-200
 # ----------------------------------------------------------------------
 
-def test_adhd200_harvest_s3(tmp_path):
-    from brainspresso.datasets.ADHD200.download import download
-    download(tmp_path, keys=["raw", "meta"], sites=["Brown"], jobs=2)
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_adhd200_harvest_s3(tmp_path, layout):
+    from brainspresso.bids.layout import Layout
+    bx("adhd200", "harvest", tmp_path, "--keys", "raw", "meta", "--site",
+       "Brown", "--jobs", 2, "--layout", layout)
     root = tmp_path / "ADHD-200"
-    assert files(root / "rawdata") == {
+    raw = Layout.detect(root).raw
+    assert raw == {"study": root / "rawbids", "flat": root}[layout]
+    assert {p for p in files(raw) if not p.startswith((
+        "sourcedata/", ".brainspresso/"))} == {
         "sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
         "sub-0026001/ses-1/func/sub-0026001_ses-1_task-rest_run-1_bold.nii.gz",
     }
     assert same(
-        root / "rawdata/sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
+        raw / "sub-0026001/ses-1/anat/sub-0026001_ses-1_T1w.nii.gz",
         "ADHD200/RawData/Brown/0026001/session_1/anat_1/mprage.nii.gz",
     )
     assert "Brown_phenotypic.csv" in files(root / "sourcedata")

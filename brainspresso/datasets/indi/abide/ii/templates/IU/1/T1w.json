@@ -1,0 +1,60 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "TrioTim",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP",
+    "MatrixCoilMode": "Auto (Triple)",
+    "CoilCombinationMethod": "Adaptive Combine",
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR",
+        "PFP"
+    ],
+    "SequenceName": "tfl",
+    "PulseSequenceDetails": "%SiemensSeq%\\tfl",
+    "MRAcquisitionType": "3D",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "SpoilingRFPhaseIncrement": 50.0,
+    "B0ShimmingTechnique": "Standard",
+    "ParallelReductionFactorInPlane": 2,
+    "ParallelReductionFactorOutOfPlane": 1,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "PartialFourier": 0.875,
+    "PartialFourierDirection": "PHASE",
+    "EchoTime": 0.0023,
+    "InversionTime": 1.0,
+    "SliceEncodingDirection": "i",
+    "DwellTime": 7.440000000000001e-06,
+    "FlipAngle": 8.0,
+    "RepetitionTime": 2.4,
+    "RepetitionTimeExcitation": 0.007,
+    "RepetitionTimePreparation": 2.4,
+    "Modality": "MR",
+    "ProtocolName": "tfl3d_nsIR_sag",
+    "SeriesDescription": "tfl3d_nsIR_sag",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "BaseResolution": 320,
+    "AcquisitionMatrixPE": 320,
+    "ReconMatrixPE": 320,
+    "PercentPhaseFOV": 100.0,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 280,
+    "PixelBandwidth": 210.0,
+    "SliceThickness": 0.7,
+    "NumberOfAverages": 1
+}

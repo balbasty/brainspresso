@@ -7,6 +7,8 @@ import asyncio
 import hashlib
 import json
 import socket
+import subprocess
+import sys
 import threading
 from collections import Counter
 from pathlib import Path
@@ -15,12 +17,26 @@ from xml.sax.saxutils import escape
 import pytest
 from aiohttp import web
 
-from brainspresso.bids.repair import repair, to_number
+from brainspresso.actions.runlock import held_states
+from brainspresso.bids.harvest import (
+    InlineEntry,
+    replace_generated,
+    sha256,
+    write_inline,
+)
+from brainspresso.bids.layout import Layout, SitesLayout
+from brainspresso.bids.repair import fix_intended_for, repair, to_number
 from brainspresso.bids.select import Selection
 from brainspresso.cli import app
-from brainspresso.datasets.INDI.engine import (
-    Site, complete_participants, relabel, reorder_entities,
+from brainspresso.datasets.base import Dataset
+from brainspresso.datasets.indi import harvest as indi
+from brainspresso.datasets.indi.engine import (
+    Site,
+    complete_participants,
+    relabel,
+    reorder_entities,
 )
+from brainspresso.datasets.indi.slim.dataset import SLIM
 from brainspresso.sources import fcp
 from brainspresso.sources.s3 import S3Bucket
 
@@ -202,15 +218,28 @@ def table(path: Path) -> list[list[str]]:
     return [line.split("\t") for line in path.read_text().splitlines()]
 
 
+def raw(root: Path, site: str | None = None) -> Path:
+    """Raw BIDS dataset of a harvested project (or of one of its sites)"""
+    layout = Layout.detect(root)
+    if site is not None:
+        assert isinstance(layout, SitesLayout)
+        layout = layout.children[site]
+    return layout.raw
+
+
 # ----------------------------------------------------------------------
 #   FCON1000
 # ----------------------------------------------------------------------
 
-def test_fcon1000_harvest(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM", "Atlanta",
-       "--folders", "derivatives")
+@pytest.mark.parametrize("layout", ["study", "flat"])
+def test_fcon1000_harvest(tmp_path, layout):
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM", "Atlanta",
+       "--folders", "derivatives", "--layout", layout)
     root = tmp_path / "FCON1000"
-    data = {p for p in files(root) if p.startswith("sub-")}
+    assert Layout.detect(root).kind == layout
+    bids = raw(root)
+    assert bids == {"study": root / "rawbids", "flat": root}[layout]
+    data = {p for p in files(bids) if p.startswith("sub-")}
     assert data == {
         # labels prefixed with site codes (sub-00448 exists at both)
         "sub-ICBM00448/anat/sub-ICBM00448_T1w.nii.gz",
@@ -228,31 +257,37 @@ def test_fcon1000_harvest(tmp_path):
         "sub-Atlanta06870/func/sub-Atlanta06870_task-rest_bold.nii.gz",
         "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json",
     }
-    src = root / "sub-ICBM11111/anat/sub-ICBM11111_T1w.nii.gz"
+    src = bids / "sub-ICBM11111/anat/sub-ICBM11111_T1w.nii.gz"
     assert src.read_bytes() == OBJECTS[
         f"{F}/ICBM/sourcedata/sub-11111/anat/sub-11111_T1wnii.gz"
     ]
     # Repetition times from the committed site table and exceptions
     sidecar = json.loads(
-        (root / "sub-ICBM00448/sub-ICBM00448_task-rest_bold.json").read_text()
+        (bids / "sub-ICBM00448/sub-ICBM00448_task-rest_bold.json").read_text()
     )
     assert sidecar == {"TaskName": "rest", "RepetitionTime": 2.0}
     sidecar = json.loads((
-        root / "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json"
+        bids / "sub-Atlanta00448/sub-Atlanta00448_task-rest_bold.json"
     ).read_text())
     assert sidecar["RepetitionTime"] == 2.02
     sidecar = json.loads((
-        root / "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json"
+        bids / "sub-Atlanta06870/sub-Atlanta06870_task-rest_bold.json"
     ).read_text())
     assert sidecar["RepetitionTime"] == 2.0
-    # derivatives
+    # derivatives, next to the raw dataset in both layouts
     assert "derivatives/fcon1000/sub-ICBM00448/anat/" \
         "sub-ICBM00448_desc-brain_T1w.nii.gz" in files(root)
     assert "derivatives/fcon1000/desc-brain_T1w.json" in files(root)
+    desc = json.loads(
+        (root / "derivatives/fcon1000/dataset_description.json").read_text()
+    )
+    url = {"study": "../../rawbids/", "flat": "../../"}[layout]
+    assert desc["SourceDatasets"][0] == {"URL": url}
+    assert desc["SourceDatasets"][1]["URL"].startswith("s3://fcp-indi/")
     # site notes
     assert "sourcedata/ICBM/README.txt" not in files(root)   # optional
     # participants (committed table), trimmed to what was downloaded
-    rows = table(root / "participants.tsv")
+    rows = table(bids / "participants.tsv")
     assert rows[0][:6] == ["participant_id", "site", "site_participant_id",
                            "age", "sex", "handedness"]
     assert sorted(r[0] for r in rows[1:]) == [
@@ -260,15 +295,40 @@ def test_fcon1000_harvest(tmp_path):
         "sub-ICBM11111",
     ]
     for name in ("README", "dataset_description.json", "participants.json"):
-        assert name in files(root)
+        assert name in files(bids)
+    assert json.loads(
+        (bids / "dataset_description.json").read_text()
+    )["DatasetType"] == "raw"
+    if layout == "study":
+        assert json.loads(
+            (root / "dataset_description.json").read_text()
+        )["DatasetType"] == "study"
+    # trimmed tables: the generated (complete) base in the state folder
+    assert Layout.detect(root).generated(bids / "participants.tsv").exists()
 
 
-def test_fcon1000_layout_sites(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+@pytest.mark.parametrize("site_layout,spelling", [
+    ("study", "sites:study"), ("flat", "sites:flat"), ("flat", "alias"),
+])
+def test_fcon1000_layout_sites(tmp_path, caplog, site_layout, spelling):
+    if spelling == "alias":         # deprecated (until the end of step 5)
+        layout = ["--layout", "sites", "--site-layout", site_layout]
+        bx("fcon1000", "harvest", tmp_path, *layout,
+           "--site", "ICBM", "Atlanta", "--folders", "derivatives")
+        assert "--site-layout is deprecated: use --layout sites:flat" \
+            in caplog.text
+    else:
+        bx("fcon1000", "harvest", tmp_path, "--layout", spelling,
+           "--site", "ICBM", "Atlanta", "--folders", "derivatives")
     root = tmp_path / "FCON1000"
+    layout = Layout.detect(root)
+    assert layout.to_manifest() == {
+        "layout": "sites",
+        "children": {"Atlanta": site_layout, "ICBM": site_layout},
+    }
+    icbm = raw(root, "ICBM")
     # one BIDS dataset per site, with the labels of the bucket
-    assert {p for p in files(root / "ICBM") if p.startswith("sub-")} == {
+    assert {p for p in files(icbm) if p.startswith("sub-")} == {
         "sub-00448/anat/sub-00448_T1w.nii.gz",
         "sub-00448/func/sub-00448_task-rest_run-1_bold.nii.gz",
         "sub-00448/func/sub-00448_task-rest_run-2_bold.nii.gz",
@@ -278,7 +338,7 @@ def test_fcon1000_layout_sites(tmp_path):
     assert "derivatives/fcon1000/sub-00448/anat/" \
         "sub-00448_desc-brain_T1w.nii.gz" in files(root / "ICBM")
     # site-level sidecar, and a subject sidecar where the TR differs
-    atlanta = root / "Atlanta"
+    atlanta = raw(root, "Atlanta")
     assert json.loads((atlanta / "task-rest_bold.json").read_text()) == {
         "TaskName": "rest", "RepetitionTime": 2.02,
     }
@@ -294,7 +354,13 @@ def test_fcon1000_layout_sites(tmp_path):
     assert set(columns) == {"age", "sex", "handedness"}
     desc = json.loads((atlanta / "dataset_description.json").read_text())
     assert desc["Name"].endswith(": Atlanta")
-    assert "../README" in (atlanta / "README").read_text()
+    parent = {"study": "../../README", "flat": "../README"}[site_layout]
+    assert parent in (atlanta / "README").read_text()
+    assert (atlanta / parent).exists()
+    # one state folder per site, and one for the parent
+    for site in ("ICBM", "Atlanta"):
+        assert (root / site / ".brainspresso/manifest.json").exists()
+    assert (root / ".brainspresso/manifest.json").exists()
     # parent folder: README and merged table of what was downloaded
     assert {"README", "participants.tsv", "participants.json"} <= {
         p.name for p in root.iterdir() if p.is_file()
@@ -310,42 +376,114 @@ def test_fcon1000_layout_sites(tmp_path):
 def test_fcon1000_layout_sites_labels(tmp_path):
     # labels of the site datasets and merged labels are both accepted
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
+       "--site", "ICBM", "Atlanta", "--sub", "00448", "ICBM11111")
     root = tmp_path / "FCON1000"
-    assert sorted(p.name for p in root.glob("*/sub-*")) == [
-        "sub-00448", "sub-00448", "sub-11111",
-    ]
-    assert not (root / "Atlanta" / "sub-06870").exists()
+    assert sorted(
+        p.name for site in ("ICBM", "Atlanta")
+        for p in raw(root, site).glob("sub-*")
+    ) == ["sub-00448", "sub-00448", "sub-11111"]
+    assert not (raw(root, "Atlanta") / "sub-06870").exists()
+
+
+def test_merged_table_of_a_sites_parent_follows_every_harvest(tmp_path):
+    # (like a trimmed table: rewritten under the default `skip`)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM", "Atlanta", "--sub", "00448")
+    root = tmp_path / "FCON1000"
+    rows = table(root / "participants.tsv")
+    assert sorted(r[0] for r in rows[1:]) == [
+        "sub-Atlanta00448", "sub-ICBM00448"]
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM", "Atlanta", "--sub", "00448", "ICBM11111")
+    rows = table(root / "participants.tsv")
+    assert sorted(r[0] for r in rows[1:]) == [
+        "sub-Atlanta00448", "sub-ICBM00448", "sub-ICBM11111"]
+
+
+def test_fcon1000_layout_sites_skipped(tmp_path):
+    # a site without selected files is not recorded as a site
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM", "Atlanta", "--sub", "11111")
+    root = tmp_path / "FCON1000"
+    assert set(Layout.detect(root).children) == {"ICBM"}
+    assert not (root / "Atlanta").exists()
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "11111", "--yes")
+    assert not (raw(root, "ICBM") / "sub-11111").exists()
+
+
+def test_fcon1000_layout_conflict(tmp_path, capsys):
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448")
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "ICBM",
+             "--layout", "flat"])
+    assert "conflicts with --layout flat" in capsys.readouterr().err
 
 
 def test_fcon1000_compost(tmp_path):
     # merged layout: one dataset
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM")
     root = tmp_path / "FCON1000"
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "ICBM11111",
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "ICBM11111",
        "--yes")
-    assert not (root / "sub-ICBM11111").exists()
-    assert (root / "sub-ICBM00448").is_dir()
-    assert [r[0] for r in table(root / "participants.tsv")[1:]] == [
+    bids = raw(root)
+    assert not (bids / "sub-ICBM11111").exists()
+    assert (bids / "sub-ICBM00448").is_dir()
+    assert [r[0] for r in table(bids / "participants.tsv")[1:]] == [
         "sub-ICBM00448"
     ]
+
+
+def test_fcon1000_site_layout_alone(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--site-layout", "flat"])
+    assert "--layout sites:flat" in capsys.readouterr().err
+
+
+def test_fcon1000_zero_padded_labels(tmp_path):
+    # labels are verbatim (no width): `00448` is not `448`
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites:study",
+       "--site", "ICBM", "--sub", "00448")
+    icbm = raw(tmp_path / "FCON1000", "ICBM")
+    assert {p.name for p in icbm.glob("sub-*")} == {"sub-00448"}
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "00448", "--yes")
+    assert not (icbm / "sub-00448").exists()
+
+
+def test_fcon1000_compost_sites_flag(tmp_path, capsys):
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM")
+    # --site only applies to a dataset with one dataset per site
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "compost", str(tmp_path), "--site", "ICBM",
+             "--exclude-sub", "ICBM11111", "--yes"])
+    assert "--site/--exclude-site only apply" in capsys.readouterr().err
+
+
+def test_fcon1000_unmatched_subjects(tmp_path, capsys, caplog):
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448", "ICBM99999", "--dry-run")
+    assert "ICBM99999" in caplog.text
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "ICBM",
+             "--sub", "ICBM99999", "--dry-run"])
+    assert "No selected subject" in capsys.readouterr().err
 
 
 def test_fcon1000_compost_layout_sites(tmp_path):
     # sites layout: every site dataset (labels of the site)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta")
+       "--site", "ICBM", "Atlanta")
     root = tmp_path / "FCON1000"
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
-    assert not (root / "ICBM" / "sub-00448").exists()
-    assert not (root / "Atlanta" / "sub-00448").exists()
-    assert (root / "ICBM" / "sub-11111").is_dir()
-    assert (root / "Atlanta" / "sub-06870").is_dir()
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "00448", "--yes")
+    assert not (raw(root, "ICBM") / "sub-00448").exists()
+    assert not (raw(root, "Atlanta") / "sub-00448").exists()
+    assert (raw(root, "ICBM") / "sub-11111").is_dir()
+    assert (raw(root, "Atlanta") / "sub-06870").is_dir()
 
 
 def test_fcon1000_prunes_listing(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
-       "--subs", "ICBM00448")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448")
     root = tmp_path / "FCON1000"
     assert not any("ICBM11111" in p for p in files(root))
     # the unselected subject is never listed, nor other sites
@@ -356,7 +494,7 @@ def test_fcon1000_prunes_listing(tmp_path):
 
 
 def test_fcon1000_where(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
        "--where", "site==ICBM", "age>=30", "--dry-run")
     # nothing written on a dry run
     assert not (tmp_path / "FCON1000").exists()
@@ -364,7 +502,7 @@ def test_fcon1000_where(tmp_path):
 
 def test_fcon1000_unknown_site(tmp_path, capsys):
     with pytest.raises(SystemExit):
-        app(["fcon1000", "harvest", str(tmp_path), "--sites", "Nowhere"])
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "Nowhere"])
     assert "Unknown sites" in capsys.readouterr().err
 
 
@@ -374,7 +512,7 @@ def test_fcon1000_unknown_site(tmp_path, capsys):
 
 def test_acpi_harvest(tmp_path):
     bx("acpi", "harvest", tmp_path)
-    root = tmp_path / "ACPI"
+    root = raw(tmp_path / "ACPI")
     out = files(root)
     # site-level sidecars are moved to the subjects of the site
     assert "sub-0028631/sub-0028631_T1w.json" in out
@@ -411,14 +549,14 @@ def test_acpi_harvest(tmp_path):
 def test_acpi_layout_sites(tmp_path):
     bx("acpi", "harvest", tmp_path, "--layout", "sites")
     root = tmp_path / "ACPI"
+    du_1 = raw(root, "du_1")
     # site-level sidecars stay at the site level
-    assert (root / "du_1" / "T1w.json").exists()
-    assert not (root / "du_1" / "sub-0028631" / "sub-0028631_T1w.json"
-                ).exists()
-    assert table(root / "du_1" / "participants.tsv")[1][:4] == [
+    assert (du_1 / "T1w.json").exists()
+    assert not (du_1 / "sub-0028631" / "sub-0028631_T1w.json").exists()
+    assert table(du_1 / "participants.tsv")[1][:4] == [
         "sub-0028631", "22", "M", "R",
     ]
-    assert (root / "nyu_1" / "sub-0028160").is_dir()
+    assert (raw(root, "nyu_1") / "sub-0028160").is_dir()
     rows = table(root / "participants.tsv")
     assert rows[0][:2] == ["participant_id", "site"]
 
@@ -429,7 +567,7 @@ def test_acpi_layout_sites(tmp_path):
 
 def test_slim_harvest(tmp_path):
     bx("slim", "harvest", tmp_path)
-    root = tmp_path / "SLIM"
+    root = raw(tmp_path / "SLIM")
     assert table(root / "participants.tsv") == [
         ["participant_id", "sex", "age"],
         ["sub-25629", "F", "18"],
@@ -441,14 +579,163 @@ def test_slim_harvest(tmp_path):
         ["ses-1", "2011-11-19", "18"],
         ["ses-2", "2013-05-04", "n/a"],
     ]
-    assert json.loads((root / "task-rest_bold.json").read_text()) == {
-        "TaskName": "rest", "RepetitionTime": 2.0,
-    }
+    # generated from the scanner printout (printouts/SLIM/sidecars.toml)
+    sidecar = json.loads((root / "task-rest_bold.json").read_text())
+    assert sidecar["TaskName"] == "rest"
+    assert sidecar["RepetitionTime"] == 2.0
+    assert sidecar["ProtocolName"] == "rest"
+
+
+def test_fill_in_template_never_replaces_the_bucket(
+    tmp_path, monkeypatch, caplog
+):
+    """A fill-in template (`_fill.json`) is merged key by key into a
+    hosted file at the same path (its keys win); templates without the
+    flag still override."""
+    hosted = b'{"TaskName": "rest", "RepetitionTime": 2.5}\n'
+    monkeypatch.setitem(OBJECTS, f"{S}/RawData/task-rest_bold.json", hosted)
+    fill = [t.id for t in SLIM().fill_templates()]
+    assert "task-rest_bold.json" in fill
+    assert "sessions.json" not in fill
+    bx("slim", "harvest", tmp_path)
+    root = raw(tmp_path / "SLIM")
+    bold = json.loads((root / "task-rest_bold.json").read_text())
+    assert bold["RepetitionTime"] == 2.5            # the bucket's
+    assert bold["Manufacturer"] == "Siemens"        # filled in
+    assert list(bold)[:2] == ["TaskName", "RepetitionTime"]
+    assert manifest_file(tmp_path / "SLIM", root / "task-rest_bold.json")[
+        "fill"] == ["task-rest_bold.json"]
+    # other fill-in templates (nothing hosted) and plain templates are used
+    t1w = json.loads((root / "T1w.json").read_text())
+    assert t1w["ProtocolName"] == "t1_mpr_sag_p2_iso"
+    assert (root / "sessions.json").exists()
+    assert not (root / "_fill.json").exists()
+
+
+def test_generated_templates_refreshed_unless_edited(tmp_path, caplog):
+    """A re-harvest leaves a template it generated alone (pure skip);
+    `roast --if-exists update` refreshes it (known earlier version, or
+    hash in the manifest) and keeps an edited one, `harvest --if-exists
+    different` replaces it, edits included."""
+    bx("slim", "harvest", tmp_path)
+    path = raw(tmp_path / "SLIM") / "task-rest_bold.json"
+    current = path.read_bytes()
+    # the hand-written template of earlier versions
+    older = b'{\n  "TaskName": "rest",\n  "RepetitionTime": 2.0\n}\n'
+    path.write_bytes(older)
+    caplog.clear()
+    bx("slim", "harvest", tmp_path)
+    assert path.read_bytes() == older
+    assert not [r for r in caplog.records if r.levelname == "WARNING"
+                and path.name in r.getMessage()]
+    bx("slim", "roast", tmp_path, "--if-exists", "update")
+    assert path.read_bytes() == current
+    # edited by the user: kept, with a warning, at every later update
+    # (the manifest never takes the edit for a generated file)
+    edited = b'{"TaskName": "rest"}\n'
+    path.write_bytes(edited)
+    for _ in range(2):
+        caplog.clear()
+        bx("slim", "harvest", tmp_path)
+        assert path.read_bytes() == edited
+        assert "was edited" not in caplog.text
+        bx("slim", "roast", tmp_path, "--if-exists", "update")
+        assert path.read_bytes() == edited
+        assert "was edited since brainspresso wrote it: kept" in caplog.text
+        assert manifest_file(tmp_path / "SLIM", path)["sha256"] \
+            == hashlib.sha256(current).hexdigest()
+    bx("slim", "harvest", tmp_path, "--if-exists", "different")
+    assert path.read_bytes() == current
+
+
+def manifest_file(root: Path, path: Path) -> dict:
+    """Manifest record of a local file."""
+    layout = Layout.detect(root)
+    manifest = json.loads((Path(layout.state) / "manifest.json").read_text())
+    return manifest["files"][path.relative_to(layout.root).as_posix()]
+
+
+@pytest.mark.parametrize("edited", [False, True])
+def test_generated_file_now_in_the_bucket(
+    tmp_path, monkeypatch, caplog, edited
+):
+    """A file generated by an earlier harvest (a fill-in template) whose
+    path is now hosted: replaced by the bucket's (filled in) if unedited;
+    else kept, with a warning, its hash not taken for brainspresso's."""
+    bx("slim", "harvest", tmp_path)
+    path = raw(tmp_path / "SLIM") / "task-rest_bold.json"
+    if edited:
+        path.write_bytes(b'{"TaskName": "mine"}\n')
+    before = path.read_bytes()
+    hosted = b'{"TaskName": "rest", "RepetitionTime": 2.5}\n'
+    monkeypatch.setitem(OBJECTS, f"{S}/RawData/task-rest_bold.json", hosted)
+    caplog.clear()
+    bx("slim", "harvest", tmp_path)
+    record = manifest_file(tmp_path / "SLIM", path)
+    assert record["origin"] == "roasted"
+    # (skip: the visible file is left alone, its pristine copy fetched)
+    assert path.read_bytes() == before and "was edited" not in caplog.text
+    bx("slim", "roast", tmp_path, "--if-exists", "update")
+    record = manifest_file(tmp_path / "SLIM", path)
+    if edited:
+        assert path.read_bytes() == before
+        assert "was edited since brainspresso wrote it: kept" in caplog.text
+        assert record["sha256"] != sha256(before)
+    else:
+        bold = json.loads(path.read_text())
+        assert bold["RepetitionTime"] == 2.5 and "Manufacturer" in bold
+        assert record["sha256"] == sha256(path.read_bytes())
+
+
+def test_write_inline_refresh(tmp_path, caplog, monkeypatch):
+    dst = tmp_path / "x.json"
+    entry = InlineEntry("x.json", b"new", previous=(sha256(b"old"),))
+    # skip: an existing file is left alone, not even read
+    dst.write_bytes(b"old")
+    real = Path.read_bytes
+
+    def read_bytes(self):
+        assert self != dst, "skip reads the file"
+        return real(self)
+
+    with monkeypatch.context() as m:
+        m.setattr(Path, "read_bytes", read_bytes)
+        assert not write_inline(entry, dst, "skip")
+    assert dst.read_bytes() == b"old" and "WARNING" not in caplog.text
+    # (absent: written)
+    absent = tmp_path / "y.json"
+    assert write_inline(entry, absent, "skip")
+    assert absent.read_bytes() == b"new"
+    # other modes: written if the content differs
+    for mode in ("different", "overwrite", "refresh"):
+        dst.write_bytes(b"edited")
+        assert write_inline(entry, dst, mode)
+        assert dst.read_bytes() == b"new"
+        assert not write_inline(entry, dst, mode)
+    dst.write_bytes(b"edited")
+    with pytest.raises(FileExistsError):
+        write_inline(entry, dst, "error")
+    assert not write_inline(InlineEntry("x.json", b"edited"), dst, "error")
+
+
+def test_replace_generated_under_skip(tmp_path, caplog):
+    dst = tmp_path / "x.json"
+    dst.write_bytes(b"generated")
+    # skip: left alone (not downloaded), silently
+    assert not replace_generated(dst, sha256(b"generated"), "skip")
+    assert dst.exists() and "WARNING" not in caplog.text
+    # other modes: removed if unedited, so that the remote one is fetched
+    assert replace_generated(dst, sha256(b"generated"), "different")
+    assert not dst.exists()
+    dst.write_bytes(b"edited")
+    assert not replace_generated(dst, sha256(b"generated"), "different")
+    assert dst.exists() and "edited" in caplog.text
+    assert replace_generated(dst, sha256(b"generated"), "overwrite")
 
 
 def test_slim_sessions_trimmed(tmp_path):
-    bx("slim", "harvest", tmp_path, "--sessions", "1")
-    root = tmp_path / "SLIM"
+    bx("slim", "harvest", tmp_path, "--ses", "1")
+    root = raw(tmp_path / "SLIM")
     assert [r[0] for r in table(
         root / "sub-25629/sub-25629_sessions.tsv"
     )] == ["session_id", "ses-1"]
@@ -487,7 +774,7 @@ def test_complete_participants():
 
 
 def test_selection_filters_derivatives():
-    sel = Selection(subs=["01"], sessions=["a"], folders=["derivatives"])
+    sel = Selection(sub=["01"], ses=["a"], folders=["derivatives"])
     paths = [
         "derivatives/x/dataset_description.json",
         "derivatives/x/sub-01/ses-a/anat/sub-01_ses-a_desc-brain_T1w.nii.gz",
@@ -518,7 +805,8 @@ def test_repair_json(tmp_path):
     desc = tmp_path / "dataset_description.json"
     desc.write_text('{"Name": "X",\xa0"BIDSVersion": "1.0.1",'
                     ' "Authors": ["A\tB"], "Funding": "grant",'
-                    ' "Acknowledgements": ["C", "D"]}')
+                    ' "Acknowledgements": ["C", "D"]}',
+                    encoding="utf-8")          # (BIDS JSON is UTF-8)
     mp2rage = tmp_path / "sub-1_inv-1_MP2RAGE.json"
     mp2rage.write_text('{"RepetitionTime": 5}')
     magnitude = tmp_path / "sub-1_magnitude1.json"
@@ -548,7 +836,6 @@ def test_repair_json(tmp_path):
 
 
 def test_intended_for(tmp_path):
-    from brainspresso.bids.repair import fix_intended_for
     sub = tmp_path / "sub-1"
     for name in ("func/sub-1_task-rest_bold.nii.gz",
                  "dwi/sub-1_dwi.nii.gz", "dwi/sub-1_acq-TRACEW_dwi.nii.gz",
@@ -600,3 +887,130 @@ def test_repair_tsv(tmp_path):
     assert sessions.read_text() == (
         "session_id\tid\tage\nses-BAS1\tA\t59\nses-BAS2\tA\t64\n"
     )
+
+
+@pytest.mark.parametrize("option", ["--site", "--exclude-site"])
+def test_fcon1000_compost_some_sites(tmp_path, option):
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM", "Atlanta")
+    root = tmp_path / "FCON1000"
+    site = "ICBM" if option == "--site" else "Atlanta"
+    bx("fcon1000", "compost", tmp_path, option, site,
+       "--exclude-sub", "00448", "--yes")
+    # only ICBM is composted
+    assert not (raw(root, "ICBM") / "sub-00448").exists()
+    assert (raw(root, "Atlanta") / "sub-00448").is_dir()
+
+
+def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
+    # a selection that matches nothing is refused before any download
+    with pytest.raises(SystemExit):
+        app(["fcon1000", "harvest", str(tmp_path), "--layout", "sites",
+             "--site", "ICBM", "--sub", "99999"])
+    assert "No selected subject" in capsys.readouterr().err
+    root = tmp_path / "FCON1000"
+    assert files(root) == set()     # (only the state folder, if any)
+    assert not (root / "README").exists()
+
+
+def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
+    seen = []
+    original = indi.harvest_hosted       # (each site: hybrid placement)
+
+    def spy(entries, layout, *args, **kwargs):
+        seen.append((Path(layout.state), list(held_states())))
+        return original(entries, layout, *args, **kwargs)
+
+    monkeypatch.setattr(indi, "harvest_hosted", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM")
+    site, held = seen[0]
+    assert site == tmp_path / "FCON1000" / "ICBM" / ".brainspresso"
+    assert str(site) in held
+    assert str(tmp_path / "FCON1000" / ".brainspresso") in held
+
+
+HOLD = """
+import sys, time
+from brainspresso.actions.runlock import run_lock
+with run_lock(sys.argv[1:], "harvest"):
+    print("ready", flush=True)
+    time.sleep(60)
+"""
+
+
+def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
+    # a harvest of the parent holds the parent and its sites (shared), so
+    # a compost of one site (`--out <DS>/<site>`) fails
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM")
+    root = tmp_path / "FCON1000"
+    parents, targets = Dataset.lock_states(Layout.detect(root))
+    proc = subprocess.Popen(
+        [sys.executable, "-c", HOLD, *map(str, parents + targets)],
+        stdout=subprocess.PIPE, text=True, cwd=Path(__file__).parents[1])
+    try:
+        assert proc.stdout.readline().strip() == "ready"
+        with pytest.raises(SystemExit):
+            app(["fcon1000", "compost", "--out", str(root / "ICBM"),
+                 "--exclude-sub", "11111", "--yes"])
+        assert "harvest running" in capsys.readouterr().err
+    finally:
+        proc.kill()
+        proc.wait()
+    assert (raw(root, "ICBM") / "sub-11111").is_dir()
+
+
+@pytest.mark.parametrize("flag", ["--lock-wait", "--wait"])
+def test_fcon1000_site_lock_waits(tmp_path, monkeypatch, caplog, flag):
+    # the run lock of a new site takes the `--lock-wait` of the command
+    # (or of the deprecated `--wait`, logged)
+    waits = []
+    original = indi.run_lock
+
+    def spy(states, command, **kwargs):
+        waits.append(kwargs.get("wait"))
+        return original(states, command, **kwargs)
+
+    monkeypatch.setattr(indi, "run_lock", spy)
+    bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
+       "--site", "ICBM", flag, 3)
+    assert waits == [3]
+    deprecated = "--wait is deprecated: use --lock-wait"
+    assert (deprecated in caplog.text) is (flag == "--wait")
+    assert caplog.text.count(deprecated) <= 1
+
+
+def test_repair_of_sidecars_that_are_not_utf8(tmp_path, caplog):
+    """Latin-1 sidecars: skipped with a warning, never a crash."""
+    sub = tmp_path / "sub-1" / "fmap"
+    sub.mkdir(parents=True)
+    # a phase difference whose magnitude is not UTF-8: EchoTime still read
+    magnitude = sub / "sub-1_magnitude1.json"
+    magnitude.write_bytes(b'{"EchoTime": 0.00492, "Note": "Z\xfcrich"}')
+    phasediff = sub / "sub-1_phasediff.json"
+    phasediff.write_text('{"EchoTime": 0.00738}', encoding="utf-8")
+    repair([phasediff])
+    assert json.loads(phasediff.read_text(encoding="utf-8")) == {
+        "EchoTime": 0.00738, "EchoTime1": 0.00492, "EchoTime2": 0.00738,
+    }
+    # IntendedFor of a sidecar that is not UTF-8: left as it is
+    epi = sub / "sub-1_dir-AP_epi.json"
+    blob = b'{"IntendedFor": "dwi", "Note": "Z\xfcrich"}'
+    epi.write_bytes(blob)
+    assert not fix_intended_for(epi, tmp_path)
+    assert epi.read_bytes() == blob
+    assert "not valid UTF-8" in caplog.text
+    # sidecars and tables that would be repaired are left byte for byte
+    # (never rewritten with replacement characters)
+    bad = sub / "sub-1_acq-x_T1w.json"
+    bad_blob = b'{"EchoTime": "0.003", "Note": "Z\xfcrich",}'
+    bad.write_bytes(bad_blob)
+    table = tmp_path / "participants.tsv"
+    table_blob = b"participant_id\tsite\n1\tZ\xfcrich\n"
+    table.write_bytes(table_blob)
+    caplog.clear()
+    assert repair([bad, table]) == []
+    assert bad.read_bytes() == bad_blob
+    assert table.read_bytes() == table_blob
+    assert caplog.text.count("not valid UTF-8") == 2

@@ -1,3 +1,4 @@
+"""Constants of the downloaders (chunk size, timeouts, retries)."""
 import aiohttp
 
 CHUNK_SIZE: int = 1024 * 1024 * 8

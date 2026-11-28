@@ -7,58 +7,81 @@ Two things can be composted:
    were downloaded by `harvest` and converted by `roast`. Once the
    dataset is roasted, they are usually only taking up space.
    Raw files unpacked under `derivatives/<pipeline>/sourcedata/` while
-   roasting (e.g. FreeSurfer outputs) can be composted too.
+   roasting (e.g. FreeSurfer outputs) can be composted too. The
+   pristine metadata of a dataset hosted as BIDS (the copies in
+   `sourcedata/<folder>/` that its metadata roast reads, `roast.hosted`)
+   is kept unless asked for explicitly (`--sourcedata`): the next
+   harvest then fetches it again.
 
 2. **BIDS data** that falls outside a selection. The filters are the
    same as for `harvest`, and describe what is *kept*: composting with
-   `subs=["01", "02"]` leaves exactly what harvesting with the same
+   `sub=["01", "02"]` leaves exactly what harvesting with the same
    filters would have downloaded. Metadata that still applies to a kept
    data file (BIDS inheritance principle) is kept, dataset-level files
-   are never touched, and participants/sessions/scans tables are
-   rewritten so that they only list what is left.
+   are never touched, and participants/sessions/scans tables (and the
+   phenotype tables with a pristine copy) are rewritten so that they
+   only list what is left.
 
-The BIDS tree is `<dataset>/rawdata/` if it exists (datasets roasted by
-brainspresso), and `<dataset>/` otherwise (BIDS datasets harvested as is,
-e.g. OpenNeuro).
+Paths come from the dataset `Layout` (`bids.layout`): the BIDS tree is
+`layout.raw` (`<dataset>/rawbids/` for a study, `<dataset>/` for a flat
+dataset), source data is `layout.source`, derivatives are
+`layout.list_derivatives()`. A "sites" layout is composted site by site
+(see `datasets.compost`).
 """
 from __future__ import annotations
 
-import datetime
 import fnmatch
-import json
 import os
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Callable, Iterable
 
 from humanize import naturalsize
 
-from brainspresso.bids.select import BidsName, Selection, TOP_LEVEL_FILES
-from brainspresso.bids.tables import is_trimmable, query_participants
-from brainspresso.bids.tables import trim_tables
+from brainspresso.bids.harvest import _filters, record_run, update_files
+from brainspresso.bids.layout import (
+    Layout,
+    SitesLayout,
+    read_manifest,
+    resolve_layout,
+)
+from brainspresso.bids.select import TOP_LEVEL_FILES, BidsName, Selection
+from brainspresso.bids.tables import (
+    is_trimmable,
+    query_participants,
+    trim_tables,
+)
+from brainspresso.errors import DatasetNotFound, UsageError
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
-
-STATE_DIR = ".brainspresso"
 
 
 @dataclass
 class CompostPlan:
-    """Files that will be deleted, relative to the dataset root"""
+    """Files that will be deleted, relative to the dataset root."""
+
     root: Path
     bids: Path
+    layout: Layout | None = None
     sourcedata: list[str] = field(default_factory=list)
     data: list[str] = field(default_factory=list)
     derivatives: list[str] = field(default_factory=list)
     kept_subjects: set[str] | None = None
+    pristine: list[str] = field(default_factory=list)
+    #: manifest entries of selected files never fetched (`--sidecars
+    #: only`) that the filters drop: forgotten, nothing to delete
+    forgotten: list[str] = field(default_factory=list)
 
     @property
     def files(self) -> list[str]:
+        """Every file to delete."""
         return [*self.sourcedata, *self.data, *self.derivatives]
 
     def size(self, files: Iterable[str] | None = None) -> int:
+        """Return the size of files (default: all), in bytes."""
         files = self.files if files is None else files
         total = 0
         for f in files:
@@ -69,6 +92,7 @@ class CompostPlan:
         return total
 
     def summary(self) -> str:
+        """Describe what would be deleted."""
         lines = []
         for label, files in (
             ("sourcedata", self.sourcedata),
@@ -80,8 +104,14 @@ class CompostPlan:
                     f"{label:>12}: {len(files)} files, "
                     f"{naturalsize(self.size(files))}"
                 )
-        if not lines:
-            return "Nothing to compost."
+        if self.pristine:
+            lines.append(
+                f"{'kept':>12}: {len(self.pristine)} pristine metadata "
+                f"files of the hosted dataset (--sourcedata to delete "
+                f"them; the next harvest fetches them again)"
+            )
+        if not self.files:
+            return "\n".join(["Nothing to compost.", *lines])
         lines.append(
             f"{'total':>12}: {len(self.files)} files, "
             f"{naturalsize(self.size())}"
@@ -94,15 +124,8 @@ class CompostPlan:
 # ----------------------------------------------------------------------
 
 
-def bids_tree(root: Path) -> Path:
-    """BIDS tree of a local dataset (`rawdata/` if it exists)"""
-    root = Path(root)
-    raw = root / "rawdata"
-    return raw if raw.is_dir() else root
-
-
 def has_subjects(path: Path) -> bool:
-    """Whether a folder contains at least one `sub-*` folder"""
+    """Whether a folder contains at least one `sub-*` folder."""
     return Path(path).is_dir() and any(
         p.is_dir() for p in Path(path).glob("sub-*")
     )
@@ -110,8 +133,10 @@ def has_subjects(path: Path) -> bool:
 
 def list_files(folder: Path, relative_to: Path) -> list[str]:
     """
-    List all files (and symlinks) under a folder, without following
-    symlinks, as POSIX paths relative to `relative_to`.
+    List all files (and symlinks) under a folder.
+
+    Symlinks are not followed; paths are POSIX, relative to
+    `relative_to`.
     """
     folder, relative_to = Path(folder), Path(relative_to)
     if not folder.is_dir():
@@ -134,71 +159,120 @@ def _relative(path: Path, root: Path) -> str:
     return Path(path).relative_to(root).as_posix()
 
 
-def find_participants(root: Path, bids: Path) -> Path | None:
-    """Find the participants table (original copy first, if trimmed)"""
-    for folder in (bids, root):
-        for candidate in (
-            folder / STATE_DIR / "orig" / "participants.tsv",
-            folder / "participants.tsv",
-        ):
-            if candidate.exists():
-                return candidate
+def find_participants(layout: Layout) -> Path | None:
+    """Find the participants table (original copy first, if trimmed)."""
+    table = layout.raw / "participants.tsv"
+    for candidate in (layout.original(table), table):
+        if candidate.exists():
+            return candidate
     return None
 
 
 def restrict_participants(
-    root: Path, bids: Path, selection: Selection, where: Iterable[str]
+    layout: Layout, selection: Selection, where: Iterable[str]
 ) -> Selection:
-    """Apply participant queries (`age>=60`...) on the local table"""
+    """Apply participant queries (`age>=60`...) on the local table."""
     where = list(where or [])
     if not where:
         return selection
-    table = find_participants(root, bids)
+    table = find_participants(layout)
     if table is None:
-        raise ValueError("--where requires a participants.tsv file")
-    matching = query_participants(table.read_text(), where)
-    if selection.subs:
-        matching &= set(selection.subs)
+        raise UsageError("--where requires a participants.tsv file")
+    matching = query_participants(table.read_text(encoding="utf-8"), where)
+    if selection.sub:
+        matching &= set(selection.sub)
     lg.info(f"{len(matching)} participants match {where}")
-    selection.subs = matching or {"__none__"}
+    selection.sub = matching or {"__none__"}
     return selection
 
 
 def is_filtering(selection: Selection | None, where=()) -> bool:
-    """Whether a selection (or queries) actually filters something"""
+    """Whether a selection (or queries) actually filters something."""
     if where:
         return True
     if selection is None:
         return False
     return any((
-        selection.subs, selection.exclude_subs, selection.sessions,
-        selection.datatypes, selection.suffixes, selection.tasks,
-        selection.include, selection.exclude,
+        selection.sub, selection.exclude_sub, selection.ses,
+        selection.datatype, selection.suffix, selection.task,
+        selection.entities, selection.include, selection.exclude,
     ))
 
 
 def _bids_candidates(paths: Iterable[str]) -> list[str]:
     """
-    Files that BIDS filtering may delete: everything under `sub-*/`, and
-    top-level sidecars (`T1w.json`, `task-rest_bold.json`), which are
-    deleted once they do not apply to any data file anymore.
+    Files that BIDS filtering may delete.
+
+    Everything under `sub-*/`, and top-level sidecars (`T1w.json`,
+    `task-rest_bold.json`), which are deleted once they do not apply to
+    any data file anymore.
     """
     out = []
     for path in paths:
         parts = PurePosixPath(path).parts
-        if any(p.startswith(".") for p in parts):
+        name = BidsName.parse(path)
+        # hidden files, but those of recordings (`*.ome.zarr/.zattrs`)
+        unit = PurePosixPath(name.unit or path)
+        if any(p.startswith(".") for p in unit.parts):
             continue
         if parts[0].startswith("sub-") and len(parts) > 1:
             out.append(path)
         elif len(parts) == 1 and path not in TOP_LEVEL_FILES:
-            name = BidsName.parse(path)
             if name.is_metadata and name.suffix:
                 out.append(path)
     return out
 
 
+def pristine_files(layout: Layout) -> set[str]:
+    """
+    Pristine copies of the metadata of a hosted dataset.
+
+    The `source` of its roasted files (`roast.hosted`), from the
+    manifest, relative to `layout.root`.
+
+    Parameters
+    ----------
+    layout : Layout
+
+    Returns
+    -------
+    set[str]
+    """
+    manifest = read_manifest(layout.state) or {}
+    return {
+        entry["source"] for entry in (manifest.get("files") or {}).values()
+        if isinstance(entry, dict) and entry.get("origin") == "roasted"
+        and isinstance(entry.get("source"), str)
+    }
+
+
+def unfetched_files(layout: Layout) -> list[str]:
+    """
+    Files of a hosted dataset selected but never fetched.
+
+    Data files of a harvest with `--sidecars only`, recorded with
+    `"fetched": false`: they count as present when tables and
+    `IntendedFor` are trimmed.
+
+    Parameters
+    ----------
+    layout : Layout
+
+    Returns
+    -------
+    list[str]
+        Paths relative to `layout.root`
+    """
+    manifest = read_manifest(layout.state) or {}
+    files = manifest.get("files")
+    if not isinstance(files, dict):
+        return []
+    return sorted(k for k, v in files.items()
+                  if isinstance(v, dict) and v.get("fetched") is False)
+
+
 def _filter_tree(tree: Path, selection: Selection) -> list[str]:
-    """Files of a BIDS tree that fall outside a selection"""
+    """Files of a BIDS tree that fall outside a selection."""
     paths = list_files(tree, tree)
     keep = set(selection.select(paths))
     return [p for p in _bids_candidates(paths) if p not in keep]
@@ -210,7 +284,7 @@ def _filter_tree(tree: Path, selection: Selection) -> list[str]:
 
 
 def plan_compost(
-    root: Path,
+    root: Path | Layout,
     *,
     sourcedata: bool = True,
     nested: bool = False,
@@ -219,14 +293,16 @@ def plan_compost(
     where: Iterable[str] = (),
     derivatives: bool = False,
     force: bool = False,
+    layout: str | None = None,
+    pristine: bool = False,
 ) -> CompostPlan:
     """
     Compute the list of files to delete (nothing is deleted).
 
     Parameters
     ----------
-    root : Path
-        Dataset root (e.g. `<path>/IXI`)
+    root : Path | Layout
+        Dataset root (e.g. `<path>/IXI`), or its layout
     sourcedata : bool
         Compost `sourcedata/`
     nested : bool
@@ -242,25 +318,39 @@ def plan_compost(
         Apply subject/session filters to `derivatives/*/` too
     force : bool
         Compost source data even if nothing seems to have been roasted
+    layout : {"study", "flat"}, optional
+        Expected layout (default: detected)
+    pristine : bool
+        Also compost the pristine metadata of a hosted dataset (kept by
+        default, `CompostPlan.pristine`)
     """
-    root = Path(root)
-    if not root.is_dir():
-        raise FileNotFoundError(f"Dataset folder not found: {root}")
-    bids = bids_tree(root)
-    plan = CompostPlan(root, bids)
+    if not isinstance(root, Layout) and not Path(root).is_dir():
+        raise DatasetNotFound(f"Dataset folder not found: {root}")
+    layout = resolve_layout(root, layout)
+    if isinstance(layout, SitesLayout):
+        raise UsageError(
+            f"{layout.root} holds one dataset per site: compost each "
+            f"site (`layout.datasets()`)"
+        )
+    root, bids = layout.root, layout.raw
+    plan = CompostPlan(root, bids, layout)
     keep = list(keep or [])
 
     # --- source data --------------------------------------------------
     if sourcedata:
-        folders = [root / "sourcedata"]
+        folders = [layout.source]
         if nested:
-            folders += sorted((root / "derivatives").glob("*/sourcedata"))
+            folders += [d.source for d in layout.list_derivatives()]
         files = []
         for folder in folders:
             files += list_files(folder, root)
         files = [f for f in files if not _matches(f, keep)]
+        if not pristine:
+            kept = pristine_files(layout)
+            plan.pristine = [f for f in files if f in kept]
+            files = [f for f in files if f not in kept]
         if files and not force and not has_subjects(bids):
-            raise ValueError(
+            raise UsageError(
                 f"No BIDS subject found in {bids}: the dataset does not "
                 f"seem to have been roasted, and deleting its source "
                 f"data would delete the only copy. Use --force to "
@@ -271,7 +361,7 @@ def plan_compost(
     # --- BIDS data ----------------------------------------------------
     if is_filtering(selection, where):
         selection = selection or Selection()
-        selection = restrict_participants(root, bids, selection, where)
+        selection = restrict_participants(layout, selection, where)
         prefix = _relative(bids, root)
         prefix = "" if prefix == "." else prefix + "/"
         plan.data = [prefix + p for p in _filter_tree(bids, selection)]
@@ -279,24 +369,32 @@ def plan_compost(
         if derivatives:
             # Only subject/session filters make sense for derivatives
             subsel = Selection(
-                subs=selection.subs,
-                exclude_subs=selection.exclude_subs,
-                sessions=selection.sessions,
+                sub=selection.sub,
+                exclude_sub=selection.exclude_sub,
+                ses=selection.ses,
             )
-            pipelines = {
-                *(root / "derivatives").glob("*/"),
-                *(bids / "derivatives").glob("*/"),
-            }
-            for pipeline in sorted(p for p in pipelines if p.is_dir()):
+            pipelines = [d.root for d in layout.list_derivatives()]
+            for pipeline in pipelines:
                 prefix = _relative(pipeline, root) + "/"
                 plan.derivatives += [
                     prefix + p for p in _filter_tree(pipeline, subsel)
                 ]
 
+        # Files selected but never fetched (`--sidecars only`): those
+        # that the filters drop are forgotten
+        unfetched = unfetched_files(layout)
+        if unfetched:
+            listed = {
+                _relative(root / k, bids): k for k in unfetched
+                if (root / k).is_relative_to(bids)
+            }
+            kept = set(selection.select(
+                list_files(bids, bids) + list(listed)))
+            plan.forgotten = sorted(k for rel, k in listed.items()
+                                    if rel not in kept)
+
         # Subjects that will still have a folder after composting
         removed = set(plan.data)
-        prefix = _relative(bids, root)
-        prefix = "" if prefix == "." else prefix + "/"
         plan.kept_subjects = set()
         for sub in bids.glob("sub-*"):
             if not sub.is_dir():
@@ -314,7 +412,7 @@ def plan_compost(
 
 
 def _prune_empty(folder: Path, stop: Path) -> None:
-    """Remove empty folders from `folder` up to (excluding) `stop`"""
+    """Remove empty folders from `folder` up to (excluding) `stop`."""
     folder, stop = Path(folder), Path(stop)
     while folder != stop and stop in folder.parents:
         try:
@@ -325,7 +423,7 @@ def _prune_empty(folder: Path, stop: Path) -> None:
 
 
 def delete_files(root: Path, files: Iterable[str]) -> int:
-    """Delete files (relative to root) and the folders they leave empty"""
+    """Delete files (relative to root) and the folders they leave empty."""
     root = Path(root)
     count = 0
     folders = set()
@@ -343,68 +441,59 @@ def delete_files(root: Path, files: Iterable[str]) -> int:
     return count
 
 
-def retrim_tables(root: Path, bids: Path) -> list[str]:
+def retrim_tables(layout: Layout) -> list[str]:
     """
-    Rewrite participants/sessions/scans tables so that they only list
-    what is present on disk. Untouched copies saved by `harvest` in
-    `.brainspresso/orig/` are used as reference when they exist.
+    Trim the participants, sessions, scans and phenotype tables to disk.
+
+    Untouched copies saved by `harvest` in
+    `.brainspresso/orig/` are used as reference when they exist. Tables
+    rendered from a base by the metadata roast of a hosted dataset
+    (their manifest entry has a `source`) are left to it.
+    Returns the tables written, relative to `layout.root`.
     """
-    written = []
+    root, bids = layout.root, layout.raw
+    manifest = read_manifest(layout.state) or {}
+    rendered = {
+        k for k, v in (manifest.get("files") or {}).items()
+        if isinstance(v, dict) and v.get("source")
+        and v.get("origin") in ("roasted", "generated")
+    }
 
-    def original(base: Path, relpath: str) -> Path:
-        orig = base / STATE_DIR / "orig" / relpath
-        return orig if orig.exists() else base / relpath
+    def original(path: Path) -> Path:
+        orig = layout.original(path)
+        return orig if orig.exists() else path
 
-    # participants.tsv, in the BIDS tree or at the dataset root
-    for base in {root, bids}:
-        if (base / "participants.tsv").exists():
-            written += [
-                _relative(base / p, root) for p in trim_tables(
-                    base,
-                    {"participants.tsv": original(base, "participants.tsv")},
-                    subjects=bids,
-                )
-            ]
-
-    # sessions/scans tables, inside subject folders
     tables = {}
+    if (bids / "participants.tsv").exists():
+        path = bids / "participants.tsv"
+        tables[_relative(path, root)] = original(path)
+    # phenotype tables, those with a pristine copy only (written by a
+    # roaster; hosted and older ones are left as they are)
+    phenotype = bids / "phenotype"
+    tsvs = phenotype.glob("*.tsv") if phenotype.is_dir() else ()
+    for path in sorted_paths(tsvs):
+        if layout.original(path).exists():
+            tables[_relative(path, root)] = layout.original(path)
+    # sessions/scans tables, inside subject folders
     for path in list_files(bids, bids):
         if path.startswith("sub-") and is_trimmable(path):
-            tables[path] = original(bids, path)
-    written += [_relative(bids / p, root) for p in trim_tables(bids, tables)]
-    return written
+            tables[_relative(bids / path, root)] = original(bids / path)
+    tables = {k: v for k, v in tables.items() if k not in rendered}
+    return trim_tables(root, tables, sessions=True)
 
 
-def update_manifest(root: Path, plan: CompostPlan, record: dict) -> None:
-    """Record the compost run in `.brainspresso/manifest.json`, if any"""
-    path = Path(root) / STATE_DIR / "manifest.json"
-    if not path.exists():
-        return
-    try:
-        manifest = json.loads(path.read_text())
-    except json.JSONDecodeError:
-        lg.warning(f"Could not parse {path}: not updated")
-        return
-    prefix = _relative(plan.bids, root)
-    prefix = "" if prefix == "." else prefix + "/"
-    deleted = set(plan.files)
-    files = manifest.get("files", {})
-    for f in list(files):
-        if (prefix + f) in deleted:
-            del files[f]
-    manifest.setdefault("runs", []).append({
-        "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "action": "compost",
-        **record,
-        "nb_files": len(plan.files),
-    })
-    path.write_text(json.dumps(manifest, indent=2, default=str))
+def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:
+    """Record the compost run in `.brainspresso/manifest.json`, if any."""
+    record_run(
+        layout, "compost", {**record, "nb_files": len(plan.files)},
+        deleted=[*plan.files, *plan.forgotten], create=False,
+    )
 
 
 def confirm(message: str, ask: Callable[[str], str] = input) -> bool:
-    """Ask the user for confirmation (refuse if not interactive)"""
+    """Ask the user for confirmation (refuse if not interactive)."""
     if ask is input and not sys.stdin.isatty():
-        raise ValueError(
+        raise UsageError(
             "Refusing to delete files without confirmation in a "
             "non-interactive session. Use --yes to confirm."
         )
@@ -416,7 +505,7 @@ def confirm(message: str, ask: Callable[[str], str] = input) -> bool:
 
 
 def compost(
-    root: Path,
+    root: Path | Layout,
     *,
     sourcedata: bool | None = None,
     nested: bool = False,
@@ -430,17 +519,20 @@ def compost(
     dry_run: bool = False,
     listing: bool = False,
     ask: Callable[[str], str] = input,
+    layout: str | None = None,
+    after_data: Callable[[Layout], object] | None = None,
 ) -> CompostPlan:
     """
     Delete source data and/or BIDS data outside of a selection.
 
     Parameters
     ----------
-    root : Path
-        Dataset root (e.g. `<path>/IXI`)
+    root : Path | Layout
+        Dataset root (e.g. `<path>/IXI`), or its layout
     sourcedata : bool | None
         Compost `sourcedata/`. By default (None), source data is
-        composted only if no BIDS filter is given.
+        composted only if no BIDS filter is given, but for the pristine
+        metadata of a hosted dataset, which only True composts.
     nested : bool
         Also compost `derivatives/*/sourcedata/`
     keep : list[str]
@@ -452,8 +544,8 @@ def compost(
     derivatives : bool
         Apply subject/session filters to `derivatives/*/` too
     trim : bool
-        Rewrite participants/sessions/scans tables after composting
-        BIDS data
+        Rewrite participants/sessions/scans tables (and the phenotype
+        tables with a pristine copy) after composting BIDS data
     force : bool
         Compost source data even if nothing seems to have been roasted
     yes : bool
@@ -464,17 +556,24 @@ def compost(
         Print the files to delete
     ask : callable
         Function used to ask for confirmation
+    layout : {"study", "flat"}, optional
+        Expected layout (default: detected)
+    after_data : callable(layout), optional
+        Run after BIDS data is deleted and before source data is (e.g.
+        the metadata roast of a hosted dataset, which reads its pristine
+        copies in `sourcedata/`)
 
     Returns
     -------
     plan : CompostPlan
     """
-    root = Path(root)
     filtering = is_filtering(selection, where)
+    # pristine metadata of hosted datasets: only when asked explicitly
+    pristine = sourcedata is True
     if sourcedata is None:
         sourcedata = not filtering
     if not sourcedata and not filtering:
-        raise ValueError(
+        raise UsageError(
             "Nothing to compost: source data is disabled and no BIDS "
             "filter was given."
         )
@@ -488,7 +587,10 @@ def compost(
         where=where,
         derivatives=derivatives,
         force=force,
+        layout=layout,
+        pristine=pristine,
     )
+    root = plan.root
 
     if listing or dry_run:
         for f in plan.files:
@@ -504,9 +606,10 @@ def compost(
         if not plan.kept_subjects and plan.data:
             lg.warning("All subjects will be deleted")
 
-    if dry_run or not plan.files:
+    # (no file to delete, but unfetched entries to forget: no question)
+    if dry_run or not (plan.files or plan.forgotten):
         return plan
-    if not yes and not confirm(
+    if plan.files and not yes and not confirm(
         f"Permanently delete {len(plan.files)} files?", ask
     ):
         print("Aborted.")
@@ -514,20 +617,25 @@ def compost(
         return plan
 
     freed = plan.size()
-    count = delete_files(root, plan.files)
+    # (the state folder holds the lock files of the dataset)
+    plan.layout.ensure_state()
+    # BIDS data first, then what reads source data (`after_data`: the
+    # metadata roast of a hosted dataset reads the pristine copies),
+    # then source data
+    bids_files = [*plan.data, *plan.derivatives]
+    count = delete_files(root, bids_files)
+    if bids_files or plan.forgotten:
+        update_files(plan.layout, deleted=[*bids_files, *plan.forgotten])
+    if trim and (bids_files or plan.forgotten):
+        written = retrim_tables(plan.layout)
+        lg.info(f"Trimmed tables: {written}")
+    if after_data is not None and (bids_files or plan.forgotten):
+        after_data(plan.layout)
+    count += delete_files(root, plan.sourcedata)
     lg.info(f"Deleted {count} files under {root}")
 
-    if trim and (plan.data or plan.derivatives):
-        written = retrim_tables(root, plan.bids)
-        lg.info(f"Trimmed tables: {written}")
-
-    filters = {}
-    if filtering and selection is not None:
-        filters = {
-            k: sorted(v) if isinstance(v, (set, list, tuple)) else v
-            for k, v in asdict(selection).items() if v
-        }
-    update_manifest(root, plan, {
+    filters = _filters(selection) if filtering else {}
+    update_manifest(plan.layout, plan, {
         "sourcedata": bool(plan.sourcedata),
         "filters": filters,
         "where": list(where or []),

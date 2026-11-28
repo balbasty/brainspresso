@@ -1,9 +1,9 @@
 # Adapted from `dandi.support.digest`
 # Apache License Version 2.0
 import hashlib
-from typing import Literal
 from enum import IntEnum
 from logging import getLogger
+from typing import Literal
 
 lg = getLogger(__name__)
 

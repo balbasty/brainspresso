@@ -2,7 +2,9 @@
 Download a filtered subset of a remote BIDS dataset.
 
 This is independent of where the dataset is hosted: it takes a listing
-of `RemoteEntry` (relative path, URL, size, digests) and a `Selection`.
+of `sources.base.RemoteEntry` (relative path, URL, size, digests) and a
+`Selection`; hosted-BIDS sources (`sources.openneuro.OpenNeuro`, INDI
+projects) fetch through it.
 Entries may also be `InlineEntry` (relative path and content): files
 generated locally (e.g. a merged `participants.tsv`, or metadata that the
 host lacks) that are selected and written like downloaded files.
@@ -10,75 +12,120 @@ host lacks) that are selected and written like downloaded files.
 from __future__ import annotations
 
 import asyncio
-import datetime
+import hashlib
 import json
+import os
+import secrets
 import shutil
+import time
 from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Iterable
 
 from humanize import naturalsize
 
+from brainspresso.actions.locks import FileLock
+from brainspresso.actions.state import now
+from brainspresso.bids.layout import (
+    MANIFEST,
+    ORIG_DIR,
+    STATE_DIR,
+    Layout,
+    read_manifest,
+    resolve_layout,
+)
 from brainspresso.bids.repair import fix_intended_for
 from brainspresso.bids.repair import repair as repair_metadata
 from brainspresso.bids.select import BidsName, Selection
-from brainspresso.bids.tables import is_trimmable, query_participants
-from brainspresso.bids.tables import trim_tables
+from brainspresso.bids.tables import (
+    is_phenotype,
+    is_trimmable,
+    query_participants,
+    trim_tables,
+)
 from brainspresso.download import Downloader, DownloadManager, IfExists
 from brainspresso.download.session import new_session
+from brainspresso.errors import UsageError
 
 lg = getLogger(__name__)
 
-STATE_DIR = ".brainspresso"
+__all__ = [
+    "InlineEntry", "STATE_DIR", "finish_roast", "harvest", "read_manifest",
+    "record_run", "select_entries", "trim_originals", "update_files",
+    "write_manifest",
+]
 
 
 @dataclass
 class InlineEntry:
-    """A file of the dataset generated locally (not downloaded)"""
+    """A file of the dataset generated locally (not downloaded)."""
+
     path: str                   # relative to dataset root
     content: bytes
+    # SHA-256 of earlier versions brainspresso generated at this path
+    # (refreshed when found unedited, see `write_inline`)
+    previous: tuple[str, ...] = ()
 
     url = None
     mtime = None
     digests = None
 
     def __post_init__(self):
+        """Encode text content."""
         if isinstance(self.content, str):
             self.content = self.content.encode()
 
     @property
     def size(self) -> int:
+        """Size of the content, in bytes."""
         return len(self.content)
 
 
+def sha256(data: bytes) -> str:
+    """SHA-256 of bytes (hex)."""
+    return hashlib.sha256(data).hexdigest()
+
+
 def write_inline(entry: InlineEntry, dst: Path, ifexists: str) -> bool:
-    """Write a generated file. Returns whether it was (re)written."""
+    """
+    Write a generated file. Returns whether it was (re)written.
+
+    With `ifexists="skip"` (pure skip), a file that exists is left alone:
+    not read, nothing said. Any other value writes it when its content
+    differs ("error": refuses a file that differs). The merged tables of
+    a sites parent pass "overwrite": they follow every harvest.
+    """
     dst = Path(dst)
-    if dst.exists():
-        if dst.read_bytes() == entry.content:
-            return False
-        if ifexists == "error":
-            raise FileExistsError(dst)
-        if ifexists == "skip":
-            return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_bytes(entry.content)
+    # compared and written under the exclusive lock of the file,
+    # atomically (as `actions.File`)
+    with FileLock(dst, exclusive=True):
+        if dst.exists():
+            if ifexists == "skip":
+                return False
+            if dst.read_bytes() == entry.content:
+                return False
+            if ifexists == "error":
+                raise FileExistsError(dst)
+        _write_atomic(dst, entry.content)
     return True
 
 
 def resolve_participants(entries, selection: Selection, where: Iterable[str]):
     """
-    Apply participant queries (`age>=60`, `sex==F`...) by reading the
-    remote `participants.tsv`, and restrict `selection.subs` accordingly.
+    Apply participant queries (`age>=60`, `sex==F`...).
+
+    The remote `participants.tsv` is read, and `selection.sub`
+    restricted accordingly.
     """
     where = list(where or [])
     if not where:
         return selection
     table = next((e for e in entries if e.path == "participants.tsv"), None)
     if table is None:
-        raise ValueError("--where requires a participants.tsv file")
+        raise UsageError("--where requires a participants.tsv file")
 
     async def fetch():
         if getattr(table, "content", None) is not None:
@@ -89,15 +136,15 @@ def resolve_participants(entries, selection: Selection, where: Iterable[str]):
                 return await r.text()
 
     matching = query_participants(asyncio.run(fetch()), where)
-    if selection.subs:
-        matching &= set(selection.subs)
+    if selection.sub:
+        matching &= set(selection.sub)
     lg.info(f"{len(matching)} participants match {where}")
-    selection.subs = matching or {"__none__"}
+    selection.sub = matching or {"__none__"}
     return selection
 
 
 def summarize(entries) -> dict:
-    """Summary of a list of entries (for display)"""
+    """Summary of a list of entries (for display)."""
     subs, datatypes = set(), Counter()
     for e in entries:
         name = BidsName.parse(e.path)
@@ -122,9 +169,112 @@ def format_summary(summary: dict) -> str:
     )
 
 
+def subjects_of(paths: Iterable[str]) -> set[str]:
+    """
+    Subject labels of the paths of a listing (`sub-<label>/...`).
+
+    Parameters
+    ----------
+    paths : iterable[str]
+
+    Returns
+    -------
+    set[str]
+    """
+    out = set()
+    for path in paths:
+        head = str(path).split("/", 1)[0]
+        if head.startswith("sub-"):
+            out.add(head[4:])
+    return out
+
+
+def check_selected_subjects(selection, entries, found=None) -> None:
+    """
+    Warn about `--sub` labels that match nothing (error if none does).
+
+    Parameters
+    ----------
+    selection : Selection
+        The selection (its `sub`)
+    entries : list[RemoteEntry]
+        The remote listing
+    found : set[str], optional
+        Subjects found (default: those of `entries`)
+
+    Raises
+    ------
+    UsageError
+        If no selected subject is in the listing
+    """
+    wanted = {str(s) for s in getattr(selection, "sub", None) or ()}
+    if not wanted:
+        return
+    if found is None:
+        found = subjects_of(e.path for e in entries)
+    missing = sorted(wanted - set(found))
+    if missing and len(missing) == len(wanted):
+        raise UsageError(f"No selected subject is in the dataset: "
+                         f"{', '.join(missing)}")
+    if missing:
+        lg.warning(f"Selected subjects not in the dataset: "
+                   f"{', '.join(missing)}")
+
+
+def select_entries(
+    entries: list,
+    selection: Selection,
+    *,
+    where: Iterable[str] = (),
+    listing: bool = False,
+    check_subjects: bool = True,
+    keep=None,
+) -> tuple[list, Selection]:
+    """
+    Select the entries of a hosted listing (first step of a harvest).
+
+    Parameters
+    ----------
+    entries : list[RemoteEntry | InlineEntry]
+        Full listing of the remote dataset (flat BIDS view)
+    selection : Selection
+        Filters
+    where : list[str]
+        Queries on participants.tsv columns (e.g. "age>=60")
+    listing : bool
+        Print the selected files
+    check_subjects : bool
+        Warn about selected subjects that match nothing (`UsageError`
+        if none does)
+    keep : callable(entry) -> bool, optional
+        Entries to keep among the selected ones (e.g. a sidecar policy);
+        the summary describes what is kept
+
+    Returns
+    -------
+    selected : list
+        The selected entries, in the order of the listing
+    selection : Selection
+        The selection, with participant queries applied
+    """
+    if check_subjects:
+        check_selected_subjects(selection, entries)
+    selection = resolve_participants(entries, selection, where)
+    chosen = set(selection.select(e.path for e in entries))
+    selected = [e for e in entries if e.path in chosen
+                and (keep is None or keep(e))]
+    if listing:
+        for e in selected:
+            size = naturalsize(e.size) if e.size is not None else "?"
+            print(f"{size:>10}  {e.path}")
+    print(f"Selected: {format_summary(summarize(selected))}")
+    print(f"     out of {format_summary(summarize(entries))}")
+    return selected, selection
+
+
 def harvest(
     entries: list,
-    root: Path,
+    root: Path | Layout,
     selection: Selection,
     *,
     where: Iterable[str] = (),
@@ -135,6 +285,10 @@ def harvest(
     listing: bool = False,
     provenance: dict | None = None,
     repair: bool = False,
+    layout: str | None = None,
+    insecure: bool = False,
+    chunk_size: int | None = None,
+    check_subjects: bool = True,
 ) -> list:
     """
     Select and download a subset of a remote BIDS dataset.
@@ -143,8 +297,10 @@ def harvest(
     ----------
     entries : list[RemoteEntry]
         Full listing of the remote dataset (paths relative to its root)
-    root : Path
-        Local BIDS root
+    root : Path | Layout
+        Local dataset folder, or its layout. Entry paths are placed with
+        `layout.resolve` (raw files in `layout.raw`, `sourcedata/` in
+        `layout.source`, `derivatives/<name>/` in derivative datasets).
     selection : Selection
         Filters
     where : list[str]
@@ -168,46 +324,68 @@ def harvest(
     repair : bool
         Repair common defects of the downloaded JSON and TSV files
         (see `bids.repair`), before tables are trimmed.
+    layout : {"study", "flat"}, optional
+        Layout of a new dataset (if `root` is a path). Must match the
+        layout of an existing dataset.
+    insecure : bool
+        Do not verify TLS certificates
+    chunk_size : int, optional
+        Download chunk size, in bytes
+    check_subjects : bool
+        Warn about selected subjects (`selection.sub`) that match
+        nothing, and raise `UsageError` if none matches
 
     Returns
     -------
     selected : list[RemoteEntry]
     """
-    selection = resolve_participants(entries, selection, where)
-    keep = set(selection.select(e.path for e in entries))
-    selected = [e for e in entries if e.path in keep]
-
-    if listing or dry_run:
-        for e in selected:
-            size = naturalsize(e.size) if e.size is not None else "?"
-            print(f"{size:>10}  {e.path}")
-    print(f"Selected: {format_summary(summarize(selected))}")
-    print(f"     out of {format_summary(summarize(entries))}")
+    selected, selection = select_entries(
+        entries, selection, where=where, listing=listing or dry_run,
+        check_subjects=check_subjects,
+    )
     if dry_run or not selected:
         return selected
 
-    root = Path(root)
-    state = root / STATE_DIR
+    layout = resolve_layout(root, layout)
+    # before any download takes a lock (`actions.locks`)
+    layout.ensure_state()
+    # (descriptions that exist: `write_descriptions` leaves them alone)
+    descriptions = description_hashes(layout)
+    # files generated by the previous harvests (replaced by a remote file
+    # if unedited, `replace_generated`)
+    generated = generated_files(layout)
     originals = {}
+    destinations = {}
     downloaders = []
     nb_inline = 0
+    ours = set()        # generated files that hold what this run generates
+    kept = set()        # files kept as they are (edited), not recorded
     for e in selected:
-        dst = root / PurePosixPath(e.path)
+        dst = destinations[e.path] = layout.resolve(e.path)
+        relpath = dst.relative_to(layout.root).as_posix()
         if trim and is_trimmable(e.path):
-            dst = state / "orig" / PurePosixPath(e.path)
-            originals[e.path] = dst
+            originals[relpath] = dst = layout.original(dst)
         if isinstance(e, InlineEntry):
             # generated tables are always refreshed (they are trimmed)
             nb_inline += write_inline(
-                e, dst, "overwrite" if e.path in originals else if_exists
-            )
+                e, dst, "overwrite" if relpath in originals else if_exists)
+            if dst.is_file() and dst.read_bytes() == e.content:
+                ours.add(relpath)
             continue
+        if relpath in generated and relpath not in originals \
+                and dst.exists():
+            # generated by an earlier harvest, now in the remote dataset
+            if not replace_generated(dst, generated[relpath], if_exists):
+                kept.add(relpath)
+                continue
         downloaders.append(Downloader(
             e.url, dst,
             size=e.size,
             mtime=e.mtime,
             digests=e.digests or None,
             ifexists=if_exists,
+            insecure=insecure,
+            **({"chunk_size": chunk_size} if chunk_size else {}),
         ))
 
     if nb_inline:
@@ -230,51 +408,499 @@ def harvest(
                  if Path(d.dst).parent.name == "fmap"
                  and str(d.dst).endswith(".json")]
         for path in fmaps:
+            dataset, _ = layout.relative(path)
             if repair:
-                fix_intended_for(path, root, trim=False)
+                fix_intended_for(path, dataset, trim=False)
             if trim:
-                fix_intended_for(path, root, trim=True)
+                fix_intended_for(path, dataset, trim=True)
 
     if trim:
-        written = trim_tables(root, originals)
+        written = trim_tables(layout.root, originals)
         lg.info(f"Trimmed tables: {written}")
 
-    write_manifest(state, selected, selection, where, provenance or {})
+    layout.write_descriptions(keep=untouched(descriptions))
+    write_manifest(layout, selected, selection, where, provenance or {},
+                   destinations, ours=ours, kept=kept, generated=generated)
     return selected
 
 
-def write_manifest(state: Path, selected, selection, where, provenance):
+def manifest_files(layout: Layout) -> dict[str, dict]:
     """
-    Save what was requested and downloaded in `.brainspresso/manifest.json`
-    (merged with previous runs).
+    Files recorded in the manifest, read under its (shared) lock.
+
+    Parameters
+    ----------
+    layout : Layout
+
+    Returns
+    -------
+    dict[str, dict]
+        Entries by path relative to `layout.root` (empty if there is no
+        manifest, or it is malformed)
     """
-    state.mkdir(parents=True, exist_ok=True)
-    path = state / "manifest.json"
-    manifest = {"runs": [], "files": {}}
-    if path.exists():
-        try:
-            manifest = json.loads(path.read_text())
-        except json.JSONDecodeError:
-            shutil.copy(path, path.with_suffix(".json.bak"))
-    filters = {
+    path = Path(layout.state) / MANIFEST
+    with FileLock(path):
+        manifest = read_manifest(layout.state) or {}
+    files = manifest.get("files")
+    if not isinstance(files, dict):
+        return {}
+    return {k: v for k, v in files.items() if isinstance(v, dict)}
+
+
+def generated_files(layout: Layout) -> dict[str, str | None]:
+    """
+    Files that earlier harvests generated, with their SHA-256.
+
+    Read from the manifest under its lock; the hash is None if none was
+    recorded (or it is malformed).
+    """
+    files = manifest_files(layout)
+    out = {}
+    for key, value in files.items():
+        if isinstance(value, dict) and value.get("origin") == "generated":
+            digest = value.get("sha256")
+            out[key] = digest if isinstance(digest, str) else None
+    return out
+
+
+def replace_generated(dst: Path, digest: str | None, if_exists: str) -> bool:
+    """
+    Decide about a generated file whose path is now in the remote dataset.
+
+    E.g. a bucket file now wins over a fill-in template. Under "skip"
+    (pure skip) the file is left alone and not downloaded, silently.
+    Else, unedited (its SHA-256 is `digest`): it is removed, so that the
+    remote file is downloaded; edited (or not verifiable): kept, with a
+    warning, unless `if_exists` is "overwrite". Returns whether to
+    download.
+    """
+    if if_exists == "skip":
+        return False
+    if digest is not None and sha256(Path(dst).read_bytes()) == digest:
+        lg.info(f"{dst}: generated earlier, now in the remote dataset: "
+                f"replaced")
+        Path(dst).unlink()
+        return True
+    if if_exists == "overwrite":
+        return True
+    lg.warning(
+        f"{dst} was generated by brainspresso and then edited (or cannot "
+        f"be verified), and is now in the remote dataset: kept "
+        f"(--if-exists overwrite downloads it)"
+    )
+    return False
+
+
+# ----------------------------------------------------------------------
+#   State: manifest and per-task state
+# ----------------------------------------------------------------------
+#
+# `<state>/manifest.json` (`<state>` is `layout.state`, i.e.
+# `<DS>/.brainspresso/`; each site of a "sites" layout has its own):
+#
+#     {
+#       "schema": 1,
+#       "layout": "study" | "flat" | "sites",
+#       "children": {"<site>": "study" | "flat"},    # "sites" only
+#       "runs": [                                    # stages run, in order
+#         {"stage": "harvest" | "roast" | "compost" | "grind",
+#          "date": "<ISO 8601, UTC>",
+#          ...                                       # stage-specific, e.g.
+#          "source": "openneuro", "dataset": "ds000001", "tag": "1.0.0",
+#          "keys": [...], "filters": {...}, "where": [...], "nb_files": 12}
+#       ],
+#       "files": {                                   # harvested files
+#         "<path relative to layout.root>": {
+#           "url": "...", "size": 123, "digests": {"md5": "..."},
+#           "origin": "direct" | "roasted" | "generated" | "converted",
+#           "sha256": "..."          # generated, converted: as written
+#         }
+#       }
+#     }
+#
+# `origin` says how a file got to its place: downloaded to its final
+# path (`direct`), downloaded to `sourcedata/` then roasted (`roasted`,
+# hybrid placement of hosted-BIDS sources, `roast.hosted`), generated
+# locally (`generated`), or written by an engine roast (`converted`: its
+# sidecars and visible table-kind files such as `README`, with the
+# `sha256` of what roast wrote, so that `roast --if-exists update` tells
+# an edit, `roast.policy`). A `roasted` or `generated` file of a hosted
+# dataset also has a `source` (its pristine copy in
+# `sourcedata/<folder>/`, or its generated base in `<state>/generated/`),
+# and optionally `repair` (true), `trim` (false), `site` and `fill`
+# (fill-in templates merged into it); see `roast.hosted`. Manifests
+# without `schema` (written before the layouts) are read as is; their
+# `files` keys are relative to the raw dataset, which is `layout.root`
+# for a flat layout.
+#
+# `<state>/tasks/<task id>.json`: one file per task (roast shard, grind
+# unit...), so that concurrent jobs never write the same file. The
+# manifest is an index that can be rebuilt from them. Written by roast
+# shards (`actions.engine`, which adds `run`, `counts`, `progress` and
+# `children`; helpers in `actions.state`). Task ids are free-form (e.g.
+# "grind/fs/sub-01/ses-1") and URL-quoted into file names.
+#
+#     {
+#       "schema": 1,
+#       "task": "<task id>",
+#       "stage": "roast" | "grind",
+#       "pipeline": "<name>" | null,              # grind
+#       "unit": {"sub": "01", "ses": "1"},        # entities of the unit
+#       "status": "pending" | "running" | "done" | "failed" | "skipped",
+#       "config_hash": "<hex>" | null,            # skip/redo decisions
+#       "started": "<ISO 8601>" | null,
+#       "finished": "<ISO 8601>" | null,
+#       "error": "<message>" | null,
+#       "outputs": ["<path relative to layout.root>", ...],
+#       "scopes": [{...}, ...],                   # roast shards with a
+#       "seen": {"sub": ["<label>", ...]},        # scope, when done
+#       "groups": [["<tag>", ["<output>", ...]], ...]
+#     }
+#
+# `scopes`: the scopes of the runs that `outputs` cover (most recent
+# last, at most 8; empty if the outputs of the last run were outside its
+# declared scope), `seen`: the subjects that the inputs hold, as the
+# last complete run reported them, `groups`: the outputs of each action
+# with its progress group (what a skip counts) (`actions.engine`,
+# `roast.policy`).
+
+MANIFEST_SCHEMA = 1
+
+
+def record_run(
+    layout: Layout,
+    stage: str,
+    info: dict | None = None,
+    *,
+    files: dict[str, dict] | None = None,
+    deleted: Iterable[str] = (),
+    create: bool = True,
+    merge: bool = False,
+) -> Path | None:
+    """
+    Record a stage run in `<state>/manifest.json`.
+
+    It is merged with previous runs, with the layout of the dataset.
+
+    Parameters
+    ----------
+    layout : Layout
+    stage : {"harvest", "roast", "compost", "grind"}
+    info : dict
+        Stage-specific fields of the run
+    files : dict[str, dict]
+        Files to add, keyed by path relative to `layout.root`
+    deleted : list[str]
+        Files to remove, relative to `layout.root`
+    create : bool
+        Create the manifest if it does not exist
+    merge : bool
+        Merge the fields of `files` into existing entries (a None value
+        removes a field) instead of replacing them
+
+    Returns
+    -------
+    path : Path | None
+        Path of the manifest (None if it does not exist and `create` is
+        False)
+    """
+    return _update_manifest(layout, {
+        "stage": stage, "date": now(), **(info or {}),
+    }, files=files, deleted=deleted, create=create, merge=merge)
+
+
+def update_files(
+    layout: Layout,
+    files: dict[str, dict] | None = None,
+    *,
+    deleted: Iterable[str] = (),
+    merge: bool = True,
+) -> Path | None:
+    """
+    Update the `files` of `<state>/manifest.json`, without a run.
+
+    Parameters
+    ----------
+    layout : Layout
+    files : dict[str, dict]
+        Files to add (or update), keyed by path relative to `layout.root`
+    deleted : list[str]
+        Files to remove
+    merge : bool
+        Merge the fields of an existing entry (else replace it); a None
+        value removes a field
+
+    Returns
+    -------
+    path : Path | None
+        Path of the manifest (None if it does not exist)
+    """
+    return _update_manifest(layout, None, files=files, deleted=deleted,
+                            create=False, merge=merge)
+
+
+def _update_manifest(layout, run, *, files=None, deleted=(), create=True,
+                     merge=False):
+    """
+    Read-modify-write `<state>/manifest.json`, the one writer of it.
+
+    Under an exclusive `FileLock` of the manifest (concurrent harvests and
+    roasts hold the run lock shared, sites write their parent's), written
+    to a temporary file renamed into place (readers never see a partial
+    manifest). A malformed manifest is backed up and replaced.
+    """
+    state = Path(layout.state)
+    path = state / MANIFEST
+    if not path.exists() and not create:
+        return None
+    layout.ensure_state()
+    with FileLock(path, exclusive=True):
+        if not path.exists() and not create:
+            return None
+        manifest = {}
+        if path.exists():
+            try:
+                manifest = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                shutil.copy(path, path.with_suffix(".json.bak"))
+                manifest = {}
+            if not isinstance(manifest, dict):
+                manifest = {}
+        manifest["schema"] = MANIFEST_SCHEMA
+        manifest.update(layout.to_manifest())
+        if not isinstance(manifest.get("runs", []), list):
+            manifest["runs"] = []
+        runs = manifest.setdefault("runs", [])
+        if run is not None:
+            runs.append(run)
+        if not isinstance(manifest.get("files", {}), dict):
+            manifest["files"] = {}
+        entries = manifest.setdefault("files", {})
+        for f in deleted:
+            entries.pop(f, None)
+        for key, value in (files or {}).items():
+            if merge and isinstance(entries.get(key), dict):
+                # (a None value removes the field)
+                entries[key] = {k: v for k, v in
+                                {**entries[key], **value}.items()
+                                if v is not None}
+            else:
+                entries[key] = value
+        _write_atomic(path, json.dumps(manifest, indent=2, default=str))
+    return path
+
+
+def _write_atomic(path: Path, text: str | bytes) -> None:
+    """Write a temporary file (UTF-8 text, or bytes), then rename it."""
+    tmp = path.with_name(f".{path.name}.{secrets.token_hex(8)}.part")
+    data = text.encode("utf-8") if isinstance(text, str) else text
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+        for attempt in range(20):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:
+                # Windows: a reader holds the file open for an instant
+                if attempt == 19:
+                    raise
+                time.sleep(0.05)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def _filters(selection) -> dict:
+    if selection is None:
+        return {}
+    return {
         k: sorted(v) if isinstance(v, (set, list, tuple)) else v
         for k, v in asdict(selection).items() if v
     }
-    manifest.setdefault("runs", []).append({
-        "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        **provenance,
-        "filters": filters,
-        "where": list(where or []),
-        "nb_files": len(selected),
-    })
-    files = manifest.setdefault("files", {})
+
+
+def write_manifest(
+    layout: Layout, selected, selection, where, provenance,
+    destinations: dict[str, Path] | None = None,
+    *,
+    ours: Iterable[str] = (),
+    kept: Iterable[str] = (),
+    generated: dict[str, str | None] | None = None,
+):
+    """
+    Save what `harvest` requested and downloaded in the manifest.
+
+    See `record_run`. `destinations` maps entry paths to their local
+    path (default: `layout.resolve(entry.path)`).
+
+    A generated file gets the SHA-256 of the file as left on disk only if
+    it holds what this run generated (`ours`, relative to `layout.root`);
+    otherwise (an edited file kept as is) the hash of the previous
+    manifest (`generated`) is carried forward, so that an edit is never
+    taken for a generated file. Files in `kept` (edited files that were
+    generated before and are now remote) keep their previous record.
+    """
+    destinations = destinations or {}
+    ours, kept, generated = set(ours), set(kept), generated or {}
+    files = {}
     for e in selected:
-        if isinstance(e, InlineEntry):
-            files[e.path] = {"generated": True, "size": e.size}
+        dst = destinations.get(e.path) or layout.resolve(e.path)
+        key = Path(dst).relative_to(layout.root).as_posix()
+        if key in kept:
             continue
-        files[e.path] = {
+        if isinstance(e, InlineEntry):
+            files[key] = {"origin": "generated", "size": e.size}
+            if key in ours and Path(dst).is_file():
+                # as left on disk (descriptions may be rewritten after)
+                files[key]["sha256"] = sha256(Path(dst).read_bytes())
+            elif generated.get(key):
+                files[key]["sha256"] = generated[key]
+            continue
+        files[key] = {
             "url": e.url,
             "size": e.size,
             **({"digests": e.digests} if e.digests else {}),
+            "origin": "direct",
         }
-    path.write_text(json.dumps(manifest, indent=2, default=str))
+    return record_run(layout, "harvest", {
+        **provenance,
+        "filters": _filters(selection),
+        "where": list(where or []),
+        "nb_files": len(selected),
+    }, files=files)
+
+
+def trim_originals(layout: Layout) -> list[str]:
+    """
+    Derive the visible tables of a roasted dataset from pristine copies.
+
+    The participants/sessions/scans tables, and the phenotype tables
+    (`phenotype/<name>.tsv`, by `participant_id`), are derived from their
+    pristine copies (`<state>/orig/<path>`, written complete by
+    roasters), keeping the rows that refer to something on
+    disk. A sessions or scans table whose folder does not exist (subject
+    or session not roasted) is not written. (Hosted datasets trim their
+    tables in their metadata roast instead, `roast.hosted`.)
+
+    Returns the tables written, relative to `layout.root`.
+    """
+    orig = Path(layout.state) / ORIG_DIR
+    if not orig.is_dir():
+        return []
+    originals = {}
+    for path in orig.rglob("*.tsv"):
+        relpath = path.relative_to(orig).as_posix()
+        whole = Path(relpath).name == "participants.tsv" or \
+            is_phenotype(relpath)
+        if not is_trimmable(relpath) and not whole:
+            continue
+        if not whole and not (Path(layout.root) / relpath).parent.is_dir():
+            continue
+        originals[relpath] = path
+    written = trim_tables(layout.root, originals, sessions=True)
+    if written:
+        lg.info(f"Trimmed tables: {written}")
+    return written
+
+
+def _same(path) -> str:
+    return os.path.normcase(os.path.abspath(path))
+
+
+def description_hashes(layout: Layout) -> dict[str, str | None]:
+    """
+    SHA-256 of the derivative descriptions on disk, before a run.
+
+    Every `derivatives/<name>/dataset_description.json` (nested ones and
+    those of every site included), by absolute path (`os.path.normcase`;
+    None: unreadable). `untouched` tells, after the run, the ones that
+    the run did not write.
+    """
+    out: dict[str, str | None] = {}
+
+    def walk(lay):
+        for drv in lay.list_derivatives():
+            path = Path(drv.description)
+            if path.is_file():
+                try:
+                    out[_same(path)] = sha256(path.read_bytes())
+                except OSError:
+                    out[_same(path)] = None
+            walk(drv)
+
+    for dataset in layout.datasets():
+        walk(dataset)
+    return out
+
+
+def untouched(before: dict[str, str | None],
+              rendered: Iterable[str | os.PathLike] = ()) -> list[Path]:
+    """
+    List the derivative descriptions that a run did not write.
+
+    Those that existed before it (`description_hashes`), were not
+    rendered by it, and still hold the same bytes: `write_descriptions`
+    leaves them exactly as they are (no `SourceDatasets` added),
+    whatever `--if-exists` says. A new description, or one that the run
+    rewrote, is completed.
+    """
+    rendered = {_same(p) for p in rendered}
+    out = []
+    for key, digest in before.items():
+        if key in rendered:
+            continue
+        path = Path(key)
+        try:
+            now = sha256(path.read_bytes())
+        except OSError:
+            continue                # (gone: nothing to leave alone)
+        if digest is None or now == digest:
+            out.append(path)
+    return out
+
+
+def finish_roast(layout: Layout, files: dict[str, dict] | None = None,
+                 descriptions: dict[str, str | None] | None = None,
+                 **info) -> None:
+    """
+    Run the steps shared by all roasts, once their actions have run.
+
+    Write the descriptions that depend on the layout (study description,
+    `SourceDatasets` of derivatives) and record the run in the manifest.
+
+    Parameters
+    ----------
+    layout : Layout
+    files : dict[str, dict]
+        Entries to merge into the manifest (`"converted"` files and
+        their `sha256`), by path relative to `layout.root`.
+    descriptions : dict[str, str | None]
+        The derivative descriptions on disk before the roast
+        (`description_hashes`). Only those that the roast wrote (new
+        ones, rendered ones: in `files`, or changed since) are completed
+        by `write_descriptions`; the others, an edit kept under `update`
+        or any existing file under `skip`, are left exactly as they are.
+        A completed description in `files` gets the hash of the file as
+        left on disk. (None: every description is completed.)
+    **info
+        Fields of the run
+    """
+    files = dict(files or {})
+    root = Path(layout.root)
+    keep = untouched(descriptions or {}, [root / k for k in files])
+    for path in layout.write_descriptions(keep=keep):
+        try:
+            key = Path(path).relative_to(root).as_posix()
+        except ValueError:
+            continue
+        if key not in files:
+            continue                # (not a tracked file of this roast)
+        try:
+            digest = sha256(Path(path).read_bytes())
+        except OSError:
+            continue
+        files[key] = {**files[key], "sha256": digest}
+    info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
+            for k, v in info.items()}
+    record_run(layout, "roast", info, files=files or None, merge=True)

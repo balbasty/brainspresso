@@ -1,0 +1,4884 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-flash_T1w.json",
+     "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "sub-001/anat/sub-001_T2w.nii.gz",
+     "sub-001/anat/sub-001_T2w.json",
+     "sub-001/anat/sub-001_angio.nii.gz",
+     "sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "sub-002/anat/sub-002_acq-flash_T1w.json",
+     "sub-002/anat/sub-002_T2w.nii.gz",
+     "sub-002/anat/sub-002_T2w.json",
+     "sub-002/anat/sub-002_angio.nii.gz",
+     "sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T2w",
+     "angio",
+     "flash",
+     "meta",
+     "mprage",
+     "skullstripped",
+     "vessels"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-flash_T1w.json",
+     "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "sub-001/anat/sub-001_T2w.nii.gz",
+     "sub-001/anat/sub-001_T2w.json",
+     "sub-001/anat/sub-001_angio.nii.gz",
+     "sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "sub-002/anat/sub-002_acq-flash_T1w.json",
+     "sub-002/anat/sub-002_T2w.nii.gz",
+     "sub-002/anat/sub-002_T2w.json",
+     "sub-002/anat/sub-002_angio.nii.gz",
+     "sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a"
+    },
+    "sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "subjects": {
+       "done": 6,
+       "error": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "mprage",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "partial"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "mprage",
+     "vessels"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "subjects": {
+       "done": 6,
+       "error": 2
+      }
+     },
+     "errors": [
+      [
+       "subjects",
+       "sub-002_acq-mprage_T1w.nii.gz",
+       "Normal-002: no mprage image (*.mha)"
+      ],
+      [
+       "subjects",
+       "sub-003_desc-vessels_tubes.tre",
+       "Normal-003: AuxillaryData/VascularNetwork.tre not found"
+      ]
+     ],
+     "status": "partial"
+    },
+    "warnings": [
+     "ERROR: brainspresso.actions.action: Normal-002: no mprage image (*.mha)",
+     "ERROR: brainspresso.actions.engine: sub-002_acq-mprage_T1w.nii.gz: Normal-002: no mprage image (*.mha)",
+     "ERROR: brainspresso.actions.action: Normal-003: AuxillaryData/VascularNetwork.tre not found",
+     "ERROR: brainspresso.actions.engine: sub-003_desc-vessels_tubes.tre: Normal-003: AuxillaryData/VascularNetwork.tre not found"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "mprage",
+       "vessels"
+      ],
+      "mode": "keys",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "d12d02e25785252fc8afdc825306a39fe18e31ec0e31f234288e46aac56eac99",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 1,
+      "error": 1
+     }
+    },
+    "error": "Normal-002: no mprage image (*.mha)",
+    "outputs": [
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": "ec91b91afeae49766e49a16bdeff294df077c5ec1580f2b4e51346771fe87d67",
+    "stage": "roast",
+    "status": "failed",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2,
+      "error": 1
+     }
+    },
+    "error": "Normal-003: AuxillaryData/VascularNetwork.tre not found",
+    "outputs": [
+     "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": "e077a608a0677ca99f0e3ce7000e9ede8c5e5bc92a545c7e6e63bf955822b926",
+    "stage": "roast",
+    "status": "failed",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "participants.tsv": "090af8365312ed677fe32414e3b7b59a5e7452d968638f4fca7c6aa0d9ee4939"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "derivatives": {
+       "skipped": 3
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "subjects": {
+       "skipped": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "skipped": 3
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "subjects": {
+       "skipped": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-flash_T1w.json",
+     "sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "sub-001/anat/sub-001_T2w.nii.gz",
+     "sub-001/anat/sub-001_T2w.json",
+     "sub-001/anat/sub-001_angio.nii.gz",
+     "sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "sub-002/anat/sub-002_acq-flash_T1w.json",
+     "sub-002/anat/sub-002_T2w.nii.gz",
+     "sub-002/anat/sub-002_T2w.json",
+     "sub-002/anat/sub-002_angio.nii.gz",
+     "sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 9
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "subjects": {
+       "done": 9
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-001/anat/sub-001_acq-flash_T1w.json",
+     "sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "sub-001/anat/sub-001_T2w.json",
+     "sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "sub-002/anat/sub-002_angio.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-002/anat/sub-002_acq-flash_T1w.json",
+     "sub-002/anat/sub-002_T2w.json",
+     "sub-002/anat/sub-002_angio.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
+   "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "rawbids/sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "rawbids/sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "rawbids/sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "rawbids/sub-001/anat/sub-001_T2w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_T2w.json",
+     "rawbids/sub-001/anat/sub-001_angio.nii.gz",
+     "rawbids/sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json",
+     "rawbids/sub-002/anat/sub-002_T2w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_T2w.json",
+     "rawbids/sub-002/anat/sub-002_angio.nii.gz",
+     "rawbids/sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
+   "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "rawbids/sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "rawbids/sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "rawbids/sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T2w",
+     "angio",
+     "flash",
+     "meta",
+     "mprage",
+     "skullstripped",
+     "vessels"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "rawbids/sub-001/anat/sub-001_T2w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_T2w.json",
+     "rawbids/sub-001/anat/sub-001_angio.nii.gz",
+     "rawbids/sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json",
+     "rawbids/sub-002/anat/sub-002_T2w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_T2w.json",
+     "rawbids/sub-002/anat/sub-002_angio.nii.gz",
+     "rawbids/sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
+   "dataset_description.json": "4bca57eaf3f11c0c287bdcc48fbbbd6ac5a1b3a7f21d996fd44c0830c9fcd0e5",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 6,
+       "error": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "mprage",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "partial"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "mprage",
+     "vessels"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 6,
+       "error": 2
+      }
+     },
+     "errors": [
+      [
+       "subjects",
+       "sub-002_acq-mprage_T1w.nii.gz",
+       "Normal-002: no mprage image (*.mha)"
+      ],
+      [
+       "subjects",
+       "sub-003_desc-vessels_tubes.tre",
+       "Normal-003: AuxillaryData/VascularNetwork.tre not found"
+      ]
+     ],
+     "status": "partial"
+    },
+    "warnings": [
+     "ERROR: brainspresso.actions.action: Normal-002: no mprage image (*.mha)",
+     "ERROR: brainspresso.actions.engine: sub-002_acq-mprage_T1w.nii.gz: Normal-002: no mprage image (*.mha)",
+     "ERROR: brainspresso.actions.action: Normal-003: AuxillaryData/VascularNetwork.tre not found",
+     "ERROR: brainspresso.actions.engine: sub-003_desc-vessels_tubes.tre: Normal-003: AuxillaryData/VascularNetwork.tre not found"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "mprage",
+       "vessels"
+      ],
+      "mode": "keys",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "d12d02e25785252fc8afdc825306a39fe18e31ec0e31f234288e46aac56eac99",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 1,
+      "error": 1
+     }
+    },
+    "error": "Normal-002: no mprage image (*.mha)",
+    "outputs": [
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": "ec91b91afeae49766e49a16bdeff294df077c5ec1580f2b4e51346771fe87d67",
+    "stage": "roast",
+    "status": "failed",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2,
+      "error": 1
+     }
+    },
+    "error": "Normal-003: AuxillaryData/VascularNetwork.tre not found",
+    "outputs": [
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": "e077a608a0677ca99f0e3ce7000e9ede8c5e5bc92a545c7e6e63bf955822b926",
+    "stage": "roast",
+    "status": "failed",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
+   "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
+   "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "rawbids/participants.tsv": "090af8365312ed677fe32414e3b7b59a5e7452d968638f4fca7c6aa0d9ee4939"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
+   "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
+   "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
+   "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3",
+   "rawbids/sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-001/anat/sub-001_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-002/anat/sub-002_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz": "gz:9d2f514b059a9e71d916efcdf2f20e10d19ee2acf45c914667f0906619419ef5",
+   "rawbids/sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-002/anat/sub-002_angio.nii.gz": "gz:c5597067dd3eb867f12c9d4f11960e3f471d3493f4b1407e46dddbda146fa744",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz": "gz:b921d2efae654f7151b0eb97923fe4cb7502410fc1429e1f88a14dbdbd5595b3"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "rawbids/sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "rawbids/sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "derivatives": {
+       "skipped": 3
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "study": {
+       "skipped": 1
+      },
+      "subjects": {
+       "skipped": 20
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "skipped": 3
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "study": {
+       "skipped": 1
+      },
+      "subjects": {
+       "skipped": 20
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 11
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "rawbids/sub-001/anat/sub-001_T2w.nii.gz",
+     "rawbids/sub-001/anat/sub-001_T2w.json",
+     "rawbids/sub-001/anat/sub-001_angio.nii.gz",
+     "rawbids/sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 7
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json",
+     "rawbids/sub-002/anat/sub-002_T2w.nii.gz",
+     "rawbids/sub-002/anat/sub-002_T2w.json",
+     "rawbids/sub-002/anat/sub-002_angio.nii.gz",
+     "rawbids/sub-002/anat/sub-002_angio.json",
+     "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.nii.gz",
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc",
+   "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
+   "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
+   "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
+   "derivatives/bullitt/dataset_description.json": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925",
+   "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
+   "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
+   "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
+   "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
+   "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd",
+   "rawbids/sub-001/anat/sub-001_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-002/anat/sub-002_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
+   "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
+   "rawbids/sub-002/anat/sub-002_angio.json": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e",
+   "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "fcceee7bdc41f5a3afb274f308ec494bc58711912950094b98b3a26071067abc"
+    },
+    "derivatives/bullitt/.bidsignore": {
+     "origin": "converted",
+     "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
+    },
+    "derivatives/bullitt/README": {
+     "origin": "converted",
+     "sha256": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f"
+    },
+    "derivatives/bullitt/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "15e46852c593893bf62e57559ac77a6f8641be08cbcab5a81fc6fd82444db925"
+    },
+    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": {
+     "origin": "converted",
+     "sha256": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
+    },
+    "rawbids/sub-001/anat/sub-001_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    },
+    "rawbids/sub-001/anat/sub-001_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-002/anat/sub-002_T2w.json": {
+     "origin": "converted",
+     "sha256": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b"
+    },
+    "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json": {
+     "origin": "converted",
+     "sha256": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f"
+    },
+    "rawbids/sub-002/anat/sub-002_angio.json": {
+     "origin": "converted",
+     "sha256": "bc2312d07aab02c86c6fd2b7429eead96c91a41acc0533774c18ca2ec2e7d60e"
+    },
+    "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json": {
+     "origin": "converted",
+     "sha256": "0f60c758da5ae022c520eeeea9a84c8dc78c2c529fc067a655f24cce8005b2fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 9
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T2w",
+      "angio",
+      "flash",
+      "meta",
+      "mprage",
+      "skullstripped",
+      "vessels"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "derivatives": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "study": {
+       "done": 1
+      },
+      "subjects": {
+       "done": 9
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-001/anat/sub-001_angio.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json",
+     "rawbids/sub-001/anat/sub-001_acq-mprage_T1w.json",
+     "rawbids/sub-001/anat/sub-001_T2w.json",
+     "rawbids/sub-001/anat/sub-001_angio.json",
+     "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "001"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "bc6384d30c590d731922948601c1e6c52fa721f15f634cf1f988a802c902b5a6",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_T2w.json"
+      ]
+     ],
+     [
+      "subjects",
+      [
+       "rawbids/sub-002/anat/sub-002_angio.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-002/anat/sub-002_acq-flash_T1w.json",
+     "rawbids/sub-002/anat/sub-002_T2w.json",
+     "rawbids/sub-002/anat/sub-002_angio.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "002"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "95b901eb80bcab6c217fe9160b105ce5a03cd5a3c21847d47fa34a371f1d6203",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   },
+   "roast/subjects/sub-003": {
+    "children": 0,
+    "counts": {
+     "subjects": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "subjects",
+      [
+       "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-003/anat/sub-003_acq-mprage_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatype": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "ses": [],
+        "suffix": [],
+        "task": []
+       },
+       "declared": {
+        "keys": [
+         "T2w",
+         "angio",
+         "flash",
+         "mprage",
+         "skullstripped",
+         "vessels"
+        ],
+        "sub": [
+         "003"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T2w",
+       "angio",
+       "flash",
+       "mprage",
+       "skullstripped",
+       "vessels"
+      ],
+      "mode": "all",
+      "sub": {
+       "kept": [
+        "003"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "e95a03c93af00afe220719baaf23fb5fdb74758ffb0102a5f3f7fdd2d0e0d482",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-003",
+    "unit": {
+     "sub": "003"
+    }
+   }
+  }
+ }
+}

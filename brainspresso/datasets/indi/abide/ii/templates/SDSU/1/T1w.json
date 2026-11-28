@@ -1,0 +1,26 @@
+{
+    "Manufacturer": "GE",
+    "ManufacturersModelName": "MR750",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8HRBRAIN",
+    "PulseSequenceType": "Inversion Recovery Fast Spoiled Gradient Echo",
+    "MRAcquisitionType": "3D",
+    "RepetitionTimeExcitation": 0.008136,
+    "EchoTime": 0.0031720000000000003,
+    "InversionTime": 0.6,
+    "FlipAngle": 8.0,
+    "PixelBandwidth": 244.141,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 192,
+    "Modality": "MR",
+    "ProtocolName": "FSPGR_Anat",
+    "SeriesDescription": "FSPGR_Anat",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "ParallelAcquisitionTechnique": "ASSET",
+    "PercentPhaseFOV": 100.0,
+    "NumberOfAverages": 1.0,
+    "PhaseEncodingAxis": "j"
+}

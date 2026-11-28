@@ -1,0 +1,20 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "TrioTim",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "12 Chan",
+    "PulseSequenceType": "EPI",
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "RepetitionTime": 6.6000000000000005,
+    "EchoTime": 0.10400000000000001,
+    "PixelBandwidth": 1396.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "ParallelReductionFactorInPlane": 2.0,
+    "SliceThickness": 3.0,
+    "SpacingBetweenSlices": 3.0,
+    "AcquisitionMatrixPE": 128,
+    "PhaseEncodingDirection": "j-"
+}

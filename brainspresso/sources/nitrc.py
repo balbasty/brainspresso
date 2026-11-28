@@ -1,96 +1,69 @@
-import os
-import getpass
-from urllib.parse import urlencode
+"""
+NITRC project downloads (`*.projects.nitrc.org`).
 
-import aiohttp
-import requests
+They are static URLs behind the NITRC website login.
+
+NITRC's certificate chain is often incomplete, so these sources skip TLS
+verification by default (`insecure = True`), and download one file at a
+time (`jobs = 1`): the host throttles concurrent downloads.
+
+```python
+source = NITRC({"raw": [url1, url2], "meta": [url3]}).with_options(
+    user=user, password=password)
+source.harvest(layout, keys=["meta"])
+```
+"""
+from __future__ import annotations
+
+from brainspresso.sources.base import StaticURLs
+from brainspresso.sources.credentials import (
+    NITRC_LOGIN,
+    NitrcAuth,
+    get_credentials,
+    nitrc_credentials,
+)
+
+__all__ = ["NITRC", "NitrcAuth", "nitrc_credentials", "get_credentials"]
 
 
-Session = requests.Session
-AsyncSession = aiohttp.ClientSession
-AnySession = Session | AsyncSession
+class NITRC(StaticURLs):
+    """
+    Source: files of NITRC projects, with the NITRC login.
 
+    Per-run options (`with_options`): `user`, `password` (else
+    `NITRC_USER`/`NITRC_PASS`, else a prompt). `login = False` for files
+    that need no login.
 
-def get_credentials(
-    user: str | None = None,
+    Parameters
+    ----------
+    urls : dict[str, list[str | RemoteEntry]]
+        URLs per key (see `StaticURLs`).
+    **kwargs
+        Options of `StaticURLs` (and `user`, `password`).
+    """
+
+    name = "nitrc"
+    title = "NITRC"
+    insecure = True
+    jobs = 1
+    login = True
+    login_url = NITRC_LOGIN
+    user: str | None = None
     password: str | None = None
-) -> tuple[str, str]:
-    """Retrieve (or ask for) NITRC credentials"""
-    user_methods = ['NITRC_USER', 'XNAT_USER', input, ValueError]
-    pass_methods = ['NITRC_PASS', 'XNAT_PASS', getpass.getpass, ValueError]
 
-    if not user:
-        for method in user_methods:
-            if isinstance(method, str):
-                user = os.environ.get(method, None)
-                if user:
-                    break
-            elif isinstance(method, type) and issubclass(method, Exception):
-                raise ValueError(
-                    'Could not guet NITRC username. '
-                    'Set environment variable `NITRC_USER`'
-                )
-            elif callable(method):
-                user = method('NITRC user: ')
-                if user:
-                    break
+    def reads(self, option: str) -> bool:
+        """`user` and `password` only with `login` (see `Source.reads`)."""
+        if option in ("user", "password") and not self.login:
+            return False
+        return super().reads(option)
 
-    if not password:
-        for method in pass_methods:
-            if isinstance(method, str):
-                password = os.environ.get(method, None)
-                if password:
-                    break
-            elif isinstance(method, type) and issubclass(method, Exception):
-                raise ValueError(
-                    'Could not guet NITRC password. '
-                    'Set environment variable `NITRC_PASS`'
-                )
-            elif callable(method):
-                password = getpass.getpass('NITRC password: ')
-                if password:
-                    break
-
-    return user, password
-
-
-class nitrc_authentifier:
-    """Generate an authentication function for NITRC"""
-    # Must be pickable so is a class
-
-    def __init__(
-            self,
-            user: str | None = None,
-            password: str | None = None
-    ) -> None:
-        user, password = get_credentials(user, password)
-        nitrc_login = 'https://www.nitrc.org/account/login.php'
-        query = urlencode(dict(form_loginname=user, form_pw=password))
-        self.url = f'{nitrc_login}?{query}'
-
-    def __call__(self, session: Session) -> Session:
-        session.post(self.url, verify=False)
-        return session
-
-
-class nitrc_authentifier_async(nitrc_authentifier):
-    """Generate an authentication function for NITRC"""
-    # Must be pickable so is a class
-
-    def __init__(
-            self,
-            user: str | None = None,
-            password: str | None = None
-    ) -> None:
-        user, password = get_credentials(user, password)
-        nitrc_login = 'https://www.nitrc.org/account/login.php'
-        query = urlencode(dict(form_loginname=user, form_pw=password))
-        self.url = f'{nitrc_login}?{query}'
-
-    async def __call__(self, session: AnySession) -> AnySession:
-        if isinstance(session, Session):
-            session.post(self.url, verify=False)
-        else:
-            async with session.post(self.url, ssl=False) as r:
-                await r.read()
-        return session
+    def auth(self):
+        """Return the NITRC login hook (None if `login` is false)."""
+        if not self.login:
+            return None
+        auth = self.__dict__.get("_auth")
+        if auth is None or (self.user and auth.user != self.user):
+            auth = NitrcAuth(self.user, self.password, url=self.login_url,
+                             insecure=self.insecure)
+            self._auth = auth
+        return auth

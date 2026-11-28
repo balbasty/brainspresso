@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Philips",
+    "ManufacturersModelName": "Achieva",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "32 Chan",
+    "PulseSequenceType": "3D T1-TFE",
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 2.375,
+    "RepetitionTimePreparation": 2.375,
+    "InversionTime": 0.9,
+    "FlipAngle": 8.0,
+    "PixelBandwidth": 191.5,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 2.0,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 187
+}

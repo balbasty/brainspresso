@@ -1,27 +1,31 @@
-__all__ = ["DownloadManager", "DownloadTable"]
+"""Parallel execution of downloads, with a progress table."""
+__all__ = ["DownloadManager", "DownloadTable", "DEFAULT_JOBS"]
 import asyncio
 import time
 import warnings
-from pathlib import Path
 from collections import Counter
 from logging import getLogger
-from typing import Literal, Iterable
+from pathlib import Path
+from typing import Iterable, Literal
 
 import aiohttp
 
-from brainspresso.utils.tabular import LogSafeTabular, get_style
-from brainspresso.utils.log import HideLoggingStream
+from brainspresso.download.downloader import Downloader, IfExists
 from brainspresso.download.session import new_session
-from brainspresso.download.downloader import IfExists
-from brainspresso.download.downloader import Downloader
+from brainspresso.utils.log import HideLoggingStream
+from brainspresso.utils.tabular import LogSafeTabular, get_style
 
 lg = getLogger(__name__)
+
+#: Concurrent downloads when none is given (`DownloadManager(jobs=None)`)
+DEFAULT_JOBS = 4
 
 # Keys of "progress" statuses, which are rate-limited before display
 _PROGRESS_KEYS = frozenset({"done", "done%", "dspeed", "wspeed", "tspeed"})
 
 
 class DownloadTable(LogSafeTabular):
+    """Progress table of downloads (path, size, done, speed...)."""
 
     def __init__(self, *args, **kwargs):
         rec_fields = (
@@ -72,6 +76,8 @@ class DownloadManager:
             jobs_per_host: int | None = None,
     ):
         """
+        Prepare the downloads.
+
         Parameters
         ----------
         downloaders : iterable[Downloader]
@@ -106,12 +112,12 @@ class DownloadManager:
         self.ifexists = IfExists.from_any(ifexists)
         self.on_error = on_error
         self.path = path
-        self.jobs = max(1, jobs or 4)
+        self.jobs = max(1, jobs or DEFAULT_JOBS)
         self.jobs_per_host = max(1, jobs_per_host or self.jobs)
         self.out = DownloadTable(max_workers=tabular_jobs or self.jobs)
 
     def run(self, mode: Literal["async", "threaded"] = "async"):
-        """Run all downloads"""
+        """Run all downloads."""
         if mode != "async":
             warnings.warn(
                 "DownloadManager.run: the 'threaded' mode has been removed. "
@@ -121,7 +127,7 @@ class DownloadManager:
         return asyncio.run(self.run_async())
 
     def _iter_jobs(self):
-        """Yield (display path, downloader) pairs"""
+        """Yield (display path, downloader) pairs."""
         if self.path[0] == 's':
             # Shorten path, but we need to access all downloaders which
             # might be slow is the input is a looooong generator
@@ -133,6 +139,7 @@ class DownloadManager:
                 yield str(self.repath(downloader.dst)), downloader
 
     async def run_async(self):
+        """Run all downloads (async version of `run`)."""
         guard = {'yield': _Guard, 'raise': lambda x: x}[self.on_error]
         queue: asyncio.Queue = asyncio.Queue(maxsize=4 * self.jobs)
         last_emit: dict[str, float] = {}
@@ -207,6 +214,18 @@ class DownloadManager:
                     await asyncio.gather(*tasks, return_exceptions=True)
 
     def shortpath(self, paths):
+        """Shorten paths for display, according to the `path` mode.
+
+        Parameters
+        ----------
+        paths : list[Path]
+            Paths to shorten.
+
+        Returns
+        -------
+        list
+            Shortened paths.
+        """
         if len(paths) == 1:
             # fallback to mode "name"
             return [path.name for path in paths]
@@ -217,6 +236,7 @@ class DownloadManager:
         return [path.relative_to(Path(common)) for path in paths]
 
     def repath(self, path):
+        """Path for display, according to the `path` mode (abs, name...)."""
         mode = self.path[0].lower()
         if mode == "a":  # abs
             return path.absolute()
@@ -227,7 +247,7 @@ class DownloadManager:
         assert False
 
     def commonprefix(self, *paths):
-        """Common prefix of given paths"""
+        """Return the common prefix of given paths."""
         # https://gist.github.com/chrono-meter/7e47528a3f902c9ade7e0cc442394d08
         counter = Counter()
 

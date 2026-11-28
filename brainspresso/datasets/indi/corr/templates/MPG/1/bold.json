@@ -1,0 +1,20 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Magentom",
+    "MagneticFieldStrength": 7.0,
+    "PulseSequenceType": "EPI",
+    "MRAcquisitionType": "2D",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "RepetitionTime": 3.0,
+    "EchoTime": 0.017,
+    "FlipAngle": 70.0,
+    "PixelBandwidth": 1116.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "ParallelReductionFactorInPlane": 3.0,
+    "SliceThickness": 1.5,
+    "SpacingBetweenSlices": 1.5,
+    "AcquisitionMatrixPE": 128,
+    "PhaseEncodingDirection": "j-"
+}

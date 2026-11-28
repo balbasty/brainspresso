@@ -1,0 +1,18 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "TrioTim",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "8 Chan",
+    "PulseSequenceType": "3D MPRAGE",
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 2.6,
+    "RepetitionTimePreparation": 2.6,
+    "EchoTime": 0.00302,
+    "InversionTime": 0.9,
+    "FlipAngle": 8.0,
+    "PixelBandwidth": 180.0,
+    "PartialFourier": 0.75,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 256,
+    "PhaseEncodingDirection": "j-"
+}

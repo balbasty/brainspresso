@@ -1,0 +1,20 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilName": "12 Chan",
+    "PulseSequenceType": "3D MPRAGE",
+    "MRAcquisitionType": "3D",
+    "RepetitionTime": 2.4,
+    "RepetitionTimePreparation": 2.4,
+    "EchoTime": 0.0030600000000000002,
+    "InversionTime": 0.9,
+    "FlipAngle": 9.0,
+    "PixelBandwidth": 230.0,
+    "ParallelAcquisitionTechnique": "GRAPPA",
+    "ParallelReductionFactorInPlane": 2.0,
+    "PartialFourier": 0.875,
+    "SliceThickness": 1.0,
+    "AcquisitionMatrixPE": 246,
+    "PhaseEncodingDirection": "j-"
+}

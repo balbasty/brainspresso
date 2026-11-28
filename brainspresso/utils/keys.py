@@ -173,18 +173,3 @@ def compat_keys(key: str, keys: dict = allkeys) -> set[str]:
     """Return all keys that are compatible with `key`"""
     return lower_keys(key, keys).union(upper_keys(key, keys))
 
-
-def lower_equal_key(x: str, y: str, keys: dict = allkeys) -> bool:
-    return x in lower_keys(y, keys)
-
-
-def lower_key(x: str, y: str, keys: dict = allkeys) -> bool:
-    return x != y and x in lower_keys(y, keys)
-
-
-def upper_equal_key(x: str, y: str, keys: dict = allkeys) -> bool:
-    return x in upper_keys(y, keys)
-
-
-def upper_key(x: str, y: str, keys: dict = allkeys) -> bool:
-    return x != y and x in upper_keys(y, keys)

@@ -1,75 +1,10 @@
-import os
 import csv
 import json
 import logging
-import nibabel
-import numpy as np
+import os
 from pathlib import Path
 
-from brainspresso.utils.log import LoggingOutputSuppressor
-from brainspresso.utils.path import fileparts
-
 lg = logging.getLogger(__name__)
-
-
-def nibabel_convert(
-        src,
-        dst,
-        remove=False,
-        inp_format=None,
-        out_format=None,
-        affine=None,
-        makedirs=True,
-):
-    """
-    Convert a volume between formats
-
-    Parameters
-    ----------
-    src : str or Path
-        Path to source volume
-    dst : src or Path
-        Path to destination volume
-    remove : bool
-        Delete source volume at the end
-    inp_format : nibabel.Image subclass
-        Input format (default: guess)
-    out_format : nibabel.Image subclass
-        Output format  (default: guess)
-    affine : np.ndarray
-        Orientation matrix (default: from input)
-    """
-    src = Path(src)
-    dst = Path(dst)
-
-    lg.info(f'write {dst.name}')
-
-    if inp_format is None:
-        f = nibabel.load(src)
-    else:
-        f = inp_format.load(src)
-    if out_format is None:
-        _, _, ext = fileparts(dst)
-        if ext in ('.nii', '.nii.gz'):
-            out_format = nibabel.Nifti1Image
-        elif ext in ('.mgh', '.mgz'):
-            out_format = nibabel.MGHImage
-        elif ext in ('.img', '.hdr'):
-            out_format = nibabel.AnalyzeImage
-        else:
-            raise ValueError('???')
-    if affine is None:
-        affine = f.affine
-    if makedirs:
-        dst.parent.mkdir(parents=True, exist_ok=True)
-    with LoggingOutputSuppressor('nibabel.global'):
-        nibabel.save(out_format(np.asarray(f.dataobj), affine, f.header), dst)
-    if remove:
-        for file in f.file_map.values():
-            filename = Path(file.filename)
-            if filename.exists():
-                lg.info(f'remove {filename.name}')
-                filename.unlink()
 
 
 def read_json(src, **kwargs):
@@ -87,7 +22,7 @@ def read_json(src, **kwargs):
         Nested structure
     """
     if isinstance(src, (str, Path)):
-        with open(src, 'rt') as fsrc:
+        with open(src, 'rt', encoding='utf-8') as fsrc:
             return read_json(fsrc, **kwargs)
     return json.load(src, **kwargs)
 
@@ -113,7 +48,7 @@ def write_json(src, dst, makedirs=True, **kwargs):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return write_json(src, fdst, **kwargs)
     kwargs.setdefault('indent', 2)
     json.dump(src, dst, **kwargs)
@@ -141,10 +76,10 @@ def copy_json(src, dst, makedirs=True, **kwargs):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return copy_json(src, fdst, **kwargs, makedirs=False)
     if isinstance(src, (str, Path)):
-        with open(src, 'rt') as fsrc:
+        with open(src, 'rt', encoding='utf-8') as fsrc:
             return copy_json(fsrc, dst, **kwargs, makedirs=False)
     kwargs.setdefault('indent', 2)
     json.dump(json.load(src), dst, **kwargs)
@@ -154,10 +89,20 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     r"""
     Write a BIDS tsv (delimiter = '\t', quoting=QUOTE_NONE)
 
+    Rows end with "\n". A field that contains a line break ("\n" or
+    "\r") raises `ValueError` before anything is written: with
+    `QUOTE_NONE` it cannot be written, and `csv` itself does not reject
+    a "\r" on every Python version (3.10 and 3.11 write it raw).
+
+    The writer of roasted tables (`roast.tables.table_action`), whose
+    cells went through `roast.tables.clean` and never need quoting;
+    `bids.tables.write_tsv` is the quote-aware writer of tables trimmed
+    from elsewhere.
+
     Parameters
     ----------
     src : list[list]
-        A list of rows
+        A list of rows (the first one is the header)
     dst : str or Path or file-like
         Output path
 
@@ -165,18 +110,50 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     ----------------
     makedirs : bool, default=True
         Create all directories needs to write the file
+
+    Raises
+    ------
+    ValueError
+        If a field contains a line break (the message names its row and
+        column)
     """
+    rows = _tsv_rows(src, dst)             # (checked once)
     if isinstance(dst, (str, Path)):
         dst = Path(dst)
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt', newline='') as fdst:
-            return write_tsv(src, fdst, makedirs=False, **kwargs)
+        with open(dst, 'wt', encoding='utf-8', newline='') as fdst:
+            return _write_tsv_rows(rows, fdst, **kwargs)
+    return _write_tsv_rows(rows, dst, **kwargs)
+
+
+def _write_tsv_rows(rows: list[list], dst, **kwargs) -> None:
+    """Write checked rows to an open text file (`write_tsv`)."""
     kwargs.setdefault('delimiter', '\t')
     kwargs.setdefault('quoting', csv.QUOTE_NONE)
+    # (`csv` ends rows with "\r\n" by default; BIDS tables use "\n")
+    kwargs.setdefault('lineterminator', '\n')
     writer = csv.writer(dst, **kwargs)
-    writer.writerows(src)
+    writer.writerows(rows)
+
+
+def _tsv_rows(src, dst) -> list[list]:
+    """Rows of a TSV table, checked for line breaks in fields."""
+    rows = [list(row) for row in src]
+    header = rows[0] if rows else []
+    for n, row in enumerate(rows):
+        for i, value in enumerate(row):
+            text = "" if value is None else str(value)
+            if "\n" in text or "\r" in text:
+                column = header[i] if i < len(header) else f"#{i + 1}"
+                name = getattr(dst, "name", dst)
+                raise ValueError(
+                    f"{name}: row {n + 1}, column {column!r}: the field "
+                    f"{text!r} contains a line break, which a TSV table "
+                    f"cannot hold"
+                )
+    return rows
 
 
 def write_from_buffer(src, dst, makedirs=True):
@@ -229,7 +206,7 @@ def write_text(src, dst, makedirs=True):
         lg.info(f'write {dst.name}')
         if makedirs:
             os.makedirs(dst.parent, exist_ok=True)
-        with open(dst, 'wt') as fdst:
+        with open(dst, 'wt', encoding='utf-8', newline='\n') as fdst:
             return write_text(src, fdst, makedirs=False)
     dst.write(src)
 

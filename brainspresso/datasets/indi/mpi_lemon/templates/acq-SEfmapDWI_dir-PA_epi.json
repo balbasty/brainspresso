@@ -1,0 +1,26 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "Multiband Spin Echo EPI",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "SequenceVariant": [
+        "SK"
+    ],
+    "ScanOptions": [],
+    "SequenceName": "cmrr_mbep2d_se",
+    "PulseSequenceDetails": "%CustomerSeq%\\cmrr_mbep2d_se",
+    "EchoTime": 0.08,
+    "MultibandAccelerationFactor": 2,
+    "RepetitionTime": 7.0,
+    "Modality": "MR",
+    "ProtocolName": "cmrr_mbep2d_se_PA_unwarp_diff",
+    "SeriesDescription": "cmrr_mbep2d_se_PA_unwarp_diff",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ]
+}

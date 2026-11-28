@@ -1,0 +1,113 @@
+{
+  "sex": {
+    "Description": "Sex of the participant as reported by the participant",
+    "Levels": {
+      "M": "male",
+      "F": "female"
+    }
+  },
+  "handedness": {
+    "Description": "Handedness of the participant",
+    "Levels": {
+      "L": "left",
+      "R": "right",
+      "B": "ambidextrous"
+    }
+  },
+  "age": {
+    "Description": "Age of the participant at time of *first* visit",
+    "Units": "year"
+  },
+  "age_at_death": {
+    "Description": "Age of the participant at time of death",
+    "Units": "years"
+  },
+  "educ": {
+    "Description": "Years of education",
+    "Units": "years"
+  },
+  "ses": {
+    "Description": "Socioeconomic status, assessed by the Hollingshead Index of Social Position and classified into categories from 1 (highest status) to 5 (lowest status) (Hollingshead, 1957).",
+    "Levels": {
+      "1": "highest socioeconomic status.",
+      "2": "",
+      "3": "",
+      "4": "",
+      "5": "lowest socioeconomic status"
+    }
+  },
+  "race": {
+    "Description": "What does the subject report as his or her race?",
+    "Levels": {
+      "U": "Unknown",
+      "N": "American Indian or Alaska Native",
+      "A": "Asian",
+      "H": "Native Hawaiian or Other Pacific Islander",
+      "B": "Black",
+      "W": "White",
+      "M": "More than one"
+    }
+  },
+  "race_aian": {
+    "Description": "American Indian or Alaska Native reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_nhpi": {
+    "Description": "Native Hawaiian or Other Pacific Islander reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_asian": {
+    "Description": "Asian reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_black": {
+    "Description": "Black reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "race_white": {
+    "Description": "White reported as a race",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes"
+    }
+  },
+  "daddem": {
+    "Description": "Does/did subject's father have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes",
+      "U": "Unknown"
+    }
+  },
+  "momdem": {
+    "Description": "Does/did subject's mother have dementia, as indicated by symptoms, history or diagnosis?",
+    "Levels": {
+      "N": "No",
+      "Y": "Yes",
+      "U": "Unknown"
+    }
+  },
+  "apoe": {
+    "Description": "APOE genetic status.",
+    "Levels": {
+      "22": "(APOE2, APOE2)",
+      "23": "(APOE2, APOE3)",
+      "24": "(APOE2, APOE4)",
+      "33": "(APOE3, APOE3)",
+      "34": "(APOE3, APOE4)",
+      "44": "(APOE4, APOE4)"
+    }
+  }
+}

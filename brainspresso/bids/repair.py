@@ -49,7 +49,7 @@ import json
 import re
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 lg = getLogger(__name__)
 
@@ -81,7 +81,7 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 # ----------------------------------------------------------------------
 
 def loads(text: str):
-    """Parse JSON, repairing common syntax errors if needed"""
+    """Parse JSON, repairing common syntax errors if needed."""
     try:
         return json.loads(text, strict=False)
     except json.JSONDecodeError:
@@ -101,7 +101,7 @@ def loads(text: str):
 
 
 def to_number(value, key: str = ""):
-    """Convert a string holding a number to a number (or return None)"""
+    """Convert a string holding a number to a number (or return None)."""
     if isinstance(value, (int, float)) or not isinstance(value, str):
         return None
     text = value.strip()
@@ -126,7 +126,7 @@ def to_number(value, key: str = ""):
 
 
 def fix_sidecar(meta: dict, name: str = "") -> dict:
-    """Coerce values of a sidecar or dataset description"""
+    """Coerce values of a sidecar or dataset description."""
     out = {}
     for key, value in meta.items():
         if isinstance(value, str):
@@ -154,10 +154,95 @@ def fix_sidecar(meta: dict, name: str = "") -> dict:
     return out
 
 
+def _read_utf8(path: Path) -> str | None:
+    """
+    Text of a file to repair in place (None: not valid UTF-8).
+
+    Decoded strictly: a file that is not valid UTF-8 is left as it is,
+    with a warning, as text decoded with replacement characters must
+    never be written back (it would lose the original bytes).
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        lg.warning(f"{path}: not valid UTF-8, not repaired ({e})")
+        return None
+
+
+def repair_sidecar(
+    meta: dict,
+    name: str = "",
+    sibling: Callable[[str], dict | None] | None = None,
+) -> dict:
+    """
+    Repair the content of a sidecar (or dataset description).
+
+    The pure part of `repair_json`: `fix_sidecar`, then the rules that
+    depend on the name of the file (`MTState`, `MP2RAGE`, `phasediff`).
+
+    Parameters
+    ----------
+    meta : dict
+        Content of the sidecar
+    name : str
+        Its file name
+    sibling : callable(name) -> dict | None, optional
+        Content of a sibling sidecar (same folder), by file name: the
+        phase difference reads `EchoTime` of its `magnitude1`
+
+    Returns
+    -------
+    dict
+        The repaired content (a new dictionary)
+    """
+    fixed = fix_sidecar(meta, name)
+    mt = re.search(r"_mt-(on|off)_", name)
+    if mt and "MTState" not in fixed:
+        fixed["MTState"] = mt.group(1) == "on"
+    if name.endswith("_MP2RAGE.json") and \
+            "RepetitionTimePreparation" not in fixed and \
+            isinstance(fixed.get("RepetitionTime"), (int, float)):
+        fixed["RepetitionTimePreparation"] = fixed.pop("RepetitionTime")
+    if name.endswith("_phasediff.json"):
+        fixed = _phasediff(name, fixed, sibling)
+    return fixed
+
+
+def dumps(meta: dict) -> str:
+    """Format a sidecar as the repairs write it (2-space indent, UTF-8)."""
+    return json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
+
+
+def read_sibling(path: Path) -> dict | None:
+    """
+    Read a sibling sidecar, for `repair_sidecar` (None if unreadable).
+
+    A sidecar that is not valid UTF-8 is read with replacement
+    characters: only numbers are used from it (`EchoTime`), and it is
+    never written back.
+
+    Parameters
+    ----------
+    path : Path
+        The sibling
+
+    Returns
+    -------
+    dict | None
+    """
+    try:
+        meta = loads(Path(path).read_text(encoding="utf-8", errors="replace"))
+    except (ValueError, OSError):
+        return None
+    return meta if isinstance(meta, dict) else None
+
+
 def repair_json(path: Path) -> bool:
     """Repair a JSON file in place. Returns whether it was changed."""
     path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _read_utf8(path)
+    if text is None:
+        return False
     try:
         meta = loads(text)
     except json.JSONDecodeError as e:
@@ -165,38 +250,25 @@ def repair_json(path: Path) -> bool:
         return False
     if not isinstance(meta, dict):
         return False
-    fixed = fix_sidecar(meta, path.name)
-    mt = re.search(r"_mt-(on|off)_", path.name)
-    if mt and "MTState" not in fixed:
-        fixed["MTState"] = mt.group(1) == "on"
-    if path.name.endswith("_MP2RAGE.json") and \
-            "RepetitionTimePreparation" not in fixed and \
-            isinstance(fixed.get("RepetitionTime"), (int, float)):
-        fixed["RepetitionTimePreparation"] = fixed.pop("RepetitionTime")
-    if path.name.endswith("_phasediff.json"):
-        fixed = _phasediff(path, fixed)
+    fixed = repair_sidecar(meta, path.name,
+                           lambda name: read_sibling(path.with_name(name)))
     try:
         unchanged = json.loads(text) == fixed
     except json.JSONDecodeError:
         unchanged = False
     if unchanged:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(dumps(fixed), encoding="utf-8", newline="\n")
     return True
 
 
-def _phasediff(path: Path, meta: dict) -> dict:
+def _phasediff(name: str, meta: dict, sibling) -> dict:
     if "EchoTime1" in meta and "EchoTime2" in meta:
         return meta
-    magnitude = path.with_name(
-        path.name.replace("_phasediff.json", "_magnitude1.json")
-    )
-    if "EchoTime" not in meta or not magnitude.exists():
+    if "EchoTime" not in meta or sibling is None:
         return meta
-    try:
-        te1 = loads(magnitude.read_text()).get("EchoTime")
-    except json.JSONDecodeError:
-        return meta
+    magnitude = sibling(name.replace("_phasediff.json", "_magnitude1.json"))
+    te1 = magnitude.get("EchoTime") if isinstance(magnitude, dict) else None
     te2 = meta["EchoTime"]
     if isinstance(te1, (int, float)) and isinstance(te2, (int, float)) \
             and te1 < te2:
@@ -210,6 +282,7 @@ def _phasediff(path: Path, meta: dict) -> dict:
 # ----------------------------------------------------------------------
 
 def read_rows(text: str) -> list[list[str]]:
+    """Parse TSV text into rows (blank lines dropped)."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     rows = [line.split("\t") for line in text.split("\n")]
     rows = [r for r in rows if any(c.strip() for c in r)]
@@ -224,27 +297,49 @@ def read_rows(text: str) -> list[list[str]]:
     return rows
 
 
-def repair_tsv(path: Path) -> bool:
-    """Repair a TSV file in place. Returns whether it was changed."""
-    path = Path(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
+def repair_table(text: str, name: str = "") -> str | None:
+    """
+    Repair the text of a TSV table (the pure part of `repair_tsv`).
+
+    Parameters
+    ----------
+    text : str
+        Content of the table
+    name : str
+        Its file name (`participants.tsv`, `*_sessions.tsv` have their
+        own rules)
+
+    Returns
+    -------
+    str | None
+        The repaired text (None: empty table)
+    """
     rows = read_rows(text)
     if not rows:
-        return False
+        return None
     header = [c.strip() for c in rows[0]]
     body = [[("n/a" if c.strip() in MISSING else c.strip()) for c in r]
             for r in rows[1:]]
     body = [r + ["n/a"] * (len(header) - len(r)) for r in body]
-    if path.name == "participants.tsv" and header[0] == "participant_id":
+    if name == "participants.tsv" and header[0] == "participant_id":
         for r in body:
             if not r[0].startswith("sub-"):
                 r[0] = "sub-" + r[0]
-    if path.name.endswith("_sessions.tsv"):
+    if name.endswith("_sessions.tsv"):
         header, body = _sessions(header, body)
-    out = "".join("\t".join(r) + "\n" for r in [header, *body])
-    if out == text:
+    return "".join("\t".join(r) + "\n" for r in [header, *body])
+
+
+def repair_tsv(path: Path) -> bool:
+    """Repair a TSV file in place. Returns whether it was changed."""
+    path = Path(path)
+    text = _read_utf8(path)
+    if text is None:
         return False
-    path.write_text(out)
+    out = repair_table(text, path.name)
+    if out is None or out == text:
+        return False
+    path.write_text(out, encoding="utf-8", newline="\n")
     return True
 
 
@@ -290,24 +385,48 @@ INTENDED_TAGS = {
 IMAGE_EXTENSIONS = (".nii.gz", ".nii")
 
 
-def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
-    """Repair (and trim) `IntendedFor` of a field map sidecar in place"""
-    path, root = Path(path), Path(root)
+def intended_for(meta: dict, path: str | Path, root: Path,
+                 trim: bool = False, present: Iterable[str] = ()) -> dict:
+    """
+    Repair (and trim) `IntendedFor` of a field map sidecar's content.
+
+    The pure part of `fix_intended_for`: it reads the tree of the BIDS
+    dataset (local images, `.bidsignore`), never the sidecar itself.
+
+    Parameters
+    ----------
+    meta : dict
+        Content of the sidecar
+    path : str | Path
+        Path of the sidecar (absolute, or relative to `root`)
+    root : Path
+        BIDS dataset that contains it
+    trim : bool
+        Drop targets that are not present locally
+    present : iterable of str
+        Files (relative to `root`, POSIX) that count as present although
+        they are not on disk (selected, not fetched: `--sidecars only`)
+
+    Returns
+    -------
+    dict
+        The new content (`meta` itself if nothing changed)
+    """
+    present = {str(p) for p in present}
+    root = Path(root)
+    path = Path(path)
     try:
-        rel = path.relative_to(root)
+        rel = path.relative_to(root) if path.is_absolute() else path
     except ValueError:
-        return False
+        return meta
     if not rel.parts or not rel.parts[0].startswith("sub-"):
-        return False
+        return meta
+    if not isinstance(meta, dict) or "IntendedFor" not in meta:
+        return meta
     subject = root / rel.parts[0]
+    rel_subject = rel.parts[0]
     session = subject / rel.parts[1] \
         if len(rel.parts) > 2 and rel.parts[1].startswith("ses-") else None
-    try:
-        meta = loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return False
-    if not isinstance(meta, dict) or "IntendedFor" not in meta:
-        return False
     targets = meta["IntendedFor"]
     targets = [targets] if isinstance(targets, str) else list(targets or [])
 
@@ -319,18 +438,24 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
         datatype = INTENDED_TAGS.get(target.strip().lower())
         if datatype and "/" not in target:
             folder = (session or subject) / datatype
+            prefix = folder.relative_to(root).as_posix() + "/"
+            names = {p.name for p in folder.glob("*")} | {
+                p[len(prefix):] for p in present
+                if p.startswith(prefix) and "/" not in p[len(prefix):]
+            }
             out += sorted(
-                p.relative_to(subject).as_posix()
-                for p in folder.glob("*")
-                if p.name.endswith(IMAGE_EXTENSIONS)
-                and not any(fnmatch.fnmatch(p.name, pat) for pat in ignore)
+                (folder / name).relative_to(subject).as_posix()
+                for name in names
+                if name.endswith(IMAGE_EXTENSIONS)
+                and not any(fnmatch.fnmatch(name, pat) for pat in ignore)
             )
             continue
         if trim:
             if target.startswith("bids::"):
-                exists = (root / target[len("bids::"):]).exists()
+                rel = target[len("bids::"):]
             else:
-                exists = (subject / target).exists()
+                rel = f"{rel_subject}/{target}"
+            exists = (root / rel).exists() or rel in present
             if not exists:
                 continue
         out.append(target)
@@ -340,9 +465,29 @@ def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
         fixed["IntendedFor"] = out
     else:
         fixed.pop("IntendedFor")
-    if fixed == meta:
+    return meta if fixed == meta else fixed
+
+
+def fix_intended_for(path: Path, root: Path, trim: bool = False) -> bool:
+    """Repair (and trim) `IntendedFor` of a field map sidecar in place."""
+    path, root = Path(path), Path(root)
+    try:
+        path.relative_to(root)
+    except ValueError:
         return False
-    path.write_text(json.dumps(fixed, indent=2, ensure_ascii=False) + "\n")
+    try:
+        meta = loads(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as e:
+        # (not rewritten: replacement characters would be lossy)
+        lg.warning(f"{path}: not valid UTF-8, IntendedFor not repaired "
+                   f"({e})")
+        return False
+    except (json.JSONDecodeError, OSError):
+        return False
+    fixed = intended_for(meta, path, root, trim)
+    if fixed is meta:
+        return False
+    path.write_text(dumps(fixed), encoding="utf-8", newline="\n")
     return True
 
 
@@ -350,14 +495,15 @@ def _bidsignore(root: Path) -> list[str]:
     path = Path(root) / ".bidsignore"
     if not path.exists():
         return []
-    return [line.strip().lstrip("/") for line in path.read_text().splitlines()
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    return [line.strip().lstrip("/") for line in lines
             if line.strip() and not line.startswith("#")]
 
 
 # ----------------------------------------------------------------------
 
 def repair(paths: Iterable[Path]) -> list[Path]:
-    """Repair JSON and TSV files (others are ignored)"""
+    """Repair JSON and TSV files (others are ignored)."""
     changed = []
     paths = sorted(Path(p) for p in paths)
     # phase difference maps need their magnitude sidecar: do them last

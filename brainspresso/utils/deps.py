@@ -1,17 +1,19 @@
 """
 Optional dependencies.
 
-Commands that need an optional dependency (installed through an extra,
-e.g. `pip install brainspresso[ixi]`) are only registered in the CLI if
-the dependency is installed. Unavailable commands are recorded in
-`UNAVAILABLE`, so that they can be reported (e.g. listed with the
-missing dependencies) without being imported.
+A command that needs an optional dependency (installed through an
+extra, e.g. `pip install brainspresso[ixi]`) declares it on its dataset
+(`Dataset.requires = {"roast": ("xlrd",)}`, `Dataset.extra = "ixi"`).
+When the dependency is missing, `datasets.register` registers a stub
+that prints the hint, and records the command in `UNAVAILABLE`, so that
+it can be reported (e.g. listed with the missing dependencies) without
+being imported. `requires` is the same check for other callers.
 
 ```python
 from brainspresso.utils.deps import requires
 
 if requires("ixi roast", "xlrd", extra="ixi"):
-    from .bidsify import bidsify as _bidsify
+    ...
 ```
 """
 from __future__ import annotations

@@ -1,0 +1,25 @@
+{
+    "Manufacturer": "Philips",
+    "MagneticFieldStrength": 3.0,
+    "ImagingFrequency": 127.728,
+    "Modality": "MR",
+    "ProtocolName": "anat",
+    "RepetitionTime": 3.0,
+    "EchoTime": 0.0039,
+    "FlipAngle": 8.0,
+    "InversionTime": 1.1500000000000001,
+    "RepetitionTimePreparation": 3.0,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "PulseSequenceType": "Inversion Recovery Turbo Field Echo (MPRAGE-like)",
+    "RepetitionTimeExcitation": 0.008400000000000001,
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 2.3,
+    "ParallelReductionFactorOutOfPlane": 1.0,
+    "AcquisitionMatrixPE": 256,
+    "ReconMatrixPE": 256,
+    "PhaseEncodingAxis": "i"
+}

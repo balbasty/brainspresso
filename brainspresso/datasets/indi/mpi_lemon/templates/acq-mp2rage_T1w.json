@@ -1,0 +1,29 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Verio",
+    "SoftwareVersions": "syngo MR B17",
+    "MagneticFieldStrength": 3.0,
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR"
+    ],
+    "SequenceName": "mp2rage_wip602B",
+    "PulseSequenceDetails": "%CustomerSeq%\\mp2rage_wip602B",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "EchoTime": 0.00292,
+    "RepetitionTime": 5.0,
+    "RepetitionTimePreparation": 5.0,
+    "Modality": "MR",
+    "ProtocolName": "mp2rage_p3_602B",
+    "SeriesDescription": "mp2rage_p3_602B"
+}

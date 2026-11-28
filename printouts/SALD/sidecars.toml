@@ -1,0 +1,45 @@
+# Conversion table: protocol printout -> BIDS sidecar template.
+# Run `python scripts/make_sidecars.py SALD` to regenerate the sidecars.
+#
+# Each [[sidecar]] entry has:
+#   output    path of the sidecar, relative to brainspresso/datasets/indi/sald/templates/
+#   printout  path of the protocol printout, relative to printouts/SALD
+#   select    (optional) protocol selector: 0-based index or name glob
+#             (see `p2b list <printout>`); must match exactly one protocol
+#   nii       (optional) NIfTI header (relative to printouts/SALD) used to
+#             map anatomical directions to voxel axes
+#   defaults  (optional) table of BIDS keys used when protocol2bids
+#             does not produce them
+#   drop      (optional) list of keys removed from the converted sidecar
+#   fill      true: fill-in template, for the BIDS sidecars the bucket
+#             hosts: it never replaces one. Until the placement hook
+#             (claude/feat/hosted-bids-placement) merges keys, a template
+#             is skipped whole when the bucket hosts a file at its path,
+#             else written at the dataset root, where BIDS inheritance
+#             lets the hosted, lower-level sidecars win (see
+#             printouts/README.md)
+#   note      (optional) free-text comment
+#
+# Outputs are named as the local (remapped) BIDS files, without the
+# sub/ses/run entities, so that they apply to every matching file.
+# One site (Southwest University, Siemens TrioTim). The SALD printouts
+# published on NITRC are byte-identical to SLIM's anat and rest printouts
+# (same scanner and protocols): they are used from printouts/SLIM by
+# reference (`../SLIM/...`), with SALD's own NIfTI headers.
+
+[[sidecar]]
+output = "T1w.json"
+printout = "../SLIM/anat.pdf"
+nii = "nii/T1w.nii"
+fill = true
+note = """NITRC retro/SALD/swu_slim_scan_params_anat.pdf == SLIM anat.pdf.
+axes: 10 sampled headers (across subjects and sessions) agree, sform RAS (no qform) (see printouts/README.md)"""
+
+[[sidecar]]
+output = "task-rest_bold.json"
+printout = "../SLIM/rest.pdf"
+nii = "nii/bold.nii"
+defaults = { TaskName = "rest" }
+fill = true
+note = """NITRC retro/SALD/swu_slim_scan_params_rest.pdf == SLIM rest.pdf.
+axes: 10 sampled headers (across subjects and sessions) agree, q/sform LAS (see printouts/README.md)"""

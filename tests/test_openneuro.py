@@ -11,11 +11,13 @@ import pytest
 from aiohttp import web
 
 from brainspresso.sources.openneuro import (
-    APIUnavailable, OpenNeuroAPI, OpenNeuroError, digests_from_annex_key,
+    APIUnavailable,
+    OpenNeuroAPI,
+    OpenNeuroError,
+    digests_from_annex_key,
     list_snapshot,
 )
 from brainspresso.sources.s3 import S3Bucket, S3Object, parse_s3_url
-
 
 # ----------------------------------------------------------------------
 #   Mock servers

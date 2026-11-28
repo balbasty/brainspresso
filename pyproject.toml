@@ -13,7 +13,28 @@ line-length = 79
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
+# PLC0415: imports at the top level; a local import is kept only for an
+# optional dependency, a cycle or the startup time of `bx --help`, with
+# `# noqa: PLC0415` and the reason. I: imports sorted as ruff's isort
+# rule does (`ruff check --select I --fix .`).
+select = ["E", "F", "W", "D", "I", "PLC0415"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["brainspresso"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+# Docstrings (pydocstyle, numpy convention) are enforced package by
+# package, in the packages ported to the new architecture only; extend
+# this one (negated) pattern as packages comply (two negated patterns
+# would exempt every file): docs/design/architecture.md, "Conventions".
+# (tests written before PLC0415 was enforced)
+# (generators of the SVG artwork: long lines are SVG markup)
+"docs/images/src/*.py" = ["E501"]
+"tests/test_{compost,download,fcp,girder,ixi,locks,roast_cobre,roast_oasis3,runner,sources}.py" = ["PLC0415"]
+"!brainspresso/{actions/**,bids/**,convert/**,freesurfer/actions.py,freesurfer/archive.py,download/**,grind/**,percolate/**,roast/**,sources/**,datasets/indi/cobre/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,datasets/oasis/i/**,datasets/indi/abide/**,datasets/oasis/ii/**,datasets/bullitt/**,cli.py,config.py,errors.py,__main__.py}" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

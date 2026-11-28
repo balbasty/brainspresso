@@ -1,0 +1,19 @@
+{
+    "Manufacturer": "Philips",
+    "MagneticFieldStrength": 3.0,
+    "ImagingFrequency": 127.728,
+    "Modality": "MR",
+    "ProtocolName": "3DFLAIR",
+    "InversionTime": 1.6500000000000001,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "IR"
+    ],
+    "PulseSequenceType": "Inversion Recovery Turbo Spin Echo",
+    "ParallelAcquisitionTechnique": "SENSE",
+    "ParallelReductionFactorInPlane": 3.0,
+    "ParallelReductionFactorOutOfPlane": 2.0,
+    "AcquisitionMatrixPE": 240,
+    "ReconMatrixPE": 256,
+    "PhaseEncodingAxis": "j"
+}

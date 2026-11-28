@@ -1,0 +1,131 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Child Symptom Inventory (CSI)"
+    },
+    "adhd_i_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-I_SEVERITY"
+    },
+    "adhd_i_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-I_CUTOFF"
+    },
+    "adhd_h_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-H_SEVERITY"
+    },
+    "adhd_h_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-H_CUTOFF"
+    },
+    "adhd_c_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-C_SEVERITY"
+    },
+    "adhd_c_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ADHD-C_CUTOFF"
+    },
+    "odd_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ODD_SEVERITY"
+    },
+    "odd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ODD_CUTOFF"
+    },
+    "cd_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_CD_SEVERITY"
+    },
+    "cd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_CD_CUTOFF"
+    },
+    "gad_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_GAD_SEVERITY"
+    },
+    "gad_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_GAD_CUTOFF"
+    },
+    "specific_phobia_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_SPECIFIC_PHOBIA_SEVERITY"
+    },
+    "specific_phobia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_SPECIFIC_PHOBIA_CUTOFF"
+    },
+    "obsessions_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_OBSESSIONS_SEVERITY"
+    },
+    "obsessions_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_OBSESSIONS_CUTOFF"
+    },
+    "compulsions_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_COMPULSIONS_SEVERITY"
+    },
+    "compulsions_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_COMPULSIONS_CUTOFF"
+    },
+    "disturbing_events_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_DISTURBING_EVENTS_SEVERITY"
+    },
+    "disturbing_events_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_DISTURBING_EVENTS_CUTOFF"
+    },
+    "motor_tics_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_MOTOR_TICS_SEVERITY"
+    },
+    "motor_tics_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_MOTOR_TICS_CUTOFF"
+    },
+    "vocal_tics_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_VOCAL_TICS_SEVERITY"
+    },
+    "vocal_tics_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_VOCAL_TICS_CUTOFF"
+    },
+    "schizophrenia_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_SCHIZOPHRENIA_SEVERITY"
+    },
+    "schizophrenia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_SCHIZOPHRENIA_CUTOFF"
+    },
+    "mdd_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_MDD_SEVERITY"
+    },
+    "mdd_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_MDD_CUTOFF"
+    },
+    "dysthymic_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_DYSTHYMIC_SEVERITY"
+    },
+    "dysthymic_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_DYSTHYMIC_CUTOFF"
+    },
+    "autistic_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_AUTISTIC_SEVERITY"
+    },
+    "autistic_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_AUTISTIC_CUTOFF"
+    },
+    "asperger_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ASPERGER_SEVERITY"
+    },
+    "asperger_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ASPERGER_CUTOFF"
+    },
+    "social_phobia_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_SOCIAL_PHOBIA_SEVERITY"
+    },
+    "social_phobia_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_SOCIAL_PHOBIA_CUTOFF"
+    },
+    "separation_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_SEPARATION_SEVERITY"
+    },
+    "separation_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_SEPARATION_CUTOFF"
+    },
+    "enuresis_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ENURESIS_SEVERITY"
+    },
+    "enuresis_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ENURESIS_CUTOFF"
+    },
+    "encopresis_severity": {
+        "Description": "ABIDE-II phenotypic column CSI_ENCOPRESIS_SEVERITY"
+    },
+    "encopresis_cutoff": {
+        "Description": "ABIDE-II phenotypic column CSI_ENCOPRESIS_CUTOFF"
+    }
+}

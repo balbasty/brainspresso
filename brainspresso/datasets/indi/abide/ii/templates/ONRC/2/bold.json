@@ -1,0 +1,51 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Skyra",
+    "SoftwareVersions": "syngo MR D13",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HEA;HEP",
+    "CoilCombinationMethod": "rSOS",
+    "PulseSequenceType": "Multiband Gradient Echo EPI",
+    "ScanningSequence": [
+        "EP"
+    ],
+    "SequenceVariant": [
+        "SK"
+    ],
+    "ScanOptions": [
+        "FS"
+    ],
+    "SequenceName": "epfid",
+    "MRAcquisitionType": "2D",
+    "MTState": false,
+    "B0ShimmingTechnique": "Standard",
+    "NumberShots": 1,
+    "EffectiveEchoSpacing": 0.00055,
+    "TotalReadoutTime": 0.04345,
+    "EchoTime": 0.03,
+    "DwellTime": 2.4000000000000003e-06,
+    "FlipAngle": 60.0,
+    "MultibandAccelerationFactor": 8,
+    "RepetitionTime": 0.47500000000000003,
+    "Modality": "MR",
+    "ProtocolName": "cmrrBOLD rest",
+    "SeriesDescription": "cmrrBOLD rest",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "ImagingFrequency": 123.246551,
+    "BaseResolution": 80,
+    "AcquisitionMatrixPE": 80,
+    "ReconMatrixPE": 80,
+    "PercentPhaseFOV": 100.0,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 80,
+    "EchoTrainLength": 80,
+    "PixelBandwidth": 2604.0,
+    "BandwidthPerPixelPhaseEncode": 22.727272727272727,
+    "DerivedVendorReportedEchoSpacing": 0.00055,
+    "SliceThickness": 3.0,
+    "SpacingBetweenSlices": 3.0
+}

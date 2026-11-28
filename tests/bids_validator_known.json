@@ -1,0 +1,25 @@
+{
+  "validator": "3.0.2",
+  "schema": "2.0.1",
+  "bids": "1.11.2",
+  "findings": [
+    {
+      "dataset": "oasis3",
+      "layout": "flat",
+      "target": "raw",
+      "code": "TSV_INDEX_VALUE_NOT_UNIQUE",
+      "subCode": "",
+      "location": "/phenotype/UDS_b4_cdr.tsv",
+      "message": "Row: 3, Value: sub-0001"
+    },
+    {
+      "dataset": "oasis3",
+      "layout": "study",
+      "target": "raw",
+      "code": "TSV_INDEX_VALUE_NOT_UNIQUE",
+      "subCode": "",
+      "location": "/phenotype/UDS_b4_cdr.tsv",
+      "message": "Row: 3, Value: sub-0001"
+    }
+  ]
+}

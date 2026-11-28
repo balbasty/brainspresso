@@ -1,0 +1,14 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item C2"
+    },
+    "verbal_rituals": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C2_VERBAL_RITUALS"
+    },
+    "compulsions": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C2_COMPULSIONS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C2_TOTAL"
+    }
+}

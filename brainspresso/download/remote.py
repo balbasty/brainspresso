@@ -1,14 +1,16 @@
+"""Remote files, read as streams of bytes."""
 # std
-import time
 import inspect
-from typing import Callable
+import time
 from email.utils import parsedate_to_datetime
-from urllib.parse import urlparse, ParseResult
 from logging import getLogger
+from typing import Callable
+from urllib.parse import ParseResult, urlparse
+
+import aiohttp
 
 # externals
 import requests
-import aiohttp
 
 # internals
 from brainspresso.download.constants import CHUNK_SIZE
@@ -17,25 +19,27 @@ from brainspresso.download.session import new_session
 lg = getLogger(__name__)
 
 
-def _normalize_request_options(opt: dict | None) -> dict:
+def check_request_options(opt: dict | None) -> dict:
     """
-    Convert `requests`-style options into `aiohttp` options.
+    Check the options passed to `aiohttp.ClientSession.request`.
 
-    Dataset modules historically passed `verify=False` (requests) or
-    `verify_ssl=False` (deprecated in aiohttp). aiohttp expects `ssl=False`.
+    TLS verification
+    is not one of them: it is the `insecure` option of downloads.
     """
     opt = dict(opt or {})
-    for key in ("verify", "verify_ssl"):
-        if key in opt:
-            value = opt.pop(key)
-            if value is False:
-                opt["ssl"] = False
+    tls = {"ssl", "verify", "verify_ssl"} & set(opt)
+    if tls:
+        raise TypeError(
+            f"Request options {sorted(tls)} are not supported: use "
+            f"`insecure=True` to skip TLS certificate verification"
+        )
     return opt
 
 
 class RemoteFile:
     """
-    This object represents a remote file, whose bytes are downloaded.
+    A remote file, whose bytes are downloaded.
+
     It is used as an async context manager.
 
     ```python
@@ -65,8 +69,11 @@ class RemoteFile:
             offset: int = 0,
             get_opt: dict = {},
             if_range: str | None = None,
+            insecure: bool = False,
     ):
         """
+        Prepare the reading of a remote file.
+
         Parameters
         ----------
         url : str | ParseResult
@@ -87,6 +94,8 @@ class RemoteFile:
             Validator (ETag or Last-Modified) of the partial file.
             If the remote file does not match it anymore, the server
             sends the full file.
+        insecure : bool
+            Do not verify TLS certificates
         """
         if not isinstance(url, ParseResult):
             url = urlparse(url)
@@ -96,7 +105,8 @@ class RemoteFile:
         self.session_is_mine = False
         self._auth = auth
         self.chunk_size = chunk_size
-        self.get_opt = _normalize_request_options(get_opt)
+        self.get_opt = check_request_options(get_opt)
+        self.insecure = insecure
         self.offset = offset
         self.if_range = if_range
         self.complete = False
@@ -112,6 +122,7 @@ class RemoteFile:
     # ------------------------------------------------------------------
 
     async def auth(self, session) -> None:
+        """Run the authentication hook (if any) on `session`."""
         if self._auth is None:
             return
         result = self._auth(session)
@@ -152,6 +163,8 @@ class RemoteFile:
         opt = dict(self.get_opt)
         headers = {**opt.pop("headers", {}), **(headers or {})}
         opt.setdefault("allow_redirects", True)
+        if self.insecure:
+            opt["ssl"] = False
         url = self.url.geturl()
 
         r = await self.session.request(method, url, headers=headers, **opt)
@@ -202,7 +215,7 @@ class RemoteFile:
 
     @property
     async def size(self) -> int | None:
-        """Size of the remote file (from the GET response if available)"""
+        """Size of the remote file (from the GET response if available)."""
         if self.response is not None:
             return self._size_from(self.response, self.offset)
         r = await self._head_once()
@@ -210,7 +223,7 @@ class RemoteFile:
 
     @property
     async def mtime(self):
-        """Last-modified time of the remote file"""
+        """Last-modified time of the remote file."""
         r = self.response if self.response is not None else (
             await self._head_once()
         )
@@ -223,7 +236,7 @@ class RemoteFile:
 
     @property
     def validator(self) -> str | None:
-        """Strong ETag, or Last-Modified, usable in an `If-Range` header"""
+        """Strong ETag, or Last-Modified, usable in an `If-Range` header."""
         if self.response is None:
             return None
         etag = self.response.headers.get("ETag", "")
@@ -236,6 +249,7 @@ class RemoteFile:
     # ------------------------------------------------------------------
 
     async def __aenter__(self):
+        """Send the request and check the response."""
         h = {}
         if self.offset:
             h["Range"] = f"bytes={self.offset}-"
@@ -270,6 +284,7 @@ class RemoteFile:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Release (or close) the response."""
         if self.response is not None:
             if exc_type is None:
                 self.response.release()
@@ -295,6 +310,7 @@ class RemoteFile:
             tic = toc
 
     def __aiter__(self):
+        """Iterate over chunks of bytes of the response."""
         return self.iterator
 
     def _update_speed(self, nbytes, time):

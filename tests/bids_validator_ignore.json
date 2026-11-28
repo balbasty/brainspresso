@@ -1,0 +1,22 @@
+{
+  "ignore": [
+    {
+      "code": "REPETITION_TIME_MISMATCH",
+      "datasets": ["abide1-nitrc", "abide2"],
+      "location": "*_bold.nii.gz",
+      "reason": "The fixture bold images (roast_utils.nii_bytes, written by the tests) have the nibabel default TR of 1 s in their header; the site templates carry the real TR. The ABIDE-I XNAT fixture sets the header TR, and SALD's images agree with its template: neither is ignored."
+    },
+    {
+      "code": "SLICETIMING_ELEMENTS",
+      "datasets": ["abide1-nitrc", "abide1-xnat", "abide2"],
+      "location": "*.nii.gz",
+      "reason": "The SliceTiming of the site templates (bold, but also some T2w and dwi templates) has one entry per real slice; the fixture images have 2 slices."
+    },
+    {
+      "code": "GZIP_HEADER_MTIME",
+      "datasets": ["ixi", "cobre", "oasis3", "abide1-nitrc", "abide1-xnat", "abide2"],
+      "location": "*.nii.gz",
+      "reason": "The fixture images are gzipped by the tests with gzip.compress, which records a modification time; these roasters copy the images byte for byte. Images the roasters write (OASIS-I/II, Bullitt, UNC-Wisconsin) and SALD's (gzipped with mtime=0) are not ignored."
+    }
+  ]
+}

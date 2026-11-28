@@ -1,0 +1,54 @@
+{
+    "Manufacturer": "Siemens",
+    "ManufacturersModelName": "Allegra",
+    "SoftwareVersions": "syngo MR 2004A",
+    "MagneticFieldStrength": 3.0,
+    "ReceiveCoilActiveElements": "HE",
+    "PulseSequenceType": "MPRAGE",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "SequenceVariant": [
+        "SK",
+        "SP",
+        "MP"
+    ],
+    "ScanOptions": [
+        "IR",
+        "PFP"
+    ],
+    "SequenceName": "tfl_onrc",
+    "PulseSequenceDetails": "%CustomerSeq%\\tfl_onrc",
+    "MRAcquisitionType": "3D",
+    "SpoilingState": true,
+    "SpoilingType": "COMBINED",
+    "B0ShimmingTechnique": "Tune up",
+    "PartialFourier": 0.875,
+    "PartialFourierDirection": "PHASE",
+    "EchoTime": 0.0027400000000000002,
+    "InversionTime": 0.9,
+    "SliceEncodingDirection": "k",
+    "DwellTime": 1.028e-05,
+    "FlipAngle": 8.0,
+    "RepetitionTime": 2.5,
+    "RepetitionTimeExcitation": 0.007,
+    "RepetitionTimePreparation": 2.5,
+    "Modality": "MR",
+    "ProtocolName": "New MP Rage",
+    "SeriesDescription": "New MP Rage",
+    "ImageType": [
+        "ORIGINAL",
+        "PRIMARY"
+    ],
+    "BaseResolution": 256,
+    "AcquisitionMatrixPE": 208,
+    "ReconMatrixPE": 208,
+    "PercentPhaseFOV": 81.3,
+    "PercentSampling": 100.0,
+    "PhaseResolution": 1.0,
+    "PhaseEncodingSteps": 182,
+    "PixelBandwidth": 190.0,
+    "SliceThickness": 1.0,
+    "NumberOfAverages": 1
+}

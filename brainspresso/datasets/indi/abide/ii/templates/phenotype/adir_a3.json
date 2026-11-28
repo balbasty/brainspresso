@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item A3"
+    },
+    "showing_directing_attention": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A3_SHOWING_DIRECTING_ATTENTION"
+    },
+    "offering_to_share": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A3_OFFERING_TO_SHARE"
+    },
+    "seeking_share_enjoyment": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A3_SEEKING_SHARE_ENJOYMENT"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A3_Total"
+    }
+}

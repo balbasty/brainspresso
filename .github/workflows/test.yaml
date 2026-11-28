@@ -11,6 +11,14 @@ on:
         description: Python version
         required: true
         default: "3.12"
+      cyclopts-version:
+        description: "cyclopts version to pin (default: the latest)"
+        required: false
+        default: ""
+      os:
+        description: Runner (ubuntu-24.04, windows-latest, macos-latest)
+        required: false
+        default: ubuntu-24.04
   workflow_call:
     inputs:
       tag:
@@ -22,15 +30,26 @@ on:
         description: Python version
         required: true
         type: string
+      cyclopts-version:
+        description: "cyclopts version to pin (default: the latest)"
+        required: false
+        default: ""
+        type: string
+      os:
+        description: Runner (ubuntu-24.04, windows-latest, macos-latest)
+        required: false
+        default: ubuntu-24.04
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   tests:
-    # Pinned (rather than ubuntu-latest) so that setup-python provides
-    # every Python version of the matrix, including the oldest one.
-    runs-on: ubuntu-24.04
+    # Linux pinned (rather than ubuntu-latest) so that setup-python
+    # provides every Python version of the matrix, including the oldest
+    # one; Windows and macOS run one Python version each.
+    runs-on: ${{ inputs.os || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -49,9 +68,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ".[test]"
+          if [ -n "${{ inputs.cyclopts-version }}" ]; then
+            pip install "cyclopts==${{ inputs.cyclopts-version }}"
+          fi
       - name: Check the CLI
         shell: bash
         run: bx --help
+      - name: Report the lock primitives of this platform
+        shell: bash
+        # OFD locks and their `struct flock` layout (Linux), conflicts
+        # between descriptors and between flock and lockf (POSIX)
+        working-directory: ${{ runner.temp }}
+        run: |
+          python "$GITHUB_WORKSPACE/tests/lock_probe.py" | tee probe.json
+          {
+            echo '## Lock primitives'
+            echo '```json'
+            cat probe.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test with pytest
         shell: bash
         # Run from outside the checkout so that `import brainspresso`

@@ -23,11 +23,11 @@ from roast_utils import (
 
 from brainspresso.actions import CopyJSON
 from brainspresso.bids.layout import Layout
-from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.i import roaster, sites, tables
 from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
 from brainspresso.datasets.indi.abide.i.roaster import roast
 from brainspresso.datasets.indi.abide.i.sites import TEMPLATES
+from brainspresso.roast import sidecars
 
 PHENOS = tables.PHENOTYPES
 COLS = list(dict.fromkeys(
@@ -162,11 +162,11 @@ def test_site_template_under_skip_and_update(root, caplog):
 
 
 def test_roast_filters(root):
-    roast(root, keys={"T1w"}, exclude_subs={51457}, json="no",
+    roast(root, keys={"T1w"}, exclude_sub={51457}, json="no",
           display=False)
     assert raw_tree(root) == {"sub-51456/anat/sub-51456_T1w.nii.gz",
                               "sub-51330/anat/sub-51330_T1w.nii.gz"}
-    roast(root, keys={"rest"}, subs={51456}, json="only", display=False)
+    roast(root, keys={"rest"}, sub={51456}, json="only", display=False)
     assert "sub-51456/func/sub-51456_task-rest_bold.json" in raw_tree(root)
     assert "sub-51456/func/sub-51456_task-rest_bold.nii.gz" \
         not in raw_tree(root)
@@ -223,7 +223,7 @@ def test_participants_maxmun(root):
 
 
 def test_participants_trimmed(root):
-    roast(root, keys={"meta", "T1w"}, subs=[51330], display=False)
+    roast(root, keys={"meta", "T1w"}, sub=[51330], display=False)
     rows = read_tsv(raw_file(root, "participants.tsv"))
     assert [r[0] for r in rows[1:]] == ["sub-51330"]
     assert len(read_tsv(original(root))) == 4
@@ -270,16 +270,16 @@ def test_bold_sidecar_task_name(tmp_path):
     has none (a copy of the template otherwise)"""
     template = tmp_path / "bold.json"
     stem = tmp_path / "sub-1_task-rest_bold"
-    action = scans.bold_sidecar(template, {"RepetitionTime": 2}, stem,
+    action = sidecars.bold_sidecar(template, {"RepetitionTime": 2}, stem,
                                 tmp_path / "x.nii.gz", None, "x.nii.gz")
     assert action.extra == {"TaskName": "rest"}
-    action = scans.bold_sidecar(template, {"RepetitionTime": 2,
+    action = sidecars.bold_sidecar(template, {"RepetitionTime": 2,
                                            "TaskName": "mine"}, stem,
                                 tmp_path / "x.nii.gz", None, "x.nii.gz")
     assert isinstance(action, CopyJSON)
-    assert scans.bold_fields("sub-1_task-rest_acq-A_bold") == \
+    assert sidecars.bold_fields("sub-1_task-rest_acq-A_bold") == \
         {"TaskName": "rest"}
-    assert scans.bold_fields("sub-1_bold") == {}
+    assert sidecars.bold_fields("sub-1_bold") == {}
 
 
 def test_participants_bad_rows(root, caplog):
@@ -346,12 +346,12 @@ def test_hires_anatomical(root):
         "UCLA_1/0051201/session_1/rest_1/rest.nii.gz":
             nii_bytes((2, 2, 2, 3)),
     })
-    report = roast(root, keys={"T2w"}, subs=[51201], display=False)
+    report = roast(root, keys={"T2w"}, sub=[51201], display=False)
     assert not report.errors
     assert raw_tree(root) == {
         "sub-51201/anat/sub-51201_acq-hires_T2w.nii.gz",
         "sub-51201/anat/sub-51201_acq-hires_T2w.json"}
-    report = roast(root, keys={"anat"}, subs=[51201], display=False)
+    report = roast(root, keys={"anat"}, sub=[51201], display=False)
     assert not report.errors
     assert raw_tree(root) == {
         "sub-51201/anat/sub-51201_T1w.nii.gz",
@@ -376,7 +376,7 @@ def test_unknown_scans_skipped(root, caplog):
         "Pitt/0050003/session_1/anat_2/mprage.nii.gz": nii_bytes(),
     })
     with caplog.at_level(logging.WARNING):
-        roast(root, keys={"T1w", "rest"}, subs=[50003], display=False)
+        roast(root, keys={"T1w", "rest"}, sub=[50003], display=False)
     assert raw_tree(root) == {
         "sub-50003/func/sub-50003_task-rest_bold.nii.gz",
         "sub-50003/func/sub-50003_task-rest_bold.json"}
@@ -387,7 +387,7 @@ def test_unpadded_ids(root):
     """Tarball ids of 5 or 7 digits are the same subjects"""
     make_tar(root / "sourcedata" / "SDSU.tgz", {
         "SDSU/50182/session_1/anat_1/mprage.nii.gz": nii_bytes()})
-    roast(root, keys={"T1w"}, subs=["0050182"], json="no", display=False)
+    roast(root, keys={"T1w"}, sub=["0050182"], json="no", display=False)
     assert raw_tree(root) == {"sub-50182/anat/sub-50182_T1w.nii.gz"}
 
 
@@ -441,7 +441,7 @@ def test_one_shard_per_tarball(root, monkeypatch):
 
 @pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
 def test_scope_of_tarballs(root, monkeypatch, scenario):
-    """`--subs` narrowing and `meta` skip the tarballs, a new subject
+    """`--sub` narrowing and `meta` skip the tarballs, a new subject
     re-reads the tarball of its site only (`roast.scope`)"""
     opened = open_spy(monkeypatch, roaster)
     check_scope(
@@ -469,7 +469,7 @@ def test_subjects_pruned_before_extraction(root, monkeypatch):
         return real(archive, member, dst, **kwargs)
 
     monkeypatch.setattr(roaster, "ExtractMember", spy)
-    roast(root, keys={"T1w", "rest"}, subs=[51457], display=False)
+    roast(root, keys={"T1w", "rest"}, sub=[51457], display=False)
     assert extracted == ["Caltech/0051457/session_1/anat_1/mprage.nii.gz"]
 
 
@@ -516,11 +516,11 @@ def test_cli_layout(tmp_path, layout):
 def test_cli_keys_subjects_sidecars(tmp_path, source):
     root = make_source(tmp_path / "ABIDE-1")
     bx("abide1", "roast", "--out", root, "--source", source, "--keys",
-       "T1w", "--subs", "51456", "0051330", "--sidecars", "no")
+       "T1w", "--sub", "51456", "0051330", "--sidecars", "no")
     assert raw_tree(root) == {"sub-51456/anat/sub-51456_T1w.nii.gz",
                               "sub-51330/anat/sub-51330_T1w.nii.gz"}
     bx("abide1", "roast", "--out", root, "--exclude-keys", "rest", "meta",
-       "--exclude-subs", "sub-51456", "--sidecars", "only")
+       "--exclude-sub", "sub-51456", "--sidecars", "only")
     assert "sub-51457/anat/sub-51457_T1w.json" in raw_tree(root)
     assert "sub-51457/anat/sub-51457_T1w.nii.gz" not in raw_tree(root)
     assert "participants.tsv" not in raw_tree(root)

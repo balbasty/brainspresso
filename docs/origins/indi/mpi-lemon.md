@@ -43,8 +43,8 @@ physiology. The INDI bucket, and `bx mpi-lemon`, cover the MRI part.
 
 ```shell
 bx mpi-lemon info
-bx mpi-lemon harvest /data --datatypes anat --suffixes MP2RAGE T1map --dry-run
-bx mpi-lemon harvest /data --datatypes func dwi fmap
+bx mpi-lemon harvest /data --datatype anat --suffix MP2RAGE T1map --dry-run
+bx mpi-lemon harvest /data --datatype func dwi fmap
 ```
 
 ## How to cite

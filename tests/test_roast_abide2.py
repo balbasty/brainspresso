@@ -34,10 +34,10 @@ from brainspresso.datasets.indi.abide.ii import roaster, sites, tables
 from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
 from brainspresso.datasets.indi.abide.ii.roaster import roast
 from brainspresso.datasets.indi.abide.ii.sites import TEMPLATES
-from brainspresso.datasets.indi.abide.scans import TemplateError
-from brainspresso.datasets.indi.abide.tables import read_csv
 from brainspresso.datasets.indi.engine import format_tsv
 from brainspresso.roast import make_context
+from brainspresso.roast.sidecars import TemplateError
+from brainspresso.roast.tables import read_csv
 
 PHENOS = tables.PHENOTYPES
 PARTICIPANTS = tables.PARTICIPANTS
@@ -198,7 +198,7 @@ def test_dir_entries(root):
     make_tar(root / "sourcedata" / "ABIDEII-NYU_1.tar.gz",
              subject_members(29001),
              dirs=["ABIDEII-NYU_1", "ABIDEII-NYU_1/29001"])
-    report = roast(root, keys=["T1w", "rest", "dti"], subs=[29001],
+    report = roast(root, keys=["T1w", "rest", "dti"], sub=[29001],
                    display=False)
     assert not report.errors
     assert raw_tree(root) == scans(29001)
@@ -206,9 +206,9 @@ def test_dir_entries(root):
 
 def test_subject_filter(root):
     """A filtered-out subject does not end the archive (legacy: `return`)"""
-    roast(root, keys=["T1w", "rest", "dti"], subs=["29002"], display=False)
+    roast(root, keys=["T1w", "rest", "dti"], sub=["29002"], display=False)
     assert raw_tree(root) == scans(29002)
-    roast(root, keys="T1w", exclude_subs=["sub-29002", 29001],
+    roast(root, keys="T1w", exclude_sub=["sub-29002", 29001],
           display=False)
     assert {p for p in raw_tree(root) if "29100" in p} == {
         "sub-29100/ses-01/anat/sub-29100_ses-01_T1w.nii.gz",
@@ -220,7 +220,7 @@ def test_key_filter(root):
     report = roast(root, keys="T1w", display=False)
     assert not report.errors
     assert raw_tree(root) == {p for p in RAW if "/anat/" in p}
-    roast(root, keys=["dti"], subs=[29001], display=False)
+    roast(root, keys=["dti"], sub=[29001], display=False)
     assert {p for p in raw_tree(root) if "/dwi/" in p} == {
         p for p in scans(29001) if "/dwi/" in p}
     assert not any("/func/" in p for p in raw_tree(root))
@@ -242,7 +242,7 @@ def test_subjects_pruned_before_extraction(root, monkeypatch):
         return real(self, member)
 
     monkeypatch.setattr(roaster.TarArchive, "extractfile", spy)
-    roast(root, keys="T1w", subs=[29002], display=False)
+    roast(root, keys="T1w", sub=[29002], display=False)
     assert extracted == ["ABIDEII-NYU_1/29002/session_1/anat_1/anat.nii.gz"]
 
 
@@ -274,7 +274,7 @@ def test_runs_and_sessions(root):
         "ABIDEII-ONRC_2/29201/session_1/dti_2/dti.bval": BVAL,
     })
     report = roast(root, keys=["T1w", "rest", "dti"],
-                   subs=["29200", "29201"], json="no", display=False)
+                   sub=["29200", "29201"], json="no", display=False)
     assert not report.errors
     assert raw_tree(root) == {
         "sub-29200/ses-01/anat/sub-29200_ses-01_run-1_T1w.nii.gz",
@@ -292,7 +292,7 @@ def test_runs_and_sessions(root):
         root, "sub-29200/ses-01/anat/sub-29200_ses-01_run-2_T1w.nii.gz"))
     assert img.get_fdata().max() == 2
     # sidecars, once the names are known
-    roast(root, keys=["T1w"], subs=["29200"], display=False)
+    roast(root, keys=["T1w"], sub=["29200"], display=False)
     assert "sub-29200/ses-01/anat/sub-29200_ses-01_run-1_T1w.json" \
         in raw_tree(root)
 
@@ -304,7 +304,7 @@ def test_runs_with_sidecars_only(root):
         f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
         f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
     })
-    report = roast(root, keys="rest", subs=[29210], json="only",
+    report = roast(root, keys="rest", sub=[29210], json="only",
                    display=False)
     assert not report.errors
     assert raw_tree(root) == {
@@ -341,14 +341,14 @@ def test_rerun_with_other_run_names(root):
     b = "ABIDEII-IP_1/29230/session_1"
     tarball = root / "sourcedata" / "ABIDEII-IP_1.tar.gz"
     make_tar(tarball, {f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3))})
-    roast(root, keys="rest", subs=[29230], json="no", display=False)
+    roast(root, keys="rest", sub=[29230], json="no", display=False)
     make_tar(tarball, {f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
                        f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3))})
-    report = roast(root, keys="rest", subs=[29230], json="no",
+    report = roast(root, keys="rest", sub=[29230], json="no",
                    display=False)
     assert len(report.errors) == 1
     assert "--if-exists overwrite" in str(report.errors[0])
-    report = roast(root, keys="rest", subs=[29230], json="no",
+    report = roast(root, keys="rest", sub=[29230], json="no",
                    ifexists="overwrite", display=False)
     assert not report.errors
     assert {f"sub-29230/ses-01/func/sub-29230_ses-01_task-rest_run-{n}"
@@ -360,7 +360,7 @@ def test_spool_error_fails_its_output(root, monkeypatch):
     "tarball cannot be read" """
     monkeypatch.setattr(roaster, "spool",
                         lambda src, path: "OSError: no space left")
-    report = roast(root, keys="T1w", subs=[29001], display=False)
+    report = roast(root, keys="T1w", sub=[29001], display=False)
     assert len(report.errors) == 1
     assert "cannot be spooled" in str(report.errors[0])
     assert "tar.gz: cannot be read" not in str(report.errors[0])
@@ -392,7 +392,7 @@ def test_stale_spools_swept(root):
         folder.mkdir()
         (folder / "0.nii.gz").write_bytes(b"x")
     del proc
-    report = roast(root, keys="T1w", subs=[29001], display=False)
+    report = roast(root, keys="T1w", sub=[29001], display=False)
     assert not report.errors
     assert not stale.exists() and alive.exists() and other.exists()
 
@@ -407,7 +407,7 @@ def test_sessions_not_together(root):
             nii_bytes((2, 2, 2, 3)),
         f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
     })
-    report = roast(root, keys="rest", subs=["29220", "29221"],
+    report = roast(root, keys="rest", sub=["29220", "29221"],
                    json="no", display=False)
     assert raw_tree(root) == {
         f"sub-{i}/ses-01/func/sub-{i}_ses-01_task-rest_bold.nii.gz"
@@ -425,7 +425,7 @@ def test_sessions_not_together_whatever_the_selection(root):
         "ABIDEII-IP_1/29221/session_1/anat_1/anat.nii.gz": nii_bytes(),
         f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
     })
-    report = roast(root, keys="rest", subs=["29220"], json="no",
+    report = roast(root, keys="rest", sub=["29220"], json="no",
                    display=False)
     assert raw_tree(root) == {
         "sub-29220/ses-01/func/sub-29220_ses-01_task-rest_bold.nii.gz"}
@@ -435,7 +435,7 @@ def test_sessions_not_together_whatever_the_selection(root):
 
 @pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
 def test_scope_of_tarballs(root, monkeypatch, scenario):
-    """`--subs` narrowing and `meta` skip the tarballs, a new subject
+    """`--sub` narrowing and `meta` skip the tarballs, a new subject
     re-reads the tarball of its site only (`roast.scope`)"""
     opened = open_spy(monkeypatch, roaster)
     check_scope(
@@ -466,7 +466,7 @@ def test_hires_not_a_run(root, caplog):
         f"{b}/anat_2/anat.nii.gz": nii_bytes(),
     })
     with caplog.at_level(logging.WARNING):
-        report = roast(root, keys="T1w", subs=[29300], display=False)
+        report = roast(root, keys="T1w", sub=[29300], display=False)
     assert not report.errors
     assert raw_tree(root) == {
         "sub-29300/ses-01/anat/sub-29300_ses-01_T1w.nii.gz",
@@ -488,7 +488,7 @@ def test_unknown_scans_skipped(root, caplog):
         "ABIDEII-BNI_1/README.txt": b"x",
     })
     with caplog.at_level(logging.WARNING):
-        report = roast(root, subs=[29010], json="no", display=False)
+        report = roast(root, sub=[29010], json="no", display=False)
     assert not report.errors, report.errors
     assert {p for p in raw_tree(root) if p.startswith("sub-")} == {
         "sub-29010/ses-01/anat/sub-29010_ses-01_T1w.nii.gz"}
@@ -516,7 +516,7 @@ def test_image_choice(root, names, used):
                         else b"AppleDouble")
         for i, name in enumerate(names)}
     make_tar(root / "sourcedata" / "ABIDEII-GU_1.tar.gz", data)
-    report = roast(root, keys="T1w", subs=[28810], json="no",
+    report = roast(root, keys="T1w", sub=[28810], json="no",
                    display=False)
     assert not report.errors
     ext = ".nii" if names[used].lower().endswith(".nii") else ".nii.gz"
@@ -532,7 +532,7 @@ def test_case_insensitive_names(root):
         f"{b}/DTI_1/DTI.BVALS": BVAL,
         f"{b}/DTI_1/dti.Bvecs": BVEC,
     })
-    report = roast(root, keys="dti", subs=[28820], json="no",
+    report = roast(root, keys="dti", sub=[28820], json="no",
                    display=False)
     assert not report.errors
     assert raw_tree(root) == {
@@ -551,7 +551,7 @@ def test_member_names_normalised(root, caplog):
         "../ABIDEII-GU_1/28803/session_1/anat_1/anat.nii.gz": nii_bytes(),
     })
     with caplog.at_level(logging.WARNING):
-        report = roast(root, keys="T1w", subs=["28800:28804"], json="no",
+        report = roast(root, keys="T1w", sub=["28800:28804"], json="no",
                        display=False)
     assert not report.errors
     assert raw_tree(root) == {
@@ -571,7 +571,7 @@ def test_site_of_members(root, caplog):
         "data/30400/session_1/anat_1/anat.nii.gz": nii_bytes(),
     })
     with caplog.at_level(logging.WARNING):
-        report = roast(root, keys="T1w", subs=["30230", "30231", "30400"],
+        report = roast(root, keys="T1w", sub=["30230", "30231", "30400"],
                        display=False)
     assert raw_tree(root) == {
         "sub-30230/ses-01/anat/sub-30230_ses-01_T1w.nii.gz",
@@ -607,7 +607,7 @@ def test_sites_without_templates(root, monkeypatch):
     roast(root, keys="raw", display=False)
     assert opened == []
     monkeypatch.setattr(roaster, "NO_TEMPLATES", ())
-    report = roast(root, keys="T1w", subs=[29400], ifexists="overwrite",
+    report = roast(root, keys="T1w", sub=[29400], ifexists="overwrite",
                    display=False)
     assert len(report.errors) == 1
 
@@ -617,7 +617,7 @@ def test_kki_common_templates(root):
     what the 8- and 32-channel templates share"""
     make_tar(root / "sourcedata" / "ABIDEII-KKI_1_29273_29322.tar.gz",
              subject_members(29273, "ABIDEII-KKI_1", dwi=False))
-    report = roast(root, keys=["T1w", "rest"], subs=[29273], display=False)
+    report = roast(root, keys=["T1w", "rest"], sub=[29273], display=False)
     assert not report.errors
     t1w = sidecar(root, "sub-29273/ses-01/anat/sub-29273_ses-01_T1w.json")
     assert t1w == tpl("KKI/1/T1w.json")
@@ -636,7 +636,7 @@ def test_bold_template_without_tr(root):
         "ABIDEII-UCLA_2/29400/session_1/rest_1/rest.nii.gz":
             gzip.compress(img.to_bytes())})
     for json_policy in ("only", "yes"):
-        report = roast(root, keys="rest", subs=[29400], json=json_policy,
+        report = roast(root, keys="rest", sub=[29400], json=json_policy,
                        ifexists="overwrite", display=False)
         assert not report.errors, report.errors
         meta = sidecar(root, "sub-29400/ses-01/func/"
@@ -655,7 +655,7 @@ def test_header_sidecar_under_skip_and_update(root, caplog):
     make_tar(root / "sourcedata" / "ABIDEII-UCLA_2.tar.gz", {
         f"ABIDEII-UCLA_2/{i}/session_1/rest_1/rest.nii.gz":
             gzip.compress(img.to_bytes()) for i in (29400, 29401)})
-    roast(root, keys="rest", subs=[29400, 29401], display=False)
+    roast(root, keys="rest", sub=[29400, 29401], display=False)
     paths = [raw_file(root, f"sub-{i}/ses-01/func/"
                             f"sub-{i}_ses-01_task-rest_bold.json")
              for i in (29400, 29401)]
@@ -664,11 +664,11 @@ def test_header_sidecar_under_skip_and_update(root, caplog):
     local.parent.mkdir(parents=True)
     local.write_text(json.dumps({**tpl("UCLA/2/bold.json"), "Local": 1}))
     caplog.clear()
-    roast(root, keys="rest", subs=[29400, 29401], display=False)
+    roast(root, keys="rest", sub=[29400, 29401], display=False)
     assert [p.read_bytes() for p in paths] == old
     assert "WARNING" not in caplog.text
     paths[1].write_text('{"Mine": true}')
-    roast(root, keys="rest", subs=[29400, 29401], ifexists="update",
+    roast(root, keys="rest", sub=[29400, 29401], ifexists="update",
           display=False)
     assert json.loads(paths[0].read_text()) == {
         **tpl("UCLA/2/bold.json"), "Local": 1, "TaskName": "rest",
@@ -810,12 +810,12 @@ def test_no_site_tarball_reruns_on_template_change(root, monkeypatch):
         return real(path)
 
     monkeypatch.setattr(roaster, "TarArchive", opener)
-    roast(root, keys="T1w", subs=[29001], display=False)
-    roast(root, keys="T1w", subs=[29001], display=False)
+    roast(root, keys="T1w", sub=[29001], display=False)
+    roast(root, keys="T1w", sub=[29001], display=False)
     assert opened.count("mydata.tar.gz") == 1
     (src / "NYU" / "1").mkdir(parents=True)
     (src / "NYU" / "1" / "T1w.json").write_text('{"EchoTime": 1}')
-    roast(root, keys="T1w", subs=[29001], ifexists="overwrite",
+    roast(root, keys="T1w", sub=[29001], ifexists="overwrite",
           display=False)
     assert opened.count("mydata.tar.gz") == 2
     assert sidecar(root, "sub-29001/ses-01/anat/sub-29001_ses-01_T1w.json") \
@@ -831,7 +831,7 @@ def test_unreadable_template(root, content):
         tpl_path.mkdir()                # (an OSError when read)
     else:
         tpl_path.write_bytes(content)
-    report = roast(root, keys="T1w", subs=[29001], display=False)
+    report = roast(root, keys="T1w", sub=[29001], display=False)
     assert len(report.errors) == 1, report.errors
     assert ".tar.gz: cannot be read" not in str(report.errors[0])
     assert "template" in str(report.errors[0])
@@ -1091,7 +1091,7 @@ def test_csv_encoding_and_cells(tmp_path):
     rows = [line.split("\t") for line in
             original(root).read_text(encoding="utf-8").splitlines()]
     assert dict(zip(rows[0], rows[1]))["med_name"] == "Méthyl phenidate"
-    assert read_csv(src / "ABIDEII-IP_1.csv")[1][0] == "29001"
+    assert read_csv(src / "ABIDEII-IP_1.csv").rows[0][1][0] == "29001"
 
 
 def test_phenotypes(root):
@@ -1107,9 +1107,9 @@ def test_phenotypes(root):
             row["total_raw"]) == ("sub-29001", "C", "n/a", "42")
     assert read_tsv(raw_file(root, "phenotype/srs.tsv")) == [srs[0]]
     assert sidecar(root, "phenotype/srs.json") == tpl("phenotype/srs.json")
-    roast(root, keys=["pheno", "T1w"], subs=[29001], display=False)
+    roast(root, keys=["pheno", "T1w"], sub=[29001], display=False)
     assert ids(raw_file(root, "phenotype/srs.tsv")) == ["sub-29001"]
-    roast(root, keys=["meta", "T1w"], subs=[29001], display=False)
+    roast(root, keys=["meta", "T1w"], sub=[29001], display=False)
     assert ids(raw_file(root, "participants.tsv")) == ["sub-29001"]
 
 
@@ -1378,13 +1378,13 @@ def test_cli_layout(tmp_path, layout):
 
 def test_cli_keys_subjects_sidecars(tmp_path):
     root = make_source(tmp_path / "ABIDE-2")
-    bx("abide2", "roast", "--out", root, "--keys", "T1w", "--subs", "29001",
+    bx("abide2", "roast", "--out", root, "--keys", "T1w", "--sub", "29001",
        "0029100", "--sidecars", "no")
     assert raw_tree(root) == {
         "sub-29001/ses-01/anat/sub-29001_ses-01_T1w.nii.gz",
         "sub-29100/ses-01/anat/sub-29100_ses-01_T1w.nii.gz"}
     bx("abide2", "roast", "--out", root, "--exclude-keys", "rest", "meta",
-       "dti", "--exclude-subs", "sub-29001", "--sidecars", "only")
+       "dti", "--exclude-sub", "sub-29001", "--sidecars", "only")
     assert "sub-29002/ses-01/anat/sub-29002_ses-01_T1w.json" \
         in raw_tree(root)
     assert "sub-29002/ses-01/anat/sub-29002_ses-01_T1w.nii.gz" \
@@ -1396,7 +1396,7 @@ def test_cli_subject_ranges(tmp_path):
     root = make_source(tmp_path / "ABIDE-2")
     subs = tmp_path / "subs.txt"
     subs.write_text("29002\n")
-    bx("abide2", "roast", "--out", root, "--keys", "T1w", "--subs",
+    bx("abide2", "roast", "--out", root, "--keys", "T1w", "--sub",
        "29000:29002", str(subs), "--sidecars", "no")
     assert raw_tree(root) == {
         f"sub-{i}/ses-01/anat/sub-{i}_ses-01_T1w.nii.gz"

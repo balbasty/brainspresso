@@ -47,7 +47,7 @@ The INDI bucket also holds the outputs of several preprocessing pipelines.
 
 ```shell
 bx adhd200 info
-bx adhd200 harvest /data --keys T1w rest --sites NYU --dry-run
+bx adhd200 harvest /data --keys T1w rest --site NYU --dry-run
 bx adhd200 harvest /data --keys pheno fs
 ```
 

@@ -24,7 +24,7 @@ metadata that still applies to a kept file is kept, dataset-level files
 are never deleted, and participants/sessions/scans tables (and the
 phenotype tables a roast wrote, with a pristine copy) are rewritten
 to only list what is left. A dataset with one dataset per site is
-composted site by site (`--sites`: only these sites).
+composted site by site (`--site`: only these sites).
 
 The files to delete are always listed (`--dry-run`) or confirmed first
 (`--yes` to skip the confirmation). Compost fails while a harvest or
@@ -37,8 +37,8 @@ Examples
 ```
 bx {cmd} compost --dry-run
 bx {cmd} compost /data --keep "*.xls" "*.csv"
-bx {cmd} compost /data --exclude-subs 0005 0012
-bx {cmd} compost /data --datatypes anat --suffixes T1w
+bx {cmd} compost /data --exclude-sub 0005 0012
+bx {cmd} compost /data --datatype anat --suffix T1w
 bx {cmd} compost /data --where "age>=60" --derivatives
 ```
 """
@@ -50,12 +50,12 @@ def run_compost(
     sourcedata: bool | None = None,
     nested: bool = False,
     keep: Iterable[str] = (),
-    subs: Iterable[str] = (),
-    exclude_subs: Iterable[str] = (),
-    sessions: Iterable[str] = (),
-    datatypes: Iterable[str] = (),
-    suffixes: Iterable[str] = (),
-    tasks: Iterable[str] = (),
+    sub: Iterable[str] = (),
+    exclude_sub: Iterable[str] = (),
+    ses: Iterable[str] = (),
+    datatype: Iterable[str] = (),
+    suffix: Iterable[str] = (),
+    task: Iterable[str] = (),
     include: Iterable[str] = (),
     exclude: Iterable[str] = (),
     where: Iterable[str] = (),
@@ -66,8 +66,8 @@ def run_compost(
     dry_run: bool = False,
     list: bool = False,
     layout: str | None = None,
-    sites: Iterable[str] = (),
-    exclude_sites: Iterable[str] = (),
+    site: Iterable[str] = (),
+    exclude_site: Iterable[str] = (),
     after_data=None,
 ):
     """
@@ -79,14 +79,13 @@ def run_compost(
         Dataset folder, or its layout
     sourcedata, nested, keep, derivatives, trim, force, yes, dry_run, list
         `CompostOptions`
-    subs, exclude_subs, sessions, datatypes, suffixes, tasks, include,
-    exclude, where
-        Filters (what is kept)
+    sub, exclude_sub, ses, datatype, suffix, task, include, exclude, where
+        Filters (what is kept): those of the command line (`--sub`...)
     layout : str, optional
         Expected layout
-    sites : list[str]
+    site : list[str]
         Only these sites (a "sites" layout only)
-    exclude_sites : list[str]
+    exclude_site : list[str]
         Not these sites (a "sites" layout only)
     after_data : callable(layout), optional
         Run on each dataset after its BIDS data is deleted, before its
@@ -98,12 +97,12 @@ def run_compost(
         The plan (one per site)
     """
     found = resolve_layout(root, layout)
-    sites = [str(s) for s in sites or ()]
-    exclude_sites = {str(s).lower() for s in exclude_sites or ()}
+    sites = [str(s) for s in site or ()]
+    exclude_sites = {str(s).lower() for s in exclude_site or ()}
     options = dict(
-        sourcedata=sourcedata, nested=nested, keep=keep, subs=subs,
-        exclude_subs=exclude_subs, sessions=sessions, datatypes=datatypes,
-        suffixes=suffixes, tasks=tasks, include=include, exclude=exclude,
+        sourcedata=sourcedata, nested=nested, keep=keep, sub=sub,
+        exclude_sub=exclude_sub, ses=ses, datatype=datatype,
+        suffix=suffix, task=task, include=include, exclude=exclude,
         where=where, derivatives=derivatives, trim=trim, force=force,
         yes=yes, dry_run=dry_run, list=list, after_data=after_data,
     )
@@ -124,13 +123,13 @@ def run_compost(
         return plans
     if sites or exclude_sites:
         raise UsageError(
-            f"--sites/--exclude-sites only apply to a dataset harvested "
+            f"--site/--exclude-site only apply to a dataset harvested "
             f"with one dataset per site (--layout sites); {found.root} has "
             f"layout {found.kind!r}"
         )
     selection = Selection(
-        subs=subs, exclude_subs=exclude_subs, sessions=sessions,
-        datatypes=datatypes, suffixes=suffixes, tasks=tasks,
+        subs=sub, exclude_subs=exclude_sub, sessions=ses,
+        datatypes=datatype, suffixes=suffix, tasks=task,
         include=include, exclude=exclude,
     )
     return compost(

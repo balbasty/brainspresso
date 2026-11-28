@@ -158,6 +158,22 @@ class RoastContext(Context):
         """
         return self.selection.wants(key)
 
+    def wants_any(self, keys: Iterable[str]) -> bool:
+        """
+        Whether any of some keys is wanted.
+
+        Parameters
+        ----------
+        keys : iterable of str
+            Categories or BIDS keys (`wants`)
+
+        Returns
+        -------
+        bool
+            True if `wants(key)` for one of them
+        """
+        return any(map(self.wants, keys))
+
     def keeps_subject(self, label: str) -> bool:
         """
         Whether a subject is kept, and report it as seen.
@@ -358,7 +374,8 @@ def make_context(
     source : path
         Source folder (default: `layout.source`)
     **filters
-        `Selection` filters (`subs`, `exclude_subs`, `sessions`...)
+        `Selection` filters (`subs`, `exclude_subs`, `sessions`...:
+        the fields of `--sub`, `--exclude-sub`, `--ses`...)
 
     Returns
     -------
@@ -384,8 +401,9 @@ def as_list(value, fmt: str | None = None) -> list:
 
     Parameters
     ----------
-    value : None | str | int | iterable
-        One value, a list, or None
+    value : None | str | int | PathLike | iterable
+        One value, a list, or None (paths become `str`: a file of
+        subjects)
     fmt : str | None
         Format of each value (e.g. "{:03d}" for subject numbers)
 
@@ -396,9 +414,10 @@ def as_list(value, fmt: str | None = None) -> list:
     """
     if value is None:
         return []
-    if isinstance(value, (str, int)):
+    if isinstance(value, (str, int, os.PathLike)):
         value = [value]
-    value = list(value)
+    value = [os.fsdecode(v) if isinstance(v, os.PathLike) else v
+             for v in value]
     if fmt is not None:
         value = [fmt.format(int(v) if "d" in fmt else v) for v in value]
     return value

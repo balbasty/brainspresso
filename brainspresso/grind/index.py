@@ -110,7 +110,7 @@ def resolve_datasets(
     root : str | Path | None
         Folder of all datasets (default: the configured one)
     **selection
-        `subs`, `exclude_subs`, `sessions`... of the command line
+        `sub`, `exclude_sub`, `ses`... of the command line
 
     Returns
     -------

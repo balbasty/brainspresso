@@ -4,73 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-import nibabel
-import numpy as np
-
-from brainspresso.utils.log import LoggingOutputSuppressor
-from brainspresso.utils.path import fileparts
-
 lg = logging.getLogger(__name__)
-
-
-def nibabel_convert(
-        src,
-        dst,
-        remove=False,
-        inp_format=None,
-        out_format=None,
-        affine=None,
-        makedirs=True,
-):
-    """
-    Convert a volume between formats
-
-    Parameters
-    ----------
-    src : str or Path
-        Path to source volume
-    dst : src or Path
-        Path to destination volume
-    remove : bool
-        Delete source volume at the end
-    inp_format : nibabel.Image subclass
-        Input format (default: guess)
-    out_format : nibabel.Image subclass
-        Output format  (default: guess)
-    affine : np.ndarray
-        Orientation matrix (default: from input)
-    """
-    src = Path(src)
-    dst = Path(dst)
-
-    lg.info(f'write {dst.name}')
-
-    if inp_format is None:
-        f = nibabel.load(src)
-    else:
-        f = inp_format.load(src)
-    if out_format is None:
-        _, _, ext = fileparts(dst)
-        if ext in ('.nii', '.nii.gz'):
-            out_format = nibabel.Nifti1Image
-        elif ext in ('.mgh', '.mgz'):
-            out_format = nibabel.MGHImage
-        elif ext in ('.img', '.hdr'):
-            out_format = nibabel.AnalyzeImage
-        else:
-            raise ValueError('???')
-    if affine is None:
-        affine = f.affine
-    if makedirs:
-        dst.parent.mkdir(parents=True, exist_ok=True)
-    with LoggingOutputSuppressor('nibabel.global'):
-        nibabel.save(out_format(np.asarray(f.dataobj), affine, f.header), dst)
-    if remove:
-        for file in f.file_map.values():
-            filename = Path(file.filename)
-            if filename.exists():
-                lg.info(f'remove {filename.name}')
-                filename.unlink()
 
 
 def read_json(src, **kwargs):
@@ -159,6 +93,11 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     "\r") raises `ValueError` before anything is written: with
     `QUOTE_NONE` it cannot be written, and `csv` itself does not reject
     a "\r" on every Python version (3.10 and 3.11 write it raw).
+
+    The writer of roasted tables (`roast.tables.table_action`), whose
+    cells went through `roast.tables.clean` and never need quoting;
+    `bids.tables.write_tsv` is the quote-aware writer of tables trimmed
+    from elsewhere.
 
     Parameters
     ----------

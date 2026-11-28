@@ -424,6 +424,16 @@ def test_forbidden_keys(home, key, section):
     ("[ixi.harvest]\njobs = 1\njobs_ = 2\n", "unknown key"),
     ("[ixi.harvest]\nexclude_keys = []\nexclude-keys = []\n",
      "set twice"),
+    # the selection options are named after the BIDS entities: the old
+    # plural names are unknown keys, like any other
+    ("[ixi.harvest]\nsubs = [2]\n", r"unknown key 'subs' \(did you mean "
+     r"'sub'\?\)"),
+    ("[unc-wisconsin.harvest]\nsessions = ['12months']\n",
+     "unknown key 'sessions'"),
+    ("[openneuro.compost]\ndatatypes = ['anat']\n",
+     "unknown key 'datatypes'"),
+    ("[fcon1000.harvest]\nexclude-sites = ['ICBM']\n",
+     "unknown key 'exclude-sites'"),
 ])
 def test_unknown_or_bad_keys(home, text, match):
     path = user(home, text)
@@ -489,14 +499,14 @@ def test_lists(tmp_path, home):
 [ixi.harvest]
 keys = "T1w"
 exclude_keys = ["dwi", "angio"]
-subs = [2, "sub-012", "3:5"]
+sub = [2, "sub-012", "3:5"]
 [unc-wisconsin.harvest]
 keys = []
 """)
     args, _ = parse("ixi", "harvest", tmp_path)
     assert value(args, "keys", "keys") == ("T1w",)
     assert value(args, "keys", "exclude_keys") == ("dwi", "angio")
-    assert value(args, "select", "subs") == ("2", "sub-012", "3:5")
+    assert value(args, "select", "sub") == ("2", "sub-012", "3:5")
     # an empty list replaces a non-empty default
     args, _ = parse("unc-wisconsin", "harvest", tmp_path)
     assert value(args, "keys", "keys") == ()
@@ -693,6 +703,7 @@ def test_env_vars(tmp_path):
 @pytest.mark.parametrize("var,match", [
     ("BRAINSPRESSO_OPT_NOPE__JOBS", "unknown section 'NOPE'"),
     ("BRAINSPRESSO_OPT_JBOS", "unknown key 'jbos'"),
+    ("BRAINSPRESSO_OPT_IXI__HARVEST__SUBS", "unknown key 'subs'"),
     ("BRAINSPRESSO_OPT_PASSWORD", "cannot be set"),
     ("BRAINSPRESSO_OPT_IXI____JOBS", "not BRAINSPRESSO_OPT_"),
 ])
@@ -709,7 +720,7 @@ def test_real_run(tmp_path, home):
     write(root / "dataset_description.json",
           '{"Name": "x", "BIDSVersion": "1.10.0"}')
     user(home, f"[openneuro.ds1]\nout = '{root}'\n"
-               "[openneuro.compost]\ndry-run = true\nexclude-subs = ['01']\n")
+               "[openneuro.compost]\ndry-run = true\nexclude-sub = ['01']\n")
     try:
         main(["openneuro", "compost", "ds1"])
     except SystemExit as e:

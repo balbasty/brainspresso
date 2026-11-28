@@ -21,7 +21,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Callable
 
-from brainspresso.datasets.indi.abide.scans import TemplateError
+from brainspresso.roast.sidecars import TemplateError
 
 lg = getLogger(__name__)
 
@@ -38,7 +38,7 @@ __all__ = [
 #: Folder of the templates shipped with ABIDE-I
 TEMPLATES = Path(__file__).parent / "templates"
 
-#: Sites (names of `--sites`)
+#: Sites (names of `--site`)
 SITES: tuple[str, ...] = (
     'Caltech', 'CMU', 'KKI', 'Leuven', 'MaxMun', 'NYU', 'OHSU', 'Olin',
     'Pitt', 'SBL', 'SDSU', 'Stanford', 'Trinity', 'UCLA', 'UM', 'USM',

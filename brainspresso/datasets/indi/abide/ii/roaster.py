@@ -52,10 +52,7 @@ from __future__ import annotations
 
 import hashlib
 import io
-import os
 import re
-import shutil
-import socket
 import tempfile
 from collections import Counter
 from dataclasses import dataclass, field
@@ -64,11 +61,11 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator, NamedTuple
 
-from brainspresso.actions import Action, CopyJSON, Fail
-from brainspresso.actions.runlock import pid_alive
+from brainspresso.actions import Action, Fail
 from brainspresso.bids.harvest import update_files
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.tables import trim_tables
+from brainspresso.convert.nifti import image_ext
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.ii.keys import allkeys
@@ -85,25 +82,17 @@ from brainspresso.datasets.indi.abide.ii.tables import (
     PARTICIPANTS,
     PHENOTYPES,
 )
-from brainspresso.datasets.indi.abide.scans import (
-    ARCHIVE_ERRORS,
-    TemplateError,
-    bold_sidecar,
-    image_ext,
-    member_parts,
-    read_template,
-)
 from brainspresso.datasets.indi.abide.tables import WIDTH, participant_label
 from brainspresso.roast import (
-    SEEN,
     RoastContext,
-    RoastReport,
-    Shard,
-    as_list,
-    roast_dataset,
-    scope,
+    archives,
+    sidecars,
 )
-from brainspresso.sources.base import subject_labels
+from brainspresso.roast.archives import place, spool
+from brainspresso.roast.archives import spool_host as _host  # noqa: F401
+from brainspresso.roast.helpers import archive_shards
+from brainspresso.roast.run import python_api
+from brainspresso.roast.sidecars import TemplateError, template_sidecar
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.path import sorted_paths
 
@@ -145,8 +134,9 @@ GRADIENTS = {".bval": ".bval", ".bvals": ".bval",
 #: Bytes of a member read for its NIfTI header (`--sidecars only`)
 HEADER_BYTES = 65536
 
-#: Prefix of the spool folders (`.brainspresso/tmp/abide2-<host>-<pid>-*`)
-SPOOL_PREFIX = "abide2-"
+#: Name of the spool folders (`.brainspresso/tmp/abide2-<host>-<pid>-*`,
+#: `roast.archives.spool_prefix`)
+SPOOL_NAME = "abide2"
 
 
 class Kind(NamedTuple):
@@ -192,43 +182,6 @@ RAW_KEYS = tuple(sorted({kind.key for kind in KINDS.values()}))
 
 SCAN_FOLDER = re.compile(r"(?P<kind>[A-Za-z]+)_(?P<n>\d+)")
 SESSION_FOLDER = re.compile(r"session_(?P<n>\d+)", re.IGNORECASE)
-
-
-# ----------------------------------------------------------------------
-#   Python API
-# ----------------------------------------------------------------------
-
-def roast(root, *, keys=(), exclude_keys=(), subs=(), exclude_subs=(),
-          **options) -> RoastReport:
-    """
-    Roast `<root>` (the `ABIDE-2` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`29001` is `sub-29001`), labels with or
-        without `sub-`, ranges, files (as `--subs`)
-    keys, exclude_keys : str | list[str]
-        `--keys`, `--exclude-keys` (a name or a list)
-    **options
-        Those of the command line (`json`, `ifexists`, `layout`), `jobs`
-        and `display`
-
-    Returns
-    -------
-    RoastReport
-    """
-    select, exclude = ROAST_SPEC.effective(as_list(keys),
-                                           as_list(exclude_keys))
-    return roast_dataset(
-        roast_nitrc, root, KEYS, templates=TEMPLATES,
-        keys=select, exclude_keys=exclude,
-        subs=sorted(subject_labels(as_list(subs), WIDTH)),
-        exclude_subs=sorted(subject_labels(as_list(exclude_subs), WIDTH)),
-        **options,
-    )
 
 
 # ----------------------------------------------------------------------
@@ -302,15 +255,15 @@ def template_config(ctx: RoastContext, path: Path) -> dict:
     """
     site = tarball_site(path)
     if site is not None:
-        return scans.template_config(
-            lambda name: site_template(*site, name, ctx.resource),
-            TEMPLATE_NAMES, f"{site[0]}/{site[1] or '1'}")
+        return {"site": f"{site[0]}/{site[1] or '1'}",
+                "templates": sidecars.template_config(
+                    lambda name: site_template(*site, name, ctx.resource),
+                    TEMPLATE_NAMES)}
     out = {}
     for site, sample in template_folders(ctx.source):
-        config = scans.template_config(
+        out[f"{site}/{sample}"] = sidecars.template_config(
             partial(site_template, site, sample, resource=ctx.resource),
-            TEMPLATE_NAMES, f"{site}/{sample}")
-        out[config["site"]] = config["templates"]
+            TEMPLATE_NAMES)
     return {"site": None, "templates": out}
 
 
@@ -430,23 +383,20 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
         PARTICIPANTS, PHENOTYPES, pristine_phenotypes=True)
     if not wants_raw(ctx):
         return
-    sweep_spools(ctx)
+    archives.sweep_spools(ctx, SPOOL_NAME)
     bucket = (ctx.source / RAWDATA).is_dir()
     if bucket:
         lg.warning(f"{RAWDATA}/ (the bucket copy, harvested with --source "
                    f"s3) is not roasted: only the NITRC tarballs are")
-    archives = tarballs(ctx.source)
-    if not archives:
+    found = tarballs(ctx.source)
+    if not found:
         note = f" ({RAWDATA}/ is not roasted)" if bucket else ""
         yield Fail(f"no NITRC tarball (ABIDEII-<SITE>_<sample>.tar.gz) "
                    f"found{note}", name="raw", tag="raw")
         return
-    ctx.progress(total=len(archives), tag="raw")
-    for path in archives:
-        yield Shard(roast_archive, path, tag="raw", advance="raw",
-                    id=f"roast/raw/{path.name}", inputs=[path],
-                    config=template_config(ctx, path),
-                    scope=scope(keys=RAW_KEYS, subs=SEEN))
+    yield from archive_shards(ctx, found, roast_archive, tag="raw",
+                              keys=RAW_KEYS,
+                              config=partial(template_config, ctx))
 
 
 class Member(NamedTuple):
@@ -480,15 +430,17 @@ class Member(NamedTuple):
     file: str
 
 
-def parse_member(name: str, default: tuple | None = None) -> Member | None:
+def parse_member(parts: tuple[str, ...],
+                 default: tuple | None = None) -> Member | None:
     """
     Parse a member of a NITRC tarball.
 
     Parameters
     ----------
-    name : str
+    parts : tuple[str]
+        Normalised parts of its name (`roast.archives.Member.parts`):
         `[...]/ABIDEII-<SITE>_<sample>/<id>/session_<s>/<kind>_<n>/<file>`
-        (leading folders, `./` and `/` are ignored)
+        (leading folders are ignored)
     default : (site, sample), optional
         Site of the tarball, if the folder of the member names none
 
@@ -498,10 +450,7 @@ def parse_member(name: str, default: tuple | None = None) -> Member | None:
         None for files that are not in a scan folder of a subject
         (subject ids that are not numbers are logged)
     """
-    parts = member_parts(name)
-    if parts is None:
-        lg.warning(f"{name}: a member outside the archive: skipped")
-        return None
+    name = "/".join(parts)
     if len(parts) < 5:
         return None
     root, sub, ses, folder, file = parts[-5:]
@@ -522,67 +471,6 @@ def parse_member(name: str, default: tuple | None = None) -> Member | None:
     return Member(site, sample, participant_label(sub),
                   f"{int(ses_match['n']):02d}",
                   scan_match["kind"].lower(), int(scan_match["n"]), file)
-
-
-def spool_folder(ctx: RoastContext) -> Path | None:
-    """Folder of the spooled images (`.brainspresso/tmp/`, else None)."""
-    folder = Path(ctx.layout.state) / "tmp"
-    try:
-        folder.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        return None                     # (the system's temporary folder)
-    return folder
-
-
-def _host() -> str:
-    """Return the name of this host, as a part of a folder name."""
-    return re.sub(r"[^A-Za-z0-9.]", "_", socket.gethostname()) or "host"
-
-
-def spool_prefix() -> str:
-    """Prefix of the spool folder of a shard (`abide2-<host>-<pid>-`)."""
-    return f"{SPOOL_PREFIX}{_host()}-{os.getpid()}-"
-
-
-def sweep_spools(ctx: RoastContext) -> list[Path]:
-    """
-    Remove the spool folders of dead roasts (left by a hard kill).
-
-    A spool folder is named after the host and process of its shard
-    (`abide2-<host>-<pid>-<random>`): those of this host whose process
-    is gone are removed. Roasts hold the run lock of the dataset (shared:
-    other roasts may run, whose processes are alive), so compost does not
-    run meanwhile. Folders of other hosts are left (their processes
-    cannot be checked).
-
-    Parameters
-    ----------
-    ctx : RoastContext
-        Context of the roast
-
-    Returns
-    -------
-    list[Path]
-        The folders removed
-    """
-    folder = Path(ctx.layout.state) / "tmp"
-    if not folder.is_dir():
-        return []
-    host = _host()
-    removed = []
-    for spool in sorted_paths(folder.glob(f"{SPOOL_PREFIX}*")):
-        match = re.fullmatch(rf"{re.escape(SPOOL_PREFIX)}(?P<host>.+)-"
-                             rf"(?P<pid>\d+)-[^-]+", spool.name)
-        if not (spool.is_dir() and match and match["host"] == host):
-            continue
-        if int(match["pid"]) == os.getpid() or pid_alive(int(match["pid"])):
-            continue
-        shutil.rmtree(spool, ignore_errors=True)
-        removed.append(spool)
-    if removed:
-        lg.info(f"Removed {len(removed)} spool folder(s) of interrupted "
-                f"roasts in {folder}")
-    return removed
 
 
 @dataclass
@@ -689,17 +577,16 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     default = tarball_site(path)
     unknown = Counter()
     notes = set()
-    with tempfile.TemporaryDirectory(prefix=spool_prefix(),
-                                     dir=spool_folder(ctx)) as tmp:
+    with tempfile.TemporaryDirectory(
+            prefix=archives.spool_prefix(SPOOL_NAME),
+            dir=archives.spool_folder(ctx)) as tmp:
         session = None
         current = None          # (sub, ses) of the member being read
         done = set()
         try:
-            with TarArchive(path) as archive:
+            with archives.reading(path, opener=TarArchive) as archive:
                 for member in archive:
-                    if not member.isfile():
-                        continue
-                    parsed = parse_member(member.name, default)
+                    parsed = parse_member(member.parts, default)
                     if parsed is None:
                         continue
                     kind = KINDS.get(parsed.folder)
@@ -735,11 +622,10 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
                                 unknown)
                 if session is not None:
                     yield from session.actions(ctx, path, notes)
-        except ARCHIVE_ERRORS as e:
+        except archives.ArchiveError as e:
             lost = "" if session is None else \
                 f"; sub-{session.key[0]} ses-{session.key[1]} not written"
-            yield Fail(f"{path.name}: cannot be read ({type(e).__name__}: "
-                       f"{e}){lost}", name=path.name, tag="raw")
+            yield e.fail(tag="raw", note=lost)
         finally:
             if unknown:
                 files = ", ".join(f"{k} ({n} files)"
@@ -778,9 +664,9 @@ class Session:
             Context of the roast
         path : Path
             Tarball
-        archive : TarArchive
+        archive : roast.archives.Reader
             The open tarball
-        member : TarInfo
+        member : roast.archives.Member
             The member (the current one: read forward only)
         parsed : Member
             What its name says
@@ -813,11 +699,10 @@ class Session:
                                                         ext):
                 candidate.spool = self.tmp / f"{len(self.spooled)}{ext}"
                 self.spooled.append(candidate.spool)
-                with archive.extractfile(member) as src:
+                with member.open() as src:
                     candidate.error = spool(src, candidate.spool)
             else:       # (`--sidecars only`, or the outputs are there)
-                with archive.extractfile(member) as src:
-                    candidate.data = src.read(HEADER_BYTES)
+                candidate.data = member.read(HEADER_BYTES)
             scan.images.append(candidate)
             return
         lower = name.lower()
@@ -826,8 +711,7 @@ class Session:
         if ext is None or kind.datatype != "dwi":
             unknown[f"{parsed.folder}_<n>/{name}"] += 1
             return
-        with archive.extractfile(member) as src:
-            data = src.read()
+        data = member.read()
         scan.gradients.setdefault(ext, []).append(Candidate(
             member.name, ext, preferred(parsed.folder, name, ext),
             data=data))
@@ -944,62 +828,13 @@ class Session:
 
     def close(self) -> None:
         """Remove the spooled files that were not moved into place."""
-        for spool in self.spooled:
+        for spooled in self.spooled:
             try:
-                spool.unlink()
+                spooled.unlink()
             except FileNotFoundError:
                 pass
             except OSError as e:
-                lg.debug(f"{spool}: {e}")
-
-
-def spool(src, path: Path) -> str | None:
-    """
-    Copy an archive member to a spool file.
-
-    Errors reading the member (a corrupt archive) are raised; errors
-    writing the spool file are returned (a `Fail` of that output).
-
-    Parameters
-    ----------
-    src : file
-        The member, opened
-    path : Path
-        Spool file
-
-    Returns
-    -------
-    str | None
-        The error writing the spool file, if any
-    """
-    try:
-        dst = open(path, "wb")
-    except OSError as e:
-        error = e
-    else:
-        error = None
-        with dst:
-            while chunk := src.read(1 << 20):
-                if error is not None:
-                    continue            # (read on: forward only)
-                try:
-                    dst.write(chunk)
-                except OSError as e:
-                    error = e
-    return None if error is None else f"{type(error).__name__}: {error}"
-
-
-def place(spool: Path | None, path: str) -> None:
-    """Move a spooled image into place (copy it across filesystems)."""
-    if spool is None:
-        raise FileNotFoundError(
-            "the image was not spooled (an earlier roast wrote it under "
-            "the other name: with or without `run-<n>`): roast again with "
-            "--if-exists overwrite")
-    try:
-        os.replace(spool, path)
-    except OSError:
-        shutil.copyfile(spool, path)
+                lg.debug(f"{spooled}: {e}")
 
 
 def write_bytes(data: bytes, file) -> None:
@@ -1056,17 +891,20 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
         yield Fail(f"{image_name}: {e}", name=f"{stem.name}.json",
                    tag=kind.key)
         return
-    content, error = read_template(template, stem, kind.key)
-    if error is not None:
-        yield error
-        return
-    if kind.suffix == "bold":
-        def open_image(image=image):
-            if image.spool is not None and image.spool.is_file():
-                return open(image.spool, "rb")
-            return io.BytesIO(image.data or b"")
+    def open_image(image=image):
+        if image.spool is not None and image.spool.is_file():
+            return open(image.spool, "rb")
+        return io.BytesIO(image.data or b"")
 
-        yield bold_sidecar(template, content, stem, image_path,
-                           open_image, image_name, tag=kind.key)
-        return
-    yield CopyJSON(template, f"{stem}.json", tag=kind.key)
+    yield from template_sidecar(template, stem, kind.key,
+                                bold=kind.suffix == "bold", image=image_path,
+                                open_image=open_image, image_name=image_name)
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `ABIDE-2` folder): `roast(root, keys=..., sub=...)`
+roast = python_api(roast_nitrc, KEYS, folder="ABIDE-2",
+                   width=WIDTH, example=29001, spec=ROAST_SPEC)

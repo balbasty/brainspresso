@@ -11,7 +11,7 @@ Alzheimer's disease freely available. The releases differ in design and scope:
 | [OASIS-2](oasis2.md) | Longitudinal | 150 | 60–96 | T1w | Open |
 | [OASIS-3](oasis3.md) | Longitudinal, multimodal | 1378 | 42–95 | MRI, PET, CT | Application and NITRC account |
 
-All three use four-digit subject labels (`sub-0001`), so `--subs 1:10` selects
+All three use four-digit subject labels (`sub-0001`), so `--sub 1:10` selects
 the first ten subjects.
 
 ## Access and terms

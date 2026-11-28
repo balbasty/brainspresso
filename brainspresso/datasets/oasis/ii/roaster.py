@@ -23,8 +23,9 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-2/` itself.
 A part is a gz tarball that holds the scans of about 75 subjects (all
 their sessions), and reading a member of a gz tarball decompresses
 everything before it. Each part is therefore read by one shard (task id
-`roast/parts/part<N>`, inputs: the part and the sidecar template, so
-that an unchanged part is skipped on a re-run, also by a roast that
+`roast/parts/part<N>`, inputs: the part; config: the sidecar template,
+path and hash; so that an unchanged part is skipped on a re-run, also
+by a roast that
 keeps fewer subjects or toggles `meta`: its scope, `roast.scope`): it
 is listed once, then its members are extracted in archive order (one
 forward pass). Parts
@@ -35,25 +36,31 @@ sessions tables are written complete to `.brainspresso/orig/` and
 trimmed to the subjects and sessions on disk.
 """
 import re
-from logging import getLogger
-from pathlib import Path, PurePosixPath
+from logging import WARNING, getLogger
+from pathlib import Path
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyJSON, Fail, WriteTSV
+from brainspresso.actions import Action, Fail
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.datasets.oasis.i.roaster import READ_ERRORS, analyze_action
+from brainspresso.convert.analyze import analyze_action
+from brainspresso.convert.volume import make_affine
 from brainspresso.errors import UsageError
 from brainspresso.roast import (
-    SEEN,
     RoastContext,
-    Shard,
+    archives,
     copy_templates,
-    roast_dataset,
-    scope,
 )
-from brainspresso.sources.base import subject_labels
+from brainspresso.roast.helpers import archive_shards, attempt, missing_input
+from brainspresso.roast.run import doc_entry, python_api
+from brainspresso.roast.sidecars import copy_sidecar, template_config
+from brainspresso.roast.tables import (
+    TableError,
+    clean,
+    integer,
+    read_xlsx,
+    table_action,
+)
 from brainspresso.utils.archive import TarArchive
-from brainspresso.utils.vol import make_affine
 
 lg = getLogger(__name__)
 
@@ -78,46 +85,6 @@ KEYS = KeyAliases(
 AFFINE_RAW = make_affine(
     [256, 256, 128], [1.0, 1.0, 1.25], orient="ASL", center="x/2"
 )
-
-
-def roast(root, *, subs=(), exclude_subs=(), parts=None, **options):
-    """
-    Roast `<root>` (the `OASIS-2` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`1` is `sub-0001`), labels with or without
-        `sub-`, ranges, files (as `--subs`)
-    parts : list[int]
-        Only these parts, 1 or 2 (default: all; a part named here that
-        is not in `sourcedata/` is an error, other missing parts are
-        skipped)
-    **options
-        Those of the command line (`keys`, `exclude_keys`, `sessions`,
-        `json`, `ifexists`, `layout`), `jobs` and `display`
-
-    Returns
-    -------
-    RoastReport
-        See `roast.run_roast`
-
-    Raises
-    ------
-    UsageError
-        If a part is not 1 or 2
-    """
-    if parts:
-        check_parts(parts)
-    return roast_dataset(
-        roast_oasis2, root, KEYS, templates=TEMPLATES,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        options={"parts": sorted(set(parts))} if parts else None,
-        **options,
-    )
 
 
 def check_parts(parts) -> None:
@@ -179,64 +146,22 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
     if not ctx.wants("raw"):
         return
     named = ctx.options.get("parts")
-    shards = []
+    found = {}              # {path: part}
     for part in PARTS:
         if named is not None and part not in named:
             continue
         path = part_path(ctx, part)
         if not path.exists():
-            message = f"{path.name} not found"
-            if named is not None:
-                yield Fail(message, name=path.name, tag="parts")
-            else:
-                lg.warning(f"{message} (skipped)")
+            yield from missing_input(
+                f"{path.name} not found", name=path.name, tag="parts",
+                required=named is not None, level=WARNING, logger=lg)
             continue
-        sidecar = ctx.resource(SIDECAR)
-        shards.append(Shard(
-            roast_part, path, tag="parts", advance="parts",
-            id=f"roast/parts/part{part}",
-            inputs=[path, *([sidecar] if sidecar else [])],
-            scope=scope(keys=("raw",), subs=SEEN),
-        ))
-    ctx.progress(total=len(shards), tag="parts")
-    yield from shards
-
-
-def unreadable(path: Path, error: Exception) -> Fail:
-    """
-    Report a part that cannot be read.
-
-    Parameters
-    ----------
-    path : Path
-        The part
-    error : Exception
-        Why
-
-    Returns
-    -------
-    Fail
-        An error of the "parts" group
-    """
-    return Fail(f"{path.name} cannot be read ({type(error).__name__}: "
-                f"{error})", name=path.name, tag="parts")
-
-
-def member_name(name: str) -> str:
-    """
-    Normalise the name of a member.
-
-    Parameters
-    ----------
-    name : str
-        As stored in the tarball (`./a/b`, `/a/b`, `a//b`)
-
-    Returns
-    -------
-    str
-        Relative POSIX path, without `.` parts (`a/b`)
-    """
-    return PurePosixPath(name).as_posix().lstrip("/")
+        found[path] = part
+    config = template_config(ctx.resource, [SIDECAR])
+    yield from archive_shards(
+        ctx, found, roast_part, tag="parts", keys=("raw",),
+        id=lambda path: f"roast/parts/part{found[path]}",
+        config=lambda path: config)
 
 
 def raw_scan(name: str) -> tuple[str, int, int, str] | None:
@@ -246,7 +171,7 @@ def raw_scan(name: str) -> tuple[str, int, int, str] | None:
     Parameters
     ----------
     name : str
-        Member of a part (normalised, `member_name`):
+        Member of a part (normalised, `roast.archives.Member.path`):
         `[<prefix>/]OAS2_<sub>_MR<ses>/RAW/mpr-<run>.nifti.img`, with any
         prefix (the top folder `OAS2_RAW_PART<N>/` of the legacy roaster
         is not confirmed on the real tarballs)
@@ -287,36 +212,29 @@ def roast_part(ctx: RoastContext, path: Path) -> Iterator[Action]:
     Yields
     ------
     Action
-        Sidecars, conversions (Analyze -> NIfTI), missing members
+        Sidecars, conversions (Analyze -> NIfTI), missing members; a
+        `Fail` if the part cannot be read
     """
     try:
-        archive = TarArchive(path)
-    except READ_ERRORS as e:
-        yield unreadable(path, e)
-        return
-    with archive:               # (closed on errors: Windows locks files)
-        try:
-            infos = archive.getmembers()
-        except READ_ERRORS as e:
-            yield unreadable(path, e)
-            return
-        members = {member_name(info.name): info for info in infos
-                   if info.isfile()}
-        found = list(filter(None, map(raw_scan, members)))
-        if not found:
-            yield Fail(f"{path.name}: no scan found (members "
-                       f"`OAS2_<sub>_MR<n>/RAW/mpr-<run>.nifti.img`)",
-                       name=path.name, tag="parts")
-            return
-        actions = []            # [(position, action)]
-        sessions = ctx.selection.base.sessions
-        for scan in found:
-            if ctx.keeps_subject(scan[0]) and (
-                    not sessions or str(scan[1]) in sessions):
-                actions += scan_actions(ctx, archive, path, *scan,
-                                        members=members)
-        for _, action in sorted(actions, key=lambda item: item[0]):
-            yield action
+        # (closed on every path: Windows locks open files)
+        with archives.reading(path, opener=TarArchive) as tar:
+            members = tar.index()
+            found = list(filter(None, map(raw_scan, members)))
+            if not found:
+                yield Fail(f"{path.name}: no scan found (members "
+                           f"`OAS2_<sub>_MR<n>/RAW/mpr-<run>.nifti.img`)",
+                           name=path.name, tag="parts")
+                return
+            actions = []            # [(members, action)]
+            sessions = ctx.selection.base.sessions
+            for scan in found:
+                if ctx.keeps_subject(scan[0]) and (
+                        not sessions or str(scan[1]) in sessions):
+                    actions += scan_actions(ctx, tar.archive, path, *scan,
+                                            members=members)
+            yield from archives.in_order(actions)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="parts")
 
 
 def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
@@ -339,35 +257,31 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         Session and run
     stem : str
         Member of the scan (normalised), without `.img`/`.hdr`
-    members : dict[str, TarInfo]
+    members : dict[str, roast.archives.Member]
         `{normalised name: member}` of the part
 
     Returns
     -------
-    list[tuple[int, Action]]
-        `(offset of the first member it reads, -1: none; action)`
+    list[tuple[list[roast.archives.Member], Action]]
+        `(members it reads, action)` (`roast.archives.in_order`)
     """
     anat = ctx.layout.raw / f"sub-{sub}" / f"ses-{ses}" / "anat"
     dst = anat / f"sub-{sub}_ses-{ses}_run-{run}_T1w"
     out = []
-    sidecar = ctx.resource(SIDECAR)
-    if sidecar is not None:
-        out.append((-1, CopyJSON(sidecar, f"{dst}.json", tag="raw")))
-    elif ctx.accepts("sidecar"):
-        out.append((-1, Fail(f"{SIDECAR} not found", name=f"{dst.name}.json",
-                             tag="raw")))
+    out += [([], action) for action in
+            copy_sidecar(ctx, SIDECAR, f"{dst}.json", tag="raw")]
     names = [f"{stem}{ext}" for ext in (".hdr", ".img")]
     missing = [m for m in names if m not in members]
     if missing:
         if ctx.accepts("data"):
-            out.append((-1, Fail(f"{', '.join(missing)} not found in "
+            out.append(([], Fail(f"{', '.join(missing)} not found in "
                                  f"{path.name}", name=f"{dst.name}.nii.gz",
                                  tag="raw")))
         return out
     infos = sorted((members[m] for m in names), key=lambda m: m.offset)
-    out.append((infos[0].offset, analyze_action(
-        archive, path, [m.name for m in infos], f"{dst}.nii.gz", AFFINE_RAW,
-        tag="raw")))
+    out.append((infos, analyze_action(
+        archive, path, [m.name for m in infos], f"{dst}.nii.gz",
+        affine=AFFINE_RAW, tag="raw")))
     return out
 
 
@@ -426,7 +340,7 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         Copies of templates, participants and sessions tables (complete,
         in `.brainspresso/orig/`)
     """
-    raw, original = ctx.layout.raw, ctx.layout.original
+    raw = ctx.layout.raw
     yield from copy_templates(ctx, ["README", "dataset_description.json",
                                     "participants.json", "sessions.json"])
     xlsx = ctx.source / XLSX
@@ -434,106 +348,16 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"sourcedata/{XLSX} not found: harvest with --keys meta",
                    name="participants.tsv", tag="meta")
         return
-    try:
-        import openpyxl  # noqa: F401, PLC0415  (lazy: optional dependency)
-    except ImportError:
-        yield Fail("openpyxl is needed to read the spreadsheet: pip install "
-                   "brainspresso[oasis2]", name="participants.tsv",
-                   tag="meta")
+    found, error = attempt(read_demographics, xlsx,
+                           fail_name="participants.tsv", fail_tag="meta")
+    if error:
+        yield error
         return
-    try:
-        participants, sessions = read_demographics(xlsx)
-    except Exception as e:      # (openpyxl raises many kinds of errors)
-        yield Fail(f"{XLSX} cannot be read ({type(e).__name__}: {e})",
-                   name="participants.tsv", tag="meta")
-        return
-    yield WriteTSV(participants, original(raw / "participants.tsv"),
-                   src=xlsx, tag="meta")
+    participants, sessions = found
+    yield table_action(ctx, raw / "participants.tsv", participants, xlsx)
     for sub, rows in sorted(sessions.items()):
         table = raw / f"sub-{sub}" / f"sub-{sub}_sessions.tsv"
-        yield WriteTSV(rows, original(table), src=xlsx, tag="meta")
-
-
-def cell(value) -> str:
-    """
-    Format a cell of the spreadsheet.
-
-    Parameters
-    ----------
-    value : object
-        Its value
-
-    Returns
-    -------
-    str
-        `n/a` if empty or `N/A`; integral numbers without decimals
-        (`27.0` is `27`, so that CDR `0.0` is the level `0`)
-    """
-    if value is None:
-        return "n/a"
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    value = str(value).strip()
-    return "n/a" if value.upper() in ("", "N/A", "NA") else value
-
-
-def number(value) -> int | None:
-    """
-    Read an integer cell (`1`, `1.0`, `"1"`).
-
-    Parameters
-    ----------
-    value : object
-        Its value
-
-    Returns
-    -------
-    int | None
-        The integer, or None
-    """
-    try:
-        value = float(str(value).strip())
-    except ValueError:
-        return None
-    return int(value) if value.is_integer() else None
-
-
-def column_index(header) -> list[int]:
-    """
-    Find the columns of `XLSX_HEADER` in the header of the spreadsheet.
-
-    Names are compared without case and spaces; a column that is not
-    found is read at its position in `XLSX_HEADER` (with a warning).
-
-    Parameters
-    ----------
-    header : sequence
-        First row of the spreadsheet
-
-    Returns
-    -------
-    list[int]
-        Index of each column of `XLSX_HEADER`
-    """
-    def norm(name) -> str:
-        """Name without case and spaces."""
-        return re.sub(r"\s+", "", str(name or "")).lower()
-
-    names = {}
-    for i, name in enumerate(header):
-        names.setdefault(norm(name), i)
-    index, missing = [], []
-    for i, name in enumerate(XLSX_HEADER):
-        if norm(name) in names:
-            index.append(names[norm(name)])
-        else:
-            index.append(i)
-            missing.append(f"{name!r} (column {i + 1}: "
-                           f"{header[i] if i < len(header) else None!r})")
-    if missing:
-        lg.warning(f"{XLSX}: columns not found by name, read by position: "
-                   f"{', '.join(missing)}")
-    return index
+        yield table_action(ctx, table, rows, xlsx)
 
 
 def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
@@ -546,7 +370,9 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     are skipped with a warning. The session of a row is the number of
     its MRI ID (`OAS2_0001_MR2` is `ses-2`, the folder of its scans),
     else (with a warning) its visit. Participants are described by
-    their first visit. Empty and `N/A` cells are `n/a`.
+    their first visit. Cells are cleaned (`roast.tables.clean`: empty
+    and `N/A` cells are `n/a`, integral numbers have no decimals, so
+    that CDR `0.0` is the level `0`).
 
     Parameters
     ----------
@@ -559,34 +385,30 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
         Header and one row per subject
     sessions : dict[str, list[list[str]]]
         `{sub: header and one row per session}`
-    """
-    import openpyxl  # noqa: PLC0415  (lazy: optional dependency)
 
-    # (not `read_only`: it trusts the stored dimension of the sheet)
-    book = openpyxl.load_workbook(path_xlsx, data_only=True)
-    try:
-        sheet = book[book.sheetnames[0]]
-        rows = [list(row) for row in sheet.iter_rows(values_only=True)]
-    finally:
-        book.close()
-    if not rows:
-        raise ValueError("empty sheet")
-    index = column_index(rows[0])
-    width = max(index) + 1
+    Raises
+    ------
+    roast.tables.TableError
+        If the spreadsheet cannot be read (or openpyxl is missing), or
+        is empty
+    """
+    sheet = read_xlsx(path_xlsx, extra="oasis2")
+    if not sheet.header:
+        raise TableError(f"{sheet.name}: empty sheet")
+    index = sheet.locate(XLSX_HEADER)
 
     found = {}          # {sub: {ses: (visit, row)}}
-    for nrow, row in enumerate(rows[1:], 2):
-        row = row + [None] * (width - len(row))     # (empty trailing cells)
+    for nrow, row in sheet.rows:
         (sid, mri, group, visit, delay, sex, hand, age, educ, socio, mmse,
-         cdr, etiv, nwbv, asf) = (row[i] for i in index)
+         cdr, etiv, nwbv, asf) = (sheet.cell(row, i, None) for i in index)
         if not str(sid or "").strip():
-            continue                    # blank or formatted row
+            continue                    # formatted row
         match = re.fullmatch(r"OAS2_(\d+)", str(sid).strip())
         if not match:
             lg.warning(f"{XLSX}, row {nrow}: subject ID {sid!r} (skipped)")
             continue
         sub = f"{int(match[1]):0{WIDTH}d}"
-        visit = number(visit)
+        visit = integer(visit)
         match = re.fullmatch(r"OAS2_(\d+)_MR(\d+)", str(mri or "").strip())
         if match and int(match[1]) != int(sub):
             lg.warning(f"{XLSX}, row {nrow}: MRI ID {mri!r} is not of "
@@ -600,7 +422,8 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
                        f"the visit (ses-{ses})")
         else:
             lg.warning(f"{XLSX}, row {nrow}: no session in MRI ID "
-                       f"{mri!r} or visit {row[index[3]]!r} (skipped)")
+                       f"{mri!r} or visit {sheet.cell(row, index[3], None)!r} "
+                       f"(skipped)")
             continue
         if ses in found.get(sub, {}):
             lg.warning(f"{XLSX}, row {nrow}: sub-{sub} ses-{ses} is listed "
@@ -620,8 +443,51 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     for sub, rows in sorted(found.items()):
         first = min(rows, key=lambda ses: (
             rows[ses][0] if rows[ses][0] is not None else ses, ses))
-        participants.append([f"sub-{sub}", *map(cell, rows[first][1][0])])
+        participants.append([f"sub-{sub}", *map(clean, rows[first][1][0])])
         sessions[sub] = [SESSIONS_HEADER] + [
-            [f"ses-{ses}", *map(cell, values[1])]
+            [f"ses-{ses}", *map(clean, values[1])]
             for ses, (_, values) in sorted(rows.items())]
     return participants, sessions
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+def part_options(keys, parts=None) -> dict | None:
+    """
+    Return the options of the roaster (`RoastContext.options`).
+
+    Parameters
+    ----------
+    keys : list[str]
+        `--keys` as given (unused)
+    parts : list[int] | None
+        `--parts`
+
+    Returns
+    -------
+    dict | None
+        `{"parts": [...]}` when parts are given
+
+    Raises
+    ------
+    UsageError
+        If a part is not 1 or 2
+    """
+    if not parts:
+        return None
+    check_parts(parts)
+    return {"parts": sorted(set(parts))}
+
+
+#: Roast `<root>` (the `OASIS-2` folder): `roast(root, keys=..., sub=...,
+#: parts=...)`
+roast = python_api(
+    roast_oasis2, KEYS, folder="OASIS-2", width=WIDTH,
+    options=part_options, options_doc=doc_entry(
+        "parts : list[int]",
+        "Only these parts, 1 or 2 (default: all; a part named here that is "
+        "not in `sourcedata/` is an error, other missing parts are "
+        "skipped). A part that is not 1 or 2 raises `UsageError`"),
+)

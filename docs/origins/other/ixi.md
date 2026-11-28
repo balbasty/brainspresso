@@ -32,7 +32,7 @@ diffusion series, along with basic demographics.
 | `meta` | `participants.tsv`: site, age, sex, height, weight, date of birth, ethnicity, marital status, occupation, qualification, study date |
 | `trace` | `derivatives/ixi-scanner/`: the isotropic image computed by the scanner (roast only, not selected by default) |
 
-Subject labels are three-digit numbers, so `--subs 2 12` selects `sub-002` and
+Subject labels are three-digit numbers, so `--sub 2 12` selects `sub-002` and
 `sub-012`.
 
 ## Access
@@ -61,7 +61,7 @@ currently offline. NITRC-IR does not host the demographics spreadsheet
 
 ```shell
 bx ixi harvest /data --keys T1w T2w meta
-bx ixi harvest /data --subs 1:50 --dry-run
+bx ixi harvest /data --sub 1:50 --dry-run
 bx ixi roast /data --keys dwi trace
 ```
 

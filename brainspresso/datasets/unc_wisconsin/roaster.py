@@ -33,16 +33,17 @@ import re
 from pathlib import Path
 from typing import Iterator
 
-from brainspresso.actions import Action, Fail, WriteJSON, WriteTSV
+from brainspresso.actions import Action, Fail, WriteJSON
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert import Convert
 from brainspresso.datasets.unc_wisconsin.keys import allkeys
 from brainspresso.roast import (
     RoastContext,
     copy_templates,
-    roast_dataset,
     subject_shards,
 )
-from brainspresso.utils.nrrd import nrrd_to_nifti
+from brainspresso.roast.run import python_api
+from brainspresso.roast.tables import table_action
 from brainspresso.utils.path import sorted_paths
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -102,19 +103,11 @@ DERIVATIVES = [
 ]
 
 
-def roast(root, **options):
-    """Roast `<root>` (the `UNC-Wisconsin` folder). Options: those of
-    the command line (`keys`, `subs`, `exclude_subs`, `sessions`,
-    `ifexists`, `layout`), `jobs` and `display`."""
-    return roast_dataset(roast_uncwisc, root, KEYS, templates=TEMPLATES,
-                         **options)
-
-
 def roast_uncwisc(ctx: RoastContext) -> Iterator:
     meta = folders(ctx)
     if ctx.wants("meta"):
         yield from roast_meta(ctx, meta)
-    if any(map(ctx.wants, DERIV_KEYS)):
+    if ctx.wants_any(DERIV_KEYS):
         drv = ctx.layout.derivative(DERIV_NAME)
         yield from copy_templates(ctx, {
             "derivatives_description.json": drv.description,
@@ -146,13 +139,11 @@ def roast_meta(ctx: RoastContext, meta: dict) -> Iterator[Action]:
                    "--keys meta", name="folders.json", tag="meta")
         return
     src = ctx.source / "folders.json"
-    original = ctx.layout.original
-    yield WriteTSV(participants(meta), original(raw / "participants.tsv"),
-                   src=src, tag="meta")
+    yield table_action(ctx, raw / "participants.tsv", participants(meta),
+                       src)
     for sub in sorted({key.split("/")[0] for key in meta}):
         table = raw / f"sub-{sub}" / f"sub-{sub}_sessions.tsv"
-        yield WriteTSV(sessions(meta, sub), original(table), src=src,
-                       tag="meta")
+        yield table_action(ctx, table, sessions(meta, sub), src)
 
 
 def participants(meta: dict) -> list[list[str]]:
@@ -233,17 +224,13 @@ def _convert(src: Path, stem: Path, tag: str, dwi=None) -> Action:
     """NRRD -> `<stem>.nii.gz` (+ `<dwi>.bval`, `<dwi>.bvec`)"""
     nii = Path(f"{stem}.nii.gz")
     if not dwi:
-        return Action(src, nii, lambda path: nrrd_to_nifti(src, path),
-                      input="path", tag=tag)
+        return Convert(src, nii, tag=tag)
     dwi = stem if dwi is True else dwi
     # one conversion writes the three files: a data action
     # (`--sidecars only` writes none of them)
-    return Action(
-        src, [nii, Path(f"{dwi}.bval"), Path(f"{dwi}.bvec")],
-        lambda nii, bval, bvec: nrrd_to_nifti(src, nii, bval=bval,
-                                              bvec=bvec),
-        input="path", tag=tag, kind="data",
-    )
+    return Convert(src, nii, outputs={"bval": Path(f"{dwi}.bval"),
+                                      "bvec": Path(f"{dwi}.bvec")},
+                   tag=tag, kind="data")
 
 
 def deriv_sidecar(suffix: str) -> dict:
@@ -264,3 +251,12 @@ def _dirs(path: Path) -> list[Path]:
     return sorted_paths(p for p in path.iterdir() if p.is_dir()) \
         if path.is_dir() else []
 
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `UNC-Wisconsin` folder): `roast(root, keys=...,
+#: sub=...)`; subject labels are kept as they are (`Dataset.subject_width`
+#: None)
+roast = python_api(roast_uncwisc, KEYS, folder="UNC-Wisconsin", width=None)

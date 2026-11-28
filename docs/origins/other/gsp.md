@@ -30,7 +30,7 @@ distributed through Harvard Dataverse.
 | `raw` | `GSP_part{1..10}_140630.tar` and `GSP_retest_140630.tar` |
 | `meta` | `GSP_list_140630.csv`, `GSP_retest_140630.csv` |
 
-The archives are not split by subject, so `--subs` has no effect.
+The archives are not split by subject, so `--sub` has no effect.
 
 ## Access
 

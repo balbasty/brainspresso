@@ -64,7 +64,7 @@ to your NITRC account. See [OASIS](index.md#access-and-terms) for the terms of u
 ## Examples
 
 ```shell
-bx oasis3 harvest /data --keys T1w meta --subs 1 2
+bx oasis3 harvest /data --keys T1w meta --sub 1 2
 bx oasis3 harvest /data --keys PIB AV45 --dry-run
 bx oasis3 roast /data --keys raw pheno
 ```

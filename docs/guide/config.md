@@ -58,7 +58,7 @@ exclude-keys = ["rest"]
 
 [openneuro.ds000224.harvest]
 tag = "1.0.4"
-datatypes = ["anat"]
+datatype = ["anat"]
 ```
 
 Files ending in `.yaml` or `.yml` are also accepted when

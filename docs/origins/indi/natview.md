@@ -28,14 +28,14 @@ signals were recorded at the same time.
   row per session (`nycq`, `last_night_sleep`) are kept in
   `sourcedata/phenotype/`.
 
-EEG files are large: `--datatypes anat func` downloads the MRI alone.
+EEG files are large: `--datatype anat func` downloads the MRI alone.
 
 ## Examples
 
 ```shell
 bx natview info
-bx natview harvest /data --datatypes anat func --dry-run
-bx natview harvest /data --datatypes eeg
+bx natview harvest /data --datatype anat func --dry-run
+bx natview harvest /data --datatype eeg
 ```
 
 ## How to cite

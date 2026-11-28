@@ -55,7 +55,7 @@ subjects. `--discs 1 2` restricts harvest and roast to some of them.
 
 ```shell
 bx oasis1 harvest /data --keys raw meta --discs 1 2
-bx oasis1 roast /data --keys raw meta --subs 1:20
+bx oasis1 roast /data --keys raw meta --sub 1:20
 bx oasis1 roast /data --keys avg tal fsl fs --discs 1
 ```
 

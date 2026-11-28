@@ -27,13 +27,13 @@ applies to the selected files is added automatically.
 ```shell
 # What is in a dataset, and what would a selection download?
 bx openneuro info ds000224
-bx openneuro harvest ds000224 --datatypes anat --dry-run
+bx openneuro harvest ds000224 --datatype anat --dry-run
 
 # Anatomical scans of two subjects, from snapshot 1.0.4
-bx openneuro harvest ds000224 /data --tag 1.0.4 --subs MSC01 MSC02 --datatypes anat
+bx openneuro harvest ds000224 /data --tag 1.0.4 --sub MSC01 MSC02 --datatype anat
 
 # Participants selected on participants.tsv
-bx openneuro harvest ds000224 /data --suffixes T1w T2w --where "age>=30" "gender==M"
+bx openneuro harvest ds000224 /data --suffix T1w T2w --where "age>=30" "gender==M"
 ```
 
 `--tag` selects a snapshot; the default is the latest one. `info` lists the

@@ -1,12 +1,12 @@
 {
  "abide1": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -33,12 +33,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -112,12 +112,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -128,28 +128,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -255,7 +255,7 @@
      "--path"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": [
      "CMU",
      "Caltech",
@@ -295,8 +295,8 @@
      "Yale"
     ],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    },
    "--user": {
@@ -308,12 +308,12 @@
    }
   },
   "download-xnat": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -382,12 +382,12 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--user": {
@@ -399,12 +399,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -498,7 +498,7 @@
      "--path"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": [
      "CMU",
      "Caltech",
@@ -538,8 +538,8 @@
      "Yale"
     ],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    },
    "--source": {
@@ -553,12 +553,12 @@
      "--source"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--user": {
@@ -578,12 +578,12 @@
      "--exclude-keys"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -661,24 +661,24 @@
      "--source"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "abide2": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -705,12 +705,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -784,12 +784,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -800,28 +800,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -923,7 +923,7 @@
      "--path"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": [
      "BNI",
      "EMC",
@@ -967,8 +967,8 @@
      "U_MIA"
     ],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    },
    "--source": {
@@ -998,12 +998,12 @@
      "--exclude-keys"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -1063,24 +1063,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "acpi": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -1107,12 +1107,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -1186,12 +1186,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -1202,28 +1202,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -1253,12 +1253,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -1277,12 +1277,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -1371,12 +1371,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -1389,36 +1397,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -1447,24 +1447,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "adhd200": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -1491,12 +1491,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -1570,12 +1570,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -1586,28 +1586,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -1645,20 +1645,20 @@
      "--no-bidsify"
     ]
    },
-   "--exclude-sites": {
+   "--exclude-site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-sites",
-     "--exclude-sites"
+     "--empty-exclude-site",
+     "--exclude-site"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -1722,32 +1722,32 @@
      "--path"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "bullitt": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -1774,12 +1774,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -1853,12 +1853,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -1869,28 +1869,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -1920,12 +1920,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -1991,12 +1991,12 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--token": {
@@ -2008,12 +2008,12 @@
    }
   },
   "roast": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -2088,24 +2088,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "cobre": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -2132,12 +2132,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -2211,12 +2211,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -2227,28 +2227,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -2352,12 +2352,12 @@
    }
   },
   "roast": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -2425,24 +2425,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "corr": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -2469,12 +2469,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -2548,12 +2548,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -2564,28 +2564,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -2615,12 +2615,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -2702,7 +2702,7 @@
      "--path"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": [
      "BMB",
      "BNU",
@@ -2726,8 +2726,8 @@
     ],
     "default": "{'BMB': {1: ['0003001_0003042', '0003044_0003064']}, 'BNU': {1: ['0025864_0025883', '0025884_0025903', '0025904_0025920'], 2: ['0025921_0025945', '0025946_0025970', '0025971_0025981'], 3: ['0027055_0027069', '0027070_0027084', '0027085_0027099', '0027100_0027102']}, 'DC': {1: ['0027306_0027331', '0027332_0027367', '0027368_0027403', '0027404_0027429']}, 'HNU': {1: ['0025427_0025429', '0025430_0025432', '0025433_0025435', '0025436_0025438', '0025439_0025441', '0025442_0025444', '0025445_0025447', '0025448_0025449', '0025450', '0025451_0025453', '0025454_0025456']}, 'IACAS': {1: ['0025457_0025482', '0025483_0025484']}, 'IBA': {'TRT': ['0027223_0027233', '0027234_0027247', '0027248_0027258']}, 'IPCAS': {1: ['0025485_0025497', '0025498_0025510', '0025511_0025514'], 2: ['0025515_0025535', '0025536_0025549'], 3: ['0025550_0025583', '0025584_0025585'], 4: ['0026190_0026209'], 5: ['0027284_0027301', '0027302_0027305'], 6: ['0026044_0026045'], 7: ['0026046_0026074', '0026075_0026103', '0026104_0026119'], 8: ['0025586_0025598']}, 'JHNU': {1: ['0025599_0025628']}, 'LMU': {1: ['0025335_0025339', '0025340_0025344', '0025345_0025349', '0025350_0025354', '0025355_0025359', '0025360_0025361'], 2: ['0025362_0025389', '0025390_0025401'], 3: ['0025402_0025426']}, 'MPG': {1: ['0027430', '0027431', '0027432', '0027433', '0027434', '0027435', '0027436', '0027437', '0027438', '0027439', '0027440', '0027441', '0027442', '0027443', '0027444', '0027445', '0027446', '0027447', '0027448', '0027449', '0027450', '0027451']}, 'MRN': {1: ['0027010_0027048', '0027049_0027419']}, 'NKI': {'TRT': ['0021001', '0021002', '0021006', '0021018', '0021024', '1427581', '1793622', '1961098', '2475376', '2799329', '2842950', '3201815', '3313349', '3315657', '3795193', '3808535', '3893245', '4176156', '4288245', '6471972', '7055197', '8574662', '8735778', '9630905'], 2: ['imaging_data_A00018030_A00027159', 'imaging_data_A00027167_A00027439', 'imaging_data_A00031881_A00033714', 'imaging_data_A00034350_A00035292', 'imaging_data_A00035377_A00035561', 'imaging_data_A00035940_A00035945', 'imaging_data_A00040556_A00040798', 'imaging_data_A00040800_A00040815', 'imaging_data_A00043240_A00043494', 'imaging_data_A00043740_A00043788', 'imaging_data_A00050848_A00051691', 'imaging_data_A00051727_A00052069', 'imaging_data_A00052165_A00052183', 'imaging_data_A00052461_A00053203', 'imaging_data_A00053320_A00053390', 'imaging_data_A00053490_A00053744', 'imaging_data_A00053873_A00054206', 'imaging_data_A00054578_A00054581', 'imaging_data_A00055076_A00055122', 'imaging_data_A00055267_A00055462', 'imaging_data_A00055612_A00055693', 'imaging_data_A00055727_A00055728', 'imaging_data_A00055866_A00055867', 'imaging_data_A00055903_A00055907', 'imaging_data_A00055908_A00055920', 'imaging_data_A00055991_A00056022', 'imaging_data_A00056138_A00056198', 'imaging_data_A00056295_A00056307', 'imaging_data_A00056420_A00056470', 'imaging_data_A00056605_A00056679', 'imaging_data_A00056746_A00056920', 'imaging_data_A00057405_A00057480', 'imaging_data_A00057725_A00058053', 'imaging_data_A00058060_A00058061', 'imaging_data_A00058215_A00058229', 'imaging_data_A00058516_A00059325', 'imaging_data_A00059865_A00060280', 'imaging_data_A00060384_A00060429', 'imaging_data_A00060603']}, 'NYU': {1: ['0027103_0027119', '0027120_0027127'], 2: ['0025000_0025006', '0025007_0025012', '0025013_0025018', '0025019_0025024', '0025025_0025030', '0025031_0025037', '0025038_0025044', '0025045_0025050', '0025051_0025056', '0025057_0025063', '0025064_0025075', '0025076_0025087', '0025088_0025099', '0025100_0025111', '0025112_0025123', '0025124_0025135', '0025136_0025147', '0025148_0025159', '0025160_0025171', '0025172_0025183', '0025184_0025186']}, 'SWU': {1: ['0027203_0027212', '0027213_0027222'], 2: ['0027176_0027202'], 3: ['0027152_0027175'], 4: ['0025629_0025638', '0025639_0025649', '0025650_0025660', '0025661_0025671', '0025672_0025681', '0025682_0025691', '0025692_0025702', '0025703_0025713', '0025714_0025723', '0025724_0025733', '0025734_0025744', '0025745_0025756', '0025757_0025766', '0025767_0025777', '0025778_0025787', '0025788_0025799', '0025800_0025809', '0025810_0025819', '0025820_0025830', '0025831_0025841', '0025842_0025852', '0025853_0025862', '0025863_0025863']}, 'UM': {1: ['0026007_0026135', '0026136_0026163', '0026164_0026189']}, 'UPSM': {1: ['0025234_0025263', '0025264_0025291', '0025292_0025328', '0025329_0025333']}, 'Utah': {1: ['0026018_0026029', '0026030_0026041', '0026042_0026043'], 2: ['0026017_part1', '0026017_part2']}, 'UWM': {1: ['0027259_0027273', '0027274_0027283']}, 'XHCUMS': {1: ['0025982', '0025983_0025986', '0025987_0025991', '0025992_0025996', '0025997_0026000', '0026001_0026004', '0026005_0026006']}}",
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    },
    "--source": {
@@ -2740,12 +2740,12 @@
      "--source"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--user": {
@@ -2759,12 +2759,12 @@
  },
  "fcon1000": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -2791,12 +2791,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -2870,12 +2870,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -2886,28 +2886,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -2937,12 +2937,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -2961,12 +2961,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -3055,12 +3055,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -3073,36 +3081,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -3131,24 +3131,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "gsp": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -3175,12 +3175,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -3254,12 +3254,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -3270,28 +3270,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -3404,12 +3404,12 @@
  },
  "hbn": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -3436,12 +3436,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -3515,12 +3515,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -3531,28 +3531,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -3582,12 +3582,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -3606,12 +3606,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -3700,12 +3700,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -3718,36 +3726,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -3776,24 +3776,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "ixi": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -3820,12 +3820,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -3899,12 +3899,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -3915,28 +3915,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -3966,12 +3966,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -4064,12 +4064,12 @@
      "--source"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--user": {
@@ -4081,12 +4081,12 @@
    }
   },
   "roast": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -4167,24 +4167,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "mpi-lemon": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -4211,12 +4211,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -4290,12 +4290,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -4306,28 +4306,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -4357,12 +4357,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -4381,12 +4381,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -4475,12 +4475,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -4493,36 +4501,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -4551,24 +4551,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "natview": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -4595,12 +4595,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -4674,12 +4674,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -4690,28 +4690,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -4741,12 +4741,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -4765,12 +4765,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -4859,12 +4859,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -4877,36 +4885,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -4935,24 +4935,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "nki-rs": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -4979,12 +4979,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -5058,12 +5058,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -5074,28 +5074,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -5125,12 +5125,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -5149,12 +5149,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -5243,12 +5243,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -5261,36 +5269,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -5319,24 +5319,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "oasis1": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -5363,12 +5363,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -5442,12 +5442,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -5458,28 +5458,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -5617,12 +5617,12 @@
      "--empty-discs"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -5698,24 +5698,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "oasis2": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -5742,12 +5742,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -5821,12 +5821,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -5837,28 +5837,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -5959,12 +5959,12 @@
    }
   },
   "roast": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -6041,24 +6041,24 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
  },
  "oasis3": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -6085,12 +6085,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -6164,12 +6164,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -6180,28 +6180,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -6231,12 +6231,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -6305,12 +6305,12 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--user": {
@@ -6330,12 +6330,12 @@
      "--exclude-keys"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -6402,12 +6402,12 @@
      "--path"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }
@@ -6421,12 +6421,12 @@
      "--dataset"
     ]
    },
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -6453,12 +6453,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -6539,12 +6539,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -6555,28 +6555,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -6613,12 +6613,12 @@
      "--dataset"
     ]
    },
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -6637,12 +6637,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -6740,12 +6740,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--source": {
@@ -6759,20 +6759,20 @@
      "--source"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
    "--tag": {
@@ -6782,12 +6782,12 @@
      "--tag"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--token": {
@@ -6844,12 +6844,12 @@
  },
  "sald": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -6876,12 +6876,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -6955,12 +6955,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -6971,28 +6971,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7022,12 +7022,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -7046,12 +7046,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -7140,12 +7140,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -7158,36 +7166,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7216,24 +7216,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "simon": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -7260,12 +7260,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -7339,12 +7339,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -7355,28 +7355,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7406,12 +7406,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -7430,12 +7430,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -7524,12 +7524,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -7542,36 +7550,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7600,24 +7600,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "slim": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -7644,12 +7644,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -7723,12 +7723,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -7739,28 +7739,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7790,12 +7790,12 @@
    }
   },
   "harvest": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--dry-run": {
@@ -7814,12 +7814,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--folders": {
@@ -7908,12 +7908,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
+    ]
+   },
+   "--site": {
+    "choices": null,
+    "default": [],
+    "names": [
+     "--empty-site",
+     "--site"
     ]
    },
    "--site-layout": {
@@ -7926,36 +7934,28 @@
      "--site-layout"
     ]
    },
-   "--sites": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--subs": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--suffixes": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
-    ]
-   },
-   "--tasks": {
-    "choices": null,
-    "default": [],
-    "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -7984,24 +7984,24 @@
      "--no-derivatives"
     ]
    },
-   "--sites": {
+   "--site": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sites",
-     "--sites"
+     "--empty-site",
+     "--site"
     ]
    }
   }
  },
  "unc-wisconsin": {
   "compost": {
-   "--datatypes": {
+   "--datatype": {
     "choices": null,
     "default": [],
     "names": [
-     "--datatypes",
-     "--empty-datatypes"
+     "--datatype",
+     "--empty-datatype"
     ]
    },
    "--derivatives": {
@@ -8028,12 +8028,12 @@
      "--exclude"
     ]
    },
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--force": {
@@ -8107,12 +8107,12 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
    "--sourcedata": {
@@ -8123,28 +8123,28 @@
      "--sourcedata"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
-   "--suffixes": {
+   "--suffix": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-suffixes",
-     "--suffixes"
+     "--empty-suffix",
+     "--suffix"
     ]
    },
-   "--tasks": {
+   "--task": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-tasks",
-     "--tasks"
+     "--empty-task",
+     "--task"
     ]
    },
    "--trim": {
@@ -8174,12 +8174,12 @@
    }
   },
   "harvest": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -8244,20 +8244,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    },
    "--token": {
@@ -8269,12 +8269,12 @@
    }
   },
   "roast": {
-   "--exclude-subs": {
+   "--exclude-sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-exclude-subs",
-     "--exclude-subs"
+     "--empty-exclude-sub",
+     "--exclude-sub"
     ]
    },
    "--if-exists": {
@@ -8340,20 +8340,20 @@
      "--path"
     ]
    },
-   "--sessions": {
+   "--ses": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-sessions",
-     "--sessions"
+     "--empty-ses",
+     "--ses"
     ]
    },
-   "--subs": {
+   "--sub": {
     "choices": null,
     "default": [],
     "names": [
-     "--empty-subs",
-     "--subs"
+     "--empty-sub",
+     "--sub"
     ]
    }
   }

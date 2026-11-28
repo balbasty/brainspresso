@@ -33,7 +33,7 @@ also acquired diffusion imaging and perfusion data.
 | `raw` | The images of each site, sample, subject and session (`sourcedata/RawData/`) |
 | `meta` | The phenotype tables |
 
-`--sites` selects sites by name (`BNU`, `HNU`, `NKI`, ...). Subjects can be
+`--site` selects sites by name (`BNU`, `HNU`, `NKI`, ...). Subjects can be
 given with or without their leading zeros (`3001` or `0003001`).
 
 ## Access
@@ -46,7 +46,7 @@ NITRC account.
 
 ```shell
 bx corr info
-bx corr harvest /data --sites BNU HNU --dry-run
+bx corr harvest /data --site BNU HNU --dry-run
 bx corr harvest /data --source nitrc --keys meta
 ```
 

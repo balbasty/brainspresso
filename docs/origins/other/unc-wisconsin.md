@@ -64,7 +64,7 @@ about the data go to the forum of the
 ## Examples
 
 ```shell
-bx unc-wisconsin harvest /data --subs 001 002 --sessions 12months
+bx unc-wisconsin harvest /data --sub 001 002 --ses 12months
 bx unc-wisconsin harvest /data --keys raw derivatives --dry-run
 bx unc-wisconsin roast /data
 ```

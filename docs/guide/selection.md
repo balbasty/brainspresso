@@ -7,16 +7,16 @@ grouped in the same panels in every `--help`.
 
 | Option | Meaning |
 |--------|---------|
-| `--subs`         | Only these subjects |
-| `--exclude-subs` | Not these subjects |
-| `--sessions`     | Only these sessions (datasets with sessions) |
-| `--sites`, `--exclude-sites` | Only, or not, these sites (multi-site datasets) |
+| `--sub`                    | Only these subjects |
+| `--exclude-sub`            | Not these subjects |
+| `--ses`                    | Only these sessions (datasets with sessions) |
+| `--site`, `--exclude-site` | Only, or not, these sites (multi-site datasets) |
 
 Subject labels can be given with or without the `sub-` prefix. A file name is
 also accepted, in which case the file lists one label per line. For datasets
 with numbered subjects, numbers and ranges are expanded to labels of the right
-width: in IXI, `--subs 2 12` means `002 012`, and `--subs 1:10` means `001` to
-`010`. Labels that are not numbers are kept as they are (`--subs 00448`).
+width: in IXI, `--sub 2 12` means `002 012`, and `--sub 1:10` means `001` to
+`010`. Labels that are not numbers are kept as they are (`--sub 00448`).
 
 ## Keys
 
@@ -41,13 +41,13 @@ Datasets hosted in BIDS (OpenNeuro, INDI projects) accept BIDS filters on
 
 | Option | Meaning |
 |--------|---------|
-| `--datatypes` | Only these datatypes (`anat`, `func`, `dwi`, `fmap`, `perf`...) |
-| `--suffixes`  | Only these suffixes (`T1w`, `T2w`, `bold`, `dwi`...) |
-| `--tasks`     | Only these tasks |
-| `--include`   | Only data files matching these glob patterns, relative to the BIDS root (`"sub-*/anat/*"`) |
-| `--exclude`   | Not the files matching these glob patterns |
-| `--where`     | Only participants whose `participants.tsv` row matches all these queries (`"age>=60"`, `"sex==F"`) |
-| `--folders`   | Also download these optional folders (`derivatives`, `sourcedata`, `code`, `stimuli`) |
+| `--datatype` | Only these datatypes (`anat`, `func`, `dwi`, `fmap`, `perf`...) |
+| `--suffix`   | Only these suffixes (`T1w`, `T2w`, `bold`, `dwi`...) |
+| `--task`     | Only these tasks |
+| `--include`  | Only data files matching these glob patterns, relative to the BIDS root (`"sub-*/anat/*"`) |
+| `--exclude`  | Not the files matching these glob patterns |
+| `--where`    | Only participants whose `participants.tsv` row matches all these queries (`"age>=60"`, `"sex==F"`) |
+| `--folders`  | Also download these optional folders (`derivatives`, `sourcedata`, `code`, `stimuli`) |
 
 Filters select data files: images and recordings. The metadata that applies to
 a selected file is added automatically, following the BIDS inheritance
@@ -55,8 +55,8 @@ principle. This includes its sidecars, `events.tsv`, the `scans.tsv` and
 `sessions.tsv` that list it, the top-level files and `phenotype/`.
 
 ```shell
-bx openneuro harvest ds000224 /data --suffixes T1w T2w --where "age>=30" "gender==M"
-bx fcon1000 harvest /data --sites ICBM NYU_TRT --datatypes func --dry-run
+bx openneuro harvest ds000224 /data --suffix T1w T2w --where "age>=30" "gender==M"
+bx fcon1000 harvest /data --site ICBM NYU_TRT --datatype func --dry-run
 ```
 
 ## Sidecars

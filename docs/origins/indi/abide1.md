@@ -40,7 +40,7 @@ ADI-R and ADOS, and cognitive and behavioural scales.
 The keys are organised in a tree: `raw` (`T1w`, `T2w`, `rest`), `meta`
 (`pheno`), and `derivatives` (`proc`, with the pipelines, and `qa`).
 
-`--sites` and `--exclude-sites` select sites by name (`NYU`, `Caltech`, ...).
+`--site` and `--exclude-site` select sites by name (`NYU`, `Caltech`, ...).
 
 ## Access
 
@@ -71,7 +71,7 @@ See [INDI](index.md#access) for credentials and the INDI terms of use.
 ## Examples
 
 ```shell
-bx abide1 harvest /data --sites NYU Caltech --keys T1w rest pheno
+bx abide1 harvest /data --site NYU Caltech --keys T1w rest pheno
 bx abide1 roast /data --keys raw pheno
 bx abide1 harvest /data --source xnat --keys fs
 bx abide1 roast /data --source xnat --keys fs

@@ -32,7 +32,7 @@ dataset description that links them to the raw data.
 
 ```shell
 bx simon info --derivatives
-bx simon harvest /data --suffixes T1w --dry-run
+bx simon harvest /data --suffix T1w --dry-run
 bx simon harvest /data --folders derivatives
 ```
 

@@ -38,8 +38,8 @@ archives in `/data/IXI/sourcedata/` until they are composted. A hosted dataset
 can be filtered before anything is downloaded:
 
 ```shell
-bx openneuro harvest ds000224 /data --subs MSC01 MSC02 --datatypes anat
-bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
+bx openneuro harvest ds000224 /data --sub MSC01 MSC02 --datatype anat
+bx hbn harvest /data --site Site-RU --suffix T1w --where "Age<10"
 ```
 
 ## Where to go next

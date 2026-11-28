@@ -167,7 +167,7 @@ def test_raw(root):
 
 def test_tr_from_header_sidecars_only(root):
     """`--sidecars only`: the TR is read from the member (no image)"""
-    report = xnat(root, keys={"rest"}, subs=[50642], json="only")
+    report = xnat(root, keys={"rest"}, sub=[50642], json="only")
     assert not report.errors
     assert raw_tree(root) == {"sub-50642/func/sub-50642_task-rest_bold.json"}
     assert sidecar(root, "sub-50642/func/sub-50642_task-rest_bold.json")[
@@ -178,7 +178,7 @@ def test_tr_missing_is_an_error(root, caplog):
     add_scan(root / "sourcedata", "CMU_0050643", "rest", bold_bytes(),
              "rest.nii.gz")
     with caplog.at_level(logging.ERROR):
-        report = xnat(root, keys={"rest"}, subs=[50643])
+        report = xnat(root, keys={"rest"}, sub=[50643])
     assert raw_tree(root) == {"sub-50643/func/sub-50643_task-rest_bold.nii.gz"}
     assert len(report.errors) == 1
     assert "has no RepetitionTime (REQUIRED)" in caplog.text
@@ -236,7 +236,7 @@ def test_default_keys_sidecars_only(root):
     assert not layout_of(root).derivative(FS_NAME).source.exists()
     assert fs_tree(root) == {p for p in FS_OUT
                              if not p.endswith(".nii.gz")}
-    report = xnat(root, keys={"fs-all"}, json="only", subs=[51456])
+    report = xnat(root, keys={"fs-all"}, json="only", sub=[51456])
     assert not report.errors
     assert not layout_of(root).derivative(FS_NAME).source.exists()
 
@@ -254,12 +254,12 @@ def test_exclude_freesurfer(root, exclude):
 def test_exclude_freesurfer_cli(tmp_path):
     root = make_source(tmp_path / "ABIDE-1")
     bx("abide1", "roast", "--out", root, "--source", "xnat",
-       "--exclude-keys", "fs", "--subs", "50003")
+       "--exclude-keys", "fs", "--sub", "50003")
     assert not layout_of(root).derivative(FS_NAME).root.exists()
     assert "sub-50003/anat/sub-50003_T1w.nii.gz" in raw_tree(root)
     # `fs-all` alone implies `fs`
     bx("abide1", "roast", "--out", root, "--source", "xnat",
-       "--keys", "fs-all", "--subs", "50003")
+       "--keys", "fs-all", "--sub", "50003")
     unpacked = layout_of(root).derivative(FS_NAME).source / "sub-50003"
     assert (unpacked / "stats" / "aseg.stats").exists()
     assert (layout_of(root).derivative(FS_NAME).root / "sub-50003/anat/"
@@ -284,12 +284,12 @@ def test_no_freesurfer_archive_completes(root, caplog):
     complete; naming `fs` makes the missing archives an error. Only the
     selected subjects are looked at."""
     with caplog.at_level(logging.INFO):
-        report = xnat(root, subs=[51330])
+        report = xnat(root, sub=[51330])
     assert report.status == "complete" and not report.errors
     assert "no FreeSurfer archive" in caplog.text
     assert not layout_of(root).derivative(FS_NAME).root.exists()
     for keys in ({"fs"}, {"fs-all"}, {"T1w", "fs"}):
-        report = xnat(root, keys=keys, subs=[51330])
+        report = xnat(root, keys=keys, sub=[51330])
         assert len(report.errors) == 1, keys
         assert "FreeSurfer" in report.errors[0][2]
 
@@ -299,7 +299,7 @@ def test_freesurfer(root, label):
     """FreeSurfer archives are found (the legacy roast looked them up
     with the OASIS-3 pattern) under both plausible labels"""
     sub = f"sub-{label[-5:]}"
-    report = xnat(root, keys={"fs"}, subs=[label[-5:]])
+    report = xnat(root, keys={"fs"}, sub=[label[-5:]])
     assert not report.errors, report.errors
     drv = layout_of(root).derivative(FS_NAME)
     unpacked = drv.source / sub
@@ -320,12 +320,12 @@ def test_freesurfer(root, label):
     assert desc["GeneratedBy"][0]["Version"] == "5.1"
     assert desc["SourceDatasets"] == [{"URL": drv.source_url}]
 
-    xnat(root, keys={"fs-all"}, subs=[label[-5:]])
+    xnat(root, keys={"fs-all"}, sub=[label[-5:]])
     assert (unpacked / "stats" / "aseg.stats").exists()
 
 
 def test_freesurfer_sidecars_only(root):
-    report = xnat(root, keys={"fs"}, subs=[51456], json="only")
+    report = xnat(root, keys={"fs"}, sub=[51456], json="only")
     assert not report.errors
     drv = layout_of(root).derivative(FS_NAME)
     assert not drv.source.exists()
@@ -485,7 +485,7 @@ def test_scope_of_subject_shards(root, monkeypatch):
 
     monkeypatch.setattr(TarArchive, "__init__", spy)
     for options in ({"exclude_keys": ["meta"]}, {"keys": ["T1w", "fs"]},
-                    {"subs": ["51456"], "keys": ["meta", "rest"]}):
+                    {"sub": ["51456"], "keys": ["meta", "rest"]}):
         assert not xnat(root, **options).errors
     assert opened == []
     # (`fs-all` is a key that the FreeSurfer shards had not written)
@@ -512,13 +512,13 @@ def test_subjects_filters_and_shards(root, monkeypatch):
         return real(path)
 
     monkeypatch.setattr(roaster, "TarArchive", opener)
-    xnat(root, keys={"T1w"}, subs=["sub-51330", "0051201"])
+    xnat(root, keys={"T1w"}, sub=["sub-51330", "0051201"])
     assert raw_tree(root) == {p for p in RAW if "hires" not in p
                               and ("51330" in p or "51201" in p)}
     assert sorted(opened) == ["MaxMun_a_0051330/anat.tar.gz",
                               "UCLA1_51201/anat.tar.gz"]
     # unchanged: skipped by signature
-    xnat(root, keys={"T1w"}, subs=["sub-51330", "0051201"])
+    xnat(root, keys={"T1w"}, sub=["sub-51330", "0051201"])
     assert len(opened) == 2
     # the high-resolution anatomical is `T2w` (`acq-hires_T2w`)
     xnat(root, keys={"T2w"})
@@ -539,7 +539,7 @@ def test_corrupt_archive(root):
 def test_archive_without_image(root):
     make_tar(root / "sourcedata" / "Olin_0050102" / "anat.tar.gz", {
         "Olin_0050102/scans/anat/resources/DICOM/files/1.dcm": b"x"})
-    report = xnat(root, keys={"T1w"}, subs=[50102])
+    report = xnat(root, keys={"T1w"}, sub=[50102])
     assert raw_tree(root) == set()
     assert len(report.errors) == 1
     assert "no NIfTI image" in report.errors[0][2]
@@ -563,7 +563,7 @@ def test_jobs(root):
 def test_cli(tmp_path):
     root = make_source(tmp_path / "ABIDE-1")
     bx("abide1", "roast", "--out", root, "--source", "xnat", "--keys",
-       "T1w", "fs", "--subs", "51456", "--sidecars", "no")
+       "T1w", "fs", "--sub", "51456", "--sidecars", "no")
     assert raw_tree(root) == {"sub-51456/anat/sub-51456_T1w.nii.gz"}
     drv = layout_of(root).derivative(FS_NAME)
     assert (drv.root / "sub-51456/anat/"
@@ -617,10 +617,10 @@ def test_harvest_s3_hires_key(path, keys, kept):
 
 def test_keys_as_a_string(root):
     """`roast(keys="fs")`: one key, not its letters"""
-    report = xnat(root, keys="fs", subs=[50003])
+    report = xnat(root, keys="fs", sub=[50003])
     assert not report.errors, report.errors
     assert fs_tree(root) == {p for p in FS_OUT if "51456" not in p}
-    report = xnat(root, exclude_keys="fs", subs=[50003])
+    report = xnat(root, exclude_keys="fs", sub=[50003])
     assert not report.errors
     assert raw_tree(root) >= {"sub-50003/anat/sub-50003_T1w.nii.gz"}
     assert roaster.roast_options("fs") == {"fs_named": True}
@@ -639,7 +639,7 @@ def test_fs_named_through_the_hierarchy(keys, named):
 
 def test_fs_named_by_a_group_fails_without_archives(root):
     for keys in ({"all"}, {"derivatives"}, {"proc"}):
-        report = xnat(root, keys=keys, subs=[51330])
+        report = xnat(root, keys=keys, sub=[51330])
         assert [e[0] for e in report.errors] == ["fs"], keys
 
 
@@ -661,7 +661,7 @@ def test_add_on_any_case(spec):
 def test_add_on_any_case_cli(tmp_path):
     root = make_source(tmp_path / "ABIDE-1")
     bx("abide1", "roast", "--out", root, "--source", "xnat", "--keys",
-       "FS-ALL", "--subs", "50003")
+       "FS-ALL", "--sub", "50003")
     drv = layout_of(root).derivative(FS_NAME)
     assert (drv.source / "sub-50003/stats/aseg.stats").exists()
     assert (drv.root / "sub-50003/anat/"

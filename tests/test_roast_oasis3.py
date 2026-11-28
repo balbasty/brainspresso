@@ -1,6 +1,7 @@
 """Characterization tests for the OASIS-III roast step."""
 import json
 import logging
+import tarfile
 
 import nibabel as nib
 import pytest
@@ -86,7 +87,8 @@ def test_roast_all(root):
     assert rows[0] == list(roaster.PARTICIPANTS_HEADER_MAP)
     assert rows[1] == ["sub-0001", "F", "R", "65.1", "n/a", "12", "2", "W",
                        "N", "N", "N", "N", "Y", "N", "Y", "33"]
-    assert rows[2][:8] == ["sub-0002", "M", "L", "70.0", "80.5", "16",
+    # (`age` is numeric in `participants.json`: "70.0" is 70)
+    assert rows[2][:8] == ["sub-0002", "M", "L", "70", "80.5", "16",
                            "n/a", "A"]
     assert rows[2][13] == "U"
 
@@ -221,6 +223,87 @@ def test_phenotype_cells_need_no_quoting(root):
     assert cdr[-1][5] == "say 'no' here"
 
 
+def test_phenotype_cells_with_line_breaks(root):
+    """A line break in a cell is a space (a TSV table cannot hold it)"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": (CDR + 'OAS30001,OAS30001_UDSb4_d0500,500,'
+                             '67.0,1,"two\r\nlines",1\n').encode()})
+    report = roast(root, keys={"pheno", "T1w"})
+    assert not report.errors
+    cdr = pristine(root, "phenotype/UDS_b4_cdr.tsv")
+    assert cdr[-1][3:6] == ["67", "1", "two lines"]
+
+
+def test_phenotype_bad_cells(root, caplog):
+    """A cell of `delay` or `age` that is not a number is n/a (one warning
+    per table and column), `500.0` is a day; the roast goes on"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": (CDR
+                             + "OAS30001,OAS30001_UDSb4_d0500,500.0,NA,1,"
+                               "x,1\n"
+                             + "OAS30001,OAS30001_UDSb4_d0600,600,old,1,"
+                               "x,1\n"
+                             + "OAS30001,OAS30001_UDSb4_d0700,7x,also,1,"
+                               "x,1\n"
+                             + "BAD,BAD_UDSb4_d0800,800,1,1,x,1\n").encode()})
+    with caplog.at_level(logging.WARNING):
+        report = roast(root, keys={"pheno", "T1w"})
+    assert not report.errors
+    assert f"{T1}.nii.gz" in raw_tree(root)
+    cdr = pristine(root, "phenotype/UDS_b4_cdr.tsv")
+    assert [row[2:4] for row in cdr[-3:]] == [["500", "n/a"],
+                                              ["600", "n/a"],
+                                              ["n/a", "n/a"]]
+    text = caplog.text
+    assert text.count("UDS_b4_cdr.tsv: 2 cell(s) of age not a number") == 1
+    assert text.count("UDS_b4_cdr.tsv: 1 cell(s) of delay not a number") \
+        == 1
+    assert text.count("UDS_b4_cdr.tsv: 1 row(s) skipped (subject not an "
+                      "OASIS-III ID)") == 1
+
+
+def test_phenotype_header_cleaned_once(root):
+    """The table and its data dictionary name the columns alike"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": CDR.replace(",CDRTOT,", ',"CDR\tTOT",')
+              .encode()})
+    report = roast(root, keys={"pheno"})
+    assert not report.errors
+    header = pristine(root, "phenotype/UDS_b4_cdr.tsv")[0]
+    assert "CDR TOT" in header
+    cdr = json.loads(raw_file(root, "phenotype/UDS_b4_cdr.json").read_text())
+    assert "CDR TOT" in cdr and "CDR\tTOT" not in cdr
+
+
+def test_data_file_without_csv(root):
+    """A valid tarball that holds no file is an error of its tables"""
+    path = root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz"
+    with tarfile.open(path, "w:gz") as tar:
+        info = tarfile.TarInfo("b4")
+        info.type = tarfile.DIRTYPE
+        tar.addfile(info)
+    report = roast(root, keys={"meta", "T1w"})
+    assert sorted((name, message) for _, name, message in report.errors) \
+        == [("UDS_b4_cdr.tsv", "UDSb4.tar.gz: no CSV file"),
+            ("sessions.tsv", "UDSb4.tar.gz: no CSV file")]
+    assert f"{T1}.nii.gz" in raw_tree(root)
+
+
+@pytest.mark.parametrize("name", ["demo", "UDSb4"])
+def test_corrupt_data_file(root, name):
+    """A data file that cannot be read is an error of its tables only
+    (the roast goes on)"""
+    path = root / "sourcedata" / "OASIS3_data_files" / f"{name}.tar.gz"
+    path.write_bytes(b"not a tarball")
+    report = roast(root, keys={"meta", "T1w"})
+    errors = sorted(name for _, name, _ in report.errors)
+    if name == "demo":
+        assert errors == ["participants.tsv", "sessions.tsv"]
+    else:
+        assert errors == ["UDS_b4_cdr.tsv", "sessions.tsv"]
+    assert f"{T1}.nii.gz" in raw_tree(root)
+
+
 def test_keys_all(root):
     """`--keys all` (accepted by the command line) selects every key"""
     assert roaster.KEYS.expand(["all"]) == roaster.KEYS.leaves
@@ -245,10 +328,10 @@ def test_json_no(root):
 
 
 def test_subject_filters(root):
-    roast(root, keys={"meta", "pheno", "T1w", "T2w"}, exclude_subs={2})
+    roast(root, keys={"meta", "pheno", "T1w", "T2w"}, exclude_sub={2})
     assert raw_tree(root) - META - PHENO == {
         f"{T1}.json", f"{T1}.nii.gz", "sub-0001/sub-0001_sessions.tsv"}
-    roast(root, keys={"T2w"}, subs={2}, json="no")
+    roast(root, keys={"T2w"}, sub={2}, json="no")
     assert f"{T2}.nii.gz" in raw_tree(root)
 
 
@@ -395,10 +478,10 @@ def test_scope_of_subject_shards(root, monkeypatch):
     assert "meta" not in scope["fixed"]["declared"]["keys"]
     del calls[:]
     for options in ({"keys": {"T1w", "T2w", "meta", "pheno"}},
-                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "subs": [2]}):
+                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "sub": [2]}):
         assert not roast(root, display=False, **options).errors
     assert calls == []
-    roast(root, keys={"T1w", "FLAIR"}, subs=[1], display=False)
+    roast(root, keys={"T1w", "FLAIR"}, sub=[1], display=False)
     assert calls == ["0001"]
 
 
@@ -435,3 +518,29 @@ def test_key_classification():
             assert sel.keeps(claim, partial=True) is False
     sel = keys.selection(["asl"])
     assert sel.keeps(m0) and sel.keeps(aslcontext) and not sel.keeps(events)
+
+
+@pytest.mark.parametrize("subs", [
+    ["sub-0002"], ["0002"], [2], "2", "2:3", "file"])
+def test_python_subs_labels_ranges_files(root, tmp_path, subs):
+    """`roast(subs=)` takes what `--sub` takes: numbers, labels with or
+    without `sub-`, ranges, files (`roast.run.python_api`)"""
+    if subs == "file":
+        subs = tmp_path / "subs.txt"
+        subs.write_text("sub-0002\n")
+        subs = [str(subs)]
+    roast(root, keys={"T1w", "T2w"}, sub=subs, json="no")
+    assert raw_tree(root) == {f"{T2}.nii.gz"}
+    roast(root, keys={"T1w", "T2w"}, exclude_sub="2:3", json="no")
+    assert raw_tree(root) == {f"{T1}.nii.gz", f"{T2}.nii.gz"}
+
+
+def test_freesurfer_listing_corrupt_tarball(root):
+    """`--sidecars only`: a FreeSurfer tarball that cannot be listed is a
+    `Fail` of the roast, not an exception of the subject shard"""
+    folder = root / "sourcedata" / "OAS30001_MR_d0129"
+    (folder / "OAS30001_Freesurfer53_d0129.tar.gz").write_bytes(
+        b"\x1f\x8b\x08\x00 not a tarball")
+    report = roast(root, keys={"fs"}, json="only", display=False)
+    assert [(e[1], "cannot be read" in e[2]) for e in report.errors] == [
+        ("OAS30001_Freesurfer53_d0129.tar.gz", True)]

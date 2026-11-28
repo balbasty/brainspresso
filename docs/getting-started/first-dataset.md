@@ -31,7 +31,7 @@ brainspresso.
 `--dry-run` prints what would be downloaded without writing anything:
 
 ```shell
-bx ixi harvest /data --keys T1w meta --subs 2 12 --dry-run
+bx ixi harvest /data --keys T1w meta --sub 2 12 --dry-run
 ```
 
 Subjects can be given as labels (`002`) or, for datasets with numbered
@@ -39,7 +39,7 @@ subjects, as numbers (`2`) and ranges (`1:10`). Remove `--dry-run` to
 download:
 
 ```shell
-bx ixi harvest /data --keys T1w meta --subs 2 12
+bx ixi harvest /data --keys T1w meta --sub 2 12
 ```
 
 The files are saved under `/data/IXI/sourcedata/` with the names they have on
@@ -53,7 +53,7 @@ bx ixi roast /data
 ```
 
 `roast` converts everything that has been harvested. It accepts the same
-`--subs` and `--keys` options when only part of it should be converted. The
+`--sub` and `--keys` options when only part of it should be converted. The
 result is a BIDS *study* dataset:
 
 ```

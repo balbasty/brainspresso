@@ -507,11 +507,11 @@ class Dataset:
         None: subject labels verbatim (strip `sub-`); an int: numbers
         formatted with this many digits, ranges `start:stop`
     sessions : bool
-        Whether harvest and roast take `--sessions`
+        Whether harvest and roast take `--ses`
     site_names : tuple[str]
-        Sites (`--sites` is checked against them, case-insensitive)
+        Sites (`--site` is checked against them, case-insensitive)
     has_sites : bool
-        `--sites` without a list of names (checked by the sources)
+        `--site` without a list of names (checked by the sources)
     layouts : tuple[str]
         `--layout` values (`ALL_LAYOUTS` for one dataset per site)
     template_dir : Path | None
@@ -537,7 +537,7 @@ class Dataset:
     hosted : bool
         Hosted as BIDS: harvest takes the BIDS filters
     harvest_subjects : bool
-        Whether harvest takes `--subs` (its sources can prune subjects)
+        Whether harvest takes `--sub` (its sources can prune subjects)
     requires : dict[str, tuple[str]]
         Optional modules of each command
     extra : str | None
@@ -595,7 +595,7 @@ class Dataset:
 
     @property
     def multisite(self) -> bool:
-        """Whether `--sites` exists."""
+        """Whether `--site` exists."""
         return bool(self.site_names) or self.has_sites
 
     def bind(self, **arguments) -> "Dataset":
@@ -687,7 +687,7 @@ class Dataset:
 
     def select_sites(self, values: Iterable[str]) -> tuple:
         """
-        Check `--sites` values.
+        Check `--site` values.
 
         Parameters
         ----------
@@ -715,7 +715,7 @@ class Dataset:
 
     def chosen_sites(self, args: Args) -> tuple:
         """
-        Sites of `--sites` minus those of `--exclude-sites`.
+        Sites of `--site` minus those of `--exclude-site`.
 
         Parameters
         ----------
@@ -731,8 +731,8 @@ class Dataset:
         UsageError
             If every site is excluded
         """
-        sites = self.select_sites(args.sites.sites)
-        exclude = set(self.select_sites(args.sites.exclude_sites))
+        sites = self.select_sites(args.sites.site)
+        exclude = set(self.select_sites(args.sites.exclude_site))
         if not exclude:
             return sites
         pool = sites or self.site_names
@@ -772,7 +772,7 @@ class Dataset:
             roasters = {id(s.roaster) for s in self.sources().values()
                         if getattr(s, "roaster", None) is not None}
             source = ("source",) if len(roasters) > 1 else ()
-            # hosted datasets: `--sites` selects site datasets
+            # hosted datasets: `--site` selects site datasets
             sites = ("sites",) if self.hosted and "sites" in self.layouts \
                 else ()
             return (*keys, "select", *sessions, *sites, *source, "roast",
@@ -911,7 +911,7 @@ class Dataset:
 
     def labels(self, values: Iterable[str]) -> set:
         """
-        Subject labels of `--subs` values (`subject_width`).
+        Subject labels of `--sub` values (`subject_width`).
 
         Parameters
         ----------
@@ -923,28 +923,41 @@ class Dataset:
         """
         return subject_labels(values, self.subject_width)
 
-    def selection(self, subs=(), exclude_subs=(), sessions=(), **filters):
+    def selection(self, sub=(), exclude_sub=(), ses=(), datatype=(),
+                  suffix=(), task=(), **filters):
         """
         Build the selection of subjects, sessions and BIDS filters.
 
         Parameters
         ----------
-        subs, exclude_subs : list[str]
-            `--subs`, `--exclude-subs` (see `labels`)
-        sessions : list[str]
-            `--sessions` (with or without `ses-`)
+        sub, exclude_sub : list[str]
+            `--sub`, `--exclude-sub` (see `labels`)
+        ses : list[str]
+            `--ses` (with or without `ses-`)
+        datatype, suffix, task : list[str]
+            `--datatype`, `--suffix`, `--task`
         **filters
-            Other `Selection` filters
+            Other `Selection` filters (`include`, `exclude`, `entities`,
+            `folders`)
 
         Returns
         -------
         Selection | None
             None if nothing is filtered
         """
-        subs, exclude_subs = self.labels(subs), self.labels(exclude_subs)
+        renamed = {"subs": "sub", "exclude_subs": "exclude_sub",
+                   "sessions": "ses", "datatypes": "datatype",
+                   "suffixes": "suffix", "tasks": "task"}
+        old = sorted(renamed.keys() & filters.keys())
+        if old:
+            raise TypeError(f"selection() got an unexpected keyword "
+                            f"argument {old[0]!r} (use {renamed[old[0]]!r})")
+        subs, exclude_subs = self.labels(sub), self.labels(exclude_sub)
         sessions = {s[4:] if str(s).startswith("ses-") else str(s)
-                    for s in sessions or ()}
-        filters = {k: v for k, v in filters.items() if v}
+                    for s in ses or ()}
+        filters = {k: v for k, v in {
+            "datatypes": datatype, "suffixes": suffix, "tasks": task,
+            **filters}.items() if v}
         if not (subs or exclude_subs or sessions or filters):
             return None
         return Selection(subs=subs, exclude_subs=exclude_subs,
@@ -1058,8 +1071,8 @@ class Dataset:
             args.roast.sidecar_policy      # sidecar flags that conflict
         args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
-        self.labels(args.select.subs)
-        self.labels(args.select.exclude_subs)
+        self.labels(args.select.sub)
+        self.labels(args.select.exclude_sub)
 
     @staticmethod
     def lock_states(layout) -> tuple[list, list]:
@@ -1159,8 +1172,8 @@ class Dataset:
         """
         options = args.harvest.runtime(**self.download)
         sources = self.configured_sources(args)
-        selection = self.selection(args.select.subs, args.select.exclude_subs,
-                                   args.sessions.sessions)
+        selection = self.selection(args.select.sub, args.select.exclude_sub,
+                                   args.sessions.ses)
         wants = self.wants("harvest", args.keys.keys, args.keys.exclude_keys)
         override = list(args.source.source) or None
         if not options.dry_run:
@@ -1204,14 +1217,14 @@ class Dataset:
         if self.sessions:
             filters["sessions"] = sorted(
                 s[4:] if s.startswith("ses-") else s
-                for s in args.sessions.sessions)
+                for s in args.sessions.ses)
         keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
         ctx = make_context(
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
             json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
             templates=self.template_dir, options=self.roast_options(args),
-            subs=sorted(self.labels(args.select.subs)),
-            exclude_subs=sorted(self.labels(args.select.exclude_subs)),
+            subs=sorted(self.labels(args.select.sub)),
+            exclude_subs=sorted(self.labels(args.select.exclude_sub)),
             **filters,
         )
         source, roaster = self.select_roaster(ctx, args.source.source)
@@ -1262,17 +1275,19 @@ class Dataset:
                                   tables=c.trim)
         return run_compost(
             layout, sourcedata=c.sourcedata, nested=c.nested, keep=c.keep,
-            subs=sorted(self.labels(args.select.subs)),
-            exclude_subs=sorted(self.labels(args.select.exclude_subs)),
-            sessions=args.sessions.sessions,
+            sub=sorted(self.labels(args.select.sub)),
+            exclude_sub=sorted(self.labels(args.select.exclude_sub)),
+            ses=args.sessions.ses,
             where=args.filters.where, derivatives=c.derivatives,
             # (hosted: the roast after the deletion trims the tables it
             # renders; `retrim_tables` the others)
             trim=c.trim, force=c.force, yes=c.yes,
             dry_run=c.dry_run, list=c.list,
-            sites=self.select_sites(args.sites.sites),
-            exclude_sites=self.select_sites(args.sites.exclude_sites),
-            after_data=after_data, **args.filters.filters(),
+            site=self.select_sites(args.sites.site),
+            exclude_site=self.select_sites(args.sites.exclude_site),
+            datatype=args.filters.datatype, suffix=args.filters.suffix,
+            task=args.filters.task, include=args.filters.include,
+            exclude=args.filters.exclude, after_data=after_data,
         )
 
     # ------------------------------------------------------------------
@@ -1311,10 +1326,10 @@ class Dataset:
         if args is None:
             return Selection()
         return Selection(
-            subs=self.labels(args.select.subs),
-            exclude_subs=self.labels(args.select.exclude_subs),
+            subs=self.labels(args.select.sub),
+            exclude_subs=self.labels(args.select.exclude_sub),
             sessions={s[4:] if s.startswith("ses-") else s
-                      for s in args.sessions.sessions},
+                      for s in args.sessions.ses},
         )
 
     def hosted_datasets(self, layout, args: Args | None = None) -> list:

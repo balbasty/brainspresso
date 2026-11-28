@@ -37,8 +37,8 @@ bx ixi roast /data
 bx ixi compost /data
 
 # Download part of a dataset that is already in BIDS
-bx openneuro harvest ds000224 /data --subs MSC01 MSC02 --datatypes anat
-bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
+bx openneuro harvest ds000224 /data --sub MSC01 MSC02 --datatype anat
+bx hbn harvest /data --site Site-RU --suffix T1w --where "Age<10"
 ```
 
 See the [documentation](https://balbasty.github.io/brainspresso/) for the

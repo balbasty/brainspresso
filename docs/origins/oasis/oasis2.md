@@ -31,13 +31,13 @@ T1-weighted MPRAGE scans.
 The session label is the MR number of the visit (`OAS2_0001_MR2` becomes
 `sub-0001/ses-2`). The data is distributed in two *parts* of about 75 subjects
 each, and `--parts` restricts harvest and roast to one of them. Roast also
-accepts `--sessions`.
+accepts `--ses`.
 
 ## Examples
 
 ```shell
 bx oasis2 harvest /data --parts 1
-bx oasis2 roast /data --subs 1 2 --sessions 1
+bx oasis2 roast /data --sub 1 2 --ses 1
 ```
 
 ## How to cite

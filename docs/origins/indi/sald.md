@@ -38,7 +38,7 @@ description are written.
 
 ```shell
 bx sald info
-bx sald harvest /data --suffixes T1w --dry-run
+bx sald harvest /data --suffix T1w --dry-run
 ```
 
 ## How to cite

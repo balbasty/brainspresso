@@ -70,7 +70,7 @@ class Panel:
     DATASET : int
         "Dataset": `path`, `--out`, the arguments, `--layout`
     SELECTION : int
-        "Selection": `--subs`, `--sessions`, `--sites`
+        "Selection": `--sub`, `--ses`, `--site`
     FILTERS : int
         "Filters": BIDS filters, `--folders`
     KEYS : int
@@ -421,30 +421,30 @@ class KeyOptions(OptionGroup):
 
 @option_group("Selection", Panel.SELECTION)
 class SelectionOptions(OptionGroup):
-    """`--subs`, `--exclude-subs`."""
+    """`--sub`, `--exclude-sub`."""
 
-    subs: Annotated[Strings, _many(
+    sub: Annotated[Strings, _many(
         "Only these subjects (labels, with or without `sub-`; a file "
         "lists one per line). Default: all"
     )] = ()
-    exclude_subs: Annotated[Strings, _many("Not these subjects")] = ()
+    exclude_sub: Annotated[Strings, _many("Not these subjects")] = ()
 
 
 @option_group("Selection", Panel.SELECTION)
 class SessionOptions(OptionGroup):
-    """`--sessions`."""
+    """`--ses`."""
 
-    sessions: Annotated[Strings, _many(
+    ses: Annotated[Strings, _many(
         "Only these sessions (labels, with or without `ses-`)"
     )] = ()
 
 
 @option_group("Selection", Panel.SELECTION)
 class SiteOptions(OptionGroup):
-    """`--sites`, `--exclude-sites` (checked by `Dataset.select_sites`)."""
+    """`--site`, `--exclude-site` (checked by `Dataset.select_sites`)."""
 
-    sites: Annotated[Strings, _many("Only these sites (default: all)")] = ()
-    exclude_sites: Annotated[Strings, _many("Not these sites")] = ()
+    site: Annotated[Strings, _many("Only these sites (default: all)")] = ()
+    exclude_site: Annotated[Strings, _many("Not these sites")] = ()
 
     @classmethod
     def helps(cls, dataset, command):
@@ -452,13 +452,13 @@ class SiteOptions(OptionGroup):
         names = dataset.site_names
         if not names:
             return {}
-        return {"sites": f"Only these sites (default: all): "
+        return {"site": f"Only these sites (default: all): "
                          f"{', '.join(names)}"}
 
     def source_options(self, dataset):
-        """`sites` (and `exclude_sites`) for the sources."""
-        sites = set(dataset.select_sites(self.sites))
-        exclude = set(dataset.select_sites(self.exclude_sites))
+        """Return the `sites` (and `exclude_sites`) of the sources."""
+        sites = set(dataset.select_sites(self.site))
+        exclude = set(dataset.select_sites(self.exclude_site))
         out = {}
         if exclude and dataset.site_names:
             sites = (sites or set(dataset.site_names)) - exclude
@@ -472,15 +472,15 @@ class SiteOptions(OptionGroup):
 
 @option_group("Filters", Panel.FILTERS)
 class FilterOptions(OptionGroup):
-    """BIDS filters: datatypes, suffixes, tasks, globs, participants."""
+    """BIDS filters: datatype, suffix, task, globs, participants."""
 
-    datatypes: Annotated[Strings, _many(
+    datatype: Annotated[Strings, _many(
         "Only these datatypes (anat, func, dwi, fmap, perf...)"
     )] = ()
-    suffixes: Annotated[Strings, _many(
+    suffix: Annotated[Strings, _many(
         "Only these suffixes (T1w, T2w, bold, dwi...)"
     )] = ()
-    tasks: Annotated[Strings, _many("Only these tasks")] = ()
+    task: Annotated[Strings, _many("Only these tasks")] = ()
     include: Annotated[Strings, _many(
         "Only data files matching these glob patterns (relative to the "
         "BIDS root, e.g. `\"sub-*/anat/*\"`)"
@@ -495,8 +495,8 @@ class FilterOptions(OptionGroup):
 
     def filters(self) -> dict[str, Strings]:
         """Return the `Selection` filters (without `where`)."""
-        return {"datatypes": self.datatypes, "suffixes": self.suffixes,
-                "tasks": self.tasks, "include": self.include,
+        return {"datatypes": self.datatype, "suffixes": self.suffix,
+                "tasks": self.task, "include": self.include,
                 "exclude": self.exclude}
 
 

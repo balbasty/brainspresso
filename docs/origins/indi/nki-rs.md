@@ -48,8 +48,8 @@ part of BIDS (link lists, conversion logs) are moved to `sourcedata/`.
 
 ```shell
 bx nki-rs info
-bx nki-rs harvest /data --suffixes T1w --dry-run
-bx nki-rs harvest /data --tasks rest --sessions BAS1 --where "age>=60"
+bx nki-rs harvest /data --suffix T1w --dry-run
+bx nki-rs harvest /data --task rest --ses BAS1 --where "age>=60"
 ```
 
 ## How to cite

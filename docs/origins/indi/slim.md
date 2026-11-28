@@ -41,8 +41,8 @@ diffusion and resting-state imaging, alongside behavioural measures.
 
 ```shell
 bx slim info
-bx slim harvest /data --sessions 1 --datatypes anat dwi --dry-run
-bx slim harvest /data --tasks rest --where "sex==F"
+bx slim harvest /data --ses 1 --datatype anat dwi --dry-run
+bx slim harvest /data --task rest --where "sex==F"
 ```
 
 ## How to cite

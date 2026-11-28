@@ -31,7 +31,7 @@ participants in total:
 * `participants.tsv`, merged from the collection tables, with a `site` column.
   The phenotype tables themselves are kept in `sourcedata/phenotype/`.
 
-The collections are selected with `--sites du_1 mta_1 nyu_1`, and
+The collections are selected with `--site du_1 mta_1 nyu_1`, and
 `--layout sites` writes one dataset per collection. The preprocessed data is
 not included.
 
@@ -48,8 +48,8 @@ not included.
 
 ```shell
 bx acpi info
-bx acpi harvest /data --sites du_1 --datatypes anat --dry-run
-bx acpi harvest /data --layout sites --sites nyu_1 mta_1
+bx acpi harvest /data --site du_1 --datatype anat --dry-run
+bx acpi harvest /data --layout sites --site nyu_1 mta_1
 ```
 
 ## How to cite

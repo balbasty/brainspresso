@@ -123,7 +123,7 @@ class INDIDataset(Dataset):
         """
         Datasets of a hosted roast: the merged one, or each site.
 
-        Site datasets take the labels of the bucket; `--subs` also
+        Site datasets take the labels of the bucket; `--sub` also
         accepts merged labels (with the site code), as harvest does.
         """
         if not isinstance(layout, SitesLayout):
@@ -156,7 +156,7 @@ class INDIDataset(Dataset):
         return super().options(command)
 
     def groups(self, command):
-        """`info` takes `--sites`."""
+        """`info` takes `--site`."""
         if command == "info":
             return ("sites", "log")
         return super().groups(command)
@@ -177,7 +177,7 @@ class INDIDataset(Dataset):
                 "unique with a site code when needed, `site` column in "
                 "participants.tsv); with `--layout sites`, one dataset per "
                 "site in `<DATASET>/<site>/`, with the labels of the bucket "
-                "(`--subs` also accepts them, e.g. `--sites ICBM --subs "
+                "(`--sub` also accepts them, e.g. `--site ICBM --sub "
                 "00448`), and the parent folder holds the README and the "
                 "merged participants.tsv. Single-site projects treat "
                 "`sites:<layout>` as `<layout>`."
@@ -204,10 +204,10 @@ class INDIDataset(Dataset):
         """Harvest from s3://fcp-indi (merged, or one dataset per site)."""
         f, h = args.filters, args.harvest
         sessions = {s[4:] if s.startswith("ses-") else s
-                    for s in args.sessions.sessions}
+                    for s in args.sessions.ses}
         selection = Selection(
-            subs=self.labels(args.select.subs),
-            exclude_subs=self.labels(args.select.exclude_subs),
+            subs=self.labels(args.select.sub),
+            exclude_subs=self.labels(args.select.exclude_sub),
             sessions=sessions, folders=list(args.hosted.folders),
             **f.filters(),
         )

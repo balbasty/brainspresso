@@ -32,7 +32,15 @@ def read_tsv(text: str) -> tuple[list[str], list[dict]]:
 
 
 def write_tsv(path: Path, header: list[str], rows: Iterable[dict]) -> None:
-    """Write rows (dictionaries) as a TSV table."""
+    """
+    Write rows (dictionaries) as a TSV table.
+
+    Quote-aware (a cell with a tab, a line break or a `"` is quoted), for
+    the tables trimmed from a pristine copy or merged from elsewhere;
+    roasted tables are written unquoted by `utils.io.write_tsv`, their
+    cells cleaned first (`roast.tables.clean`), so that the trim gives
+    them back byte for byte.
+    """
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f, header, delimiter="\t", lineterminator="\n",

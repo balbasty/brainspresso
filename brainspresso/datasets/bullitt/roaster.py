@@ -26,8 +26,9 @@ Bullitt/
 With `--layout flat`, the content of `rawbids/` is in `Bullitt/` itself.
 
 Each subject is a folder of small files: one shard per subject (task id
-`roast/subjects/sub-<NNN>`; inputs: its files and the sidecar
-templates, so that an unchanged subject is skipped on a re-run). The
+`roast/subjects/sub-<NNN>`; inputs: its files; config: the keys named
+by `--keys` and the sidecar templates, paths and hashes; so that an
+unchanged subject is skipped on a re-run). The
 source distributes scans incompletely (no MPRAGE for many subjects, see
 `participants.tsv`): a missing scan is an error only when `--keys`
 names its key (or a group above it). The participants table (a
@@ -35,6 +36,7 @@ template transcribed from the PDF of the dataset) is written complete
 to `.brainspresso/orig/` and trimmed to the subjects on disk. DTI is not
 converted (no gradient table).
 """  # noqa: E501
+import csv
 import re
 from logging import getLogger
 from pathlib import Path
@@ -43,22 +45,22 @@ from typing import Iterator
 from brainspresso.actions import (
     Action,
     CopyBytes,
-    CopyJSON,
     Fail,
     WriteJSON,
-    WriteTSV,
 )
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert import Convert
 from brainspresso.datasets.base import KeySpec
 from brainspresso.roast import (
     RoastContext,
-    as_list,
+    attempt,
     copy_templates,
-    roast_dataset,
     subject_shards,
 )
-from brainspresso.sources.base import subject_labels
-from brainspresso.utils.metaimage import metaimage_to_nifti
+from brainspresso.roast.helpers import missing_input, named_keys
+from brainspresso.roast.run import python_api
+from brainspresso.roast.sidecars import copy_sidecar, template_config
+from brainspresso.roast.tables import TableError, read_csv, table_action
 from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
@@ -117,41 +119,6 @@ PARTICIPANTS = "participants.tsv"
 PARTICIPANT_ID = re.compile(r"(?:sub-)?(\d{3})")
 
 
-def roast(root, *, subs=(), exclude_subs=(), keys=(), exclude_keys=(),
-          **options):
-    """
-    Roast `<root>` (the `Bullitt` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`1` is `sub-001`), labels with or without
-        `sub-`, ranges, files (as `--subs`)
-    keys, exclude_keys : str | list[str]
-        `--keys`, `--exclude-keys` (a name or a list); a missing scan is
-        an error only for the keys named here
-    **options
-        Those of the command line (`json`, `ifexists`, `layout`), `jobs`
-        and `display`
-
-    Returns
-    -------
-    RoastReport
-        See `roast.run_roast`
-    """
-    keys, exclude_keys = as_list(keys), as_list(exclude_keys)
-    select, exclude = ROAST_SPEC.effective(keys, exclude_keys)
-    return roast_dataset(
-        roast_bullitt, root, KEYS, templates=TEMPLATES,
-        keys=select, exclude_keys=exclude,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        options=roast_options(keys), **options,
-    )
-
-
 def roast_options(keys) -> dict:
     """
     Return the options of the roaster (`RoastContext.options`).
@@ -171,12 +138,7 @@ def roast_options(keys) -> dict:
         default (the seven leaves: the command line passes them when
         the flag is absent, so they cannot be told apart)
     """
-    keys = as_list(keys)
-    if not keys or {str(k).lower() for k in keys} == \
-            {k.lower() for k in ROAST_SPEC.default}:
-        return {"named": []}
-    return {"named": sorted(leaf for leaf in (*RAW, *DERIVATIVES)
-                            if ROAST_SPEC.selects(keys, leaf))}
+    return {"named": named_keys(ROAST_SPEC, keys, (*RAW, *DERIVATIVES))}
 
 
 def subject_label(folder: str) -> str | None:
@@ -245,14 +207,14 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
     """
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
-    if any(map(ctx.wants, DERIVATIVES)):
+    if ctx.wants_any(DERIVATIVES):
         drv = ctx.layout.derivative(DERIV_NAME)
         yield from copy_templates(ctx, {
             "derivatives_description.json": drv.description,
             "derivatives_README": drv.root / "README",
             "derivatives_bidsignore": drv.bidsignore,
         }, tag="derivatives")
-    if not any(map(ctx.wants, (*RAW, *DERIVATIVES))):
+    if not ctx.wants_any((*RAW, *DERIVATIVES)):
         return
     folders = subject_folders(ctx)
     if not folders:
@@ -260,11 +222,24 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
                    "harvest first", name="sourcedata", tag="subjects")
         return
     # (`named` decides which missing scans are errors: a later run that
-    # names more keys must not skip the shards)
+    # names more keys must not skip the shards; a changed template
+    # re-runs them)
+    named = sorted(ctx.options.get("named", ()))
+    found = {}
+
+    def images(label: str) -> dict:
+        """Images of the wanted raw keys of a subject (looked up once)."""
+        if label not in found:
+            found[label] = wanted_images(ctx, folders[label])
+        return found[label]
+
     yield from subject_shards(
         ctx, folders, roast_subject,
-        inputs=lambda label: shard_inputs(ctx, folders[label]),
-        config={"named": sorted(ctx.options.get("named", ()))},
+        inputs=lambda label: shard_inputs(ctx, folders[label],
+                                          images(label)),
+        config=lambda label: {
+            "named": named, "templates": sidecar_templates(ctx,
+                                                           images(label))},
         scope_keys=(*RAW, *DERIVATIVES),
     )
 
@@ -295,9 +270,9 @@ def raw_image(folder: Path, key: str) -> Path | None:
     return images[0] if images else None
 
 
-def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
+def wanted_images(ctx: RoastContext, folder: Path) -> dict[str, Path]:
     """
-    Return the inputs of a subject shard (its input signature).
+    Find the images of the wanted raw keys of a subject.
 
     Parameters
     ----------
@@ -308,21 +283,66 @@ def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
 
     Returns
     -------
-    list[Path]
-        The files its actions read, for the wanted keys: images, the
-        sidecar templates (when sidecars are written), auxiliary files
+    dict[str, Path]
+        `{key: image}` (`raw_image`), for the wanted keys that have one
     """
-    out = []
-    for key, suffix in RAW.items():
-        if not ctx.wants(key):
-            continue
-        image = raw_image(folder, key)
-        if image is None:
-            continue
-        out.append(image)
-        template = ctx.resource(f"{suffix}.json")
-        if template is not None and ctx.accepts("sidecar"):
-            out.append(template)
+    out = {}
+    for key in RAW:
+        if ctx.wants(key):
+            image = raw_image(folder, key)
+            if image is not None:
+                out[key] = image
+    return out
+
+
+def sidecar_templates(ctx: RoastContext, images: dict[str, Path]) -> dict:
+    """
+    Describe the sidecar templates that a subject shard copies.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    images : dict[str, Path]
+        Its images (`wanted_images`)
+
+    Returns
+    -------
+    dict
+        `{name: [path, sha256] | None}` (`roast.sidecars.template_config`)
+        of the templates of its images when sidecars are written, else
+        empty (part of its `config`: a template of a key that is not
+        wanted, or that the subject lacks, does not re-run it)
+    """
+    if not ctx.accepts("sidecar"):
+        return {}
+    return template_config(ctx.resource,
+                           [f"{RAW[key]}.json" for key in images])
+
+
+def shard_inputs(ctx: RoastContext, folder: Path,
+                 images: dict[str, Path] | None = None) -> list[Path]:
+    """
+    Return the inputs of a subject shard (its input signature).
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    folder : Path
+        Folder of the subject
+    images : dict[str, Path]
+        Its images (`wanted_images`; default: looked up)
+
+    Returns
+    -------
+    list[Path]
+        The source files its actions read, for the wanted keys: images,
+        auxiliary files (the sidecar templates are in its `config`)
+    """
+    if images is None:
+        images = wanted_images(ctx, folder)
+    out = list(images.values())
     for key, (name, _) in DERIVATIVES.items():
         src = folder / "AuxillaryData" / name
         if ctx.wants(key) and src.is_file():
@@ -358,14 +378,12 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
                    f"templates of the dataset)", name=PARTICIPANTS,
                    tag="meta")
         return
-    try:
-        rows = participants(src)
-    except (OSError, UnicodeDecodeError, ValueError) as e:
-        yield Fail(f"{src} cannot be read ({type(e).__name__}: {e})",
-                   name=PARTICIPANTS, tag="meta")
+    rows, error = attempt(participants, src, fail_name=PARTICIPANTS,
+                          fail_tag="meta")
+    if error:
+        yield error
         return
-    yield WriteTSV(rows, ctx.layout.original(raw / PARTICIPANTS), src=src,
-                   tag="meta")
+    yield table_action(ctx, raw / PARTICIPANTS, rows, src)
 
 
 def participants(path: Path) -> list[list[str]]:
@@ -387,21 +405,18 @@ def participants(path: Path) -> list[list[str]]:
 
     Raises
     ------
-    UnicodeDecodeError
-        If it is not UTF-8
-    ValueError
-        If it has no header (`participant_id` first)
+    roast.tables.TableError
+        If it cannot be read, is not UTF-8, or has no header
+        (`participant_id` first)
     """
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
-    header = [cell.strip() for cell in lines[0].split("\t")] \
-        if lines else []
+    sheet = read_csv(path, delimiter="\t", encodings=("utf-8-sig",),
+                     quoting=csv.QUOTE_NONE)
+    header = [cell.strip() for cell in sheet.header]
     if not header or header[0] != "participant_id":
-        raise ValueError("no header (participant_id, ...)")
+        raise TableError(f"{sheet.name}: no header (participant_id, ...)")
     rows = []
-    for nrow, line in enumerate(lines[1:], 2):
-        if not line.strip():
-            continue
-        row = [cell.strip() or "n/a" for cell in line.split("\t")]
+    for nrow, row in sheet.rows:
+        row = [cell.strip() or "n/a" for cell in row]
         match = PARTICIPANT_ID.fullmatch(row[0])
         if not match or len(row) != len(header):
             lg.warning(f"{path.name}, row {nrow}: {row[0]!r} with "
@@ -440,19 +455,15 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
         dst = anat / f"sub-{sub}_{suffix}"
         image = raw_image(folder, key)
         if image is None:
-            if key in named and ctx.accepts("data"):
-                yield Fail(f"Normal-{sub}: no {key} image (*.mha)",
-                           name=f"{dst.name}.nii.gz", tag="subjects")
-            else:
-                lg.info(f"Normal-{sub}: no {key} image")
+            yield from missing_input(
+                f"Normal-{sub}: no {key} image (*.mha)",
+                name=f"{dst.name}.nii.gz", tag="subjects", logger=lg,
+                required=key in named and ctx.accepts("data"),
+                info=f"Normal-{sub}: no {key} image")
             continue
-        yield convert(image, f"{dst}.nii.gz")
-        template = ctx.resource(f"{suffix}.json")
-        if template is not None:
-            yield CopyJSON(template, f"{dst}.json", tag="subjects")
-        elif ctx.accepts("sidecar"):
-            yield Fail(f"{suffix}.json not found (sidecar template)",
-                       name=f"{dst.name}.json", tag="subjects")
+        yield Convert(image, f"{dst}.nii.gz", tag="subjects")   # (.mha)
+        yield from copy_sidecar(ctx, f"{suffix}.json", f"{dst}.json",
+                                tag="subjects")
 
     out = ctx.layout.derivative(DERIV_NAME).root / f"sub-{sub}" / "anat"
     for key, (name, suffix) in DERIVATIVES.items():
@@ -461,36 +472,28 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
         src = folder / "AuxillaryData" / name
         dst = out / f"sub-{sub}_{suffix}"
         if not src.is_file():
-            if key in named and ctx.accepts("data"):
-                yield Fail(f"Normal-{sub}: AuxillaryData/{name} not found",
-                           name=dst.name, tag="subjects")
-            else:
-                lg.info(f"Normal-{sub}: no AuxillaryData/{name}")
+            yield from missing_input(
+                f"Normal-{sub}: AuxillaryData/{name} not found",
+                name=dst.name, tag="subjects", logger=lg,
+                required=key in named and ctx.accepts("data"),
+                info=f"Normal-{sub}: no AuxillaryData/{name}")
             continue
         if key == "vessels":
             yield CopyBytes(src, dst, tag="subjects")
             continue
-        yield convert(src, dst)
+        yield Convert(src, dst, tag="subjects")
         sidecar = dst.parent / dst.name.replace(".nii.gz", ".json")
         yield WriteJSON({"SkullStripped": True}, sidecar, src=src,
                         tag="subjects")
 
 
-def convert(src: Path, dst) -> Action:
-    """
-    Convert a MetaImage file to NIfTI.
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
 
-    Parameters
-    ----------
-    src : Path
-        `.mha` file
-    dst : path
-        `.nii.gz` file
-
-    Returns
-    -------
-    Action
-        The conversion (an error of its own output if `src` is corrupt)
-    """
-    return Action(src, Path(dst), lambda path: metaimage_to_nifti(src, path),
-                  input="path", tag="subjects")
+#: Roast `<root>` (the `Bullitt` folder): `roast(root, keys=..., sub=...)`
+roast = python_api(
+    roast_bullitt, KEYS, folder="Bullitt", width=WIDTH,
+    spec=ROAST_SPEC, options=roast_options,
+    keys_doc="a missing scan is an error only for the keys named here",
+)

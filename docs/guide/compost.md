@@ -28,10 +28,10 @@ is kept: after composting, the dataset holds what a harvest with the same
 filters would have downloaded.
 
 ```shell
-bx ixi compost /data --exclude-subs 012 145      # delete two subjects
-bx ixi compost /data --suffixes T1w T2w          # keep only T1w and T2w
+bx ixi compost /data --exclude-sub 012 145      # delete two subjects
+bx ixi compost /data --suffix T1w T2w          # keep only T1w and T2w
 bx abide1 compost /data --where "age>=18" --derivatives
-bx openneuro compost ds000224 /data --datatypes anat
+bx openneuro compost ds000224 /data --datatype anat
 ```
 
 In this mode the source data is kept, unless `--sourcedata` is also given.

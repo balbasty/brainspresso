@@ -31,31 +31,30 @@ once, member by member (subjects that the selection drops are skipped
 before anything is extracted), not by one shard per subject, each of
 which would decompress the tarball up to its own members. Its scope
 (`roast.scope`) is the image keys and the subjects it sees: a later
-roast that keeps no more (fewer subjects, `meta` toggled) skips it.
+roast that keeps no more (fewer subjects, `meta` toggled) skips it; its
+sidecar templates (paths, hashes) are its `Shard.config`. A corrupt
+tarball is one `Fail` of that shard, named after the tarball.
 """  # noqa: E501
-import csv
-import hashlib
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.actions import Action, Fail
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.datasets.indi.abide.scans import bold_sidecar, read_template
 from brainspresso.roast import (
     SEEN,
     RoastContext,
-    RoastReport,
     Shard,
+    archives,
     copy_templates,
-    roast_dataset,
     scope,
 )
-from brainspresso.sources.base import subject_labels
+from brainspresso.roast.run import python_api
+from brainspresso.roast.sidecars import template_config, template_sidecar
+from brainspresso.roast.tables import read_csv, table_action
 from brainspresso.utils.archive import TarArchive
-from brainspresso.utils.io import write_tsv
 
 lg = getLogger(__name__)
 
@@ -97,32 +96,6 @@ PARTICIPANTS_HEADER = [
 ]
 
 
-def roast(root, *, subs=(), exclude_subs=(), **options) -> RoastReport:
-    """
-    Roast `<root>` (the `COBRE` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`40000` is `sub-0040000`), labels with or
-        without `sub-`, ranges, files (as `--subs`)
-    **options
-        Those of the command line (`keys`, `exclude_keys`, `json`,
-        `ifexists`, `layout`), `jobs` and `display`
-
-    Returns
-    -------
-    RoastReport
-    """
-    return roast_dataset(
-        roast_cobre, root, KEYS, templates=TEMPLATES,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)), **options,
-    )
-
-
 def roast_cobre(ctx: RoastContext) -> Iterator:
     """
     Roast COBRE (the roaster of the NITRC source).
@@ -161,16 +134,11 @@ def sidecar_config(ctx: RoastContext) -> dict:
     Returns
     -------
     dict
-        `{name: [path, sha256] | None}`: a changed template re-runs the
-        shard
+        `{name: [path, sha256] | None}` (`roast.sidecars.template_config`):
+        a changed template re-runs the shard
     """
-    out = {}
-    for _, _, _, suffix in SCANS.values():
-        path = ctx.resource(f"{suffix}.json")
-        out[f"{suffix}.json"] = None if path is None else [
-            Path(path).as_posix(),
-            hashlib.sha256(Path(path).read_bytes()).hexdigest()]
-    return out
+    return template_config(ctx.resource, [
+        f"{suffix}.json" for _, _, _, suffix in SCANS.values()])
 
 
 # ----------------------------------------------------------------------
@@ -199,11 +167,8 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"{PHENOTYPES} not found", name="participants.tsv",
                    tag="meta")
         return
-    yield Action(
-        phenotypes, ctx.layout.original(raw / "participants.tsv"),
-        partial(write_participants, phenotypes),
-        mode="t", input="path", tag="meta",
-    )
+    yield table_action(ctx, raw / "participants.tsv",
+                       partial(participant_rows, phenotypes), phenotypes)
 
 
 def participant_label(value: str) -> str:
@@ -279,33 +244,36 @@ def participant_row(row: list[str],
     return out
 
 
-def write_participants(path_csv, path_tsv) -> None:
+def participant_rows(path_csv) -> list[list[str]]:
     """
-    Write the participants table (every subject of the CSV file).
+    Read the participants table (every subject of the CSV file).
 
-    A word after a diagnosis code that is not a subtype is warned about
+    Cells are read by position (the CSV header names no subject column);
+    a word after a diagnosis code that is not a subtype is warned about
     once per table (`participant_row`), i.e. once per roast.
 
     Parameters
     ----------
     path_csv : path
-        `COBRE_phenotypic_data.csv`
-    path_tsv : path
-        Output table
+        `COBRE_phenotypic_data.csv` (UTF-8, else Windows-1252)
+
+    Returns
+    -------
+    list[list[str]]
+        Header and rows
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the file cannot be read
     """
     warned = set()
-
-    def iter_rows():
-        with open(path_csv, "rt", newline="", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader)
-            yield PARTICIPANTS_HEADER
-            for row in reader:
-                row = participant_row(list(row), warned)
-                if row is not None:
-                    yield row
-
-    write_tsv(iter_rows(), path_tsv)
+    rows = [PARTICIPANTS_HEADER]
+    for _, row in read_csv(path_csv).rows:
+        row = participant_row(list(row), warned)
+        if row is not None:
+            rows.append(row)
+    return rows
 
 
 # ----------------------------------------------------------------------
@@ -346,8 +314,9 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     Action
         Per image: the image, then its sidecar (a template; for bold,
         with the `TaskName` of its name and the `RepetitionTime` of its
-        NIfTI header, which the template lacks: `abide.scans.bold_sidecar`;
-        `DOCUMENTED_TR` if the header gives none, one warning per roast)
+        NIfTI header, which the template lacks: `roast.sidecars.bold_sidecar`;
+        `DOCUMENTED_TR` if the header gives none, one warning per roast);
+        a `Fail` if the tarball cannot be read
 
     Notes
     -----
@@ -357,25 +326,27 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     so the progress group has no total.
     """
     defaults = []                   # bold images given `DOCUMENTED_TR`
-    with TarArchive(ctx.source / TARBALL) as tar:
-        for member in tar:
-            parsed = parse_member(member.name)
-            if parsed is None or not member.isfile():
-                continue
-            sub, (key, datatype, entities, suffix) = parsed
-            # (every subject is reported, before the key prunes it)
-            if not (ctx.keeps_subject(sub) and ctx.wants(key)):
-                continue
-            stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
-                    f"sub-{sub}_{entities}{suffix}")
-            image = Path(f"{stem}.nii.gz")
-            yield ExtractMember(tar, member, image, tag=key)
-            yield from sidecar_actions(
-                ctx, stem, suffix, key, image,
-                partial(tar.extractfile, member),
-                PurePosixPath(member.name).name,
-                on_default=partial(defaults.append, stem.name))
-            ctx.progress(advance=1)
+    try:
+        with archives.reading(ctx.source / TARBALL, opener=TarArchive) as tar:
+            for member in tar:
+                parsed = parse_member(member.path)
+                if parsed is None:
+                    continue
+                sub, (key, datatype, entities, suffix) = parsed
+                # (every subject is reported, before the key prunes it)
+                if not (ctx.keeps_subject(sub) and ctx.wants(key)):
+                    continue
+                stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
+                        f"sub-{sub}_{entities}{suffix}")
+                image = Path(f"{stem}.nii.gz")
+                yield ExtractMember(tar.archive, member.info, image, tag=key)
+                yield from sidecar_actions(
+                    ctx, stem, suffix, key, image, member.open,
+                    PurePosixPath(member.name).name,
+                    on_default=partial(defaults.append, stem.name))
+                ctx.progress(advance=1)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="scans")
     if defaults:
         lg.warning(f"{len(defaults)} bold image(s) without a usable "
                    f"RepetitionTime in their NIfTI header: "
@@ -423,13 +394,16 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
         yield Fail(f"{suffix}.json not found", name=f"{stem.name}.json",
                    tag=key)
         return
-    if suffix != "bold":
-        yield CopyJSON(sidecar, f"{stem}.json", tag=key)
-        return
-    content, error = read_template(Path(sidecar), stem, key)
-    if error is not None:
-        yield error
-        return
-    yield bold_sidecar(Path(sidecar), content, stem, image, open_image,
-                       image_name, default_tr=DOCUMENTED_TR,
-                       on_default=on_default, tag=key)
+    yield from template_sidecar(
+        Path(sidecar), stem, key, bold=suffix == "bold", image=image,
+        open_image=open_image, image_name=image_name,
+        default_tr=DOCUMENTED_TR, on_default=on_default)
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `COBRE` folder): `roast(root, keys=..., sub=...)`
+roast = python_api(roast_cobre, KEYS, folder="COBRE",
+                   width=WIDTH, example=40000)

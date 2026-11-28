@@ -199,6 +199,18 @@ shortcuts. Not yet: links outside inheritance (`IntendedFor` field maps,
 ASL `m0scan`), a CLI flag for `entities`, filters on derivative datasets
 beyond subject/session.
 
+Names (r52): the command line, the config keys, the
+`BRAINSPRESSO_OPT_*` variables and the Python APIs (`roast()`,
+`run_compost`, `Dataset.selection`) name the filters after the BIDS
+entities, as brainfilter does (`BidsPath.filter(sub=, ses=, datatype=,
+suffix=, task=)`): `--sub`, `--exclude-sub`, `--ses`, `--site`,
+`--exclude-site`, `--datatype`, `--suffix`, `--task`. The fields of
+`Selection` keep their plural names (`subs`, `exclude_subs`,
+`sessions`, `datatypes`, `suffixes`, `tasks`): they are the internal
+vocabulary of the key specs (`KeyAliases(bids=)`) and of the roast scope
+records (`.brainspresso/tasks/`, whose `fixed.base` holds them), which
+a rename would re-sign on every existing dataset.
+
 Dataset-specific **keys** (`raw`, `meta`, `fs`, ...) remain as per-dataset
 aliases expanding to selection predicates and/or non-BIDS categories
 (metadata, phenotypes, a derivative pipeline, source-only files). The global
@@ -400,7 +412,7 @@ project ported, since they share `Project.entries`):
   files still there, never re-created). INDI and OpenNeuro gain a
   `roast` command (`Dataset.roast` of a `hosted` dataset:
   `Dataset.roast_hosted` over `hosted_datasets`, each site of a sites
-  layout with `--sites`; INDI site datasets accept merged labels).
+  layout with `--site`; INDI site datasets accept merged labels).
 
 Interactions (decided):
 
@@ -424,8 +436,8 @@ Interactions (decided):
 * Selection: a harvest roasts what it selected (keys, subs, sessions,
   sites, datatypes, globs, `--where`) and every roasted file of the
   subjects it touched (new images re-trim `IntendedFor` and scans
-  tables of files placed earlier); a roast takes `--subs`,
-  `--exclude-subs`, `--sessions` (and `--sites` for sites layouts).
+  tables of files placed earlier); a roast takes `--sub`,
+  `--exclude-sub`, `--ses` (and `--site` for sites layouts).
   Tables are trimmed to what is on disk, so successive partial harvests
   add up (`participants.tsv` lists every subject harvested so far).
 * Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
@@ -663,9 +675,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   `inputs`: skipped by signature), not by one shard per subject, each
   of which would decompress it up to its own members (step 5).
 * A gz tarball that holds many subjects (OASIS-I discs) is read by one
-  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc and
-  the templates its actions read, so an unchanged disc is skipped by
-  signature), not one shard per subject: each of those would
+  shard (task id `roast/discs/<kind>-disc<NN>`; `inputs`: the disc;
+  `config`: the template its actions read, path and sha256; so an
+  unchanged disc is skipped by signature), not one shard per subject: each of those would
   decompress the disc again, up to its own members. The shard lists
   the disc once, then extracts in archive order (actions sorted by the
   offset of their first member, each reading its members in order: a
@@ -675,13 +687,14 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   listing of the image disc of the same number if a tree lacks the
   `mri/orig/<NNN>.mgz` that give its raw runs), 0 when skipped (step 5).
   OASIS-II parts are read the same way (one shard per part, task id
-  `roast/parts/part<N>`, inputs: the part and the `T1w.json` template;
-  2 decompressions per part).
+  `roast/parts/part<N>`, inputs: the part, config: the `T1w.json`
+  template; 2 decompressions per part).
 * Subjects that are folders of small files (UNC-Wisconsin, Bullitt)
   are read by one shard per subject (`subject_shards`, task id
   `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
-  subject that its actions read for the wanted keys, and the sidecar
-  templates they copy; `config`: the keys named by `--keys`).
+  subject that its actions read for the wanted keys; `config`: the keys
+  named by `--keys` and, when sidecars are written, the templates of the
+  images it converts, path and sha256).
 * Several gz archives (ABIDE-I and ABIDE-II, step 5): one shard per gz
   archive (NITRC `<Site>.tgz`, `ABIDEII-<SITE>_<n>.tar.gz`, id
   `roast/raw/<name>`), or per folder that stands for
@@ -707,10 +720,263 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   after unpacking) is yielded as a sibling shard by the roaster, or as
   actions after the unpacking: a shard that yields shards is never
   skipped by signature.
-* Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
-  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table readers (step 6:
-  `roast/tables.py`; the unused `TableMapper` was removed in step 6 PR 0),
-  `ctx.resource(name)` (`sourcedata/` first, then package templates).
+* **Archive conventions** (step 6 PR A, `roast/archives.py`; a library,
+  not a framework: the roaster keeps its loop, its `ctx.keeps_subject`
+  calls, its `seen` set and its `Fail`s).
+  * Opening: `with archives.reading(path, opener=TarArchive) as tar`,
+    where `opener` is the roaster's own module-level name, read at call
+    time (tests patch `roaster.TarArchive`; `TarArchive` stays in
+    `utils/archive.py`, which `actions/` can import). The archive is
+    closed through its `__exit__` on every path: end of the members, an
+    error, the roaster's generator closed by the engine.
+  * Members: `for member in tar` is lazy, forward only, in archive
+    order, regular files only, and never lists the archive
+    (`getmembers`); `tar.listing()` / `tar.index()` are the one full
+    pass of the roasters that must know every member first (OASIS-I/II,
+    then `archives.in_order(pairs)` sorts their actions by the offset of
+    their first member); `archives.names(path, opener=)` lists and
+    closes (IXI sites; with `extractable=True`, only the names that
+    `ExtractMembers` gives to `rename`: the sidecars-only FreeSurfer
+    listings, so that `--sidecars only` sees the members that a full
+    roast unpacks). A `Member`
+    has `name` (as stored), `parts`/`path` (normalised by
+    `member_parts`: `\` read as `/`, no `.`, empty parts or leading
+    `/`), `info` (for `ExtractMember(tar.archive, member.info, dst)`),
+    `offset`, `open()` and `read(n)`. Members with a `..` part are
+    skipped, one warning per archive.
+  * Errors: only what the archive does is converted to `ArchiveError`
+    (opening, moving to the next member, listing, opening or reading a
+    member through `Member.open`); code between them (templates,
+    `ctx.resource`, the output folder) raises its own errors, which the
+    engine reports as errors of the shard under their own type (owner
+    decision, step 6: before, an `OSError` listing ABIDE-II's output
+    folder was "tarball cannot be read"). `ArchiveError.fail(tag=,
+    name=, note=)` is the one `Fail` of an unreadable archive, in its
+    shard only: `"<name>: cannot be read (<Type>: <message>)"` (the
+    XNAT archives of ABIDE-I are named `<folder>/<name>`). A member cut
+    by a truncation whose extraction had started is also an error of
+    its own output. `ARCHIVE_ERRORS` is used inside `roast/archives.py`
+    only.
+  * Forward only: a roaster extracts each member when it is reached (the
+    engine runs an action before asking for the next) or lists once and
+    sorts; a second read of a member is from the written file or from
+    bytes kept while on it. `reading(..., strict=True)`, or
+    `BRAINSPRESSO_STRICT_ARCHIVES=1`, raises `BackwardRead` on a member
+    opened (or extracted) before the last one; the roast suites pass
+    with it.
+  * `ExtractMembers` (`actions/archive.py`) drops the members whose name
+    is unsafe before `rename` sees them (OASIS-I and OASIS-III join
+    member parts to the output folder). `utils.archive.is_unsafe` splits
+    the stored name on `/` and judges it on every platform as Windows
+    would too: absolute, a part that is empty or blank, made only of
+    dots and spaces (`..`, `...`), holding a `\` or anchored for
+    `PureWindowsPath` (`C:`). `rename` gets the others normalised
+    (`utils.archive.member_path`: `./a/b` is `a/b`, the `Member.path`
+    of the listing). Second line of defence against a path escape: an
+    output that `rename` puts outside `ExtractMembers(root=)` (the
+    roasters pass the dataset, `ctx.layout.root`; resolved,
+    `os.path.realpath`) is dropped too. It does not enforce the claim:
+    OASIS-III writes a member named after another session than its
+    folder to that session, as before. One warning per archive for
+    each.
+  * Spools (ABIDE-II): `spool_folder(ctx)`, `spool_prefix(name)`,
+    `sweep_spools(ctx, name)`, `spool(src, path)` (member read errors
+    raised, write errors returned), `place(spool, path)`; folders
+    `.brainspresso/tmp/<name>-<host>-<pid>-*`.
+  * Shards: `roast.helpers.archive_shards(ctx, archives, fn, tag=,
+    keys=, id=, inputs=, config=)`, the sibling of `subject_shards`
+    (progress total, `roast/<tag>/<name>` ids, `scope(keys, SEEN)`).
+  * Templates in signatures: every roaster signs the sidecar templates
+    that a shard may use by content in its `Shard.config` (path and
+    sha256: `roast.sidecars.template_config(ctx.resource, names)`,
+    `{name: [path, sha256] | None}`, or ABIDE's `{"site", "templates"}`,
+    the same digests of a site's own lookup), never in its
+    `inputs` (owner decision, step 6: OASIS-I/II and Bullitt listed them
+    in `inputs`, signed by size and mtime). Bullitt signs those of the
+    images a subject shard converts, when sidecars are written (as its
+    `inputs` did): a template of another key does not re-run it, and
+    a narrower selection still skips it (`subject_shards(config=)` takes
+    a function of the label).
+  * **Upgrade note (step 6 PR A).** The OASIS-I image discs, the
+    OASIS-II parts and the Bullitt subject shards get a new signature
+    (their templates moved from `inputs` to `config`): the first roast
+    after the upgrade re-reads these archives (and Bullitt subjects)
+    once, under `--if-exists skip` too; nothing is rewritten (their
+    outputs exist and are skipped one by one). Shard ids and the other
+    inputs are unchanged; no other roaster's signature changes.
+* **Converter conventions** (step 6 PR C, `brainspresso/convert/`; a
+  library of functions, no class hierarchy).
+  * Modules: `metaimage` (`.mha`, `.mhd` + raw: `read_header`, `read`,
+    `metaimage_to_nifti`), `nrrd` (`.nrrd`, `.nhdr`, DWI gradients:
+    `nrrd_to_nifti(inp, out, *, bval, bvec)`), `analyze`
+    (`analyze_to_nifti(hdr, img, dst, *, affine, sources)`, paths or
+    binary file objects, in memory; `analyze_action(archive, src,
+    members, dst, ...)` reads a pair of members of an open archive in
+    the order given, archive order: OASIS-I and OASIS-II), `nibabel`
+    (`nibabel_convert`, `.mgz`/`.mgh`..., and its action
+    `BabelConvert`), `nifti` (`NIFTI`, `image_ext`, `header_tr`,
+    `TR_RANGE`), `volume` (`make_affine`, `relabel(data, sources)`
+    with `sources = {new: old or [old]}`: FAST's CSF, GM, WM to the SPM
+    order is `{1: 2, 2: 3, 3: 1}`).
+  * Registry: `CONVERTERS`, source extension to function, so that
+    `Convert(src, dst)` (an `Action`, `input="path"`) needs no argument
+    in the common case; `converter=` overrides it, `outputs={"bval":
+    ..., "bvec": ...}` adds outputs written by the same conversion
+    (passed by keyword; give `kind="data"`), the other keywords are
+    options of the converter. `convert(src, dst, **options)` is the
+    function. DICOM is not in it (no user yet). The registry is keyed by
+    the lower-case extension; a companion file (the `.img` of an
+    Analyze `.HDR`) is looked for in the case of the source first, then
+    in the other, in the listing of its folder (`analyze.pair`: named as
+    on disk, also on case-insensitive file systems). `SOURCES` gives the files a source
+    consists of (`sources_of`: a `.mhd` and its data file, a `.nhdr` and
+    its data, an Analyze pair; never raises): they are the sources of
+    `Convert`, locked while it runs and dating its output.
+  * Error contract: a corrupt, truncated or unsupported input raises
+    `ConvertError` (a `ValueError`; `"<file name>: <reason>"`, the
+    original error chained): a missing or empty header field, an
+    unknown element type, a data file that is missing or not a file,
+    data shorter than declared or an implausible declared size
+    (`base.check_size`, in Python integers: `np.prod` overflows;
+    `MAX_BYTES`), data that neither zlib nor gzip reads, a truncated
+    archive member (named after the member),
+    pynrrd's and nibabel's read errors (`convert.base.input_errors`
+    wraps the reading of an input, `READ_ERRORS`). Never
+    `IsADirectoryError`, `KeyError`, `zlib.error` or `struct.error`. An
+    error writing an output (a full disk) passes through unchanged: each
+    converter reads everything first, then writes. A missing optional
+    package stays an `ImportError` (`Dataset.requires` reports it
+    first).
+  * A conversion runs inside its action: a corrupt input is an error of
+    its own output, reported under the output's name with the
+    converter's message; no output is left (the action writes to
+    temporary files; the three outputs of a NRRD DWI are all written or
+    none), and the shard goes on. A converter called while producing
+    actions (a header read to choose a name) goes through
+    `roast.helpers.attempt` (a `Fail` named after the output; a
+    `ConvertError` names its file itself).
+  * Layering: `convert/` builds on `actions/` and `utils/` only;
+    `actions/` imports no format package (`Freesurfer2Gifti` is in
+    `freesurfer/actions.py`, `BabelConvert` in `convert/`;
+    `tests/test_convert.py::test_layering`).
+* **Sidecar conventions** (step 6 PR C, `roast/sidecars.py`):
+  `template_config(find, names)` (above); `read_template(path, stem,
+  key)` (a `Fail` of the sidecar if the template cannot be read or is
+  not a JSON object); `copy_sidecar(ctx, name, dst, tag=)` (a template
+  found with `ctx.resource`, else a `Fail` named after the sidecar when
+  sidecars are written: Bullitt, IXI, OASIS-II); `template_sidecar`
+  (a found template: a copy, or a bold sidecar: ABIDE-I, ABIDE-II,
+  COBRE); `TemplateError` (no template, from a site's lookup). Bold
+  sidecars (`bold_sidecar`, `HeaderSidecar`) add the REQUIRED
+  `TaskName` of the name and `RepetitionTime`, which one function
+  decides, `repetition_time(template, header, default)`, the TR policy:
+  the template's, else the NIfTI header's (`convert.nifti.header_tr`,
+  read when the action runs, from the image written or the source),
+  else the dataset's documented default (COBRE: 2 s, one warning per
+  roast), else none (an error of the sidecar: ABIDE). A change of
+  policy (header before template, TR written into headers) changes
+  that function only.
+* Shared helpers: `ExtractMember(archive, member, dst)`, converters
+  (`convert/`, above), sidecars (`roast/sidecars.py`), table helpers (step 6
+  PR B: `roast/tables.py`, below; the unused `TableMapper` was removed
+  in step 6 PR 0), `ctx.resource(name)` (`sourcedata/` first, then
+  package templates).
+* **Roaster scaffolding** (step 6 PR D):
+  * `roast.python_api(roasters, aliases, folder=, width=, spec=,
+    options=, ...)` builds the `roast(root, *, keys, exclude_keys, sub,
+    exclude_sub, ses, datatype, suffix, task, <dataset options>,
+    **options)` of every ported
+    dataset, with the meaning of the command line: subjects through
+    `subject_labels(values, width)` (numbers, labels with or without
+    `sub-`, ranges, files; a path is a file), keys through `as_list`
+    (and `KeySpec.effective` when the dataset has a roast `spec`: ABIDE-I/II,
+    Bullitt, IXI), the dataset's
+    own options (`--discs`, `--parts`, `fs_named`, `named`) from
+    `options(keys, **extra)` into `RoastContext.options`, `source` among
+    several roasters (ABIDE-I; `options=` itself is then a `TypeError`),
+    the keyword names in one table (`SELECTION_ARGS`). Its signature and
+    docstring are built
+    from the same parameters; the templates are the module's
+    `TEMPLATES`, read at each call.
+  * A missing optional input: `named_keys(spec, keys, leaves)` (the
+    leaves that `--keys` names, itself or through a group, in any case;
+    nothing without `--keys` or with its CLI default spelled out) and
+    `missing_input(message, name=, required=, ...)` (a `Fail` when
+    required, else one log line under the roaster's logger). ABIDE-I
+    FreeSurfer, Bullitt scans, IXI tarballs, OASIS-I discs and OASIS-II
+    parts; the named keys stay in the shard `config` where they were.
+  * `freesurfer/archive.py`: FreeSurfer subjects in archives (OASIS-I,
+    OASIS-III, ABIDE-I): where a member sits in its tree
+    (`FreeSurferTree.relpath`, the anchor rule of ABIDE-I;
+    `fixed_root(depth)`, OASIS), `tree_rename` (only what BIDS
+    describes unless `fs-all`), `tree_exists` (the listing of
+    `--sidecars only`, `archives.names`) and `tree_actions` (list, or
+    unpack with `staging` then `freesurfer.bidsify`).
+* **Table conventions** (step 6 PR B, `roast/tables.py`; every roaster's
+  participants, sessions and phenotype tables):
+  * Reading: `read_csv` (a path or a binary file object, such as a tar
+    member; UTF-8 with or without BOM, else Windows-1252, then
+    Latin-1, logged; any `csv.reader` option), `read_xlsx` (openpyxl,
+    imported on use; whole workbook, never `read_only`, which trusts the
+    stored dimension; values of formulas; closed on every path),
+    `read_xls` (xlrd, imported on use; `Sheet.datemode`, `xls_date`)
+    give a `Sheet`: header, rows numbered as in the file with blank rows
+    dropped, columns found by name without case or whitespace, aliases
+    allowed, first match wins (`find`, `require`; `locate`: by name,
+    else at the expected position, with one warning). A table that
+    cannot be read, that lacks a required column, or whose optional
+    dependency is missing (with the `pip install brainspresso[<extra>]`
+    hint) is a `TableError` whose message starts with the file name.
+  * Cells: `clean` makes a cell safe for an unquoted TSV table: None
+    and NaN are `n/a` (and the spellings in `nans`, `NANS` by default,
+    when the roaster asks), each run of tabs and line breaks is one
+    space, `"` is `'`, text is stripped, and an integral float is
+    written in its shortest form (`30.0` is `30`, `0.0` is `0`, `0.5`
+    stays `0.5`). Text that reads as a number is written in the same
+    shortest form only in the columns that the table's data dictionary
+    declares numeric (`numeric_columns`: no `Levels`, and a `Format`
+    `number` or `integer`, or `Units` that are not a date or time
+    format; `"70.0"` is `70`), so IDs, codes (`295.70`), versions and
+    dates stay as in the source. Every roasted table goes through it once, in
+    `table_action`, with one warning per table that names how many
+    cells it changed; the OASIS-III medications tables are no exception
+    since #43 (they are trimmed tables too, written without an escape
+    character).
+  * Writing: `table_action(ctx, dst, rows, src, *, tag="meta",
+    pristine=True)` is the one action of a roasted table: an `Action`
+    of kind "table" that writes `ctx.layout.original(dst)` (the
+    pristine copy, trimmed after every roast by `trim_originals`;
+    `pristine=False`: `dst`, as ABIDE-I phenotypes) with
+    `utils.io.write_tsv` (unquoted); `bids.tables.write_tsv` stays the
+    quote-aware writer of trimmed and hosted tables. `rows` is a list,
+    or a picklable callable that reads the sources when the action runs;
+    its data dictionary (`sidecar=`) is by default the resource of the
+    table's JSON name (`sidecar_name`: `participants.json`,
+    `phenotype/<name>.json`, the inherited `sessions.json`), or a dict
+    (OASIS-III builds its phenotype dictionaries).
+  * Errors: read in the action (the default), a `TableError` (or any
+    error) is an error of that table only, under its tag; read while
+    producing (one sheet gives several tables, or a header that a data
+    dictionary needs: OASIS-II, OASIS-III, Bullitt), through
+    `roast.attempt(fn, ..., fail_name=, fail_tag=)` (its own parameters
+    are prefixed, the others are the reader's), which returns
+    `(result, None)` or `(None, Fail)`. Row level: blank rows dropped
+    silently; a bad row (no subject, an ID that cannot be parsed, short,
+    listed twice) skipped with a warning naming the file and the
+    physical line (CSV: the line the record starts on) or row; a cell
+    that a roaster must parse and cannot is `n/a`, one warning per table
+    and column with a count (OASIS-III `delay`, `age`);
+    a mapped column that no file has is `n/a` with one warning.
+  * Layer 2, `Table`: a table that is a pure mapping of columns
+    (`columns`, `values`, `baseline`, `nans`, `label`, `prefix`), the
+    ABIDE tables (`datasets/indi/abide/tables.py` keeps `WIDTH`,
+    `participant_label` and its `NANS` with `-9999`). OASIS-II
+    (sessions from the MRI ID), COBRE (a diagnosis cell split in two),
+    IXI (dates, sites from image names) stay code on a `Sheet`.
+  * Warn-once caches (`roast.tables._warned`, keyed by the file and its
+    mtime) are cleared by `scripts/golden.py` before each roast. The
+    tables of hosted datasets (`datasets/indi/engine.py`,
+    `bids/hosted.py`) are not migrated.
 
 Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III; revised by
 the review fixes of 2b-ii-fix, then split into an action core and a roast
@@ -996,14 +1262,14 @@ layer in 2b-iv):
   group). A scoped shard that runs although its
   record is done with the same signature and all its outputs (only
   coverage failed) extends its record (scopes and outputs carried, the
-  new scope appended): `--subs A`, `--subs B`, `--subs A` skips the
+  new scope appended): `--sub A`, `--sub B`, `--sub A` skips the
   third time. Only under `skip` (as every shard skip): under `update`
   and the other modes a covered shard runs, so the sidecars of the
   selected subjects follow their templates. So: removing subjects or
   keys, or toggling `meta`, skips;
   adding a subject re-runs only the shards that hold it; after a
-  compost of a subject, `--exclude-subs` it skips and a plain roast
-  writes it again; `--sidecars`, `--sessions`, include/exclude globs,
+  compost of a subject, `--exclude-sub` it skips and a plain roast
+  writes it again; `--sidecars`, `--ses`, include/exclude globs,
   templates (`config`) and inputs match exactly, as before. It rests on
   two promises of the roaster: the selection decides which outputs
   exist, never their content (what else does is in `config`, as
@@ -1102,8 +1368,8 @@ class Dataset:
     roaster: Roaster | None = None   # when no source has one (staticmethod)
     credentials: Literal["login", "token"] | None = None
     harvest_jobs: int | None = None  # default of harvest --jobs
-    harvest_subjects: bool = True    # harvest takes --subs (sources prune)
-    has_sites: bool = False          # --sites without a list of names
+    harvest_subjects: bool = True    # harvest takes --sub (sources prune)
+    has_sites: bool = False          # --site without a list of names
     hosted: bool = False             # hosted as BIDS: filter groups
     folder_choices: tuple[str, ...] = ()   # --folders (hosted)
     download: Mapping[str, Any] = {} # fixed DownloadOptions (on_error...)
@@ -1144,14 +1410,14 @@ def describe(self, command: str) -> str      # summary of a command
 def root(self, path=None, out=None) -> Path  # --out, else tree path/folder
 def layout(self, root, layout=None) -> Layout
 def labels(self, values) -> set[str]         # subject_labels(width)
-def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
+def selection(self, sub=(), exclude_sub=(), ses=(), **filters
               ) -> Selection
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def roast_options(self, args) -> dict       # RoastContext.options
                                   #   (OASIS-I: --discs); default {}
 def check(self, command, args) -> None      # keys, sites, subjects
-def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
+def chosen_sites(self, args) -> tuple       # --site minus --exclude-site
 def run(self, command, layout, args)         # check, lock, then the body
 def execute(self, command, *arguments, path=None, out=None, **groups)
 # Bodies of the default commands
@@ -1195,7 +1461,7 @@ a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
 `KeyAliases.expand`) before anything is written, and the hierarchy is
 listed in the help of the command and in `info`. Every roast is on the
-engine: roast `--subs` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
+engine: roast `--sub` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
 anything is created. The command functions return nothing (cyclopts >=
 4 prints a return value; the cyclopts 3 console script would print it
 and exit 1); `execute` returns it.
@@ -1215,10 +1481,10 @@ break under `from __future__ import annotations`.
 | Group | Flags | Used by |
 |-------|-------|---------|
 | `KeyOptions` | `--keys`, `--exclude-keys` (`keys_for(command)`) | harvest, roast |
-| `SelectionOptions` | `--subs`, `--exclude-subs` | harvest, roast, compost |
-| `SessionOptions` | `--sessions` | compost; harvest/roast if `sessions` |
-| `SiteOptions` | `--sites`, `--exclude-sites` (str, `select_sites`) | harvest if `site_names`/`has_sites`; compost if `sites` layouts |
-| `FilterOptions` | `--datatypes`, `--suffixes`, `--tasks`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
+| `SelectionOptions` | `--sub`, `--exclude-sub` | harvest, roast, compost |
+| `SessionOptions` | `--ses` | compost; harvest/roast if `sessions` |
+| `SiteOptions` | `--site`, `--exclude-site` (str, `select_sites`) | harvest if `site_names`/`has_sites`; compost if `sites` layouts |
+| `FilterOptions` | `--datatype`, `--suffix`, `--task`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
 | `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
 | `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (several roasters) |
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
@@ -1231,8 +1497,8 @@ break under `from __future__ import annotations`.
 **Help panels** (r38). The flags of a command are shown in panels
 (cyclopts `Group`s, one per title, `options.panel`), in one order
 (`options.Panel`): the options of every dataset first, "Dataset"
-(`path`, `--out`, the arguments, `--layout`), "Selection" (`--subs`,
-`--sessions`, `--sites`), "Filters" (BIDS filters, `--folders`),
+(`path`, `--out`, the arguments, `--layout`), "Selection" (`--sub`,
+`--ses`, `--site`), "Filters" (BIDS filters, `--folders`),
 "Keys"; then the panel of the command ("Harvest", "Roast", "Compost":
 the hosted `--trim`, `--list`, `--sidecars`, `--repair` too);
 "Sources" (`--source`, and the options of harvest that every source
@@ -1266,7 +1532,7 @@ of the help: `tree_keys` lists the keys of `tree_lines` once, leaves of
 sets and lists sorted) when they are its keys.
 
 Every command but `info` also takes `path` (root of all datasets,
-`BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an
+`BDP_PATH`) and `--out` (dataset folder). A `--sub` value that names an
 existing file is read as a list of subjects (one per line). Labels that
 match nothing are warned about by the hosted harvests (INDI, OpenNeuro;
 an error if none matches); their format is not validated. `subject_width`
@@ -1518,11 +1784,11 @@ absence of the key.
   sites, else `DEFAULT_LAYOUT` (`study`, final, §9). Manifest unchanged.
 * `--site-layout X`: hidden, deprecated (warning) until the end of step
   5; with `--layout sites` it means `sites:X`, alone it is an error.
-* Every INDI project keeps `--sites` and the `sites*` layouts (single-site
+* Every INDI project keeps `--site` and the `sites*` layouts (single-site
   ones use the child kind, as before). Compost runs site by site;
-  compost `--sites`/`--exclude-sites` only apply to a sites layout
+  compost `--site`/`--exclude-site` only apply to a sites layout
   (error otherwise); the default `roast` refuses a sites layout. A
-  `--subs` selection that matches no site is refused before anything is
+  `--sub` selection that matches no site is refused before anything is
   downloaded (every site is listed first).
 
 ### Run lock (`actions/runlock.py`)
@@ -1607,10 +1873,15 @@ units take the run lock (§7, "What the ports must and must not assume").
 Every flag of the step-3 snapshot (`tests/data/cli_flags_step3.json`)
 keeps its names, default and choices, except (listed in `test_cli.py`):
 
+* the selection options, renamed after the BIDS entities (r52; no
+  alias): the snapshot holds the new names (`--sub`, `--ses`, `--site`,
+  `--datatype`... and their `--empty-*` negations), and
+  `test_selection_flags_renamed` checks that no old name is left.
+
 * `--layout sites:study|sites:flat` (new); `--site-layout` deprecated.
-* `--sites`: free text validated by `select_sites` (was a choice list
+* `--site`: free text validated by `select_sites` (was a choice list
   for ABIDE-I/II and CoRR); default `()` = all (was the list of sites).
-* `--subs` and `--exclude-subs` parse as strings (same inputs accepted;
+* `--sub` and `--exclude-sub` parse as strings (same inputs accepted;
   numbers are formatted with `subject_width`); harvest takes them only
   where it did (`harvest_subjects`).
 * `--exclude-keys` alone keeps files that match no key (they were
@@ -1621,8 +1892,8 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--lock-wait`,
   `--exclude-keys` (harvests),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
-  `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
-  UNC-Wisconsin roast, compost `--sites` (sites layouts).
+  `--packet` on hosted harvests, `--exclude-site`, `--sidecars` on
+  UNC-Wisconsin roast, compost `--site` (sites layouts).
 * `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
 * Roast `--json [yes|no|only]` / `--no-json` became `--sidecars
   yes|no|only` (r25, r26); `--json VALUE` and `--no-json` (`--sidecars
@@ -1637,7 +1908,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
 * Added (2b-iii): `--sidecars yes|no|only` on hosted harvests
   (OpenNeuro, INDI); a `roast` command for OpenNeuro and every INDI
-  project (`--sites` where sites layouts exist). Changed: compost keeps
+  project (`--site` where sites layouts exist). Changed: compost keeps
   the pristine metadata of hosted datasets unless `--sourcedata`.
 
 ### Tests
@@ -1750,7 +2021,7 @@ what this contract replaces.
 * `enumerate_units(layout, level, selection, overrides)` walks the
   `sub-*/[ses-*]` folders of `layout.raw` (what is on disk, not
   `participants.tsv`), filtered by the `Selection` of the command line
-  (`--subs`, `--exclude-subs`, `--sessions`, later `entities`) and by
+  (`--sub`, `--exclude-sub`, `--ses`, later `entities`) and by
   the dataset's exclusions. Tables are only read for `--where` (below).
 * A unit of a stage is planned if each raw requirement finds between
   `min` and `max` files; otherwise it is **blocked**, with the reason.
@@ -2402,7 +2673,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2082 passed, 2 skipped, no xfail left) |
-| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`) |
+| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | done: PR 0 [#42](https://github.com/balbasty/brainspresso/pull/42) (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed); PR A [#44](https://github.com/balbasty/brainspresso/pull/44) (archive helpers `roast/archives.py`, `archive_shards`, `ExtractMembers` drops unsafe members); PR B [#45](https://github.com/balbasty/brainspresso/pull/45) (table helpers `roast/tables.py` and `roast.attempt`; every roaster's tables migrated); PR C [#47](https://github.com/balbasty/brainspresso/pull/47) (converter package `convert/`, sidecar helpers `roast/sidecars.py`); PR D [#48](https://github.com/balbasty/brainspresso/pull/48) (scaffolding: `roast.python_api` for every ported `roast()`, `named_keys`, `missing_input`, `RoastContext.wants_any`, `freesurfer/archive.py`); golden outputs unchanged by A to D except where the PRs list it |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | done (`.github/workflows/bids-validator.yaml`, `tests/validate_bids.py`: bids-validator 3.0.2 with the BIDS 1.11.2 schema; 11 fixtures × 2 layouts, raw, study and derivative datasets; 116 known errors in `tests/bids_validator_known.json`, to fix in separate PRs; a new error fails the job) |
 
@@ -2425,7 +2696,9 @@ Each step lands as commits on the refactor branch with its tests green.
   and the ported modules and datasets, `datasets/indi/cobre/**`,
   `datasets/oasis/i/**`, `datasets/oasis/ii/**`, `datasets/bullitt/**`
   and `datasets/indi/abide/**` (ABIDE-I, ABIDE-II and their shared
-  helpers) in step 5; two negated patterns would exempt every file).
+  helpers) in step 5, `convert/**`, `freesurfer/actions.py` and
+  `freesurfer/archive.py` in step 6;
+  two negated patterns would exempt every file).
   Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2460,7 +2733,7 @@ Each step lands as commits on the refactor branch with its tests green.
   source (`Source(roaster=)`); sources whose files share one layout
   share one roaster (ABIDE-I s3 and nitrc), so that `roast --source`
   exists only where the layouts differ. The module has a `roast(root,
-  *, subs=, exclude_subs=, **options)` Python API whose subjects go
+  *, sub=, exclude_sub=, **options)` Python API whose subjects go
   through `subject_labels(values, width)`, as on the command line. Keys a roaster must
   tell apart are sibling leaves of a `KeyAliases`, never a group and its
   only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
@@ -2718,6 +2991,17 @@ up as an XPASS failure once fixed (then drop the marker).
   participant, and the BIDS 1.11.2 schema indexes phenotype tables by
   `participant_id` alone (`TSV_INDEX_VALUE_NOT_UNIQUE`), whatever
   `session_id` says; left until the schema indexes `session_id` too.
+* FreeSurfer derivatives (OASIS-I, OASIS-III, ABIDE-I xnat), two
+  validator warnings left by r47 and by step 6 PR C (metadata, not
+  converters): `TSV_ADDITIONAL_COLUMNS_UNDEFINED` (the `hemisphere`
+  column of `atlas-{Aseg,AsegDesikanKilliany,DesikanKilliany}_dseg.tsv`
+  is described nowhere: a data dictionary `atlas-<X>_dseg.json`, of kind
+  "table" so that `--sidecars no` keeps it, inherited by the subject
+  images too) and `ATLAS_DESCRIPTION_RECOMMENDED` (no
+  `atlas-<X>_description.json` at the root of the derivative, for the
+  four atlases; `bids.kinds` would read `description` as a table
+  suffix). Both are written by `freesurfer.bidsify.bidsify_toplevel`
+  and change the derivative trees of the three roast suites.
 
 ## 9. Open questions
 
@@ -3465,3 +3749,187 @@ up as an XPASS failure once fixed (then drop the marker).
   it holds `study_readme`'s text: else it is the user's and never
   written, in any mode; `with_study_readme` keeps the attributes of the
   roaster (`functools.update_wrapper`, `tag`, `source`).
+* r48: step 6, PR A. Shared archive helpers (§5 "Archive conventions"):
+  `roast/archives.py` (`reading`, `Reader`, `Member`, `ArchiveError`
+  with its one message form, `names`, `in_order`, `strict` and
+  `BRAINSPRESSO_STRICT_ARCHIVES`, the ABIDE-II spool mechanics),
+  `roast.helpers.archive_shards` and `template_config`,
+  `utils.archive.member_parts` and `is_unsafe`. Migrated: the archive
+  loops of ABIDE-I (NITRC, XNAT scans, FreeSurfer listing), ABIDE-II,
+  COBRE, OASIS-I and OASIS-II; the CSV opening of OASIS-III; the site
+  listing of IXI. Owner decisions: archive errors narrowed (an
+  `OSError` of a template or of the output folder fails the shard under
+  its own type), one message form (OASIS-I/II gain a colon: `<name>:
+  cannot be read (...)`), a corrupt COBRE tarball is a `Fail` named
+  after it (was an exception of the shard), an unreadable IXI image
+  tarball no longer aborts the metadata (a warning; its shard reports
+  it); `ExtractMembers` drops `..` and absolute members (OASIS-I/III
+  FreeSurfer `rename`); sidecar templates signed in `Shard.config`
+  everywhere (OASIS-I/II, Bullitt: one re-read after upgrading, see the
+  upgrade note). Golden: only the signatures of those shards change.
+  Not migrated here: tables (PR B), converters and sidecars (PR C), the
+  FreeSurfer archive helpers and the OASIS-III FreeSurfer listing
+  (PR D); a corrupt OASIS-III `demo.tar.gz` still stops its top-level
+  roaster (now as an `ArchiveError`; PR B makes it a `Fail` of
+  `participants.tsv`).
+  Review round 1: `is_unsafe` splits on `/` and also rejects empty,
+  blank and dots-only parts, any `\` and Windows-anchored parts (`C:`),
+  on every platform; `ExtractMembers` gives `rename` the normalised name
+  (`member_path`) and drops an output that `rename` puts outside the
+  dataset (`root=ctx.layout.root`: not the claim, OASIS-III takes the
+  session of a member from its name); the sidecars-only FreeSurfer listings of OASIS-I and
+  ABIDE-I list the same names (`archives.names(extractable=True)`), so
+  `--sidecars only` writes the sidecars of a full roast (also for `./`
+  and `/` names); OASIS-I reads the `mri/orig` runs of `./`-prefixed
+  members; Bullitt signs only the templates of the images a subject
+  shard converts, when sidecars are written (a narrower selection
+  skips again: the scope fuzz); `Reader` converts a folder that cannot
+  be listed (`FolderArchive`) to an `ArchiveError`.
+* r49: step 6, PR B. Shared table helpers (§5 "Table conventions"):
+  `roast/tables.py` (`read_csv`, `read_xlsx`, `read_xls` -> `Sheet`
+  with header lookup by name and alias; `clean`; `TableError`;
+  `table_action`, the one action of a roasted table; `warn_once`,
+  `row_warning`; the ABIDE `Table`, moved and generalised with `nans`,
+  `label`, `prefix`) and `roast.attempt` (a reader's error as a `Fail`
+  while producing). Migrated: ABIDE-I/II (`abide/tables.py` keeps
+  `WIDTH`, `participant_label`, `NANS`), COBRE (CSV not in UTF-8 now
+  read as Windows-1252), OASIS-I (columns by name with a positional
+  fallback, an ID that cannot be parsed skipped with a warning, an
+  unreadable spreadsheet an error of `participants.tsv`), OASIS-II
+  (`column_index`, `cell`, `number` replaced), OASIS-III (participants
+  read in their action, ages, diagnoses and phenotype tables through
+  `attempt`: a data file that cannot be read is an error of its tables,
+  no longer of the whole roast; a line break in a phenotype cell is a
+  space instead of an error of the table), Bullitt, IXI (xlrd imported
+  by the reader only), UNC-Wisconsin. Owner decisions: every roasted
+  table is cleaned (the OASIS-III medications tables too: since #43 they
+  are trimmed tables written without an escape character), and
+  integral floats are written in their shortest form in every dataset,
+  in `clean`: on the fixtures, IXI `height` and `weight` (547 cells
+  each of the shipped `IXI.xls`, `164.0` -> `164`) and OASIS-III
+  `age` of the phenotype and sessions tables (`70.0` -> `70`) change
+  once on the next roast; the shard signatures do not change.
+  Replaced and removed: `abide.tables.write_table` and `read_csv`
+  (`table_action`, `roast.tables.read_csv`). Merged with PR A (r48):
+  OASIS-III reads its CSV tarballs through `archives.reading` (`attempt`
+  errors: `ArchiveError` and `ValueError`).
+  Review round 1: the OASIS-III phenotype rows are built in their
+  action (a `delay` or `age` that is not a number is `n/a`, one warning
+  per table and column; a subject that is not an OASIS-III ID skips its
+  row; a broken header is a `Fail` of its table only), the header is
+  cleaned once for the table and its data dictionary, a tarball without
+  a file is a `TableError`; `read_csv` numbers rows by physical line
+  and refuses empty `encodings`; `attempt` takes `fail_name`,
+  `fail_tag`, `fail_what`, `fail_errors`. Owner decision: numeric text
+  in the columns that a table's data dictionary declares numeric is
+  written in its shortest form (`numeric_columns`, `table_action(sidecar=)`):
+  on the fixtures, OASIS-III `participants.tsv` `age` `70.0` -> `70`.
+* r50: step 6, PR C. Converter package and sidecar helpers (§5
+  "Converter conventions", "Sidecar conventions"). `brainspresso/convert/`
+  (`metaimage`, `nrrd`, `analyze`, `nibabel`, `nifti`, `volume`, the
+  `CONVERTERS` registry, `convert`, the `Convert` action, one
+  `ConvertError`); `utils/metaimage.py`, `utils/nrrd.py`, `utils/vol.py`
+  moved there (no shim; `tests/test_metaimage.py` and `test_nrrd.py`
+  merged into `tests/test_convert.py`), `utils.io.nibabel_convert` and
+  `actions.writers.BabelConvert` to `convert/nibabel.py` (its unused
+  `remove=` dropped, `utils.path.fileparts` with it),
+  `Freesurfer2Gifti` to `freesurfer/actions.py` (owner decision, no
+  shim: `actions/` imports no format package). `roast/sidecars.py`:
+  `template_config` (from `roast.helpers`, now `template_config(find,
+  names)`, and ABIDE's site variant), `TemplateError`, `read_template`,
+  `HeaderSidecar`, `bold_sidecar`, `bold_fields` (from
+  `abide/scans.py`, which keeps `scan_actions` and `roast_meta`; no
+  re-exports), new `copy_sidecar`, `template_sidecar` and
+  `repetition_time` (the TR policy of #43, unchanged, in one
+  function); `roast.attempt` gives a `ConvertError`'s message as it is
+  (as a `TableError`'s). Migrated: Bullitt (`Convert`,
+  `copy_sidecar`), UNC-Wisconsin (`Convert`, the DWI's three outputs
+  through `outputs=`), OASIS-I and OASIS-II (`convert.analyze`: the
+  pair read in archive order into memory, relabelled before it is
+  saved instead of save, load, save; OASIS-II no longer imports OASIS-I's
+  roaster), ABIDE-I, ABIDE-II and COBRE (`template_sidecar`), IXI
+  (`copy_sidecar`), `freesurfer/bidsify.py`. Fixed: a MetaImage header
+  that ends at `ElementDataFile = ` read the folder of the file as its
+  data ("Is a directory"), and one cut earlier raised `KeyError`: both
+  are a `ConvertError` saying the header is incomplete; compressed
+  MetaImage data that neither zlib nor gzip reads, an unknown element
+  type, a bad `NDims`/`DimSize`/geometry, and every corrupt NRRD,
+  Analyze, MGZ or NIfTI header are a `ConvertError` naming the file
+  (were `zlib.error`, `KeyError`, `struct.error`, nibabel's errors);
+  the error of a bold sidecar without a TR named the first character
+  of its path instead of the sidecar; OASIS-I without (or with an
+  unreadable) `T1w.json` fails each sidecar that it gives (was a
+  `TypeError` of the whole disc). Wording only: a missing template of
+  OASIS-II and IXI is `<name> not found (sidecar template)` (IXI: was an
+  engine error on a `None` source), COBRE reads its non-bold templates
+  too (an unreadable one is a `Fail` of its sidecar, as in ABIDE).
+  Golden: no change. Left: the FreeSurfer validator warnings of #43
+  (`hemisphere` column, atlas descriptions), see §8 known bugs.
+  Review round 1: an Analyze pair named in upper case (`X.HDR`) finds
+  its companion in its own case, else the other (`analyze.pair`); sizes
+  declared by MetaImage, NRRD and Analyze headers are computed in
+  Python integers and an implausible or too large one is a
+  `ConvertError` (an absurd `DimSize` overflowed `np.prod` and raised a
+  bare `ValueError`); a singular DWI frame is "unsupported DWI
+  gradients" (`LinAlgError` is a `ValueError`); `Convert` lists every
+  file of its input as a source (`SOURCES`, `sources_of`); a truncated
+  archive member of `analyze_action` is a `ConvertError` naming it
+  (was a bare `ReadError`/`EOFError`); `header_tr` decompresses a
+  `.NII.GZ` too.
+* r51: step 6, PR D. Roaster scaffolding (§5 "Roaster scaffolding"):
+  `roast.python_api` builds the `roast()` of ABIDE-I/II, COBRE,
+  OASIS-I/II/III, IXI, Bullitt and UNC-Wisconsin (one rule for
+  subjects, keys and dataset options; listed signature and docstring);
+  `roast.named_keys` and `roast.missing_input` replace the five copies of
+  "a missing input is an error only when it is named" (ABIDE-I
+  `fs_named`, Bullitt `named`, IXI tarballs, OASIS-I discs, OASIS-II
+  parts; log levels and texts kept); `RoastContext.wants_any`;
+  `freesurfer/archive.py` (ABIDE-I's `FreeSurferTree`, the OASIS-I and
+  OASIS-III relative paths, the listing and unpacking of a tree; ABIDE-I's
+  unused `fs_relpath` and OASIS-III's `bidsify_freesurfer` removed).
+  Owner decision: IXI and OASIS-III `roast(subs=)` take labels, ranges
+  and files as everywhere else (were numbers only; `sub-0002` raised
+  `ValueError`); UNC-Wisconsin's go through `subject_labels` without a
+  width (`sub-` stripped, files read). OASIS-III FreeSurfer with
+  `--sidecars only`: the listing goes through `archives.names` (PR A
+  had left it out), so an unreadable tarball is a `Fail` named after it
+  (was an exception of its sub-shard) and unsafe members are not
+  listed. ABIDE-I's FreeSurfer tree warnings come from the logger
+  `brainspresso.freesurfer.archive`. Golden: no change. Step 6 done
+  (§8). Review round 1: IXI's `roast()` goes through `ROAST_SPEC` as
+  `bx ixi roast` does, so the off key `trace` is no longer roasted by
+  default from Python (`keys=["dwi", "trace"]` does); a `Path` (alone
+  or in a list) is a file of subjects (`as_list`, `subject_labels`; was
+  an error, or nothing selected); `options=` given to a `roast()` whose
+  dataset has its own options is a `TypeError` (was silently dropped);
+  OASIS-I `roast(discs=)` de-duplicated as on the command line.
+* r52: selection options named after the BIDS entities, as
+  brainfilter's keywords (owner decision, no deprecated alias):
+  `--subs`, `--exclude-subs`, `--sessions`, `--sites`,
+  `--exclude-sites`, `--datatypes`, `--suffixes`, `--tasks` become
+  `--sub`, `--exclude-sub`, `--ses`, `--site`, `--exclude-site`,
+  `--datatype`, `--suffix`, `--task` (and the `--empty-*` negations,
+  which cyclopts derives); there was no `--exclude-sessions` and no
+  other plural entity filter. The config keys and `BRAINSPRESSO_OPT_*`
+  variables follow (an old key is an unknown key, as any other, with
+  "did you mean"); `roast(sub=, exclude_sub=, ses=, datatype=, suffix=,
+  task=)` (`SELECTION_ARGS`, `FILTER_ARGS`, all in its signature; an old
+  keyword is a `TypeError` that names the new one), `run_compost(sub=,
+  ..., site=, exclude_site=)`, `Dataset.selection(sub=, exclude_sub=,
+  ses=, datatype=, suffix=, task=)` and the fields of
+  `SelectionOptions`, `SessionOptions`, `SiteOptions` and
+  `FilterOptions`. Kept: the `Selection` fields (§3),
+  `roast.scope(subs=)` and the scope records, the per-run source
+  options `sites`/`exclude_sites`, the `Args` group names (`select`,
+  `sessions`, `sites`, `filters`), `Dataset.sessions`,
+  `subject_selection`, `GrindOverrides.exclude_subs` and the grind
+  `Query` fields (contract of §7, not options yet). The step-3 flag
+  snapshot holds the new names. Golden: no change (the cases use none
+  of these options). Review round 1: `roast()` takes `datatype=`,
+  `suffix=`, `task=` again (only `ses` was mapped, so the BIDS filters
+  had become unreachable from Python), in its signature and docstring;
+  `Dataset.selection` maps them too. `GrindOverrides.exclude_subs` is
+  renamed with step 7. Known: `roast(task=)` alone keeps the sidecars
+  of images without a `task` entity (`Selection.keeps` of metadata:
+  "may apply"), e.g. `T1w.json` without its image; with `datatype=` it
+  does not arise.

@@ -57,8 +57,8 @@ data usage agreement.
 
 ```shell
 bx hbn info
-bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
-bx hbn harvest /data --layout sites --sites Site-CBIC --datatypes anat --dry-run
+bx hbn harvest /data --site Site-RU --suffix T1w --where "Age<10"
+bx hbn harvest /data --layout sites --site Site-CBIC --datatype anat --dry-run
 ```
 
 ## How to cite

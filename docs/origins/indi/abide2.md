@@ -56,7 +56,7 @@ missing from the bucket and are always fetched from NITRC.
 ## Examples
 
 ```shell
-bx abide2 harvest /data --sites KKI NYU
+bx abide2 harvest /data --site KKI NYU
 bx abide2 roast /data --keys dti pheno
 ```
 

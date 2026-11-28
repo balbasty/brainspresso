@@ -6,7 +6,7 @@ parameters, and demographics become `participants.tsv` and `phenotype/` tables.
 
 ```shell
 bx oasis2 roast /data
-bx oasis2 roast /data --subs 1:20 --keys T1w
+bx oasis2 roast /data --sub 1:20 --keys T1w
 ```
 
 Roast reads only `sourcedata/` and does not access the network. A missing
@@ -56,7 +56,7 @@ you have edited. A file it has no record of is backed up to
 
 Roast splits its work into *shards*, usually one per archive. A shard runs
 again only if its inputs, its templates, or the outputs that the current
-selection expects have changed. Narrowing `--subs` or toggling an unrelated key
+selection expects have changed. Narrowing `--sub` or toggling an unrelated key
 therefore does not re-read every archive, and adding a subject only re-runs
 the shards that contain it. A shard that was interrupted is recorded as failed
 and runs again next time.

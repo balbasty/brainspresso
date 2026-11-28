@@ -55,7 +55,7 @@ Multi-site projects (FCON1000, HBN, ACPI) can be harvested in two ways:
   folder is not a BIDS dataset: it holds a README and the merged
   `participants.tsv`, which is what `--where` queries.
 
-With either layout, `--sites` and `--exclude-sites` select sites, and `--subs`
+With either layout, `--site` and `--exclude-site` select sites, and `--sub`
 accepts both forms of the labels.
 
 ## Access

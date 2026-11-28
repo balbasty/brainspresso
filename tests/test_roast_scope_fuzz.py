@@ -85,7 +85,7 @@ def fuzz(tmp_path, name, build, roast, subs, keys, seed, layout,
     for step in range(STEPS):
         selection = {}
         for option, universe, p_none in (
-                ("subs", subs, 0.4), ("exclude_subs", subs, 0.7),
+                ("sub", subs, 0.4), ("exclude_sub", subs, 0.7),
                 ("keys", keys, 0.4), ("exclude_keys", keys, 0.7)):
             value = pick(rng, universe, p_none)
             if value is not None:
@@ -205,7 +205,7 @@ def test_oasis2(tmp_path, skipped, seed, layout):
 
     def extra(rng):
         if rng.random() < 0.4:
-            return {"sessions": rng.choice([["1"], ["2"]])}
+            return {"ses": rng.choice([["1"], ["2"]])}
         return {}
 
     run_fuzz(skipped, tmp_path, "OASIS-2", build, roast_oasis2, [1, 2, 3],

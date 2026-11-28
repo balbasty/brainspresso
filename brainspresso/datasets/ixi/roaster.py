@@ -33,9 +33,8 @@ from typing import Iterator
 
 import nibabel as nib
 import numpy as np
-import xlrd  # extra: brainspresso[ixi]
 
-from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
+from brainspresso.actions import Action, CopyBytes, Fail
 from brainspresso.actions.action import IfExists
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.actions.writers import WriteJSON, WriteText
@@ -45,16 +44,19 @@ from brainspresso.datasets.ixi.dataset import KEYS as DATASET_KEYS
 from brainspresso.roast import (
     RoastContext,
     Shard,
-    as_list,
+    archives,
     copy_templates,
-    roast_dataset,
 )
-from brainspresso.utils.archive import open_archive
-from brainspresso.utils.io import write_tsv
+from brainspresso.roast.helpers import missing_input, named_keys
+from brainspresso.roast.run import python_api
+from brainspresso.roast.sidecars import copy_sidecar
+from brainspresso.roast.tables import read_xls, table_action, xls_date
+from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
 
 lg = getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent / "templates"
+WIDTH = 3               # subject labels: `sub-002`
 
 # IXI modality -> BIDS suffix (= dataset key)
 IXI2BIDS = {"T1": "T1w", "T2": "T2w", "PD": "PDw", "MRA": "angio",
@@ -67,19 +69,6 @@ KEYS = KeyAliases(
 #: `--keys` of the roast (`IXI.keys_for("roast")`)
 ROAST_SPEC = KeySpec(KEYS, (*DATASET_KEYS, "trace"), DATASET_KEYS,
                      ("trace",))
-
-
-def roast(root, *, subs=(), exclude_subs=(), keys=(), **options):
-    """Roast `<root>` (the `IXI` folder). Subjects are numbers. Other
-    options: those of the command line (`keys`, `json`, `ifexists`,
-    `layout`), `jobs` and `display`. A missing tarball (or folder) is an
-    error only for the keys that `keys` names (`roast_options`)."""
-    return roast_dataset(
-        roast_ixi, root, KEYS, templates=TEMPLATES, keys=keys,
-        subs=as_list(subs, "{:03d}"),
-        exclude_subs=as_list(exclude_subs, "{:03d}"),
-        options=roast_options(keys), **options,
-    )
 
 
 def roast_options(keys) -> dict:
@@ -101,12 +90,7 @@ def roast_options(keys) -> dict:
         passes them when the flag is absent, so they cannot be told
         apart)
     """
-    keys = as_list(keys)
-    if not keys or {str(k).lower() for k in keys} == \
-            {k.lower() for k in ROAST_SPEC.default}:
-        return {"named": []}
-    return {"named": sorted(leaf for leaf in KEYS.leaves - {"meta"}
-                            if ROAST_SPEC.selects(keys, leaf))}
+    return {"named": named_keys(ROAST_SPEC, keys, KEYS.leaves - {"meta"})}
 
 
 def roast_ixi(ctx: RoastContext) -> Iterator:
@@ -135,11 +119,10 @@ def missing_images(ctx: RoastContext, ixi: str, *keys: str
     A missing tarball (and folder): a `Fail` if `--keys` names one of
     its keys, else an info line (`roast_options`).
     """
-    message = f"IXI-{ixi}.tar (or IXI-{ixi}/) not found"
-    if set(keys) & set(ctx.options.get("named", ())):
-        yield Fail(message, name=f"IXI-{ixi}")
-    else:
-        lg.info(f"{message} (skipped)")
+    yield from missing_input(
+        f"IXI-{ixi}.tar (or IXI-{ixi}/) not found", name=f"IXI-{ixi}",
+        required=bool(set(keys) & set(ctx.options.get("named", ()))),
+        logger=lg)
 
 
 def parse_name(name: str) -> tuple[str, str]:
@@ -157,22 +140,27 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
     yield from copy_templates(ctx, ["README", "dataset_description.json",
                                     "participants.json"])
 
-    # Sites are only given by image names
+    # Sites are only given by image names (an unreadable tarball is the
+    # error of its own shard)
     sites = {}
     for ixi in IXI2BIDS:
-        archive = open_images(ctx, ixi)
-        if archive is not None:
-            with archive:
-                sites.update(map(parse_name, archive.getnames()))
+        tar, folder = ctx.source / f"IXI-{ixi}.tar", ctx.source / f"IXI-{ixi}"
+        path = tar if tar.exists() else folder if folder.is_dir() else None
+        if path is None:
+            continue
+        opener = TarArchive if path == tar else FolderArchive
+        try:
+            sites.update(map(parse_name,
+                             archives.names(path, opener=opener)))
+        except archives.ArchiveError as e:
+            lg.warning(f"{e}: the sites of its subjects are not in "
+                       f"participants.tsv")
     xls = ctx.resource("IXI.xls")
     if xls is None:
         yield Fail("IXI.xls not found", name="participants.tsv", tag="meta")
         return
-    yield Action(
-        xls, ctx.layout.original(raw / "participants.tsv"),
-        partial(write_participants, xls, sites=sites),
-        mode="t", input="path", tag="meta",
-    )
+    yield table_action(ctx, raw / "participants.tsv",
+                       partial(participant_rows, xls, sites=sites), xls)
 
 
 # ----------------------------------------------------------------------
@@ -190,8 +178,8 @@ def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
         for member in members:
             sub, site = parse_name(member.name)
             anat = ctx.layout.raw / f"sub-{sub}" / "anat"
-            yield CopyJSON(ctx.resource(f"{site}/{key}.json"),
-                           anat / f"sub-{sub}_{key}.json")
+            yield from copy_sidecar(ctx, f"{site}/{key}.json",
+                                    anat / f"sub-{sub}_{key}.json")
             yield ExtractMember(archive, member,
                                 anat / f"sub-{sub}_{key}.nii.gz")
             ctx.progress(advance=1)
@@ -384,7 +372,7 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_dwi,
 
 
 def roast_dwi_raw(ctx, archive, dwi, base, site, names, tables):
-    yield CopyJSON(ctx.resource(f"{site}/dwi.json"), dwi / f"{base}.json")
+    yield from copy_sidecar(ctx, f"{site}/dwi.json", dwi / f"{base}.json")
     yield Action(
         archive.sources(*names), dwi / f"{base}.nii.gz",
         partial(stack_volumes, archive, names[:NDIR]), input="path",
@@ -555,38 +543,69 @@ PARTICIPANTS_HEADER = [
 ]
 
 
-def write_participants(path_xls, path_tsv, sites: dict[str, str]) -> None:
-    """All subjects of `IXI.xls` with images available (`DATE_AVAILABLE`);
-    `site` from image names (n/a for subjects without local images)"""
-    book = xlrd.open_workbook(path_xls)
-    sheet = book.sheet_by_index(0)
+def participant_rows(path_xls, sites: dict[str, str]) -> list[list]:
+    """
+    Read the participants table from `IXI.xls`.
+
+    Every subject with images available (`DATE_AVAILABLE`); columns read
+    by position (`IXI_HEADER`); `site` from image names (n/a for
+    subjects without local images).
+
+    Parameters
+    ----------
+    path_xls : path
+        `IXI.xls`
+    sites : dict[str, str]
+        `{subject label: site}`
+
+    Returns
+    -------
+    list[list]
+        Header and one row per subject
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the workbook cannot be read (or xlrd is missing)
+    """
+    sheet = read_xls(path_xls, extra="ixi")
 
     def parse_date(date):
-        if not isinstance(date, str):
-            date = xlrd.xldate.xldate_as_tuple(date, book.datemode)
-            date = f"{date[0]:04d}-{date[1]:02d}-{date[2]:02d}"
-        return date
+        return date if isinstance(date, str) else \
+            xls_date(date, sheet.datemode)
 
-    def iter_rows():
-        yield PARTICIPANTS_HEADER
-        for n in range(1, sheet.nrows):
-            row = dict(zip(IXI_HEADER, (c.value for c in sheet.row(n))))
-            if row["DATE_AVAILABLE"] == 0:
-                continue
-            sub = f"{int(row['IXI_ID']):03d}"
-            yield [
-                f"sub-{sub}",
-                sites.get(sub, "n/a"),
-                row["AGE"] or "n/a",
-                IXI_SEX.get(row["SEX_ID"], "n/a"),
-                row["HEIGHT"] or "n/a",
-                row["WEIGHT"] or "n/a",
-                parse_date(row["DOB"]) or "n/a",
-                IXI_ETHNICITY.get(row["ETHNIC_ID"], "n/a"),
-                IXI_MARITAL_STATUS.get(row["MARITAL_ID"], "n/a"),
-                IXI_OCCUPATION.get(row["OCCUPATION_ID"], "n/a"),
-                IXI_QUALIFICATION.get(row["QUALIFICATION_ID"], "n/a"),
-                parse_date(row["STUDY_DATE"]) or "n/a",
-            ]
+    rows = [PARTICIPANTS_HEADER]
+    for _, cells in sheet.rows:
+        row = dict(zip(IXI_HEADER, cells))
+        if row["DATE_AVAILABLE"] == 0:
+            continue
+        sub = f"{int(row['IXI_ID']):03d}"
+        rows.append([
+            f"sub-{sub}",
+            sites.get(sub, "n/a"),
+            row["AGE"] or "n/a",
+            IXI_SEX.get(row["SEX_ID"], "n/a"),
+            row["HEIGHT"] or "n/a",
+            row["WEIGHT"] or "n/a",
+            parse_date(row["DOB"]) or "n/a",
+            IXI_ETHNICITY.get(row["ETHNIC_ID"], "n/a"),
+            IXI_MARITAL_STATUS.get(row["MARITAL_ID"], "n/a"),
+            IXI_OCCUPATION.get(row["OCCUPATION_ID"], "n/a"),
+            IXI_QUALIFICATION.get(row["QUALIFICATION_ID"], "n/a"),
+            parse_date(row["STUDY_DATE"]) or "n/a",
+        ])
+    return rows
 
-    write_tsv(iter_rows(), path_tsv)
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `IXI` folder): `roast(root, keys=..., sub=...)`
+roast = python_api(
+    roast_ixi, KEYS, folder="IXI", width=WIDTH,
+    example=2, spec=ROAST_SPEC, options=roast_options,
+    keys_doc="as on the command line (`ROAST_SPEC`: `trace` only when "
+             "named); a missing tarball (or folder) is an error only for "
+             "the keys named here (`roast_options`)",
+)

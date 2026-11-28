@@ -65,7 +65,7 @@ The data is public on Kitware's Girder server and needs no account.
 ## Examples
 
 ```shell
-bx bullitt harvest /data --subs 1:20
+bx bullitt harvest /data --sub 1:20
 bx bullitt harvest /data --keys flash angio vessels
 bx bullitt roast /data
 ```

@@ -120,8 +120,8 @@ def same(path: Path, key: str) -> bool:
 # ----------------------------------------------------------------------
 
 def test_abide1_harvest_s3(tmp_path):
-    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
-       "Caltech", "--subs", 51456)
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
+       "Caltech", "--sub", 51456)
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "phenotypic_CALTECH.csv",
@@ -136,13 +136,13 @@ def test_abide1_harvest_s3(tmp_path):
 
 def test_abide1_harvest_s3_keys_and_samples(tmp_path):
     # "MaxMun" selects the "MaxMun_a" sample and "MAX_MUN" phenotypes
-    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
        "MaxMun", "--keys", "T1w")
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "RawData/MaxMun_a/0051330/session_1/anat_1/mprage.nii.gz",
     }
-    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
        "MaxMun", "--keys", "meta")
     assert "phenotypic_MAX_MUN.csv" in files(src)
 
@@ -150,7 +150,7 @@ def test_abide1_harvest_s3_keys_and_samples(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_abide1_roast_from_s3_folder(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
+    bx("abide1", "harvest", tmp_path, "--source", "s3", "--site",
        "Caltech", "--keys", "raw", "--layout", layout)
     root = tmp_path / "ABIDE-1"
     bx("abide1", "roast", tmp_path, "--keys", "T1w", "rest")
@@ -214,7 +214,7 @@ def test_corr_harvest_s3_raw_only(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_adhd200_harvest_s3(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    bx("adhd200", "harvest", tmp_path, "--keys", "raw", "meta", "--sites",
+    bx("adhd200", "harvest", tmp_path, "--keys", "raw", "meta", "--site",
        "Brown", "--jobs", 2, "--layout", layout)
     root = tmp_path / "ADHD-200"
     raw = Layout.detect(root).raw

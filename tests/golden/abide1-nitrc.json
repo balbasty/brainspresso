@@ -1,0 +1,3826 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51456/anat/sub-51456_T1w.nii.gz",
+     "sub-51456/anat/sub-51456_T1w.json",
+     "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "sub-51456/func/sub-51456_task-rest_bold.json",
+     "sub-51457/anat/sub-51457_T1w.nii.gz",
+     "sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51330/anat/sub-51330_T1w.nii.gz",
+     "sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "fs-all",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "T2w",
+     "ants",
+     "ccs",
+     "civet",
+     "cpac",
+     "dparsf",
+     "fs",
+     "fs-all",
+     "meta",
+     "niak",
+     "pheno",
+     "proc-min",
+     "qa-man",
+     "qa-pcp",
+     "rest"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51456/anat/sub-51456_T1w.nii.gz",
+     "sub-51456/anat/sub-51456_T1w.json",
+     "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "sub-51456/func/sub-51456_task-rest_bold.json",
+     "sub-51457/anat/sub-51457_T1w.nii.gz",
+     "sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51330/anat/sub-51330_T1w.nii.gz",
+     "sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f"
+  },
+  "manifest": {
+   "files": {
+    "sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "rest"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "sub-51456/func/sub-51456_task-rest_bold.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "rest"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "rest"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "participants.tsv": "17812d616a26951eec65e39386b9b50b3d9463b9bc6ab08e7c17d288d506cf23",
+   "phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta",
+      "pheno"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 6
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "pheno": {
+       "skipped": 12
+      },
+      "rest": {
+       "skipped": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 6
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "pheno": {
+       "skipped": 12
+      },
+      "rest": {
+       "skipped": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51456/anat/sub-51456_T1w.nii.gz",
+     "sub-51456/anat/sub-51456_T1w.json",
+     "sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "sub-51456/func/sub-51456_task-rest_bold.json",
+     "sub-51457/anat/sub-51457_T1w.nii.gz",
+     "sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51330/anat/sub-51330_T1w.nii.gz",
+     "sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 1
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 1
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "rest": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51456/anat/sub-51456_T1w.json",
+     "sub-51456/func/sub-51456_task-rest_bold.json",
+     "sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "dataset_description.json": "a4b8110d8b22c9af0a518bc7d2841454f1e26ebd957be40db58831683eca9463",
+   "rawbids/README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "rawbids/dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "rawbids/participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "rawbids/phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "rawbids/phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "rawbids/phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "rawbids/phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "rawbids/phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "rawbids/phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "rawbids/phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "rawbids/phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "rawbids/phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "rawbids/phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "rawbids/phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "rawbids/phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "rawbids/sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "rawbids/phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "rawbids/phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "rawbids/phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "rawbids/phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "rawbids/phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "rawbids/phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "rawbids/phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "rawbids/phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "rawbids/phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "rawbids/phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "rawbids/phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "rawbids/phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "rawbids/sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "rawbids/sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "rawbids/sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz",
+     "rawbids/sub-51456/anat/sub-51456_T1w.json",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.json",
+     "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz",
+     "rawbids/sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz",
+     "rawbids/sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "dataset_description.json": "a4b8110d8b22c9af0a518bc7d2841454f1e26ebd957be40db58831683eca9463",
+   "rawbids/README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "rawbids/dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "rawbids/participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "rawbids/phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "rawbids/phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "rawbids/phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "rawbids/phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "rawbids/phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "rawbids/phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "rawbids/phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "rawbids/phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "rawbids/phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "rawbids/phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "rawbids/phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "rawbids/phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "rawbids/sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "rawbids/phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "rawbids/phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "rawbids/phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "rawbids/phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "rawbids/phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "rawbids/phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "rawbids/phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "rawbids/phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "rawbids/phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "rawbids/phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "rawbids/phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "rawbids/phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "rawbids/sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "rawbids/sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "rawbids/sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "fs-all",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "T2w",
+     "ants",
+     "ccs",
+     "civet",
+     "cpac",
+     "dparsf",
+     "fs",
+     "fs-all",
+     "meta",
+     "niak",
+     "pheno",
+     "proc-min",
+     "qa-man",
+     "qa-pcp",
+     "rest"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz",
+     "rawbids/sub-51456/anat/sub-51456_T1w.json",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.json",
+     "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz",
+     "rawbids/sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz",
+     "rawbids/sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "dataset_description.json": "5b9c7222724e7a3ea895c66a4c039ac48aac4f74b40514cb577e512fdb374280",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "rest"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "rest"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "rest"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "dataset_description.json": "a4b8110d8b22c9af0a518bc7d2841454f1e26ebd957be40db58831683eca9463",
+   "rawbids/README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "rawbids/dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "rawbids/participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "rawbids/participants.tsv": "17812d616a26951eec65e39386b9b50b3d9463b9bc6ab08e7c17d288d506cf23",
+   "rawbids/phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "rawbids/phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "rawbids/phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "rawbids/phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "rawbids/phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "rawbids/phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "rawbids/phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "rawbids/phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "rawbids/phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "rawbids/phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "rawbids/phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "rawbids/phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "rawbids/phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "rawbids/phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "rawbids/phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "rawbids/phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "rawbids/phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "rawbids/phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "rawbids/phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "rawbids/phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "rawbids/phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "rawbids/phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "rawbids/phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "rawbids/phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta",
+      "pheno"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "dataset_description.json": "a4b8110d8b22c9af0a518bc7d2841454f1e26ebd957be40db58831683eca9463",
+   "rawbids/README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "rawbids/dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "rawbids/participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "rawbids/phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "rawbids/phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "rawbids/phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "rawbids/phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "rawbids/phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "rawbids/phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "rawbids/phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "rawbids/phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "rawbids/phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "rawbids/phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "rawbids/phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "rawbids/phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "rawbids/sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "rawbids/phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "rawbids/phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "rawbids/phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "rawbids/phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "rawbids/phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "rawbids/phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "rawbids/phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "rawbids/phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "rawbids/phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "rawbids/phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "rawbids/phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "rawbids/phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "rawbids/sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "rawbids/sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "rawbids/sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 6
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "pheno": {
+       "skipped": 12
+      },
+      "rest": {
+       "skipped": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 6
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 6
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "pheno": {
+       "skipped": 12
+      },
+      "rest": {
+       "skipped": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "rest": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51456/anat/sub-51456_T1w.nii.gz",
+     "rawbids/sub-51456/anat/sub-51456_T1w.json",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.nii.gz",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.json",
+     "rawbids/sub-51457/anat/sub-51457_T1w.nii.gz",
+     "rawbids/sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51330/anat/sub-51330_T1w.nii.gz",
+     "rawbids/sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "dataset_description.json": "a4b8110d8b22c9af0a518bc7d2841454f1e26ebd957be40db58831683eca9463",
+   "rawbids/README": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58",
+   "rawbids/dataset_description.json": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b",
+   "rawbids/participants.json": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20",
+   "rawbids/participants.tsv": "aab224a1b5cd8fff1eca78ac46da503c17ac2910f57d2bfd53d644a797181105",
+   "rawbids/phenotype/adir.json": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef",
+   "rawbids/phenotype/adir.tsv": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4",
+   "rawbids/phenotype/ados.json": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50",
+   "rawbids/phenotype/ados.tsv": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4",
+   "rawbids/phenotype/ados_gotham.json": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01",
+   "rawbids/phenotype/ados_gotham.tsv": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce",
+   "rawbids/phenotype/srs.json": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906",
+   "rawbids/phenotype/srs.tsv": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa",
+   "rawbids/phenotype/vineland.json": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71",
+   "rawbids/phenotype/vineland.tsv": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d",
+   "rawbids/phenotype/wisc_iv.json": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3",
+   "rawbids/phenotype/wisc_iv.tsv": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9",
+   "rawbids/sub-51330/anat/sub-51330_T1w.json": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355",
+   "rawbids/sub-51456/anat/sub-51456_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237",
+   "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd",
+   "rawbids/sub-51457/anat/sub-51457_T1w.json": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "ae81b32554675a3652b62fb468945069e715b5e0e3e60449936424f785799e58"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "7f054099eee7dfed9454b8cd41c588046de3ff57b66047240e65d560fd4cba6b"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "b426170a751d10fccefeeaaae2ddf30718da95de252c21d58d12d544cd0d5f20"
+    },
+    "rawbids/phenotype/adir.json": {
+     "origin": "converted",
+     "sha256": "eb7d844f5ac706c9ec94ce45a63d9291e5dbd74a9b2cf780012920af49ed37ef"
+    },
+    "rawbids/phenotype/adir.tsv": {
+     "origin": "converted",
+     "sha256": "8811079d23e32c003f8bb84143825f09a3fb31a000b4b8e82fa84a6a6da885d4"
+    },
+    "rawbids/phenotype/ados.json": {
+     "origin": "converted",
+     "sha256": "beaff9e11fb06d8190fa9591a6fac829d93a5c3948e24fa498d3f57d625cac50"
+    },
+    "rawbids/phenotype/ados.tsv": {
+     "origin": "converted",
+     "sha256": "6f5f7f0eafbef3fd9669cfa6ba74ce1f04f15397f82b5abd05bcf0e7c6fe6ab4"
+    },
+    "rawbids/phenotype/ados_gotham.json": {
+     "origin": "converted",
+     "sha256": "7f425a8c08306d50e195b7f20102571066ce6a7a7a99f8c4a11cc2d76f6ace01"
+    },
+    "rawbids/phenotype/ados_gotham.tsv": {
+     "origin": "converted",
+     "sha256": "ce47ccf07cf3deabee1ad14640b2f3edbfc856a4fb4750c9d531831ddddffdce"
+    },
+    "rawbids/phenotype/srs.json": {
+     "origin": "converted",
+     "sha256": "c1a70dda81d70d282edea827a124b923c72f1002301c220e6596eb1904f34906"
+    },
+    "rawbids/phenotype/srs.tsv": {
+     "origin": "converted",
+     "sha256": "a43e0b25289c6a53b7cad7c2e53d0c15827c6c021a94e8105ccd8cabdf68cdaa"
+    },
+    "rawbids/phenotype/vineland.json": {
+     "origin": "converted",
+     "sha256": "edbc05bfcfb39dd4a36d99dac4cc4319eeb71c88029d380203f79e99ab6ddb71"
+    },
+    "rawbids/phenotype/vineland.tsv": {
+     "origin": "converted",
+     "sha256": "4729a7ead12f718468c5ea12abf7a465889d534f22d7d72aab7689fb36db384d"
+    },
+    "rawbids/phenotype/wisc_iv.json": {
+     "origin": "converted",
+     "sha256": "0e669b0ef8614c18cf2a92f1ab2de9c17dff938951f533f9888cb9e232b325e3"
+    },
+    "rawbids/phenotype/wisc_iv.tsv": {
+     "origin": "converted",
+     "sha256": "3a77e92b8547d89c39a44779b76ab84ca4df8f5bf38b015cce03cc73aa0120d9"
+    },
+    "rawbids/sub-51330/anat/sub-51330_T1w.json": {
+     "origin": "converted",
+     "sha256": "8342d467639b359d96af71ce89bdd0ac6efe009839d732bc5c2b52622eca9355"
+    },
+    "rawbids/sub-51456/anat/sub-51456_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    },
+    "rawbids/sub-51456/func/sub-51456_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "54dd3d73c619febba45d753400fc87622e4304645b30483a77896c19a640f5fd"
+    },
+    "rawbids/sub-51457/anat/sub-51457_T1w.json": {
+     "origin": "converted",
+     "sha256": "5c887f4871f05d321e1db56c7a0d0921892c93dbb55b4c5dab9ef102cbc12237"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 1
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "T2w",
+      "ants",
+      "ccs",
+      "civet",
+      "cpac",
+      "dparsf",
+      "fs",
+      "meta",
+      "niak",
+      "pheno",
+      "proc-min",
+      "qa-man",
+      "qa-pcp",
+      "rest"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "pheno": {
+       "done": 12
+      },
+      "rest": {
+       "done": 1
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/raw/Caltech.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "rest": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51456/anat/sub-51456_T1w.json"
+      ]
+     ],
+     [
+      "rest",
+      [
+       "rawbids/sub-51456/func/sub-51456_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-51457/anat/sub-51457_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51456/anat/sub-51456_T1w.json",
+     "rawbids/sub-51456/func/sub-51456_task-rest_bold.json",
+     "rawbids/sub-51457/anat/sub-51457_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51456",
+      "51457"
+     ]
+    },
+    "signature": "03a7291d68d25f7da83c74d197d38ebf170a9289aa48f43ce8d53b3da38a82d7",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/Caltech.tgz",
+    "unit": {}
+   },
+   "roast/raw/MaxMun_a.tgz": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-51330/anat/sub-51330_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-51330/anat/sub-51330_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "raw": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "T2w",
+         "rest"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "T2w",
+       "rest"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "51330"
+     ]
+    },
+    "signature": "6f353fe50aeeeb38e4951df181e5cf63ccaf2b76ed94d0b1e5c22e6f8ac9ae16",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/raw/MaxMun_a.tgz",
+    "unit": {}
+   }
+  }
+ }
+}

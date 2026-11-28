@@ -87,16 +87,21 @@ DERIV = {f"{BRAIN}.nii.gz", f"{BRAIN}.json",
          "sub-002/anat/sub-002_desc-vessels_tubes.tre"}
 
 
-@pytest.fixture(params=LAYOUTS)
-def root(tmp_path, request):
-    """A harvested Bullitt dataset (`<tmp>/Bullitt`)."""
-    root = tmp_path / "Bullitt"
-    init_layout(root, request.param)
+def make_source(root):
+    """Write the harvested files of Bullitt."""
     for name, data in SOURCE.items():
         path = root / "sourcedata" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
     return root
+
+
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
+    """A harvested Bullitt dataset (`<tmp>/Bullitt`)."""
+    root = tmp_path / "Bullitt"
+    init_layout(root, request.param)
+    return make_source(root)
 
 
 def corrupt(path):

@@ -1,0 +1,2616 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "T2w": {
+      "done": 2
+     },
+     "dti-qc": {
+      "done": 4
+     },
+     "dwi": {
+      "done": 2
+     },
+     "reg": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     },
+     "T2w": {
+      "done": 1
+     },
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "T2w",
+     "dti-proc",
+     "dti-qc",
+     "dwi",
+     "meta",
+     "reg"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "T2w": {
+      "done": 2
+     },
+     "dti-qc": {
+      "done": 4
+     },
+     "dwi": {
+      "done": 2
+     },
+     "reg": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     },
+     "T2w": {
+      "done": 1
+     },
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972"
+  },
+  "manifest": {
+   "files": {},
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "dwi": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "dwi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "dwi"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "dwi": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "dwi": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "participants.tsv": "8b4d795bc414ec4d21e4ee2c1cb10ded4bd81ba3341d30b075511446d140114f",
+   "sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "meta": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 3
+      },
+      "T2w": {
+       "skipped": 3
+      },
+      "dti-qc": {
+       "skipped": 6
+      },
+      "dwi": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 10
+      },
+      "reg": {
+       "skipped": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 3
+      },
+      "T2w": {
+       "skipped": 3
+      },
+      "dti-qc": {
+       "skipped": 6
+      },
+      "dwi": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 10
+      },
+      "reg": {
+       "skipped": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "skipped": 2
+     },
+     "T2w": {
+      "skipped": 2
+     },
+     "dti-qc": {
+      "skipped": 4
+     },
+     "dwi": {
+      "skipped": 2
+     },
+     "reg": {
+      "skipped": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "skipped": 1
+     },
+     "T2w": {
+      "skipped": 1
+     },
+     "dti-qc": {
+      "skipped": 2
+     },
+     "reg": {
+      "skipped": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "participants.tsv": "8b4d795bc414ec4d21e4ee2c1cb10ded4bd81ba3341d30b075511446d140114f",
+   "sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "a6e6c36ff4bb4195a317cfe45710e7ec4aab5b0dbed26183e0a109de43d9c1de"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "dti-qc": {
+       "done": 3
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 3
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "dti-qc": {
+       "done": 3
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 3
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "dti-qc": {
+      "done": 1
+     },
+     "reg": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "outputs": [
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "rawbids/participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "rawbids/sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "T2w": {
+      "done": 2
+     },
+     "dti-qc": {
+      "done": 4
+     },
+     "dwi": {
+      "done": 2
+     },
+     "reg": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     },
+     "T2w": {
+      "done": 1
+     },
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "rawbids/participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "rawbids/sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "T2w",
+     "dti-proc",
+     "dti-qc",
+     "dwi",
+     "meta",
+     "reg"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "T2w": {
+      "done": 2
+     },
+     "dti-qc": {
+      "done": 4
+     },
+     "dwi": {
+      "done": 2
+     },
+     "reg": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 1
+     },
+     "T2w": {
+      "done": 1
+     },
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "dataset_description.json": "3b76a3d999003fb1fd16226deecedc90665a5a7fcb07f2749c2c9d04058d15fd",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972"
+  },
+  "manifest": {
+   "files": {},
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "dwi": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "dwi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "dwi"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "dwi": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "dwi": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
+   "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "rawbids/participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "rawbids/participants.tsv": "8b4d795bc414ec4d21e4ee2c1cb10ded4bd81ba3341d30b075511446d140114f",
+   "rawbids/sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "meta": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "rawbids/participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   "rawbids/sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
+   "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972",
+   "rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz": "gz:52a090e7c29dc01410a64e47a0b7a4fa465ee4d9a5ffebea8be275c1f6177e74",
+   "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz": "gz:36011df202912ed1bf1f171a8d9de2588ab2598a121324028063ce1f9e5353ba",
+   "rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 3
+      },
+      "T2w": {
+       "skipped": 3
+      },
+      "dti-qc": {
+       "skipped": 6
+      },
+      "dwi": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 10
+      },
+      "reg": {
+       "skipped": 6
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 3
+      },
+      "T2w": {
+       "done": 3
+      },
+      "dti-qc": {
+       "done": 6
+      },
+      "dwi": {
+       "done": 2
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 3
+      },
+      "T2w": {
+       "skipped": 3
+      },
+      "dti-qc": {
+       "skipped": 6
+      },
+      "dwi": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 10
+      },
+      "reg": {
+       "skipped": 6
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "skipped": 2
+     },
+     "T2w": {
+      "skipped": 2
+     },
+     "dti-qc": {
+      "skipped": 4
+     },
+     "dwi": {
+      "skipped": 2
+     },
+     "reg": {
+      "skipped": 4
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T1w.nii.gz",
+     "rawbids/sub-001/ses-12months/anat/sub-001_ses-12months_T2w.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.nii.gz",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval",
+     "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T1w.nii.gz",
+     "rawbids/sub-001/ses-16months/anat/sub-001_ses-16months_T2w.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bval",
+     "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.bvec",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "skipped": 1
+     },
+     "T2w": {
+      "skipped": 1
+     },
+     "dti-qc": {
+      "skipped": 2
+     },
+     "reg": {
+      "skipped": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T1w.nii.gz",
+     "rawbids/sub-002/ses-12months/anat/sub-002_ses-12months_T2w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.nii.gz",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
+   ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
+   ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
+   "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
+   "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
+   "derivatives/unc-wisconsin/dataset_description.json": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca",
+   "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3",
+   "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
+   "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
+   "rawbids/participants.json": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d",
+   "rawbids/participants.tsv": "8b4d795bc414ec4d21e4ee2c1cb10ded4bd81ba3341d30b075511446d140114f",
+   "rawbids/sessions.json": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/unc-wisconsin/.bidsignore": {
+     "origin": "converted",
+     "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
+    },
+    "derivatives/unc-wisconsin/README": {
+     "origin": "converted",
+     "sha256": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521"
+    },
+    "derivatives/unc-wisconsin/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "28e5f6b4abc161a37f4c9e8dc7377ce68431adfdb8cc88ccb565766c26573080"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json": {
+     "origin": "converted",
+     "sha256": "6f7d3bb850eae2ebb0e84f303eefad6f8814a370b3d6230abd3d14b997038eca"
+    },
+    "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json": {
+     "origin": "converted",
+     "sha256": "712a5cc49f8cfadc094e7697e54560894375206126275b55175cbb5a049a4bf3"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "d8c3e625bd7859640d17355e5a91257fbc3a656eca7108df13b4883eb356c36d"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "a64a3d095a5a7948537120fc74137b4cb93ef0789757c7289f2c234fd225d665"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "dataset": "UNC-Wisconsin",
+     "stage": "harvest"
+    },
+    {
+     "counts": {
+      "dti-qc": {
+       "done": 3
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 3
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "T2w",
+      "dti-proc",
+      "dti-qc",
+      "dwi",
+      "meta",
+      "reg"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "dti-qc": {
+       "done": 3
+      },
+      "meta": {
+       "done": 10
+      },
+      "reg": {
+       "done": 3
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-001": {
+    "children": 0,
+    "counts": {
+     "dti-qc": {
+      "done": 2
+     },
+     "reg": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "outputs": [
+     "derivatives/unc-wisconsin/sub-001/ses-12months/anat/sub-001_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-12months/dwi/sub-001_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/anat/sub-001_ses-16months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-001/ses-16months/dwi/sub-001_ses-16months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-001",
+    "unit": {
+     "sub": "001"
+    }
+   },
+   "roast/subjects/sub-002": {
+    "children": 0,
+    "counts": {
+     "dti-qc": {
+      "done": 1
+     },
+     "reg": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "outputs": [
+     "derivatives/unc-wisconsin/sub-002/ses-12months/anat/sub-002_ses-12months_space-UNCEmoryWisconsin12mo_T1w.json",
+     "derivatives/unc-wisconsin/sub-002/ses-12months/dwi/sub-002_ses-12months_model-tensor_param-fa_desc-autoqc_dwimap.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "signature": null,
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-002",
+    "unit": {
+     "sub": "002"
+    }
+   }
+  }
+ }
+}

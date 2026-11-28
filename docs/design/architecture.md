@@ -708,7 +708,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   actions after the unpacking: a shard that yields shards is never
   skipped by signature.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
-  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), `csv_to_tsv` + `TableMapper`,
+  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table readers (step 6:
+  `roast/tables.py`; the unused `TableMapper` was removed in step 6 PR 0),
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
 
 Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III; revised by
@@ -2401,7 +2402,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2082 passed, 2 skipped, no xfail left) |
-| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | |
+| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`) |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
 
@@ -2488,6 +2489,27 @@ Each step lands as commits on the refactor branch with its tests green.
   `bx --help` (the catalog and the CLI import one dataset), with
   `# noqa: PLC0415` and the reason (`# lazy: optional dependency`).
   Tests written before step 4 are exempt.
+* Golden outputs (step 6): `scripts/golden.py` roasts the fixture of
+  every ported roaster (the `make_source` helpers of its roast tests,
+  or its fake server) with `bx <dataset> roast`, in both layouts and
+  with fixed option sets (default, `--sidecars only`, `--keys meta`,
+  `--keys` of a few image keys, `--keys` of every key, a roast and its
+  re-run), and records the files (SHA-256), the task records (with a
+  normalised input signature), the manifest, and per roast its exit
+  status, report and warnings, in `tests/golden/<dataset>.json`.
+  Machine-specific parts are normalised (paths, gzip content hashed
+  decompressed, timestamps and run ids dropped; the module docstring
+  lists them). `tests/test_golden.py` checks a reduced matrix
+  (`golden.CI_MATRIX`) in every test run. A change that is meant to
+  change outputs regenerates the baseline explicitly (`python
+  scripts/golden.py record`, for every dataset, or `--datasets`,
+  `--layouts`, `--cases` to replace only some entries), commits it,
+  and pastes `python scripts/golden.py diff` (the baseline at `HEAD`,
+  or `--base REV`, against the working tree) in the pull request;
+  `python scripts/golden.py check` prints the same list without
+  recording, `--work DIR` keeps the roasted datasets for `diff -r`.
+  A new roaster, or a new fixture builder, gets an entry in
+  `golden.FIXTURES`.
 * Wording: the stage is "roast" (roasters); "bidsify" only survives in
   the names of pre-existing helpers (`freesurfer.bidsify`).
 * Layering: `actions/` (stage-agnostic) imports neither `bids/`,
@@ -3275,3 +3297,19 @@ up as an XPASS failure once fixed (then drop the marker).
   sessions start and end on the members of every subject and key, so
   that the names (and the "folders not together" `Fail`) no longer
   depend on the selection, which the scope requires.
+* r45: step 6, PR 0. Golden-output harness (`scripts/golden.py`,
+  baseline `tests/golden/`, check of a reduced matrix in
+  `tests/test_golden.py`; Conventions), recorded on
+  `claude/refactor/datasets-core` at 4014c2a (48b3400 plus #41, help
+  text only): every ported roaster (ABIDE-I NITRC and XNAT, ABIDE-II,
+  Bullitt, COBRE, IXI tarballs, OASIS-I/II/III, UNC-Wisconsin) in
+  both layouts; hosted roasts are not covered. The OASIS-I/II/III,
+  Bullitt and IXI fixtures are `make_source`/`write_tarballs`
+  functions, as in #40. Dead code removed (no importer, checked by
+  grep over code, tests, scripts and docs): `utils/tsv.py`
+  (`TableMapper`), `utils/dl.py` (and `utils/ui.round_bytes`, its
+  only user, with the byte-unit constants), `download/test.py` (and
+  its `.vscode/launch.json` entry), `utils/tabular.get_style_bidsify`
+  and `memory_tab`, `utils/keys.lower_equal_key`, `lower_key`,
+  `upper_equal_key`, `upper_key`, `utils/path.with_bids_suffix`. No
+  roaster output changes.

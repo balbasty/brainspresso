@@ -97,12 +97,10 @@ def freesurfer_disc(src, disc=1):
     }, dirs=[f"disc{disc}", s])
 
 
-@pytest.fixture(params=LAYOUTS)
-def root(tmp_path, request):
-    root = tmp_path / "OASIS-1"
-    init_layout(root, request.param)
+def make_source(root):
+    """Write the harvested files of OASIS-I (one image disc)."""
     src = root / "sourcedata"
-    src.mkdir(parents=True)
+    src.mkdir(parents=True, exist_ok=True)
     image_disc(src)
 
     wb = openpyxl.Workbook()
@@ -117,6 +115,13 @@ def root(tmp_path, request):
                0.81, 1.531, 1])
     wb.save(src / "oasis_cross-sectional.xlsx")
     return root
+
+
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
+    root = tmp_path / "OASIS-1"
+    init_layout(root, request.param)
+    return make_source(root)
 
 
 def raw_runs(id):

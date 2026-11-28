@@ -160,6 +160,11 @@ def write_tsv(src, dst, makedirs=True, **kwargs):
     `QUOTE_NONE` it cannot be written, and `csv` itself does not reject
     a "\r" on every Python version (3.10 and 3.11 write it raw).
 
+    The writer of roasted tables (`roast.tables.table_action`), whose
+    cells went through `roast.tables.clean` and never need quoting;
+    `bids.tables.write_tsv` is the quote-aware writer of tables trimmed
+    from elsewhere.
+
     Parameters
     ----------
     src : list[list]

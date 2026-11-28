@@ -280,6 +280,11 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
         row = dict(zip(header, line.split("\t")))
         for key in ("dob", "study_date"):
             assert re.fullmatch(r"\d{4}-\d{2}-\d{2}|n/a", row[key])
+        # integral numbers without decimals (xlrd reads floats)
+        for key in ("height", "weight"):
+            assert re.fullmatch(r"\d+(\.\d*[1-9])?|n/a", row[key])
+    row = dict(zip(header, lines[1].split("\t")))
+    assert (row["height"], row["weight"]) == ("164", "58")
 
 
 def test_participants_json():

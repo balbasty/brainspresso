@@ -33,7 +33,6 @@ from typing import Iterator
 
 import nibabel as nib
 import numpy as np
-import xlrd  # extra: brainspresso[ixi]
 
 from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
 from brainspresso.actions.action import IfExists
@@ -50,8 +49,8 @@ from brainspresso.roast import (
     copy_templates,
     roast_dataset,
 )
+from brainspresso.roast.tables import read_xls, table_action, xls_date
 from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
-from brainspresso.utils.io import write_tsv
 
 lg = getLogger(__name__)
 
@@ -177,11 +176,8 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
     if xls is None:
         yield Fail("IXI.xls not found", name="participants.tsv", tag="meta")
         return
-    yield Action(
-        xls, ctx.layout.original(raw / "participants.tsv"),
-        partial(write_participants, xls, sites=sites),
-        mode="t", input="path", tag="meta",
-    )
+    yield table_action(ctx, raw / "participants.tsv",
+                       partial(participant_rows, xls, sites=sites), xls)
 
 
 # ----------------------------------------------------------------------
@@ -564,38 +560,55 @@ PARTICIPANTS_HEADER = [
 ]
 
 
-def write_participants(path_xls, path_tsv, sites: dict[str, str]) -> None:
-    """All subjects of `IXI.xls` with images available (`DATE_AVAILABLE`);
-    `site` from image names (n/a for subjects without local images)"""
-    book = xlrd.open_workbook(path_xls)
-    sheet = book.sheet_by_index(0)
+def participant_rows(path_xls, sites: dict[str, str]) -> list[list]:
+    """
+    Read the participants table from `IXI.xls`.
+
+    Every subject with images available (`DATE_AVAILABLE`); columns read
+    by position (`IXI_HEADER`); `site` from image names (n/a for
+    subjects without local images).
+
+    Parameters
+    ----------
+    path_xls : path
+        `IXI.xls`
+    sites : dict[str, str]
+        `{subject label: site}`
+
+    Returns
+    -------
+    list[list]
+        Header and one row per subject
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the workbook cannot be read (or xlrd is missing)
+    """
+    sheet = read_xls(path_xls, extra="ixi")
 
     def parse_date(date):
-        if not isinstance(date, str):
-            date = xlrd.xldate.xldate_as_tuple(date, book.datemode)
-            date = f"{date[0]:04d}-{date[1]:02d}-{date[2]:02d}"
-        return date
+        return date if isinstance(date, str) else \
+            xls_date(date, sheet.datemode)
 
-    def iter_rows():
-        yield PARTICIPANTS_HEADER
-        for n in range(1, sheet.nrows):
-            row = dict(zip(IXI_HEADER, (c.value for c in sheet.row(n))))
-            if row["DATE_AVAILABLE"] == 0:
-                continue
-            sub = f"{int(row['IXI_ID']):03d}"
-            yield [
-                f"sub-{sub}",
-                sites.get(sub, "n/a"),
-                row["AGE"] or "n/a",
-                IXI_SEX.get(row["SEX_ID"], "n/a"),
-                row["HEIGHT"] or "n/a",
-                row["WEIGHT"] or "n/a",
-                parse_date(row["DOB"]) or "n/a",
-                IXI_ETHNICITY.get(row["ETHNIC_ID"], "n/a"),
-                IXI_MARITAL_STATUS.get(row["MARITAL_ID"], "n/a"),
-                IXI_OCCUPATION.get(row["OCCUPATION_ID"], "n/a"),
-                IXI_QUALIFICATION.get(row["QUALIFICATION_ID"], "n/a"),
-                parse_date(row["STUDY_DATE"]) or "n/a",
-            ]
-
-    write_tsv(iter_rows(), path_tsv)
+    rows = [PARTICIPANTS_HEADER]
+    for _, cells in sheet.rows:
+        row = dict(zip(IXI_HEADER, cells))
+        if row["DATE_AVAILABLE"] == 0:
+            continue
+        sub = f"{int(row['IXI_ID']):03d}"
+        rows.append([
+            f"sub-{sub}",
+            sites.get(sub, "n/a"),
+            row["AGE"] or "n/a",
+            IXI_SEX.get(row["SEX_ID"], "n/a"),
+            row["HEIGHT"] or "n/a",
+            row["WEIGHT"] or "n/a",
+            parse_date(row["DOB"]) or "n/a",
+            IXI_ETHNICITY.get(row["ETHNIC_ID"], "n/a"),
+            IXI_MARITAL_STATUS.get(row["MARITAL_ID"], "n/a"),
+            IXI_OCCUPATION.get(row["OCCUPATION_ID"], "n/a"),
+            IXI_QUALIFICATION.get(row["QUALIFICATION_ID"], "n/a"),
+            parse_date(row["STUDY_DATE"]) or "n/a",
+        ])
+    return rows

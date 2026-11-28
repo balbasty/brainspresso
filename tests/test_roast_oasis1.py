@@ -248,6 +248,37 @@ def test_meta_header(root):
     assert len(rows[0]) == len(rows[1])
 
 
+def test_participants_by_name(root, caplog):
+    """Columns are found by name (any order, case and spaces ignored); an
+    ID that cannot be parsed is skipped with a warning"""
+    wb = openpyxl.Workbook()
+    wb.active.append(["m/f", "id", "HAND", "Age", "Educ", "SES", "MMSE",
+                      "CDR", "e TIV", "nWBV", "ASF", "Delay"])
+    wb.active.append(["F", "OAS1_0001_MR1", "R", 74.0, 2, 3, 29, 0.0, 1344,
+                      0.743, 1.306, "N/A"])
+    wb.active.append(["M", "OAS1_x", "R", 55, 2, 3, 29, 0, 1344, 0.7, 1.3,
+                      "N/A"])
+    wb.save(root / "sourcedata" / "oasis_cross-sectional.xlsx")
+    report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = read_tsv(layout_of(root).original(raw_file(root,
+                                                      "participants.tsv")))
+    assert rows[1:] == [["sub-0001", "F", "R", "74", "2", "3", "29", "0",
+                         "1344", "0.743", "1.306"]]
+    assert "oasis_cross-sectional.xlsx, row 3: subject ID 'OAS1_x' " \
+        "(skipped)" in caplog.text
+
+
+def test_unreadable_spreadsheet(root):
+    """An error of `participants.tsv` only"""
+    (root / "sourcedata" / "oasis_cross-sectional.xlsx").write_bytes(b"x")
+    report = roast(root, keys={"meta"}, display=False)
+    assert [name for _, name, _ in report.errors] == ["participants.tsv"]
+    assert "oasis_cross-sectional.xlsx: cannot be read" in \
+        report.errors[0][2]
+    assert raw_tree(root) == META - {"participants.tsv"}
+
+
 def test_missing_spreadsheet(root):
     (root / "sourcedata" / "oasis_cross-sectional.xlsx").unlink()
     report = roast(root, keys={"meta"}, display=False)

@@ -24,9 +24,10 @@ from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
+from brainspresso.roast.tables import TableError
 
-__all__ = ["archive_shards", "copy_templates", "scope", "subject_shards",
-           "template_config"]
+__all__ = ["archive_shards", "attempt", "copy_templates", "scope",
+           "subject_shards", "template_config"]
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -273,3 +274,62 @@ def template_config(ctx: RoastContext, names: Iterable[str]) -> dict:
             digest = f"unreadable: {type(e).__name__}"
         out[name] = [path.as_posix(), digest]
     return out
+
+
+def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
+            fail_what: str | None = None,
+            fail_errors: tuple[type[BaseException], ...] = (OSError,
+                                                            ValueError),
+            **kwargs) -> tuple[object, Fail | None]:
+    """
+    Call a reader while producing actions; its error is a `Fail`.
+
+    For sources that must be read when actions are yielded (a sheet
+    that gives several tables, the header of a table that its data
+    dictionary needs), so that nothing escapes the producer: the error
+    is that of the output `fail_name` only. The parameters of `attempt`
+    are prefixed (`fail_`), so that every other keyword argument is the
+    reader's (`name=`, `tag=`...).
+
+    ```python
+    sheet, error = attempt(read_xlsx, path, extra="oasis2",
+                           fail_name="participants.tsv", fail_tag="meta")
+    if error:
+        yield error
+        return
+    ```
+
+    Parameters
+    ----------
+    fn : callable
+        The reader, `fn(*args, **kwargs)`
+    *args
+        Its positional arguments
+    fail_name : str
+        Output that the error is of (the name of the `Fail`)
+    fail_tag : str
+        Progress group of the `Fail`
+    fail_what : str, optional
+        What is read, in the message (default: `fail_name`); a
+        `roast.tables.TableError` names its file itself
+    fail_errors : tuple[type]
+        Errors converted (others propagate)
+    **kwargs
+        Its keyword arguments
+
+    Returns
+    -------
+    result : object | None
+        What `fn` returned (None on error)
+    error : Fail | None
+        The `Fail` (None on success)
+    """
+    try:
+        return fn(*args, **kwargs), None
+    except fail_errors as e:
+        if isinstance(e, TableError):
+            message = str(e)
+        else:
+            message = (f"{fail_what or fail_name}: cannot be read "
+                       f"({type(e).__name__}: {e})")
+        return None, Fail(message, name=fail_name, tag=fail_tag)

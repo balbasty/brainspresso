@@ -814,7 +814,7 @@ def disc_options(keys, discs=None) -> dict | None:
     if not discs:
         return None
     check_discs(discs)
-    return {"discs": sorted(discs)}
+    return {"discs": sorted(set(discs))}
 
 
 #: Roast `<root>` (the `OASIS-1` folder): `roast(root, keys=..., subs=...,

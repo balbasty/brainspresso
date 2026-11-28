@@ -875,11 +875,14 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     exclude_subs, <dataset options>, **options)` of every ported
     dataset, with the meaning of the command line: subjects through
     `subject_labels(values, width)` (numbers, labels with or without
-    `sub-`, ranges, files), keys through `as_list` (and
-    `KeySpec.effective` when the dataset gives its `spec`), the dataset's
+    `sub-`, ranges, files; a path is a file), keys through `as_list`
+    (and `KeySpec.effective` when the dataset has a roast `spec`: ABIDE-I/II,
+    Bullitt, IXI), the dataset's
     own options (`--discs`, `--parts`, `fs_named`, `named`) from
     `options(keys, **extra)` into `RoastContext.options`, `source` among
-    several roasters (ABIDE-I). Its signature and docstring are built
+    several roasters (ABIDE-I; `options=` itself is then a `TypeError`),
+    the keyword names in one table (`SELECTION_ARGS`). Its signature and
+    docstring are built
     from the same parameters; the templates are the module's
     `TEMPLATES`, read at each call.
   * A missing optional input: `named_keys(spec, keys, leaves)` (the
@@ -3875,4 +3878,10 @@ up as an XPASS failure once fixed (then drop the marker).
   (was an exception of its sub-shard) and unsafe members are not
   listed. ABIDE-I's FreeSurfer tree warnings come from the logger
   `brainspresso.freesurfer.archive`. Golden: no change. Step 6 done
-  (§8).
+  (§8). Review round 1: IXI's `roast()` goes through `ROAST_SPEC` as
+  `bx ixi roast` does, so the off key `trace` is no longer roasted by
+  default from Python (`keys=["dwi", "trace"]` does); a `Path` (alone
+  or in a list) is a file of subjects (`as_list`, `subject_labels`; was
+  an error, or nothing selected); `options=` given to a `roast()` whose
+  dataset has its own options is a `TypeError` (was silently dropped);
+  OASIS-I `roast(discs=)` de-duplicated as on the command line.

@@ -21,8 +21,9 @@ from brainspresso.datasets.oasis.ii import roaster as oasis2
 from brainspresso.errors import UsageError
 from brainspresso.freesurfer import archive as fsarchive
 from brainspresso.roast import archives, run
-from brainspresso.roast.context import RoastContext
+from brainspresso.roast.context import RoastContext, as_list
 from brainspresso.roast.helpers import missing_input, named_keys
+from brainspresso.sources.base import subject_labels
 
 #: Read by `python_api` at each call (module `TEMPLATES`)
 TEMPLATES = None
@@ -151,6 +152,33 @@ def test_python_api_subjects(calls, tmp_path):
     assert calls[-1]["subs"] == ["07", "a1"]
 
 
+def test_python_api_subject_paths(calls, tmp_path):
+    """A file of subjects as an `os.PathLike`, alone or in a list"""
+    listed = tmp_path / "subs.txt"
+    listed.write_text("sub-009\n")
+    roast = run.python_api(roast_a, KEYS, folder="X", width=3)
+    roast("root", subs=listed, exclude_subs=[listed])
+    assert (calls[-1]["subs"], calls[-1]["exclude_subs"]) == (["009"],
+                                                              ["009"])
+    run.python_api(roast_a, KEYS, folder="X")("root", subs=[listed])
+    assert calls[-1]["subs"] == ["009"]
+    assert as_list(listed) == [str(listed)]
+    assert subject_labels(listed, 3) == subject_labels([listed], 3) == {
+        "009"}
+
+
+def test_python_api_refuses_options(calls):
+    """`options=` with an options function: a `TypeError` (the old
+    functions passed `options=` twice); without one, passed on"""
+    roast = run.python_api(roast_a, KEYS, folder="X",
+                           options=extra_options)
+    with pytest.raises(TypeError, match="'options'.*`discs`, `level`"):
+        roast("root", options={"discs": [1]})
+    assert not calls
+    run.python_api(roast_a, KEYS, folder="X")("root", options={"a": 1})
+    assert calls[-1]["options"] == {"a": 1}
+
+
 def test_python_api_keys_and_options(calls):
     roast = run.python_api(roast_a, KEYS, folder="X", spec=Spec(),
                            options=extra_options)
@@ -234,7 +262,7 @@ def test_dataset_options_checked(tmp_path):
         oasis1.roast(tmp_path, discs=[13])
     with pytest.raises(UsageError, match="part"):
         oasis2.roast(tmp_path, parts=[3])
-    assert oasis1.disc_options((), [2, 1]) == {"discs": [1, 2]}
+    assert oasis1.disc_options((), [2, 1, 2]) == {"discs": [1, 2]}
     assert oasis2.part_options((), [2, 2]) == {"parts": [2]}
     assert oasis1.disc_options(()) is None
 

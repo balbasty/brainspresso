@@ -331,7 +331,8 @@ def python_api(
         More about `keys`, for the docstring
     options : callable(keys, **extra) -> dict | None
         Options of the roasters (`RoastContext.options`): its keyword
-        arguments after `keys` are those of `roast()`
+        arguments after `keys` are those of `roast()` (which then
+        refuses `options=`, a `TypeError`)
     options_doc : str
         Their numpydoc entries, for the docstring
     default_source : str | None
@@ -373,6 +374,11 @@ def python_api(
         else:
             select, exclude = keys, exclude_keys
         if options is not None:
+            if "options" in kwargs:
+                raise TypeError(
+                    "roast() got an unexpected keyword argument 'options': "
+                    "the options of this dataset are its own arguments ("
+                    + ", ".join(f"`{name}`" for name in extra) + ")")
             kwargs["options"] = options(keys, **given)
         return roast_dataset(
             roaster, root, aliases,

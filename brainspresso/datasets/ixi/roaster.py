@@ -604,8 +604,8 @@ def participant_rows(path_xls, sites: dict[str, str]) -> list[list]:
 #: Roast `<root>` (the `IXI` folder): `roast(root, keys=..., subs=...)`
 roast = python_api(
     roast_ixi, KEYS, folder="IXI", width=WIDTH,
-    example=2, options=roast_options,
-    keys_doc="as given, without `ROAST_SPEC.effective` (`trace` is "
-             "roasted by default); a missing tarball (or folder) is an "
-             "error only for the keys named here (`roast_options`)",
+    example=2, spec=ROAST_SPEC, options=roast_options,
+    keys_doc="as on the command line (`ROAST_SPEC`: `trace` only when "
+             "named); a missing tarball (or folder) is an error only for "
+             "the keys named here (`roast_options`)",
 )

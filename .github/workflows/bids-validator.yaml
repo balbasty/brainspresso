@@ -45,6 +45,8 @@ concurrency:
 jobs:
   bids-validator:
     runs-on: ubuntu-24.04
+    # (each validator call is limited to 10 minutes by the script)
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
         with:
@@ -70,14 +72,16 @@ jobs:
           echo "DENO_DIR=$HOME/.cache/deno" >> "$GITHUB_ENV"
           echo "BIDS_SCHEMA_CACHE=$HOME/.cache/bids-schema" >> "$GITHUB_ENV"
       # The validator (JSR @bids/validator) and the BIDS schema
-      # (JSR @bids/schema) are pinned in tests/validate_bids.py
+      # (JSR @bids/schema, with its sha256) are pinned in
+      # tests/validate_bids.py, the validator's dependencies locked in
+      # tests/deno.lock (run with --frozen)
       - name: Cache the validator and the schema
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/deno
             ~/.cache/bids-schema
-          key: bids-validator-${{ runner.os }}-deno-2.9.6-${{ hashFiles('tests/validate_bids.py') }}
+          key: bids-validator-${{ runner.os }}-deno-2.9.6-${{ hashFiles('tests/validate_bids.py', 'tests/deno.lock') }}
           restore-keys: |
             bids-validator-${{ runner.os }}-deno-2.9.6-
       - name: Validate the roasted fixtures

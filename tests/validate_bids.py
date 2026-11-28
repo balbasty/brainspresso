@@ -14,8 +14,8 @@ Issues are compared with the known findings (`bids_validator_known.json`,
 next to this script): a known error is reported, an error that is not
 known fails the check, a known finding that is no longer reported is
 listed (to be removed from the file). Warnings are reported, never
-fatal. Codes that only the synthetic images raise are ignored by the
-validator configuration (`bids_validator_config.json`).
+fatal. Codes that only the synthetic images raise are ignored, for the
+fixtures and files that raise them only (`bids_validator_ignore.json`).
 
 Usage::
 
@@ -28,15 +28,23 @@ the main test matrix does not install. CI runs it in the
 """
 import argparse
 import contextlib
+import fnmatch
+import gzip
+import hashlib
 import json
 import os
+import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
 import urllib.request
 from collections import Counter
 from pathlib import Path
+
+import nibabel as nib
+import numpy as np
 
 HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE), str(HERE.parent / "scripts")]
@@ -53,7 +61,7 @@ import test_roast_oasis1  # noqa: E402
 import test_roast_oasis2  # noqa: E402
 import test_roast_oasis3  # noqa: E402
 from cli_utils import bx  # noqa: E402
-from roast_utils import LAYOUTS, nii_bytes  # noqa: E402
+from roast_utils import LAYOUTS  # noqa: E402
 from test_ixi import write_tarballs  # noqa: E402
 
 from brainspresso.bids.layout import Layout  # noqa: E402
@@ -61,18 +69,23 @@ from brainspresso.datasets.unc_wisconsin import harvest as unc  # noqa: E402
 from brainspresso.sources import fcp  # noqa: E402
 from brainspresso.sources.s3 import S3Bucket  # noqa: E402
 
-#: Validator version (JSR `@bids/validator`), pinned here only (the cache
-#: key of the workflow hashes this file)
+#: Validator version (JSR `@bids/validator`), pinned here; its
+#: dependencies are locked in `deno.lock` (the cache key of the workflow
+#: hashes both files)
 VALIDATOR_VERSION = "3.0.2"
+LOCK = HERE / "deno.lock"
 #: Command that runs the validator
-VALIDATOR = f"deno run -ERWN jsr:@bids/validator@{VALIDATOR_VERSION}"
-#: BIDS schema (JSR `@bids/schema`): schema 2.0.1 is BIDS 1.11.2, the
-#: first with `rawbids/`; the validator bundles BIDS 1.11.1
-SCHEMA_VERSION = "2.0.1"
-SCHEMA = f"https://jsr.io/@bids/schema/{SCHEMA_VERSION}/schema.json"
-BIDS_VERSION = "1.11.2"
-CONFIG = HERE / "bids_validator_config.json"
+VALIDATOR = (f"deno run --lock={shlex.quote(str(LOCK))} --frozen -ERWN "
+             f"jsr:@bids/validator@{VALIDATOR_VERSION}")
+#: BIDS schema (JSR `@bids/schema` 2.0.1: BIDS 1.11.2, the first with
+#: `rawbids/`; the validator bundles BIDS 1.11.1), and its digest
+SCHEMA = "https://jsr.io/@bids/schema/2.0.1/schema.json"
+SCHEMA_SHA256 = \
+    "cd5e4a65f4a41cfa700a56c3f316fbd70261ce6b4c980d3b169fbbeee7177605"
+IGNORE = HERE / "bids_validator_ignore.json"
 KNOWN = HERE / "bids_validator_known.json"
+#: Seconds allowed to one validator call
+TIMEOUT = 600
 
 
 # ----------------------------------------------------------------------
@@ -121,14 +134,17 @@ def sald(parent, layout):
     SALD (INDI, hosted BIDS), harvested from the fake `fcp-indi` bucket.
 
     The bucket of `test_hosted` with NIfTI images instead of filler
-    bytes (the hosted images are copied as they are); its shipped
-    fill-in templates.
+    bytes (the hosted images are copied as they are), whose headers
+    agree with its shipped templates (bold: TR 2 s, 32 slices); its
+    shipped fill-in templates.
     """
     t = test_hosted
-    objects = {k: nii_bytes(shape=(2, 2, 2, 3) if "_bold" in k
-                            else (2, 2, 2))
-               if k.endswith(".nii.gz") else v
-               for k, v in t.INDI.items() if k.startswith(t.SALD)}
+    objects = {k: v for k, v in t.INDI.items() if k.startswith(t.SALD)}
+    for k in objects:
+        if k.endswith("_bold.nii.gz"):
+            objects[k] = nifti((2, 2, 32, 3), tr=2.0)
+        elif k.endswith(".nii.gz"):
+            objects[k] = nifti((2, 2, 2))
     url, stop = t.serve(t.bucket_app("fcp-indi", objects))
     try:
         with patched(fcp, get_bucket=lambda: S3Bucket("fcp-indi",
@@ -137,6 +153,15 @@ def sald(parent, layout):
     finally:
         stop()
     return parent / "SALD"
+
+
+def nifti(shape, tr=None) -> bytes:
+    """A gzipped NIfTI image with units (mm, s), a TR and no gzip mtime"""
+    img = nib.Nifti1Image(np.ones(shape, np.int16), np.diag([2., 2, 2, 1]))
+    img.header.set_xyzt_units("mm", "sec")
+    if tr is not None:
+        img.header.set_zooms((2., 2., 2., tr))
+    return gzip.compress(img.to_bytes(), mtime=0)
 
 
 @contextlib.contextmanager
@@ -192,12 +217,16 @@ def targets(root: Path) -> dict[str, Path]:
     return out
 
 
-def local_schema(schema: str, cache: Path) -> str:
-    """A `file://` URL of the schema (downloaded once into `cache`)"""
+def local_schema(schema: str, cache: Path) -> Path:
+    """
+    The schema as a local file (a URL is downloaded once into `cache`,
+    under a hash of the URL; the pinned one is checked against its
+    digest)
+    """
     if not schema.startswith(("http://", "https://")):
-        return Path(schema).resolve().as_uri()
-    path = cache / ("bids-schema-" + schema.rstrip("/").split("/")[-2]
-                    + ".json")
+        return Path(schema).resolve()
+    digest = hashlib.sha256(schema.encode()).hexdigest()[:16]
+    path = cache / f"bids-schema-{digest}.json"
     if not path.exists():
         cache.mkdir(parents=True, exist_ok=True)
         # (a generic user agent: jsr.io refuses urllib's own)
@@ -207,16 +236,41 @@ def local_schema(schema: str, cache: Path) -> str:
             data = response.read()
         json.loads(data)
         path.write_bytes(data)
-    return path.as_uri()
+    if schema == SCHEMA:
+        got = hashlib.sha256(path.read_bytes()).hexdigest()
+        if got != SCHEMA_SHA256:
+            path.unlink()
+            raise RuntimeError(f"{schema}: sha256 {got}, not {SCHEMA_SHA256}")
+    return path
+
+
+def call(args: list[str]) -> subprocess.CompletedProcess:
+    """Run a validator command (at most `TIMEOUT` seconds)"""
+    try:
+        return subprocess.run(args, capture_output=True, text=True,
+                              timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"validator timed out ({TIMEOUT} s): "
+                           f"{shlex.join(args)}") from None
+
+
+def validator_version(validator: list[str]) -> str:
+    """Version that the validator reports (`--version`)"""
+    out = call([*validator, "--version"])
+    found = re.search(r"\d+\.\d+\.\d+\S*",
+                      re.sub(r"\x1b\[[0-9;]*m", "", out.stdout))
+    if out.returncode or not found:
+        raise RuntimeError(f"validator --version failed ({out.returncode}):"
+                           f"\n{out.stdout[-2000:]}\n{out.stderr[-2000:]}")
+    return found.group(0)
 
 
 def validate(validator: list[str], folder: Path, study: bool) -> dict:
     """Run the validator on a folder; return its JSON report"""
-    args = [*validator, str(folder), "--format", "json",
-            "--config", str(CONFIG), "--no-color"]
+    args = [*validator, str(folder), "--format", "json", "--no-color"]
     if study:
         args += ["--datasetTypes", "study"]
-    out = subprocess.run(args, capture_output=True, text=True)
+    out = call(args)
     try:
         return json.loads(out.stdout)
     except json.JSONDecodeError:
@@ -239,6 +293,28 @@ def findings(report: dict, **where) -> list[dict]:
     return out
 
 
+def ignore(found: list[dict], rules: list[dict]) -> list[int]:
+    """
+    Mark the findings that a rule ignores (severity "ignore").
+
+    A rule (`bids_validator_ignore.json`) names a `code`, the
+    `datasets` (fixtures) it applies to and a `location` pattern
+    (`fnmatch`, `*` matches `/` too). Returns the number of findings
+    each rule ignored.
+    """
+    used = [0] * len(rules)
+    for f in found:
+        for i, rule in enumerate(rules):
+            if (f["code"] == rule["code"]
+                    and f["dataset"] in rule["datasets"]
+                    and fnmatch.fnmatchcase(f["location"],
+                                            rule.get("location", "*"))):
+                f["severity"] = "ignore"
+                used[i] += 1
+                break
+    return used
+
+
 KEY = ("dataset", "layout", "target", "code", "subCode", "location")
 
 
@@ -253,7 +329,9 @@ def run(names, layouts, validator, work: Path) -> tuple[list, dict]:
     result, versions = [], {}
     for name in names:
         for layout in layouts:
+            # (a fresh folder: a former run's files are not mixed in)
             parent = work / name / layout
+            shutil.rmtree(parent, ignore_errors=True)
             parent.mkdir(parents=True)
             print(f"== {name} ({layout})", flush=True)
             root = fixtures[name](parent, layout)
@@ -266,8 +344,7 @@ def run(names, layouts, validator, work: Path) -> tuple[list, dict]:
                 result += got
                 count = Counter(f["severity"] for f in got)
                 print(f"   {target}: {count['error']} errors, "
-                      f"{count['warning']} warnings, "
-                      f"{count['ignore']} ignored", flush=True)
+                      f"{count['warning']} warnings", flush=True)
     return result, versions
 
 
@@ -295,24 +372,27 @@ def table(rows: list[dict]) -> list[str]:
     return out
 
 
-def summary(found, new, old, gone, versions) -> str:
+def summary(found, new, old, gone, versions, rules=(), used=()) -> str:
     """Markdown summary of the check"""
     warnings = [f for f in found if f["severity"] == "warning"]
-    ignored = Counter(f["code"] for f in found if f["severity"] == "ignore")
     lines = [
         "## BIDS validator",
         "",
-        f"bids-validator {VALIDATOR_VERSION}, schema "
-        f"{versions.get('schema')} (BIDS {BIDS_VERSION}).",
+        f"bids-validator {versions.get('validator')}, schema "
+        f"{versions.get('schema')} (BIDS {versions.get('bids')}).",
         "",
         f"* new errors (fatal): {len(new)}",
         f"* known errors (`tests/bids_validator_known.json`): {len(old)}",
         f"* known findings no longer reported: {len(gone)}",
         f"* warnings: {len(warnings)}",
-        "* ignored (`tests/bids_validator_config.json`): "
-        + (", ".join(f"`{c}` ({n})" for c, n in sorted(ignored.items()))
-           or "none"),
+        "* ignored (`tests/bids_validator_ignore.json`): "
+        + (", ".join(f"`{r['code']}` in {', '.join(r['datasets'])} ({n})"
+                     for r, n in zip(rules, used)) or "none"),
     ]
+    unused = [r["code"] for r, n in zip(rules, used) if not n]
+    if unused:
+        lines.append("* ignore rules that matched nothing (to remove): "
+                     + ", ".join(f"`{c}`" for c in unused))
     for title, rows in (("New errors", new), ("Known errors", old),
                         ("No longer reported", gone)):
         if rows:
@@ -353,9 +433,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     with tempfile.TemporaryDirectory() as tmp:
         schema = local_schema(args.schema, args.schema_cache or Path(tmp))
-        validator = [*shlex.split(args.validator), "--schema", schema]
+        command = shlex.split(args.validator)
+        validator = [*command, "--schema", schema.as_uri()]
         work = args.work or Path(tmp) / "work"
         found, versions = run(args.datasets, args.layouts, validator, work)
+    # (versions: the schema's from the reports, the BIDS version from the
+    # schema the validator was given, its own from `--version`)
+    versions["bids"] = json.loads(schema.read_text()).get("bids_version")
+    versions["validator"] = validator_version(command)
+    rules = [r for r in json.loads(IGNORE.read_text())["ignore"]
+             if set(r["datasets"]) & set(args.datasets)]
+    used = ignore(found, rules)
 
     known = json.loads(KNOWN.read_text())["findings"] \
         if KNOWN.exists() else []
@@ -366,12 +454,13 @@ def main(argv=None):
                   for f in found if f["severity"] == "error"]
         known = sorted(keep + errors, key=key_of)
         KNOWN.write_text(json.dumps({
-            "validator": VALIDATOR_VERSION,
-            "schema": SCHEMA_VERSION,
+            "validator": versions["validator"],
+            "schema": versions["schema"],
+            "bids": versions["bids"],
             "findings": known,
         }, indent=2) + "\n")
     new, old, gone = compare(found, known, args.datasets, args.layouts)
-    text = summary(found, new, old, gone, versions)
+    text = summary(found, new, old, gone, versions, rules, used)
     print(text)
     if args.summary:
         with open(args.summary, "a") as f:

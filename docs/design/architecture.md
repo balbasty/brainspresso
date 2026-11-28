@@ -3287,7 +3287,9 @@ up as an XPASS failure once fixed (then drop the marker).
   that the names (and the "folders not together" `Fail`) no longer
   depend on the selection, which the scope requires.
 * r45: CI step (§8). `bids-validator.yaml`, a workflow of its own (one
-  Linux job, Python 3.12, Deno 2.9.6, the validator and schema cached):
+  Linux job, Python 3.12, Deno 2.9.6, the validator and schema cached,
+  the validator's dependencies locked in `tests/deno.lock`, the schema
+  checked against its sha256):
   `tests/validate_bids.py` harvests or roasts the fixtures of the roast
   tests (IXI, OASIS-I/II/III, COBRE, ABIDE-I NITRC and XNAT, ABIDE-II,
   Bullitt, UNC-Wisconsin, SALD from a fake `fcp-indi` bucket) with
@@ -3295,9 +3297,11 @@ up as an XPASS failure once fixed (then drop the marker).
   1.11.2 schema) on the raw dataset, the study root and each
   derivative. Errors listed in `tests/bids_validator_known.json` are
   reported, a new one fails the job, warnings never do; codes that only
-  the synthetic images raise are ignored (`tests/bids_validator_config.json`:
-  `REPETITION_TIME_MISMATCH`, `SLICETIMING_ELEMENTS`,
-  `GZIP_HEADER_MTIME`). The fixtures of Bullitt and OASIS-I/II/III are
+  the synthetic images raise are ignored for the fixtures and files that
+  raise them (`tests/bids_validator_ignore.json`:
+  `REPETITION_TIME_MISMATCH` and `SLICETIMING_ELEMENTS` on the ABIDE
+  bold images, `GZIP_HEADER_MTIME` on images copied from the fixture
+  archives; SALD's images agree with its templates). The fixtures of Bullitt and OASIS-I/II/III are
   now `make_source` functions (as for the other roasts), the IXI
   tarballs `write_tarballs`. §9: the study/`rawbids/` question is
   answered. The 116 known errors (derivatives without

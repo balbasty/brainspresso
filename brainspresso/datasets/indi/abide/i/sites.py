@@ -21,7 +21,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Callable
 
-from brainspresso.datasets.indi.abide.scans import TemplateError
+from brainspresso.roast.sidecars import TemplateError
 
 lg = getLogger(__name__)
 

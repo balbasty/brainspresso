@@ -35,7 +35,7 @@ import nibabel as nib
 import numpy as np
 import xlrd  # extra: brainspresso[ixi]
 
-from brainspresso.actions import Action, CopyBytes, CopyJSON, Fail
+from brainspresso.actions import Action, CopyBytes, Fail
 from brainspresso.actions.action import IfExists
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.actions.writers import WriteJSON, WriteText
@@ -50,6 +50,7 @@ from brainspresso.roast import (
     copy_templates,
     roast_dataset,
 )
+from brainspresso.roast.sidecars import copy_sidecar
 from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
 from brainspresso.utils.io import write_tsv
 
@@ -199,8 +200,8 @@ def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
         for member in members:
             sub, site = parse_name(member.name)
             anat = ctx.layout.raw / f"sub-{sub}" / "anat"
-            yield CopyJSON(ctx.resource(f"{site}/{key}.json"),
-                           anat / f"sub-{sub}_{key}.json")
+            yield from copy_sidecar(ctx, f"{site}/{key}.json",
+                                    anat / f"sub-{sub}_{key}.json")
             yield ExtractMember(archive, member,
                                 anat / f"sub-{sub}_{key}.nii.gz")
             ctx.progress(advance=1)
@@ -393,7 +394,7 @@ def roast_dwi_subject(ctx, archive, drv, sub, site, volumes, want_dwi,
 
 
 def roast_dwi_raw(ctx, archive, dwi, base, site, names, tables):
-    yield CopyJSON(ctx.resource(f"{site}/dwi.json"), dwi / f"{base}.json")
+    yield from copy_sidecar(ctx, f"{site}/dwi.json", dwi / f"{base}.json")
     yield Action(
         archive.sources(*names), dwi / f"{base}.nii.gz",
         partial(stack_volumes, archive, names[:NDIR]), input="path",

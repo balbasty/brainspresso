@@ -10,8 +10,9 @@ import numpy as np
 import pytest
 from roast_utils import init_layout, make_tar, nii_bytes, raw_file
 
+from brainspresso.convert.nifti import header_tr
 from brainspresso.datasets.indi.abide.i import sites, sources
-from brainspresso.datasets.indi.abide.i.roaster import header_tr, roast
+from brainspresso.datasets.indi.abide.i.roaster import roast
 from brainspresso.datasets.indi.abide.i.sites import (
     TemplateError,
     site_template,

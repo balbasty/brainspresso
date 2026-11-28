@@ -61,10 +61,11 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator, NamedTuple
 
-from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.actions import Action, Fail
 from brainspresso.bids.harvest import update_files
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.tables import trim_tables
+from brainspresso.convert.nifti import image_ext
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.ii.keys import allkeys
@@ -81,12 +82,6 @@ from brainspresso.datasets.indi.abide.ii.tables import (
     PARTICIPANTS,
     PHENOTYPES,
 )
-from brainspresso.datasets.indi.abide.scans import (
-    TemplateError,
-    bold_sidecar,
-    image_ext,
-    read_template,
-)
 from brainspresso.datasets.indi.abide.tables import WIDTH, participant_label
 from brainspresso.roast import (
     RoastContext,
@@ -94,10 +89,12 @@ from brainspresso.roast import (
     archives,
     as_list,
     roast_dataset,
+    sidecars,
 )
 from brainspresso.roast.archives import place, spool
 from brainspresso.roast.archives import spool_host as _host  # noqa: F401
 from brainspresso.roast.helpers import archive_shards
+from brainspresso.roast.sidecars import TemplateError, template_sidecar
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.path import sorted_paths
@@ -298,15 +295,15 @@ def template_config(ctx: RoastContext, path: Path) -> dict:
     """
     site = tarball_site(path)
     if site is not None:
-        return scans.template_config(
-            lambda name: site_template(*site, name, ctx.resource),
-            TEMPLATE_NAMES, f"{site[0]}/{site[1] or '1'}")
+        return {"site": f"{site[0]}/{site[1] or '1'}",
+                "templates": sidecars.template_config(
+                    lambda name: site_template(*site, name, ctx.resource),
+                    TEMPLATE_NAMES)}
     out = {}
     for site, sample in template_folders(ctx.source):
-        config = scans.template_config(
+        out[f"{site}/{sample}"] = sidecars.template_config(
             partial(site_template, site, sample, resource=ctx.resource),
-            TEMPLATE_NAMES, f"{site}/{sample}")
-        out[config["site"]] = config["templates"]
+            TEMPLATE_NAMES)
     return {"site": None, "templates": out}
 
 
@@ -934,17 +931,11 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
         yield Fail(f"{image_name}: {e}", name=f"{stem.name}.json",
                    tag=kind.key)
         return
-    content, error = read_template(template, stem, kind.key)
-    if error is not None:
-        yield error
-        return
-    if kind.suffix == "bold":
-        def open_image(image=image):
-            if image.spool is not None and image.spool.is_file():
-                return open(image.spool, "rb")
-            return io.BytesIO(image.data or b"")
+    def open_image(image=image):
+        if image.spool is not None and image.spool.is_file():
+            return open(image.spool, "rb")
+        return io.BytesIO(image.data or b"")
 
-        yield bold_sidecar(template, content, stem, image_path,
-                           open_image, image_name, tag=kind.key)
-        return
-    yield CopyJSON(template, f"{stem}.json", tag=kind.key)
+    yield from template_sidecar(template, stem, kind.key,
+                                bold=kind.suffix == "bold", image=image_path,
+                                open_image=open_image, image_name=image_name)

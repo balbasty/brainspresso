@@ -41,10 +41,9 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.actions import Action, Fail
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.datasets.indi.abide.scans import bold_sidecar, read_template
 from brainspresso.roast import (
     SEEN,
     RoastContext,
@@ -55,7 +54,7 @@ from brainspresso.roast import (
     roast_dataset,
     scope,
 )
-from brainspresso.roast.helpers import template_config
+from brainspresso.roast.sidecars import template_config, template_sidecar
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import write_tsv
@@ -164,11 +163,11 @@ def sidecar_config(ctx: RoastContext) -> dict:
     Returns
     -------
     dict
-        `{name: [path, sha256] | None}` (`roast.helpers.template_config`):
+        `{name: [path, sha256] | None}` (`roast.sidecars.template_config`):
         a changed template re-runs the shard
     """
-    return template_config(ctx, [f"{suffix}.json"
-                                 for _, _, _, suffix in SCANS.values()])
+    return template_config(ctx.resource, [
+        f"{suffix}.json" for _, _, _, suffix in SCANS.values()])
 
 
 # ----------------------------------------------------------------------
@@ -344,7 +343,7 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     Action
         Per image: the image, then its sidecar (a template; for bold,
         with the `TaskName` of its name and the `RepetitionTime` of its
-        NIfTI header, which the template lacks: `abide.scans.bold_sidecar`;
+        NIfTI header, which the template lacks: `roast.sidecars.bold_sidecar`;
         `DOCUMENTED_TR` if the header gives none, one warning per roast);
         a `Fail` if the tarball cannot be read
 
@@ -424,13 +423,7 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
         yield Fail(f"{suffix}.json not found", name=f"{stem.name}.json",
                    tag=key)
         return
-    if suffix != "bold":
-        yield CopyJSON(sidecar, f"{stem}.json", tag=key)
-        return
-    content, error = read_template(Path(sidecar), stem, key)
-    if error is not None:
-        yield error
-        return
-    yield bold_sidecar(Path(sidecar), content, stem, image, open_image,
-                       image_name, default_tr=DOCUMENTED_TR,
-                       on_default=on_default, tag=key)
+    yield from template_sidecar(
+        Path(sidecar), stem, key, bold=suffix == "bold", image=image,
+        open_image=open_image, image_name=image_name,
+        default_tr=DOCUMENTED_TR, on_default=on_default)

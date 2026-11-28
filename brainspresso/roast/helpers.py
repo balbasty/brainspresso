@@ -6,7 +6,10 @@ yield from copy_templates(ctx, ["README", "dataset_description.json"])
 yield from subject_shards(ctx, labels, roast_subject)
 yield from archive_shards(ctx, tarballs, roast_archive, tag="raw",
                           keys=("T1w", "bold"),
-                          config=lambda path: template_config(ctx, NAMES))
+                          config=lambda path: template_config(ctx.resource,
+                                                              NAMES))
+header, error = attempt(read_header, path, name="sub-01_T1w.nii.gz",
+                        tag="T1w")
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -14,7 +17,6 @@ what a dataset converts stays in its roaster.
 """
 from __future__ import annotations
 
-import hashlib
 import os
 from pathlib import Path
 from typing import Callable, Iterable, Iterator, Mapping
@@ -22,11 +24,12 @@ from typing import Callable, Iterable, Iterator, Mapping
 from brainspresso.actions.action import Action, Fail
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
+from brainspresso.convert import ConvertError
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
 
-__all__ = ["archive_shards", "copy_templates", "scope", "subject_shards",
-           "template_config"]
+__all__ = ["archive_shards", "attempt", "copy_templates", "scope",
+           "subject_shards"]
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -218,7 +221,7 @@ def archive_shards(
         Source files of a shard (default: `[path]`)
     config : callable(path) -> JSON-able
         What else decides its outputs, e.g. its sidecar templates
-        (`template_config`; default: None)
+        (`roast.sidecars.template_config`; default: None)
 
     Yields
     ------
@@ -237,39 +240,56 @@ def archive_shards(
         )
 
 
-def template_config(ctx: RoastContext, names: Iterable[str]) -> dict:
+def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
+            errors: tuple[type[BaseException], ...] = (OSError, ValueError),
+            **kwargs) -> tuple[object, Fail | None]:
     """
-    Describe sidecar templates, for the `config` of a shard.
+    Call a reader while producing actions; its error is a `Fail`.
 
-    Templates are signed by their content in the shard's `config`, never
-    listed in its `inputs`: a changed template re-runs the shards that
-    use it, and a template found elsewhere (`sourcedata/` instead of the
-    package) re-runs them too.
+    For sources that must be read when actions are yielded (a template
+    whose content decides the action, a header read to choose a name),
+    so that nothing escapes the producer: the error is that of the
+    output `name` only.
+
+    ```python
+    content, error = attempt(read_json, path, name="sub-01_T1w.json",
+                             tag="T1w", what=f"template {path}")
+    if error:
+        yield error
+        return
+    ```
 
     Parameters
     ----------
-    ctx : RoastContext
-        Context of the roast (templates found with `ctx.resource`)
-    names : list[str]
-        Names of the templates that a shard may use
+    fn : callable
+        The reader, `fn(*args, **kwargs)`
+    *args
+        Its positional arguments
+    name : str
+        Output that the error is of (the name of the `Fail`)
+    tag : str
+        Progress group of the `Fail`
+    what : str, optional
+        What is read, in the message (default: `name`); a
+        `convert.ConvertError` names its file itself
+    errors : tuple[type]
+        Errors converted (others propagate)
+    **kwargs
+        Its keyword arguments
 
     Returns
     -------
-    dict
-        `{name: [path, sha256] | None}` (None: not found; a template
-        that cannot be read has the digest `"unreadable: <Type>"`, its
-        sidecars fail when written)
+    result : object | None
+        What `fn` returned (None on error)
+    error : Fail | None
+        The `Fail` (None on success)
     """
-    out = {}
-    for name in names:
-        path = ctx.resource(name)
-        if path is None:
-            out[name] = None
-            continue
-        path = Path(path)
-        try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as e:
-            digest = f"unreadable: {type(e).__name__}"
-        out[name] = [path.as_posix(), digest]
-    return out
+    try:
+        return fn(*args, **kwargs), None
+    except errors as e:
+        if isinstance(e, ConvertError):
+            message = str(e)
+        else:
+            message = (f"{what or name}: cannot be read "
+                       f"({type(e).__name__}: {e})")
+        return None, Fail(message, name=name, tag=tag)

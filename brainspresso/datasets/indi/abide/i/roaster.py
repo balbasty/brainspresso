@@ -61,6 +61,7 @@ from brainspresso.actions import Action, CopyBytes, Fail, WriteJSON
 from brainspresso.actions.action import Claim
 from brainspresso.actions.archive import ExtractMember, ExtractMembers
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert.nifti import image_ext
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.i.keys import allkeys
@@ -76,11 +77,6 @@ from brainspresso.datasets.indi.abide.i.tables import (
     WIDTH,
     participant_label,
 )
-from brainspresso.datasets.indi.abide.scans import (  # noqa: F401
-    HeaderSidecar,  # (re-exported: shared with ABIDE-II)
-    header_tr,
-    image_ext,
-)
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
     RoastContext,
@@ -90,6 +86,7 @@ from brainspresso.roast import (
     as_list,
     roast_dataset,
     scope,
+    sidecars,
 )
 from brainspresso.roast.helpers import archive_shards
 from brainspresso.sources.base import subject_labels
@@ -286,9 +283,9 @@ def template_config(ctx: RoastContext, site: str) -> dict:
         `{"site": site, "templates": {name: [path, sha256] | None}}`: a
         changed template re-runs the shard
     """
-    return scans.template_config(
+    return {"site": site, "templates": sidecars.template_config(
         lambda name: site_template(site, name, ctx.resource),
-        TEMPLATE_NAMES, site)
+        TEMPLATE_NAMES)}
 
 
 def scan_actions(

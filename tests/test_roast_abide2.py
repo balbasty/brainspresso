@@ -34,10 +34,10 @@ from brainspresso.datasets.indi.abide.ii import roaster, sites, tables
 from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
 from brainspresso.datasets.indi.abide.ii.roaster import roast
 from brainspresso.datasets.indi.abide.ii.sites import TEMPLATES
-from brainspresso.datasets.indi.abide.scans import TemplateError
 from brainspresso.datasets.indi.abide.tables import read_csv
 from brainspresso.datasets.indi.engine import format_tsv
 from brainspresso.roast import make_context
+from brainspresso.roast.sidecars import TemplateError
 
 PHENOS = tables.PHENOTYPES
 PARTICIPANTS = tables.PARTICIPANTS

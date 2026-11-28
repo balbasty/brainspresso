@@ -513,6 +513,20 @@ def test_corrupt_image_is_an_error(root):
     assert report.status == "partial"
 
 
+def test_truncated_header_is_an_error(root):
+    """A header that ends at `ElementDataFile = ` is a truncated header
+    (was "Is a directory": the folder of the file read as its data)"""
+    path = root / "sourcedata" / "Normal-001/T2/Normal001-T2.mha"
+    path.write_bytes(path.read_bytes().split(b"ElementDataFile")[0] +
+                     b"ElementDataFile = ")
+    report = roast_api(root, display=False)
+    assert [name for _, name, _ in report.errors] == ["sub-001_T2w.nii.gz"]
+    assert report.errors[0][2].startswith(
+        "Normal001-T2.mha: incomplete MetaImage header: empty "
+        "ElementDataFile (truncated header?)")
+    assert raw_tree(root) == META | (RAW - {"sub-001/anat/sub-001_T2w.nii.gz"})
+
+
 def test_participants_rows(root, caplog):
     """Bad rows are skipped with a warning, empty cells are n/a, IDs
     have `sub-`"""

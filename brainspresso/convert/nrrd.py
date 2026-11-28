@@ -11,6 +11,10 @@ Conversion from NRRD (used by Slicer, DTIPrep, ...) to NIfTI.
     world space, then to voxel axes; its x component is flipped when the
     NIfTI affine has a positive determinant (as FSL and dcm2niix do).
 
+A corrupt, truncated or unsupported file (unknown space, not three
+spatial axes, repeated gradients, gradients that do not match the
+volumes) is a `ConvertError`.
+
 Requires `pynrrd` (`pip install brainspresso[nrrd]`).
 """
 from __future__ import annotations
@@ -19,6 +23,10 @@ from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+
+from brainspresso.convert.base import ConvertError, input_errors
+
+__all__ = ["dwi_gradients", "nrrd_affine", "nrrd_to_nifti"]
 
 # NRRD space -> sign flips to RAS
 SPACES = {
@@ -34,6 +42,7 @@ SPATIAL_KINDS = {"domain", "space"}
 
 
 def _spatial_axes(header: dict) -> list[int]:
+    """List the spatial axes of a NRRD (from its `kinds`)."""
     kinds = header.get("kinds")
     ndim = int(header["dimension"])
     if kinds:
@@ -43,10 +52,25 @@ def _spatial_axes(header: dict) -> list[int]:
 
 def nrrd_affine(header: dict) -> tuple[np.ndarray, np.ndarray]:
     """
-    Return `(affine_ras, directions)`.
+    Build the RAS affine of a NRRD header.
 
-    `directions` (3x3) has the world-space step of each spatial axis as
-    columns, in the NRRD space (before conversion to RAS).
+    Parameters
+    ----------
+    header : dict
+        NRRD header (`nrrd.read`)
+
+    Returns
+    -------
+    affine : (4, 4) array
+        voxel -> RAS
+    directions : (3, 3) array
+        The world-space step of each spatial axis as columns, in the
+        NRRD space (before conversion to RAS)
+
+    Raises
+    ------
+    ValueError
+        An unsupported space, or not three spatial axes
     """
     space = header.get("space", "right-anterior-superior")
     if space not in SPACES:
@@ -68,7 +92,21 @@ def nrrd_affine(header: dict) -> tuple[np.ndarray, np.ndarray]:
 
 def dwi_gradients(header: dict, directions: np.ndarray, affine: np.ndarray):
     """
-    Return `(bvals, bvecs)` (shapes (N,) and (3, N)) in the FSL convention.
+    Compute the b-values and b-vectors of a DWI NRRD (FSL convention).
+
+    Parameters
+    ----------
+    header : dict
+        NRRD header (`DWMRI_b-value`, `DWMRI_gradient_<n>`)
+    directions : (3, 3) array
+        Steps of the spatial axes (`nrrd_affine`)
+    affine : (4, 4) array
+        voxel -> RAS (`nrrd_affine`)
+
+    Returns
+    -------
+    bvals : (N,) array
+    bvecs : (3, N) array
     """
     bmax = float(header["DWMRI_b-value"])
     keys = sorted(k for k in header if k.startswith("DWMRI_gradient_"))
@@ -117,26 +155,56 @@ def nrrd_to_nifti(
     bval, bvec : path, optional
         Output b-values/vectors (only for diffusion-weighted NRRDs).
         Required if the input is a DWI.
+
+    Returns
+    -------
+    nib.Nifti1Image
+        The image written
+
+    Raises
+    ------
+    ConvertError
+        If the input is corrupt, truncated or not supported (nothing is
+        written); an error writing the outputs passes through
+    ValueError
+        A DWI without `bval` and `bvec` outputs
     """
     # Load-bearing: the UNC-Wisconsin roaster (imported by its dataset at
     # registration) imports this module without pynrrd being installed.
     import nrrd  # noqa: PLC0415  lazy: optional dependency (pynrrd)
 
+    name = Path(inp).name
     try:
-        data, header = nrrd.read(str(inp))
+        with input_errors(name):
+            data, header = nrrd.read(str(inp))
     except nrrd.NRRDError as e:
         if "does not equal the product" in str(e):
-            raise ValueError(
-                f"{Path(inp).name} is truncated (the data is shorter than "
-                f"its header declares); the source file may be corrupted"
+            raise ConvertError(
+                f"{name}: truncated (the data is shorter than its "
+                f"header declares); the source file may be corrupted"
             ) from e
-        raise
-    affine, directions = nrrd_affine(header)
-
-    # Move non-spatial axes (e.g. diffusion "list") last
-    axes = _spatial_axes(header)
-    others = [i for i in range(data.ndim) if i not in axes]
-    data = np.transpose(data, axes + others)
+        raise ConvertError(f"{name}: not a valid NRRD file ({e})") from e
+    dwi = str(header.get("modality", "")).upper() == "DWMRI"
+    if dwi and (bval is None or bvec is None):
+        raise ValueError("DWI: bval and bvec outputs are required")
+    with input_errors(name, "unsupported NRRD header"):
+        affine, directions = nrrd_affine(header)
+        # Move non-spatial axes (e.g. diffusion "list") last
+        axes = _spatial_axes(header)
+        others = [i for i in range(data.ndim) if i not in axes]
+        data = np.transpose(data, axes + others)
+    if dwi:
+        try:
+            with input_errors(name, "invalid DWI gradients"):
+                bvals, bvecs = dwi_gradients(header, directions, affine)
+        except (NotImplementedError, np.linalg.LinAlgError) as e:
+            raise ConvertError(f"{name}: unsupported DWI gradients "
+                               f"({type(e).__name__}: {e})") from e
+        if len(bvals) != data.shape[-1]:
+            raise ConvertError(
+                f"{name}: {len(bvals)} gradients for {data.shape[-1]} "
+                f"volumes"
+            )
 
     img = nib.Nifti1Image(data, affine)
     img.set_qform(affine, code=1)
@@ -145,14 +213,7 @@ def nrrd_to_nifti(
     img.header.set_zooms(tuple(zooms) + (1.0,) * (data.ndim - 3))
     img.header.set_xyzt_units("mm")
 
-    if str(header.get("modality", "")).upper() == "DWMRI":
-        if bval is None or bvec is None:
-            raise ValueError("DWI: bval and bvec outputs are required")
-        bvals, bvecs = dwi_gradients(header, directions, affine)
-        if len(bvals) != data.shape[-1]:
-            raise ValueError(
-                f"{len(bvals)} gradients for {data.shape[-1]} volumes"
-            )
+    if dwi:
         Path(bval).write_text(" ".join(f"{b:g}" for b in bvals) + "\n",
                               encoding="utf-8", newline="\n")
         Path(bvec).write_text("\n".join(

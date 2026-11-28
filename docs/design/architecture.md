@@ -776,8 +776,9 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     (progress total, `roast/<tag>/<name>` ids, `scope(keys, SEEN)`).
   * Templates in signatures: every roaster signs the sidecar templates
     that a shard may use by content in its `Shard.config` (path and
-    sha256: `roast.helpers.template_config(ctx, names)`, `{name: [path,
-    sha256] | None}`, or ABIDE's `{"site", "templates"}`), never in its
+    sha256: `roast.sidecars.template_config(ctx.resource, names)`,
+    `{name: [path, sha256] | None}`, or ABIDE's `{"site", "templates"}`,
+    the same digests of a site's own lookup), never in its
     `inputs` (owner decision, step 6: OASIS-I/II and Bullitt listed them
     in `inputs`, signed by size and mtime). Bullitt signs those of the
     images a subject shard converts, when sidecars are written (as its
@@ -791,8 +792,70 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     once, under `--if-exists skip` too; nothing is rewritten (their
     outputs exist and are skipped one by one). Shard ids and the other
     inputs are unchanged; no other roaster's signature changes.
-* Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
-  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table readers (step 6:
+* **Converter conventions** (step 6 PR C, `brainspresso/convert/`; a
+  library of functions, no class hierarchy).
+  * Modules: `metaimage` (`.mha`, `.mhd` + raw: `read_header`, `read`,
+    `metaimage_to_nifti`), `nrrd` (`.nrrd`, `.nhdr`, DWI gradients:
+    `nrrd_to_nifti(inp, out, *, bval, bvec)`), `analyze`
+    (`analyze_to_nifti(hdr, img, dst, *, affine, sources)`, paths or
+    binary file objects, in memory; `analyze_action(archive, src,
+    members, dst, ...)` reads a pair of members of an open archive in
+    the order given, archive order: OASIS-I and OASIS-II), `nibabel`
+    (`nibabel_convert`, `.mgz`/`.mgh`..., and its action
+    `BabelConvert`), `nifti` (`NIFTI`, `image_ext`, `header_tr`,
+    `TR_RANGE`), `volume` (`make_affine`, `relabel(data, sources)`
+    with `sources = {new: old or [old]}`: FAST's CSF, GM, WM to the SPM
+    order is `{1: 2, 2: 3, 3: 1}`).
+  * Registry: `CONVERTERS`, source extension to function, so that
+    `Convert(src, dst)` (an `Action`, `input="path"`) needs no argument
+    in the common case; `converter=` overrides it, `outputs={"bval":
+    ..., "bvec": ...}` adds outputs written by the same conversion
+    (passed by keyword; give `kind="data"`), the other keywords are
+    options of the converter. `convert(src, dst, **options)` is the
+    function. DICOM is not in it (no user yet).
+  * Error contract: a corrupt, truncated or unsupported input raises
+    `ConvertError` (a `ValueError`; `"<file name>: <reason>"`, the
+    original error chained): a missing or empty header field, an
+    unknown element type, a data file that is missing or not a file,
+    data shorter than declared, data that neither zlib nor gzip reads,
+    pynrrd's and nibabel's read errors (`convert.base.input_errors`
+    wraps the reading of an input, `READ_ERRORS`). Never
+    `IsADirectoryError`, `KeyError`, `zlib.error` or `struct.error`. An
+    error writing an output (a full disk) passes through unchanged: each
+    converter reads everything first, then writes. A missing optional
+    package stays an `ImportError` (`Dataset.requires` reports it
+    first).
+  * A conversion runs inside its action: a corrupt input is an error of
+    its own output, reported under the output's name with the
+    converter's message; no output is left (the action writes to
+    temporary files; the three outputs of a NRRD DWI are all written or
+    none), and the shard goes on. A converter called while producing
+    actions (a header read to choose a name) goes through
+    `roast.helpers.attempt` (a `Fail` named after the output; a
+    `ConvertError` names its file itself).
+  * Layering: `convert/` builds on `actions/` and `utils/` only;
+    `actions/` imports no format package (`Freesurfer2Gifti` is in
+    `freesurfer/actions.py`, `BabelConvert` in `convert/`;
+    `tests/test_convert.py::test_layering`).
+* **Sidecar conventions** (step 6 PR C, `roast/sidecars.py`):
+  `template_config(find, names)` (above); `read_template(path, stem,
+  key)` (a `Fail` of the sidecar if the template cannot be read or is
+  not a JSON object); `copy_sidecar(ctx, name, dst, tag=)` (a template
+  found with `ctx.resource`, else a `Fail` named after the sidecar when
+  sidecars are written: Bullitt, IXI, OASIS-II); `template_sidecar`
+  (a found template: a copy, or a bold sidecar: ABIDE-I, ABIDE-II,
+  COBRE); `TemplateError` (no template, from a site's lookup). Bold
+  sidecars (`bold_sidecar`, `HeaderSidecar`) add the REQUIRED
+  `TaskName` of the name and `RepetitionTime`, which one function
+  decides, `repetition_time(template, header, default)`, the TR policy:
+  the template's, else the NIfTI header's (`convert.nifti.header_tr`,
+  read when the action runs, from the image written or the source),
+  else the dataset's documented default (COBRE: 2 s, one warning per
+  roast), else none (an error of the sidecar: ABIDE). A change of
+  policy (header before template, TR written into headers) changes
+  that function only.
+* Shared helpers: `ExtractMember(archive, member, dst)`, converters
+  (above), table readers (step 6:
   `roast/tables.py`; the unused `TableMapper` was removed in step 6 PR 0),
   `ctx.resource(name)` (`sourcedata/` first, then package templates).
 
@@ -2509,7 +2572,8 @@ Each step lands as commits on the refactor branch with its tests green.
   and the ported modules and datasets, `datasets/indi/cobre/**`,
   `datasets/oasis/i/**`, `datasets/oasis/ii/**`, `datasets/bullitt/**`
   and `datasets/indi/abide/**` (ABIDE-I, ABIDE-II and their shared
-  helpers) in step 5; two negated patterns would exempt every file).
+  helpers) in step 5, `convert/**` and `freesurfer/actions.py` in step 6;
+  two negated patterns would exempt every file).
   Extend it as datasets and
   modules are ported (step 5), one package at a time.
 * Dataset packages (step 4p): lower-case PEP 8 names, grouped by
@@ -2802,6 +2866,17 @@ up as an XPASS failure once fixed (then drop the marker).
   participant, and the BIDS 1.11.2 schema indexes phenotype tables by
   `participant_id` alone (`TSV_INDEX_VALUE_NOT_UNIQUE`), whatever
   `session_id` says; left until the schema indexes `session_id` too.
+* FreeSurfer derivatives (OASIS-I, OASIS-III, ABIDE-I xnat), two
+  validator warnings left by r47 and by step 6 PR C (metadata, not
+  converters): `TSV_ADDITIONAL_COLUMNS_UNDEFINED` (the `hemisphere`
+  column of `atlas-{Aseg,AsegDesikanKilliany,DesikanKilliany}_dseg.tsv`
+  is described nowhere: a data dictionary `atlas-<X>_dseg.json`, of kind
+  "table" so that `--sidecars no` keeps it, inherited by the subject
+  images too) and `ATLAS_DESCRIPTION_RECOMMENDED` (no
+  `atlas-<X>_description.json` at the root of the derivative, for the
+  four atlases; `bids.kinds` would read `description` as a table
+  suffix). Both are written by `freesurfer.bidsify.bidsify_toplevel`
+  and change the derivative trees of the three roast suites.
 
 ## 9. Open questions
 
@@ -3585,3 +3660,43 @@ up as an XPASS failure once fixed (then drop the marker).
   shard converts, when sidecars are written (a narrower selection
   skips again: the scope fuzz); `Reader` converts a folder that cannot
   be listed (`FolderArchive`) to an `ArchiveError`.
+* r49: step 6, PR C. Converter package and sidecar helpers (§5
+  "Converter conventions", "Sidecar conventions"). `brainspresso/convert/`
+  (`metaimage`, `nrrd`, `analyze`, `nibabel`, `nifti`, `volume`, the
+  `CONVERTERS` registry, `convert`, the `Convert` action, one
+  `ConvertError`); `utils/metaimage.py`, `utils/nrrd.py`, `utils/vol.py`
+  moved there (no shim; `tests/test_metaimage.py` and `test_nrrd.py`
+  merged into `tests/test_convert.py`), `utils.io.nibabel_convert` and
+  `actions.writers.BabelConvert` to `convert/nibabel.py` (its unused
+  `remove=` dropped, `utils.path.fileparts` with it),
+  `Freesurfer2Gifti` to `freesurfer/actions.py` (owner decision, no
+  shim: `actions/` imports no format package). `roast/sidecars.py`:
+  `template_config` (from `roast.helpers`, now `template_config(find,
+  names)`, and ABIDE's site variant), `TemplateError`, `read_template`,
+  `HeaderSidecar`, `bold_sidecar`, `bold_fields` (from
+  `abide/scans.py`, which keeps `scan_actions` and `roast_meta`; no
+  re-exports), new `copy_sidecar`, `template_sidecar` and
+  `repetition_time` (the TR policy of #43, unchanged, in one
+  function); `roast.helpers.attempt`. Migrated: Bullitt (`Convert`,
+  `copy_sidecar`), UNC-Wisconsin (`Convert`, the DWI's three outputs
+  through `outputs=`), OASIS-I and OASIS-II (`convert.analyze`: the
+  pair read in archive order into memory, relabelled before it is
+  saved instead of save, load, save; OASIS-II no longer imports OASIS-I's
+  roaster), ABIDE-I, ABIDE-II and COBRE (`template_sidecar`), IXI
+  (`copy_sidecar`), `freesurfer/bidsify.py`. Fixed: a MetaImage header
+  that ends at `ElementDataFile = ` read the folder of the file as its
+  data ("Is a directory"), and one cut earlier raised `KeyError`: both
+  are a `ConvertError` saying the header is incomplete; compressed
+  MetaImage data that neither zlib nor gzip reads, an unknown element
+  type, a bad `NDims`/`DimSize`/geometry, and every corrupt NRRD,
+  Analyze, MGZ or NIfTI header are a `ConvertError` naming the file
+  (were `zlib.error`, `KeyError`, `struct.error`, nibabel's errors);
+  the error of a bold sidecar without a TR named the first character
+  of its path instead of the sidecar; OASIS-I without (or with an
+  unreadable) `T1w.json` fails each sidecar that it gives (was a
+  `TypeError` of the whole disc). Wording only: a missing template of
+  OASIS-II and IXI is `<name> not found (sidecar template)` (IXI: was an
+  engine error on a `None` source), COBRE reads its non-bold templates
+  too (an unreadable one is a `Fail` of its sidecar, as in ABIDE).
+  Golden: no change. Left: the FreeSurfer validator warnings of #43
+  (`hemisphere` column, atlas descriptions), see §8 known bugs.

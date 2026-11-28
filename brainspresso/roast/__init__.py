@@ -11,10 +11,15 @@ The roast layer of the action engine (`actions.engine`):
 * `run`: `run_roast` (engine, then trim and `finish_roast`) and
   `roast_dataset` (the `roast()` of a dataset);
 * `helpers`: `copy_templates`, `subject_shards`, `archive_shards`,
-  `template_config` (sidecar templates in a shard's `config`), `scope`
-  (with `SEEN`: what of a roast can change the outputs of a shard);
+  `scope` (with `SEEN`: what of a roast can change the outputs of a
+  shard), `attempt` (a reader's error as a `Fail`);
 * `archives`: reading source archives (`reading`, `ArchiveError`, the
-  spools of ABIDE-II).
+  spools of ABIDE-II);
+* `sidecars`: sidecars from templates (`template_config`, sidecar
+  templates in a shard's `config`; `copy_sidecar`, `read_template`,
+  `bold_sidecar` and the TR policy, `repetition_time`).
+
+Converters of image formats are `brainspresso.convert`.
 
 ```python
 def roast_ixi(ctx):

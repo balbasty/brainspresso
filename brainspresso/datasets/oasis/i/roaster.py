@@ -51,11 +51,7 @@ import re
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from tempfile import TemporaryDirectory
 from typing import Iterator
-
-import nibabel as nib
-import numpy as np
 
 from brainspresso.actions import (
     Action,
@@ -68,6 +64,8 @@ from brainspresso.actions import (
 from brainspresso.actions.archive import ExtractMembers
 from brainspresso.actions.state import read_task_states
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.convert.analyze import analyze_action
+from brainspresso.convert.volume import make_affine
 from brainspresso.errors import UsageError
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
@@ -79,17 +77,10 @@ from brainspresso.roast import (
     roast_dataset,
     scope,
 )
-from brainspresso.roast.helpers import template_config
+from brainspresso.roast.sidecars import read_template, template_config
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive, member_parts
-from brainspresso.utils.io import (
-    nibabel_convert,
-    read_json,
-    write_from_buffer,
-    write_tsv,
-)
-from brainspresso.utils.vol import make_affine
-from brainspresso.utils.vol import relabel as vol_relabel
+from brainspresso.utils.io import write_tsv
 
 lg = getLogger(__name__)
 
@@ -134,7 +125,7 @@ AFFINE_TAL = make_affine(
 )
 
 # FSL (FAST) classes 1, 2, 3 are CSF, GM, WM; they are relabelled in
-# the SPM order (`utils.vol.relabel` takes `{new: old}`)
+# the SPM order (`convert.volume.relabel` takes `{new: old}`)
 FSL_RELABEL = {1: 2, 2: 3, 3: 1}
 #: Lookup table of the relabelled segmentation (dataset level, inherited)
 DSEG_NAME = "space-Talairach_res-1mm_dseg.tsv"
@@ -280,8 +271,8 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
             shards.append(Shard(
                 roaster, path, tag="discs", advance="discs",
                 id=f"roast/discs/{kind}-disc{disc:02d}", inputs=[path],
-                config=template_config(ctx, [SIDECAR]) if kind == "raw"
-                else None,
+                config=(template_config(ctx.resource, [SIDECAR])
+                        if kind == "raw" else None),
                 scope=scope(keys=DISC_KEYS[kind], subs=SEEN),
             ))
     ctx.progress(total=len(shards), tag="discs")
@@ -497,10 +488,26 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         (`roast.archives.in_order`)
     """
     sidecar = ctx.resource(SIDECAR)
-    base = read_json(sidecar)
+    if sidecar is None:
+        base, problem = None, f"{SIDECAR} not found (sidecar template)"
+    else:
+        base, error = read_template(sidecar, Path(SIDECAR).stem, "raw")
+        problem = error.message if error is not None else None
     raw = ctx.layout.raw / f"sub-{sub}" / "anat"
     proc = ctx.layout.derivative(PROC_NAME).root / f"sub-{sub}" / "anat"
     out = []
+
+    def write_sidecar(dst: str, tag: str, content=None) -> None:
+        """Add a sidecar from the template (`content(base)`, or a copy)."""
+        if problem is not None:
+            if ctx.accepts("sidecar"):
+                out.append(([], Fail(problem, name=Path(dst).name,
+                                     tag=tag)))
+        elif content is None:
+            out.append(([], CopyJSON(sidecar, dst, tag=tag)))
+        else:
+            out.append(([], WriteJSON(content(base), dst, src=sidecar,
+                                      tag=tag)))
 
     def convert(stem: str, dst: str, affine, tag: str, **kwargs) -> None:
         """Conversion of `<stem>.{hdr,img}`, or a `Fail` if missing."""
@@ -515,8 +522,8 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
             return
         members = sorted((index[m] for m in names), key=lambda m: m.offset)
         out.append((members, analyze_action(
-            archive, path, [m.name for m in members], dst, affine, tag=tag,
-            **kwargs)))
+            archive, path, [m.name for m in members], dst, affine=affine,
+            tag=tag, **kwargs)))
 
     def find_bias(stem: str, tag: str) -> tuple[str | None, str | None]:
         """Bias correction (N4, else N3) found in the disc."""
@@ -534,16 +541,16 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         for run in runs:
             stem = f"{folder}/RAW/OAS1_{sub}_MR1_mpr-{run}_anon"
             dst = raw / f"sub-{sub}_run-{run}_T1w"
-            out.append(([], CopyJSON(sidecar, f"{dst}.json", tag="raw")))
+            write_sidecar(f"{dst}.json", "raw")
             convert(stem, f"{dst}.nii.gz", AFFINE_RAW, "raw")
 
     # T1w from the raw runs (bids:raw)
     sources = [f"bids:raw:sub-{sub}/anat/sub-{sub}_run-{run}_T1w.nii.gz"
                for run in runs]
 
-    def t1w_sidecar(bias: str, skullstripped: bool = False) -> dict:
-        """Sidecar of an average of the runs."""
-        return {
+    def t1w_sidecar(bias: str, skullstripped: bool = False):
+        """Sidecar of an average of the runs (a function of the base)."""
+        return lambda base: {
             **base,
             "SkullStripped": skullstripped,
             "BiasCorrected": bias.upper(),
@@ -559,8 +566,7 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
                                f"_anon_sbj_111", "avg")
         if stem:
             dst = proc / f"sub-{sub}_res-1mm_T1w"
-            out.append(([], WriteJSON(t1w_sidecar(bias), f"{dst}.json",
-                                      src=sidecar, tag="avg")))
+            write_sidecar(f"{dst}.json", "avg", t1w_sidecar(bias))
             convert(stem, f"{dst}.nii.gz", AFFINE_AVG, "avg")
 
     if ctx.wants("tal"):
@@ -570,13 +576,10 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
                                f"_anon_111_t88_gfc", "tal")
         if stem:
             dst = proc / f"sub-{sub}_space-Talairach_res-1mm"
-            out.append(([], WriteJSON(t1w_sidecar(bias), f"{dst}_T1w.json",
-                                      src=sidecar, tag="tal")))
+            write_sidecar(f"{dst}_T1w.json", "tal", t1w_sidecar(bias))
             convert(stem, f"{dst}_T1w.nii.gz", AFFINE_TAL, "tal")
-            out.append(([], WriteJSON(
-                t1w_sidecar(bias, True),
-                f"{dst}_desc-skullstripped_T1w.json", src=sidecar,
-                tag="tal")))
+            write_sidecar(f"{dst}_desc-skullstripped_T1w.json", "tal",
+                          t1w_sidecar(bias, True))
             convert(stem[:-3] + "masked_gfc",
                     f"{dst}_desc-skullstripped_T1w.nii.gz", AFFINE_TAL,
                     "tal")
@@ -597,55 +600,9 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
             }
             out.append(([], WriteJSON(meta, f"{dst}.json", src=sidecar,
                                       tag="fsl")))
-            convert(stem, f"{dst}.nii.gz", AFFINE_TAL, "fsl", relabel=True)
+            convert(stem, f"{dst}.nii.gz", AFFINE_TAL, "fsl",
+                    sources=FSL_RELABEL)
     return out
-
-
-def analyze_action(archive: TarArchive, tarball: Path, members: list[str],
-                   dst: str, affine: np.ndarray, *, relabel: bool = False,
-                   tag: str | None = None) -> Action:
-    """
-    Convert an Analyze image of an open disc to NIfTI.
-
-    Parameters
-    ----------
-    archive : TarArchive
-        Open disc (it stays open until the action has run)
-    tarball : Path
-        Its path (source of the action)
-    members : list[str]
-        Its `.hdr` and `.img` members, in the order they are read
-        (archive order)
-    dst : str
-        Output file (`.nii.gz`)
-    affine : np.ndarray
-        4x4 orientation matrix
-    relabel : bool
-        FSL segmentation: relabel its classes (`FSL_RELABEL`, `{new:
-        old}`: CSF, GM, WM (1, 2, 3) become 3, 1, 2, see `DSEG_TABLE`)
-    tag : str
-        Progress group
-
-    Returns
-    -------
-    Action
-        The conversion
-    """
-    def convert(path: Path) -> None:
-        """Unpack the image in a temporary folder, then convert it."""
-        with TemporaryDirectory() as tmp:
-            tmp = Path(tmp)
-            for member in members:
-                with archive.extractfile(member) as f:
-                    write_from_buffer(f, tmp / f"tmp{Path(member).suffix}")
-            nibabel_convert(tmp / "tmp.img", path, affine=affine,
-                            inp_format=nib.AnalyzeImage)
-        if relabel:
-            img = nib.load(path)
-            data = vol_relabel(np.asarray(img.dataobj), FSL_RELABEL)
-            nib.save(type(img)(data, img.affine, img.header), path)
-
-    return Action(tarball, Path(dst), convert, input="path", tag=tag)
 
 
 # ----------------------------------------------------------------------

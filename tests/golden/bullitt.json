@@ -11,7 +11,7 @@
    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
    "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
-   "participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -58,7 +58,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -540,7 +540,7 @@
    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
    "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
-   "participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -587,7 +587,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -1326,7 +1326,7 @@
    ".brainspresso/orig/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
    "README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "participants.tsv": "090af8365312ed677fe32414e3b7b59a5e7452d968638f4fca7c6aa0d9ee4939"
   },
   "manifest": {
@@ -1341,7 +1341,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     }
    },
    "layout": "flat",
@@ -1395,7 +1395,7 @@
    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.nii.gz": "gz:b44d7c68d3265902d952fad0313ccd21a07c955d58b0912f782333c5944e36bd",
    "derivatives/bullitt/sub-001/anat/sub-001_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
-   "participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -1442,7 +1442,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -1966,7 +1966,7 @@
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
    "derivatives/bullitt/dataset_description.json": "855024a720d85e61a59b5656671fee506c111e2af42da2d97f4f7ed68e359e0a",
    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
-   "participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
@@ -2005,7 +2005,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -2404,6 +2404,7 @@
  "study/default": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -2414,7 +2415,7 @@
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "rawbids/participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -2435,6 +2436,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
      "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
@@ -2461,7 +2466,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "rawbids/sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -2506,6 +2511,9 @@
       "meta": {
        "done": 4
       },
+      "study": {
+       "done": 1
+      },
       "subjects": {
        "done": 20
       }
@@ -2537,6 +2545,9 @@
       },
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       },
       "subjects": {
        "done": 20
@@ -2934,6 +2945,7 @@
  "study/keys-all": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -2944,7 +2956,7 @@
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "rawbids/participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -2965,6 +2977,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
      "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
@@ -2991,7 +3007,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "rawbids/sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -3036,6 +3052,9 @@
       "meta": {
        "done": 4
       },
+      "study": {
+       "done": 1
+      },
       "subjects": {
        "done": 20
       }
@@ -3076,6 +3095,9 @@
       },
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       },
       "subjects": {
        "done": 20
@@ -3472,6 +3494,7 @@
  },
  "study/keys-images": {
   "files": {
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4bca57eaf3f11c0c287bdcc48fbbbd6ac5a1b3a7f21d996fd44c0830c9fcd0e5",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -3485,6 +3508,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
      "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
@@ -3512,6 +3539,9 @@
      "counts": {
       "derivatives": {
        "done": 3
+      },
+      "study": {
+       "done": 1
       },
       "subjects": {
        "done": 6,
@@ -3541,6 +3571,9 @@
      "counts": {
       "derivatives": {
        "done": 3
+      },
+      "study": {
+       "done": 1
       },
       "subjects": {
        "done": 6,
@@ -3729,14 +3762,19 @@
  "study/keys-meta": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "rawbids/participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "rawbids/participants.tsv": "090af8365312ed677fe32414e3b7b59a5e7452d968638f4fca7c6aa0d9ee4939"
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "rawbids/README": {
      "origin": "converted",
      "sha256": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9"
@@ -3747,7 +3785,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     }
    },
    "layout": "study",
@@ -3756,6 +3794,9 @@
      "counts": {
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -3779,6 +3820,9 @@
      "counts": {
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -3792,6 +3836,7 @@
  "study/rerun": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -3802,7 +3847,7 @@
    "derivatives/bullitt/sub-002/anat/sub-002_desc-vessels_tubes.tre": "a054455c83706a46e8ef625a7cdb6491e16368b98663557e527d3e6e1a43f8c2",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "rawbids/participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "rawbids/sub-001/anat/sub-001_T2w.nii.gz": "gz:cc5be62a77f5887dd26a003f889dcb5f6e17021a140a2e5e1a99af3d711564ae",
@@ -3823,6 +3868,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
      "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
@@ -3849,7 +3898,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "rawbids/sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -3894,6 +3943,9 @@
       "meta": {
        "done": 4
       },
+      "study": {
+       "done": 1
+      },
       "subjects": {
        "done": 20
       }
@@ -3918,6 +3970,9 @@
       },
       "meta": {
        "skipped": 4
+      },
+      "study": {
+       "skipped": 1
       },
       "subjects": {
        "skipped": 20
@@ -3951,6 +4006,9 @@
       "meta": {
        "done": 4
       },
+      "study": {
+       "done": 1
+      },
       "subjects": {
        "done": 20
       }
@@ -3970,6 +4028,9 @@
       },
       "meta": {
        "skipped": 4
+      },
+      "study": {
+       "skipped": 1
       },
       "subjects": {
        "skipped": 20
@@ -4367,6 +4428,7 @@
  "study/sidecars-only": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "9b1044966e71d5e49d1b96479cd66ce05138659af1595742176a094f9e266f3d",
+   "README": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf",
    "dataset_description.json": "4a26077b7d2506e31deebe92529a871364a93d212e6f403375c2c2e7b1539855",
    "derivatives/bullitt/.bidsignore": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe",
    "derivatives/bullitt/README": "affd9e387ce9a9fc1fb6002cb758a719c21dd51022ad80a5a60f5a9b41f37e1f",
@@ -4374,7 +4436,7 @@
    "derivatives/bullitt/sub-001/anat/sub-001_acq-flash_desc-brain_T1w.json": "1306f445f4e95530a287a1523a980816e903b9547713d1b3fc080dfc56fa6ef4",
    "rawbids/README": "f3f6e2e312e0d683ff22c316cda6bb743580c1015278a2eb35b865cd5f4490f9",
    "rawbids/dataset_description.json": "799ee0a1321d06f3876d1baaa269751d65b4cddaa4570b4f43fa520e38fd308c",
-   "rawbids/participants.json": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984",
+   "rawbids/participants.json": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523",
    "rawbids/participants.tsv": "e794277936c649cc44e748cb1f0ab0f3fc99184e5ca944ea70bef8c33863aaaa",
    "rawbids/sub-001/anat/sub-001_T2w.json": "4444a1c97969ea2e2a811f5302fbebf11f4d9da2b90013dba3c79d19e693f90b",
    "rawbids/sub-001/anat/sub-001_acq-flash_T1w.json": "c3e6c8b326bf39673b4efcb0043ae08a68f5c76ed5a3268b19ec92b83c0fec7f",
@@ -4387,6 +4449,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "5caf0436d0a486b3a9beec90c94f534c3b306a0bbe81c18e0e9995623ce53ebf"
+    },
     "derivatives/bullitt/.bidsignore": {
      "origin": "converted",
      "sha256": "61e5b0442250f3b348f8c4a7e80927b61896afa2b60291461eedf9341d5c3ebe"
@@ -4413,7 +4479,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "6402e74f1227d2fc148cce65bc6d66338f1947802bda7cb0b75eb32732b1f984"
+     "sha256": "10e670ca1b80f197ddeb3393c3c0eb1d108fdcf1940c0047b0d37a9540be6523"
     },
     "rawbids/sub-001/anat/sub-001_T2w.json": {
      "origin": "converted",
@@ -4458,6 +4524,9 @@
       "meta": {
        "done": 4
       },
+      "study": {
+       "done": 1
+      },
       "subjects": {
        "done": 9
       }
@@ -4492,6 +4561,9 @@
       },
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       },
       "subjects": {
        "done": 9

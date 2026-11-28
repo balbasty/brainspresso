@@ -8,11 +8,13 @@
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -30,7 +32,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
-   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -67,9 +69,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -109,7 +119,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -134,6 +144,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -175,6 +188,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -591,11 +607,13 @@
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -613,7 +631,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
-   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -650,9 +668,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -692,7 +718,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -717,6 +743,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -767,6 +796,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -1180,6 +1212,7 @@
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab"
@@ -1202,6 +1235,10 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
@@ -1211,6 +1248,9 @@
    "runs": [
     {
      "counts": {
+      "derivatives": {
+       "done": 1
+      },
       "fs": {
        "done": 7
       }
@@ -1234,6 +1274,9 @@
     "exit": 0,
     "report": {
      "counts": {
+      "derivatives": {
+       "done": 1
+      },
       "fs": {
        "done": 7
       }
@@ -1354,7 +1397,7 @@
    ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "participants.tsv": "17c7c6f300f8d3e3759f5ca09c827b8acb71ee063508c5215cae64fb11299a16"
   },
   "manifest": {
@@ -1369,7 +1412,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     }
    },
    "layout": "flat",
@@ -1420,11 +1463,13 @@
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -1442,7 +1487,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
-   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -1479,9 +1524,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -1521,7 +1574,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -1546,6 +1599,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -1580,6 +1636,9 @@
      "counts": {
       "avg": {
        "skipped": 4
+      },
+      "derivatives": {
+       "skipped": 2
       },
       "fs": {
        "skipped": 9
@@ -1621,6 +1680,9 @@
      "counts": {
       "avg": {
        "done": 4
+      },
+      "derivatives": {
+       "done": 2
       },
       "fs": {
        "done": 9
@@ -1672,6 +1734,9 @@
      "counts": {
       "avg": {
        "skipped": 4
+      },
+      "derivatives": {
+       "skipped": 2
       },
       "fs": {
        "skipped": 9
@@ -2088,10 +2153,12 @@
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-processed/dataset_description.json": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
@@ -2101,7 +2168,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
-   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
@@ -2134,9 +2201,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "1c05e683b34a8f3d19f26d85f63dd4e021cab075afb0615ca2f380adc4eac78e"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "35ac3813ee20bb68088ea86379dacd52ea4f2c86697981cdab36f98a08abfe6d"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -2176,7 +2251,7 @@
     },
     "participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -2200,6 +2275,9 @@
     {
      "counts": {
       "avg": {
+       "done": 2
+      },
+      "derivatives": {
        "done": 2
       },
       "fs": {
@@ -2244,6 +2322,9 @@
     "report": {
      "counts": {
       "avg": {
+       "done": 2
+      },
+      "derivatives": {
        "done": 2
       },
       "fs": {
@@ -2564,16 +2645,19 @@
  "study/default": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -2593,7 +2677,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
    "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -2606,6 +2690,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
      "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
@@ -2622,9 +2710,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -2672,7 +2768,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -2698,6 +2794,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -2709,6 +2808,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -2739,6 +2841,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -2750,6 +2855,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -3148,16 +3256,19 @@
  "study/keys-all": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -3177,7 +3288,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
    "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -3190,6 +3301,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
      "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
@@ -3206,9 +3321,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -3256,7 +3379,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -3282,6 +3405,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -3293,6 +3419,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -3332,6 +3461,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -3343,6 +3475,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -3740,17 +3875,23 @@
  },
  "study/keys-images": {
   "files": {
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "5f27539630554837f9e7d679597de575d9417ec7bf2dd8eb7b7beca1fee44f6f",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab"
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
      "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
@@ -3767,6 +3908,10 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
@@ -3776,8 +3921,14 @@
    "runs": [
     {
      "counts": {
+      "derivatives": {
+       "done": 1
+      },
       "fs": {
        "done": 7
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -3799,8 +3950,14 @@
     "exit": 0,
     "report": {
      "counts": {
+      "derivatives": {
+       "done": 1
+      },
       "fs": {
        "done": 7
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -3917,14 +4074,19 @@
  "study/keys-meta": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
    "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "rawbids/participants.tsv": "17c7c6f300f8d3e3759f5ca09c827b8acb71ee063508c5215cae64fb11299a16"
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "rawbids/README": {
      "origin": "converted",
      "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
@@ -3935,7 +4097,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     }
    },
    "layout": "study",
@@ -3944,6 +4106,9 @@
      "counts": {
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -3967,6 +4132,9 @@
      "counts": {
       "meta": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -3980,16 +4148,19 @@
  "study/rerun": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/dataset_description.json": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
@@ -4009,7 +4180,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
    "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
@@ -4022,6 +4193,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
      "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
@@ -4038,9 +4213,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -4088,7 +4271,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -4114,6 +4297,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -4125,6 +4311,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -4148,6 +4337,9 @@
       "avg": {
        "skipped": 4
       },
+      "derivatives": {
+       "skipped": 2
+      },
       "fs": {
        "skipped": 9
       },
@@ -4159,6 +4351,9 @@
       },
       "raw": {
        "skipped": 8
+      },
+      "study": {
+       "skipped": 1
       },
       "tal": {
        "skipped": 8
@@ -4189,6 +4384,9 @@
       "avg": {
        "done": 4
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 9
       },
@@ -4200,6 +4398,9 @@
       },
       "raw": {
        "done": 8
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 8
@@ -4240,6 +4441,9 @@
       "avg": {
        "skipped": 4
       },
+      "derivatives": {
+       "skipped": 2
+      },
       "fs": {
        "skipped": 9
       },
@@ -4251,6 +4455,9 @@
       },
       "raw": {
        "skipped": 8
+      },
+      "study": {
+       "skipped": 1
       },
       "tal": {
        "skipped": 8
@@ -4649,15 +4856,18 @@
  "study/sidecars-only": {
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9",
    "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/dataset_description.json": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
    "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-processed/dataset_description.json": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1",
    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
@@ -4669,7 +4879,7 @@
    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
    "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
    "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
-   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.json": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00",
    "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
    "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
@@ -4678,6 +4888,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "bd8058db858e7641619c70e6737ac9a83072b9c03319e54e8f98716b0f35d4d9"
+    },
     "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
      "origin": "converted",
      "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
@@ -4694,9 +4908,17 @@
      "origin": "converted",
      "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
     },
+    "derivatives/oasis-freesurfer/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "366153acd25c0512e0015a38a4b7f13e769d204da17319377bc72d3302468a95"
+    },
     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
      "origin": "converted",
      "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "21f73c206407a5ce53fc76c767050607301b67d18fcfe393b24d81433c4c88f1"
     },
     "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
      "origin": "converted",
@@ -4744,7 +4966,7 @@
     },
     "rawbids/participants.json": {
      "origin": "converted",
-     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+     "sha256": "cfd192a892db81dc8a87bf475aafce94f921009c96e18a70439a0e9c92062e00"
     },
     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
      "origin": "converted",
@@ -4770,6 +4992,9 @@
       "avg": {
        "done": 2
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 8
       },
@@ -4781,6 +5006,9 @@
       },
       "raw": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 4
@@ -4814,6 +5042,9 @@
       "avg": {
        "done": 2
       },
+      "derivatives": {
+       "done": 2
+      },
       "fs": {
        "done": 8
       },
@@ -4825,6 +5056,9 @@
       },
       "raw": {
        "done": 4
+      },
+      "study": {
+       "done": 1
       },
       "tal": {
        "done": 4

@@ -1841,3 +1841,98 @@ def test_hosted_update_adopts_an_edit_that_holds_the_render(
     pristine.write_text("Newer README\n")
     on("roast", tmp_path, "--if-exists", "update")
     assert readme.read_text() == "Newer README\n"
+
+
+# ----------------------------------------------------------------------
+#   Review round 2 of #39: hosted derivative descriptions
+# ----------------------------------------------------------------------
+
+DERIV_DESC = "derivatives/fmriprep/dataset_description.json"
+
+
+def _with_derivative(openneuro):
+    openneuro[f"{DS}/{DERIV_DESC}"] = \
+        b'{"Name": "fmriprep", "BIDSVersion": "1.9.0"}'
+
+
+def test_hosted_derivative_description_is_its_render(tmp_path, openneuro,
+                                                     caplog):
+    """Completed in the render (`SourceDatasets`): recorded, unedited
+    files are left alone by `update`, no backup accumulates"""
+    _with_derivative(openneuro)
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / DERIV_DESC
+    meta = read_json(desc)
+    assert meta["DatasetType"] == "derivative"
+    assert meta["SourceDatasets"][0]["URL"]
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    content = desc.read_bytes()
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == content
+        assert not [r for r in caplog.records if r.levelname == "WARNING"
+                    and desc.name in r.getMessage()]
+    assert not (lay.state / "replaced").exists()
+
+
+def test_edited_hosted_derivative_description_survives(tmp_path, openneuro,
+                                                      caplog):
+    _with_derivative(openneuro)
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / DERIV_DESC
+    desc.write_bytes(b'{"Name": "mine"}')
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == b'{"Name": "mine"}'
+        assert "was edited" in caplog.text
+    assert not (lay.state / "replaced").exists()
+
+
+def test_interrupted_roast_leaves_a_complete_description(
+        tmp_path, openneuro, monkeypatch):
+    """An interrupted `finish_roast` (no hash recorded): the description
+    is complete anyway (the render), and adopted by the next update"""
+    from brainspresso.roast import run as run_mod  # noqa: PLC0415
+
+    _with_derivative(openneuro)
+    real = run_mod.finish_roast
+    calls = []
+
+    def once(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("interrupted")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_mod, "finish_roast", once)
+    with pytest.raises(Exception):
+        on("harvest", tmp_path, "--subs", "01", "--folders", "derivatives")
+    lay = Layout.detect(tmp_path / "OpenNeuro" / DS)
+    desc = lay.root / DERIV_DESC
+    assert "SourceDatasets" in read_json(desc)
+    on("roast", tmp_path, "--if-exists", "update")
+    assert "SourceDatasets" in read_json(desc)
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    assert not (lay.state / "replaced").exists()
+
+
+def test_stale_field_map_hash_is_not_warned_about(tmp_path, openneuro,
+                                                  caplog):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    content = fmap.read_bytes()
+    update_files(lay, {_key(lay, fmap): {"sha256": "0" * 64}})   # (stale)
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert fmap.read_bytes() == content
+    assert "was edited" not in caplog.text
+    # (it holds the render: adopted)
+    assert manifest_entry(lay, fmap)["sha256"] == sha256(content)
+
+
+def _key(lay, path):
+    return Path(path).relative_to(lay.root).as_posix()

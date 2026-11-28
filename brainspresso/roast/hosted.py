@@ -103,7 +103,14 @@ from brainspresso.bids.hosted import (
 )
 from brainspresso.bids.keys import KeySelection
 from brainspresso.bids.kinds import accepts, default_kind
-from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
+from brainspresso.bids.layout import (
+    DESCRIPTION,
+    Layout,
+    SitesLayout,
+    complete_description,
+    description_bytes,
+    resolve_layout,
+)
 from brainspresso.bids.repair import (
     dumps,
     loads,
@@ -626,6 +633,11 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
             else:
                 relabel = [mapping, PurePosixPath(remote).parent.as_posix(),
                            PurePosixPath(rel).parent.as_posix()]
+    # the description of a derivative dataset: completed in the render
+    # (`SourceDatasets`), so that the file equals it (edits by hash)
+    source_url = None
+    if rel == DESCRIPTION and Path(dataset).parent == Path(layout.derivatives):
+        source_url = layout.derivative(Path(dataset).name).source_url
     # files that count as present without being on disk (unfetched)
     if trimmable and rel == "participants.tsv":
         present = context["unfetched"].get((dataset, "*"), [])
@@ -653,6 +665,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "previous": previous,
         "present": present,
         "relabel": relabel,
+        "source_url": source_url,
     }
 
 
@@ -734,6 +747,13 @@ class RoastMetadata(Action):
         out = render(content, target.name, repair=item["repair"],
                      fill=item["fill"], intended=intended, sibling=sibling,
                      relabel=item.get("relabel"), rows=rows)
+        if item.get("source_url") is not None:
+            # (as `write_descriptions` completes it: equal if complete)
+            desc = _read_json_bytes(out)
+            if desc is not None:
+                done = complete_description(desc, item["source_url"])
+                if done != desc:
+                    out = description_bytes(done)
         if self.keep:
             # an edited field map: the user's keys, the render's targets
             mine = _read_json(target) or {}
@@ -831,12 +851,21 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     state = item["state"] if update else "ours"
     if state == "edited":
         if item["fmap"] and item["intended"]:
-            lg.warning(f"{dst} was edited since brainspresso wrote it: "
-                       f"kept, but its IntendedFor is taken from the "
-                       f"pristine copy (yours is replaced; --if-exists "
-                       f"different or overwrite replaces the whole file)")
-            yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
-                                keep=True)
+            action = RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
+                                   keep=True)
+            try:
+                same = action.render() == dst.read_bytes()
+            except (OSError, ValueError):
+                same = False
+            if not same:
+                # (compared first: one that holds the merge is no edit
+                # to warn about, e.g. a stale hash)
+                lg.warning(f"{dst} was edited since brainspresso wrote it: "
+                           f"kept, but its IntendedFor is taken from the "
+                           f"pristine copy (yours is replaced; --if-exists "
+                           f"different or overwrite replaces the whole "
+                           f"file)")
+            yield action
             return
         # compared first: a file that holds the render is adopted (a
         # stale hash is no edit), any other kept with the warning

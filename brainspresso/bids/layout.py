@@ -177,8 +177,7 @@ def _write_json(path: Path, obj: dict) -> bool:
     if path.exists() and _read_json(path) == obj:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8",
-                    newline="\n")
+    path.write_bytes(description_bytes(obj))
     return True
 
 
@@ -615,15 +614,7 @@ class DerivativeLayout(Layout):
             else _read_json(self.description)
         written = []
         if desc is not None:
-            desc = dict(desc)
-            desc.setdefault("DatasetType", "derivative")
-            url = self.source_url
-            sources = [s for s in desc.get("SourceDatasets", []) or []
-                       if not _is_flat_raw_url(s, url)]
-            if not any(isinstance(s, dict) and s.get("URL") == url
-                       for s in sources):
-                sources.insert(0, {"URL": url})
-            desc["SourceDatasets"] = sources
+            desc = complete_description(desc, self.source_url)
             if _write_json(self.description, desc):
                 written.append(self.description)
         return written + super().write_descriptions(keep)
@@ -640,6 +631,44 @@ class DerivativeLayout(Layout):
     def __hash__(self):
         """Hash of the kind and root."""
         return hash((type(self), self.root))
+
+
+def complete_description(desc: dict, url: str) -> dict:
+    """
+    Complete the description of a derivative dataset.
+
+    `DatasetType` "derivative" if it has none, and a `SourceDatasets`
+    entry with the URL of the raw dataset first (stale flat URLs
+    dropped). Used by `DerivativeLayout.write_descriptions`, and by the
+    hosted render (`roast.hosted`), so that a hosted derivative
+    description equals its render and its edits are told by hash.
+
+    Parameters
+    ----------
+    desc : dict
+        The description
+    url : str
+        Relative URL of the raw dataset (`DerivativeLayout.source_url`)
+
+    Returns
+    -------
+    dict
+        A completed copy
+    """
+    desc = dict(desc)
+    desc.setdefault("DatasetType", "derivative")
+    sources = [s for s in desc.get("SourceDatasets", []) or []
+               if not _is_flat_raw_url(s, url)]
+    if not any(isinstance(s, dict) and s.get("URL") == url
+               for s in sources):
+        sources.insert(0, {"URL": url})
+    desc["SourceDatasets"] = sources
+    return desc
+
+
+def description_bytes(desc: dict) -> bytes:
+    """Format a description as `write_descriptions` writes it."""
+    return (json.dumps(desc, indent=2) + "\n").encode("utf-8")
 
 
 def _is_flat_raw_url(source, url: str) -> bool:

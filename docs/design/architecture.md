@@ -461,7 +461,13 @@ Interactions (decided):
   | `error` | write | error | error | error |
 
   The `update` rows of engine roasts (§5) and of hosted roasts are one
-  rule; the backup is shared (`Layout.replaced`, `Action.backup`).
+  rule; the backup is shared (`Layout.replaced`, `Action.backup`). A
+  hosted derivative description is completed in its render
+  (`SourceDatasets`, `bids.layout.complete_description`, as
+  `write_descriptions` would), so the file equals the render, its hash
+  is recorded and its edits are told like any other's. An edited field
+  map is merged and compared first: the warning only when the merge
+  differs from the file (a stale hash is no edit).
   Hosted roasts run with `RoastPolicy(track=False)`: `_record` stays
   the one writer of their hashes (no "converted" entries).
 * Re-runs: a harvest that runs again skips existing downloads and the
@@ -3150,3 +3156,10 @@ up as an XPASS failure once fixed (then drop the marker).
   left on disk; a backup never replaces an
   earlier one (`<path>.1`, `.2`...); the recorded hashes are cached per
   process and manifest version (`roast.context._recorded_hashes`).
+  Review round 2 of #39 (hosted): a hosted derivative description is
+  completed in the render (`complete_description`, shared with
+  `DerivativeLayout.write_descriptions`), so that it equals the render,
+  is recorded, and goes through the edit test (an edit kept under
+  `update`, an unedited one not rewritten, no backups piling up; an
+  interrupted roast leaves it complete); an edited field map that holds
+  the merge is not warned about.

@@ -195,67 +195,6 @@ def get_style(hide_if_missing=True, has_size=True):
     return STYLE
 
 
-def get_style_bidsify():
-    ONGOING = "○"
-    PENDING = "..."
-    DONE = "done"
-    ERROR = "error"
-    SKIP = "skipped"
-    # done%
-    progress_style = dict(
-        transform=lambda f: "%d%%" % f,
-        align="right",
-        color=dict(
-            interval=[
-                [0, 10, "red"],
-                [10, 100, "yellow"],
-                [100, None, "green"]
-            ]
-        ),
-    )
-    return {
-        "summary_": {"bold": True},
-        "header_": dict(bold=True),
-        "default_": dict(missing=""),
-        "modality": dict(
-            bold=True,
-            align="left",
-            underline=True,
-            width=dict(
-                truncate="left",
-                min=20,
-                # min=max_filename_len + 4 #  .../
-                # min=0.3  # not supported yet by pyout,
-                # https://github.com/pyout/pyout/issues/85
-            ),
-            aggregate=lambda _: "Summary:"
-            # TODO: seems to be wrong
-            # width="auto"
-            # summary=lambda x: "TOTAL: %d" % len(x)
-        ),
-        "status": dict(
-            color=dict(lookup={
-                SKIP: "blue",
-                ONGOING: "yellow",
-                PENDING: "yellow",
-                DONE: "green",
-                ERROR: "red",
-            }),
-            aggregate=counts,
-        ),
-        "message": dict(
-            color=dict(
-                re_lookup=[
-                    ["^exists", "yellow"],
-                    ["^(failed|error|ERROR)", "red"]
-                ]
-            ),
-            aggregate=counts,
-        ),
-        "done%": dict(progress_style),
-    }
-
-
 class LogSafeTabular(pyout.Tabular):
 
     @staticmethod
@@ -320,21 +259,6 @@ class MemorizingTabular(LogSafeTabular):
         if key in self.memorize:
             self.memorized[key].append(status)
         return super().__call__(status)
-
-
-@contextmanager
-def memory_tab(main: MemorizingTabular, summary: LogSafeTabular):
-
-    # 1. Use main tabular context
-    with main:
-        yield main
-
-    # 2. Use summary tabular context to display memorized statuses
-    if any(map(len, main.memorized.values())):
-        with summary:
-            for statuses in main.memorize.values():
-                for status in statuses:
-                    summary(status)
 
 
 @contextmanager

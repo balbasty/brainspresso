@@ -40,6 +40,8 @@ from brainspresso.actions.action import IfExists
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.actions.writers import WriteJSON, WriteText
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.datasets.base import KeySpec
+from brainspresso.datasets.ixi.dataset import KEYS as DATASET_KEYS
 from brainspresso.roast import (
     RoastContext,
     Shard,
@@ -62,27 +64,63 @@ KEYS = KeyAliases(
     bids={key: {"suffixes": [key]} for key in IXI2BIDS.values()},
     folders={"trace": ["derivatives/ixi-scanner"]},
 )
+#: `--keys` of the roast (`IXI.keys_for("roast")`)
+ROAST_SPEC = KeySpec(KEYS, (*DATASET_KEYS, "trace"), DATASET_KEYS,
+                     ("trace",))
 
 
-def roast(root, *, subs=(), exclude_subs=(), **options):
+def roast(root, *, subs=(), exclude_subs=(), keys=(), **options):
     """Roast `<root>` (the `IXI` folder). Subjects are numbers. Other
     options: those of the command line (`keys`, `json`, `ifexists`,
-    `layout`), `jobs` and `display`."""
+    `layout`), `jobs` and `display`. A missing tarball (or folder) is an
+    error only for the keys that `keys` names (`roast_options`)."""
     return roast_dataset(
-        roast_ixi, root, KEYS, templates=TEMPLATES,
+        roast_ixi, root, KEYS, templates=TEMPLATES, keys=keys,
         subs=as_list(subs, "{:03d}"),
-        exclude_subs=as_list(exclude_subs, "{:03d}"), **options,
+        exclude_subs=as_list(exclude_subs, "{:03d}"),
+        options=roast_options(keys), **options,
     )
 
 
+def roast_options(keys) -> dict:
+    """
+    Return the options of the roaster (`RoastContext.options`).
+
+    Parameters
+    ----------
+    keys : str | list[str]
+        `--keys` as given
+
+    Returns
+    -------
+    dict
+        `named`: the leaves that `--keys` names, itself or through a
+        group above them (any case); a missing tarball of these keys is
+        an error, of the others an info line. Nothing is named without
+        `--keys` or with its CLI default (the six keys: the command line
+        passes them when the flag is absent, so they cannot be told
+        apart)
+    """
+    keys = as_list(keys)
+    if not keys or {str(k).lower() for k in keys} == \
+            {k.lower() for k in ROAST_SPEC.default}:
+        return {"named": []}
+    return {"named": sorted(leaf for leaf in KEYS.leaves - {"meta"}
+                            if ROAST_SPEC.selects(keys, leaf))}
+
+
 def roast_ixi(ctx: RoastContext) -> Iterator:
+    named = set(ctx.options.get("named", ()))
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
+    # (`named` decides whether a missing tarball is an error)
     for ixi, key in IXI2BIDS.items():
         if key != "dwi" and ctx.wants(key):
-            yield Shard(roast_anat, ixi, key, tag=key)
+            yield Shard(roast_anat, ixi, key, tag=key,
+                        config={"named": sorted(named & {key})})
     if ctx.wants("dwi") or ctx.wants("trace"):
-        yield Shard(roast_dwi, tag="dwi")
+        yield Shard(roast_dwi, tag="dwi",
+                    config={"named": sorted(named & {"dwi", "trace"})})
 
 
 def open_images(ctx: RoastContext, ixi: str):
@@ -91,9 +129,17 @@ def open_images(ctx: RoastContext, ixi: str):
     return open_archive(src / f"IXI-{ixi}.tar", src / f"IXI-{ixi}")
 
 
-def missing_images(ixi: str) -> Fail:
-    return Fail(f"IXI-{ixi}.tar (or IXI-{ixi}/) not found",
-                name=f"IXI-{ixi}")
+def missing_images(ctx: RoastContext, ixi: str, *keys: str
+                   ) -> Iterator[Fail]:
+    """
+    A missing tarball (and folder): a `Fail` if `--keys` names one of
+    its keys, else an info line (`roast_options`).
+    """
+    message = f"IXI-{ixi}.tar (or IXI-{ixi}/) not found"
+    if set(keys) & set(ctx.options.get("named", ())):
+        yield Fail(message, name=f"IXI-{ixi}")
+    else:
+        lg.info(f"{message} (skipped)")
 
 
 def parse_name(name: str) -> tuple[str, str]:
@@ -136,7 +182,7 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
 def roast_anat(ctx: RoastContext, ixi: str, key: str) -> Iterator[Action]:
     archive = open_images(ctx, ixi)
     if archive is None:
-        yield missing_images(ixi)
+        yield from missing_images(ctx, ixi, key)
         return
     with archive:
         members = archive.getmembers()
@@ -168,7 +214,7 @@ def roast_dwi(ctx: RoastContext) -> Iterator[Action]:
 
     archive = open_images(ctx, "DTI")
     if archive is None:
-        yield missing_images("DTI")
+        yield from missing_images(ctx, "DTI", "dwi", "trace")
         return
     with archive:
         # canonical (dataset-level) table: None if missing or invalid,

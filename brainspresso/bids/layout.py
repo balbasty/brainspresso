@@ -49,6 +49,7 @@ from brainspresso.actions.locks import (
     forget_datasets,
     is_state_folder,
 )
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -348,7 +349,8 @@ class Layout:
         if not self.derivatives.is_dir():
             return []
         return [self.derivative(p.name)
-                for p in sorted(self.derivatives.iterdir()) if p.is_dir()]
+                for p in sorted_paths(self.derivatives.iterdir())
+                if p.is_dir()]
 
     def datasets(self) -> list["Layout"]:
         """Datasets to process one by one (itself, or each site)."""
@@ -903,7 +905,7 @@ def _from_manifest(root: Path) -> Layout | None:
 
 def _iter_dirs(root: Path) -> Iterator[Path]:
     try:
-        yield from sorted(p for p in root.iterdir() if p.is_dir())
+        yield from sorted_paths(p for p in root.iterdir() if p.is_dir())
     except OSError:
         return
 

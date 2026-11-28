@@ -1,0 +1,5132 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0001/anat/sub-0001_run-1_T1w.json",
+     "sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "sub-0002/anat/sub-0002_run-1_T1w.json",
+     "sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "avg",
+     "fs",
+     "fs-all",
+     "fsl",
+     "meta",
+     "raw",
+     "tal"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0001/anat/sub-0001_run-1_T1w.json",
+     "sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "sub-0002/anat/sub-0002_run-1_T1w.json",
+     "sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "fs": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "fs"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "fs"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "fs": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.tsv": "17c7c6f300f8d3e3759f5ca09c827b8acb71ee063508c5215cae64fb11299a16"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "avg": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 9
+      },
+      "fsl": {
+       "skipped": 5
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "raw": {
+       "skipped": 8
+      },
+      "tal": {
+       "skipped": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 9
+      },
+      "fsl": {
+       "skipped": 5
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "raw": {
+       "skipped": 8
+      },
+      "tal": {
+       "skipped": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0001/anat/sub-0001_run-1_T1w.json",
+     "sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "sub-0002/anat/sub-0002_run-1_T1w.json",
+     "sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 2
+      },
+      "fs": {
+       "done": 8
+      },
+      "fsl": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 4
+      },
+      "tal": {
+       "done": 4
+      }
+     },
+     "json": "only",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 2
+      },
+      "fs": {
+       "done": 8
+      },
+      "fsl": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 4
+      },
+      "tal": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 2
+     },
+     "fsl": {
+      "done": 2
+     },
+     "raw": {
+      "done": 4
+     },
+     "tal": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0001/anat/sub-0001_run-1_T1w.json",
+     "sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "sub-0002/anat/sub-0002_run-1_T1w.json",
+     "sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "avg",
+     "fs",
+     "fs-all",
+     "fsl",
+     "meta",
+     "raw",
+     "tal"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "dataset_description.json": "5f27539630554837f9e7d679597de575d9417ec7bf2dd8eb7b7beca1fee44f6f",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "fs": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "fs"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "fs"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "fs": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
+   "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.tsv": "17c7c6f300f8d3e3759f5ca09c827b8acb71ee063508c5215cae64fb11299a16"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz": "gz:843a8030e3db4f74630e82cb92dad0b6ff2b77621664821633208e33577044f2",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz": "gz:e8ded7fb2dc1427b119b94545f48943c3db63460934884888760985765e818f9",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz": "gz:397e80484ee8b9d631ed4ccf4a2f5f2c391fcb8cf0660c84b56bb066e9c95d02",
+   "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz": "gz:95384140f3ceb5f55e7fc8853d30586864f01eac1a308f90bfe6f2bbf79a9bc9"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "avg": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 9
+      },
+      "fsl": {
+       "skipped": 5
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "raw": {
+       "skipped": 8
+      },
+      "tal": {
+       "skipped": 8
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 4
+      },
+      "fs": {
+       "done": 9
+      },
+      "fsl": {
+       "done": 5
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 8
+      },
+      "tal": {
+       "done": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 9
+      },
+      "fsl": {
+       "skipped": 5
+      },
+      "meta": {
+       "skipped": 4
+      },
+      "raw": {
+       "skipped": 8
+      },
+      "tal": {
+       "skipped": 8
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 5
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 4
+     },
+     "fsl": {
+      "done": 4
+     },
+     "raw": {
+      "done": 8
+     },
+     "tal": {
+      "done": 8
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.nii.gz",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.nii.gz",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.nii.gz",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "dataset_description.json": "2eeafd2aba160ded221754a6ff018200dbeeca51d6f915a461f7a2d1aac02395",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223",
+   "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6",
+   "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a",
+   "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d",
+   "rawbids/README": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a",
+   "rawbids/dataset_description.json": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828",
+   "rawbids/participants.json": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1",
+   "rawbids/participants.tsv": "8562558c965fa02d8c8ee2b238bb442d414dc06934ad6c0f683ec5dd05aacf6d",
+   "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16",
+   "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "134be1975d88cb8174cf98de631bbba4c1958d65aa48e6a6d4bc76c5a72aca0d"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "fad7b14b122f07efaf5f8a365d6d136414bbaef0a1e8023a521caae19fa04223"
+    },
+    "derivatives/oasis-processed/space-Talairach_res-1mm_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "6178df82011118627f2bd9a0927a442763d3845630101ee5cf3e70077197032c"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "3df4fff8177038aed5018bddac7d0f74005384c73f4cffcf824b953b5c6ecb9a"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "2628c84726bc2a03b2e40df343f140b299b5d6ec526594e4ed3833afc1a6e8e6"
+    },
+    "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "fbefd04969007e297bca1fb8b6a37a111fde8b335ef8a24325e66b58af3bd2e4"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json": {
+     "origin": "converted",
+     "sha256": "d84fffec3bc3b69a751a529f1b93855dc15943392f1c2d3d1b97fd4c4ae9419c"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json": {
+     "origin": "converted",
+     "sha256": "ee322d0199760f3d75feb7c9e9427a0a4d72a797f9382a3f50e396d21332f02a"
+    },
+    "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json": {
+     "origin": "converted",
+     "sha256": "4056e4e4d0101f2c2c4a29daec4b98c6c173d8890329fd6a22317a0ed9d85d4d"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "c6209fe6f4c017aa77d0091a0c449db4e773cae81de6705536e0d5dd3725d83a"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "3f49d16c44077a5b767f2df8081670c24129555140cb8a5b5848e606f3e5f828"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "430a4563b13a60f0bb24691e040902a364aabb4da524685606a2fed38cb76ac1"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    },
+    "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json": {
+     "origin": "converted",
+     "sha256": "f9d6a9c1d0e4a39c3cf274d6be4aec3edff190eb39c9132d90cbd276c80f4c16"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "avg": {
+       "done": 2
+      },
+      "fs": {
+       "done": 8
+      },
+      "fsl": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 4
+      },
+      "tal": {
+       "done": 4
+      }
+     },
+     "json": "only",
+     "keys": [
+      "avg",
+      "fs",
+      "fs-all",
+      "fsl",
+      "meta",
+      "raw",
+      "tal"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "avg": {
+       "done": 2
+      },
+      "fs": {
+       "done": 8
+      },
+      "fsl": {
+       "done": 3
+      },
+      "meta": {
+       "done": 4
+      },
+      "raw": {
+       "done": 4
+      },
+      "tal": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": [
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc11.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cross-sectional_disc12.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc2.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc3.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc4.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc5.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc6.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc7.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc8.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc9.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc10.tar.gz not found (skipped)",
+     "WARNING: brainspresso.datasets.oasis.i.roaster: oasis_cs_freesurfer_disc11.tar.gz not found (skipped)"
+    ]
+   }
+  ],
+  "tasks": {
+   "roast/discs/fs-disc01": {
+    "children": 0,
+    "counts": {
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/mri/orig/001.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/anat/sub-0001_atlas-Aseg_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "fs",
+         "fs-all"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "fs",
+       "fs-all"
+      ],
+      "mode": null,
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001"
+     ]
+    },
+    "signature": "71108cd28f631ea61b227bebdca6920a08cc105aa082b99d743ef1219aa3d706",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/fs-disc01",
+    "unit": {}
+   },
+   "roast/discs/raw-disc01": {
+    "children": 0,
+    "counts": {
+     "avg": {
+      "done": 2
+     },
+     "fsl": {
+      "done": 2
+     },
+     "raw": {
+      "done": 4
+     },
+     "tal": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json"
+      ]
+     ],
+     [
+      "raw",
+      [
+       "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json"
+      ]
+     ],
+     [
+      "avg",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json"
+      ]
+     ],
+     [
+      "tal",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json"
+      ]
+     ],
+     [
+      "fsl",
+      [
+       "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0001/anat/sub-0001_run-1_T1w.json",
+     "rawbids/sub-0001/anat/sub-0001_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0001/anat/sub-0001_space-Talairach_res-1mm_dseg.json",
+     "rawbids/sub-0002/anat/sub-0002_run-1_T1w.json",
+     "rawbids/sub-0002/anat/sub-0002_run-2_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_desc-skullstripped_T1w.json",
+     "derivatives/oasis-processed/sub-0002/anat/sub-0002_space-Talairach_res-1mm_dseg.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "discs": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "avg",
+         "fsl",
+         "raw",
+         "tal"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "avg",
+       "fsl",
+       "raw",
+       "tal"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0001",
+      "0002"
+     ]
+    },
+    "signature": "2b71493872a7969682b25a553300eac19275cd69db13c3d3648f66b2e402d2ed",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/discs/raw-disc01",
+    "unit": {}
+   }
+  }
+ }
+}

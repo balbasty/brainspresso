@@ -102,6 +102,7 @@ from brainspresso.roast import (
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -248,7 +249,7 @@ def phenotype_files(source: Path) -> list[Path]:
     """
     if not source.is_dir():
         return []
-    csvs = sorted(p for p in source.glob(CSV_GLOB) if p.is_file())
+    csvs = sorted_paths(p for p in source.glob(CSV_GLOB) if p.is_file())
     if not csvs and (source / COMPOSITE).is_file():
         csvs = [source / COMPOSITE]
     return csvs
@@ -258,8 +259,9 @@ def tarballs(source: Path) -> list[Path]:
     """NITRC tarballs (`*.tar.gz`, `*.tgz`) of a source folder."""
     if not source.is_dir():
         return []
-    return sorted(p for p in source.iterdir()
-                  if p.is_file() and p.name.endswith((".tar.gz", ".tgz")))
+    return sorted_paths(
+        p for p in source.iterdir()
+        if p.is_file() and p.name.endswith((".tar.gz", ".tgz")))
 
 
 def wants_raw(ctx: RoastContext) -> bool:
@@ -480,7 +482,7 @@ def sweep_spools(ctx: RoastContext) -> list[Path]:
         return []
     host = _host()
     removed = []
-    for spool in sorted(folder.glob(f"{SPOOL_PREFIX}*")):
+    for spool in sorted_paths(folder.glob(f"{SPOOL_PREFIX}*")):
         match = re.fullmatch(rf"{re.escape(SPOOL_PREFIX)}(?P<host>.+)-"
                              rf"(?P<pid>\d+)-[^-]+", spool.name)
         if not (spool.is_dir() and match and match["host"] == host):

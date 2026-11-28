@@ -43,6 +43,7 @@ from brainspresso.roast import (
     subject_shards,
 )
 from brainspresso.utils.nrrd import nrrd_to_nifti
+from brainspresso.utils.path import sorted_paths
 
 TEMPLATES = Path(__file__).parent / "templates"
 
@@ -208,8 +209,8 @@ def roast_session(ctx, sub: str, ses: str, sesdir: Path) -> Iterator[Action]:
             yield _convert(src, out / "anat" / f"{base}_{suffix}", suffix)
 
     # one DWI series per session (Girder item folder holding the file)
-    dwis = sorted(p for p in (sesdir / "DTI" / "ORIG").glob("**/*.nrrd")
-                  if p.is_file())
+    dwis = sorted_paths(p for p in (sesdir / "DTI" / "ORIG").glob("**/*.nrrd")
+                        if p.is_file())
     if dwis:
         yield _convert(dwis[0], out / "dwi" / f"{base}_dwi", "dwi", dwi=True)
 
@@ -260,6 +261,6 @@ def deriv_sidecar(suffix: str) -> dict:
 # ----------------------------------------------------------------------
 
 def _dirs(path: Path) -> list[Path]:
-    return sorted(p for p in path.iterdir() if p.is_dir()) \
+    return sorted_paths(p for p in path.iterdir() if p.is_dir()) \
         if path.is_dir() else []
 

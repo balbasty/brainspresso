@@ -150,13 +150,16 @@ layout of each site):
            "date": "<ISO 8601 UTC>", "...": "stage-specific fields"}],
  "files": {"<path relative to <DS>>": {"url": "...", "size": 0,
            "digests": {"md5": "..."},
-           "origin": "direct | roasted | generated"}}}
+           "origin": "direct | roasted | generated | converted"}}}
 ```
 
 `origin` is written by hosted harvests (2b-iii, §4): `direct` for a
 file downloaded to its place (images, and the pristine copies in
 `sourcedata/<folder>/`), `roasted` for metadata roasted from a pristine
-copy, `generated` for files the listing generates. Roasted and
+copy, `generated` for files the listing generates; and by engine roasts
+(r43, §5): `converted` for the sidecars and visible table-kind files a
+roast wrote, with their `sha256` (the edit test of `--if-exists
+update`). Roasted and
 generated files of a hosted dataset also carry `source` (the pristine
 copy, or the generated base in `<state>/generated/<path>`) and
 optionally `repair: true`, `trim: false`, `site`, and `fill` (the fill-in
@@ -428,10 +431,47 @@ Interactions (decided):
 * Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
   `sites[:kind]` in each site's own `sourcedata/` (the parent's files
   are direct). Fill-in placement depends on the layout (below).
-* `--if-exists`: downloads as before; roasted files under "skip" use
-  "different" with `compare` (they are cheap and derived: a new pristine
-  copy or template must reach the dataset); "overwrite", "error" and
-  "refresh" (mtime of the pristine copy) apply as such.
+* `--if-exists`: downloads as before. Roasted files (r43): "skip"
+  (default) is pure, an existing visible file is left alone (not
+  rendered, no hash, no log line, no orphan removed; a frozen file too),
+  but for the derived files: the participants, sessions and scans
+  tables of the raw dataset and the field maps whose `IntendedFor` is
+  trimmed or repaired, which follow "update" (they must follow the
+  images on disk); a missing visible file is written (repaired and
+  filled in). "update" (roast only) is what "skip" did before r43: a
+  file is rendered and replaces the visible one if its content changed
+  and it is unedited (the edit test of the state model below); the
+  roast that a compost runs uses it (it re-trims and repairs what is
+  left: not a user's `skip`). "different" replaces edits too (no edit
+  test), "overwrite" rewrites, "error" refuses an existing file,
+  "refresh" compares mtimes with the base. Harvest has no "update", so
+  a harvest never re-renders existing visible metadata, except under
+  "different"/"overwrite"; after a harvest under "skip" the bases may
+  be newer than the visible files, and `roast --if-exists update`
+  renders them.
+
+  | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
+  |---|---|---|---|---|
+  | `skip` (default) | write | left alone | left alone | left alone |
+  | `skip`, trimmed table or field map with `IntendedFor` | write | as `update` | as `update` | as `update` |
+  | `update` | write | rewritten iff the render differs | identical to the render: adopted; else kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else `MIGRATION_RULE` "replace": backup in `<state>/replaced/`, then replaced |
+  | `different` | write | rewritten iff the render differs | same (edit lost) | same |
+  | `overwrite` | write | rewritten | rewritten | rewritten |
+  | `refresh` | write | by the mtime of the base | same | same |
+  | `error` | write | error | error | error |
+
+  The `update` rows of engine roasts (§5) and of hosted roasts are one
+  rule; the backup is shared (`Layout.replaced`, `Action.backup`). A
+  hosted derivative description is completed in its render
+  (`SourceDatasets`, `bids.layout.complete_description`, as
+  `write_descriptions` would), so the file equals the render, its hash
+  is recorded and its edits are told like any other's (at any depth:
+  `derivatives/<a>/derivatives/<b>/` takes the URL of the layout that
+  owns it). An edited field
+  map is merged and compared first: the warning only when the merge
+  differs from the file (a stale hash is no edit).
+  Hosted roasts run with `RoastPolicy(track=False)`: `_record` stays
+  the one writer of their hashes (no "converted" entries).
 * Re-runs: a harvest that runs again skips existing downloads and the
   subject shards whose signature is unchanged (their bases, templates,
   files on disk, `.bidsignore`, and `Shard.config`: `RENDER_VERSION`,
@@ -439,13 +479,35 @@ Interactions (decided):
   file). Edits are decided by hash only (see the state model). New
   fill-in sidecars are judged from their own record too. A fill-in
   sidecar whose template no longer applies is removed if unedited (and
-  forgotten), else kept with a warning, when a roast handles it.
-  Directly placed generated files keep #26's refresh-if-unedited
-  (`write_inline`, now under the file's lock and atomic).
-* `--repair/--no-repair`: `bx <ds> roast` with its defaults repairs, so
-  it undoes a `harvest --no-repair` unless a config file says
-  `repair = false`. The flags of the manifest are not updated when the
-  roast failed.
+  forgotten), else kept with a warning, when a roast handles it (not
+  under "skip": a removal touches an existing file). Under "skip" a
+  file left alone is yielded as a skipped action, so that it is an
+  output of its shard and deleting it runs the shard again; its
+  existence is no part of the shard config.
+* Harvest under "skip" is pure too (r43): a generated file placed
+  directly (`write_inline`: fill-in templates and other `InlineEntry`
+  files written to their final path, #26) is left alone once it exists
+  (not read, no warning, no "refreshed"); "different", "overwrite" and
+  "refresh" write it when its content differs (edits included), "error"
+  refuses it. A generated file whose path is now in the remote dataset
+  (`replace_generated`) is left alone under "skip" (the remote file is
+  not downloaded); other modes as before (removed if unedited, so that
+  the remote file is downloaded). Unchanged in every mode: the pristine
+  copies in `sourcedata/<folder>/`, the generated bases in
+  `<state>/generated/` and the merged tables of a sites parent
+  (`datasets/indi/harvest.py`, written with "overwrite": a derived
+  table, like the trimmed ones). The manifest `sha256` of a generated
+  file is recorded when the harvest writes it. Harvest has no
+  "update": #26's edit-aware refresh of directly placed files is no
+  longer reachable at harvest (it would be `write_inline`'s old "skip"
+  branch under a new value).
+* `--repair/--no-repair`: applies to the files a roast writes (under
+  "skip": absent files, tables and field maps). `bx <ds> roast
+  --if-exists update` with the default repairs, so it undoes a
+  `harvest --no-repair` unless a config file says `repair = false`;
+  under "skip" an existing unrepaired file stays unrepaired (the flag
+  is still recorded for the selection, an option of the next render).
+  The flags of the manifest are not updated when the roast failed.
 * A missing base freezes the file (left as it is; a `Fail` only if the
   visible file is missing too). The accepted cost: after `compost
   --sourcedata`, a later filtering compost no longer trims `IntendedFor`
@@ -484,22 +546,24 @@ authoritative copy first):
 | Kind | Copies | Written | Deleted |
 |------|--------|---------|---------|
 | Data (images, recordings) | visible only (manifest: `direct`; `fetched: false` if selected, not fetched) | harvest (download; `--if-exists`) | compost filters (entry removed) |
-| Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: every metadata roast (rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
+| Hosted metadata, tables included | base: pristine `sourcedata/<folder>/<remote>` (`direct`); visible (`roasted`, `source`, `sha256`, `fill`, `repair`, `trim`, `remote`, `remote_root`) | base: every harvest, refreshed against the listing; visible: when absent, and by every metadata roast under `update` (tables and field maps: also under `skip`; rows of tables trimmed in the render), unless edited | visible: compost filters; base: compost `--sourcedata`, or a default compost once nothing refers to it |
 | Generated metadata (templates, merged tables, generated sidecars) | base `<state>/generated/<path>`; visible (`generated`, `source`) | base: every harvest; visible: as hosted metadata | as hosted metadata (the base stays) |
 | New fill-in sidecars | templates in the package; visible (`generated`, `fill`, no `source`) | metadata roasts, where a template applies | when no template applies any more, if unedited (and the roast handles it) |
-| Directly placed generated files | visible only (`generated`, `sha256`) | harvest, if unedited (#26) | compost filters |
+| Directly placed generated files | visible only (`generated`, `sha256`) | harvest, when absent; under `different`/`overwrite`/`refresh` when it differs (r43: no edit test at harvest) | compost filters |
 
 * A missing base freezes its file: left as it is (one info line); a
   `Fail` only if the visible file is missing too.
 * Edits, by hash only: a visible file is edited iff its hash differs
-  from the recorded one; kept under `skip` (an edited field map keeps
-  the user's keys and takes `IntendedFor` from the render);
+  from the recorded one; kept under `update` (an edited field map keeps
+  the user's keys and takes `IntendedFor` from the render), left alone
+  under `skip` (tables and field maps: as `update`);
   `--if-exists different|overwrite` replaces it.
-* No recorded hash (an older dataset): a file equal to the render is
-  adopted; any other follows `MIGRATION_RULE` ("keep": kept, with a
-  warning; "replace": copied to `<state>/replaced/<path>` as the action
-  writes it, which replaces it atomically; nothing is copied or lost if
-  no action writes). Default "replace" (owner decision).
+* No recorded hash (an older dataset), under `update`: a file equal to
+  the render is adopted; any other follows `bids.harvest.MIGRATION_RULE`
+  ("keep": kept, with a warning; "replace": copied to
+  `<state>/replaced/<path>` by the action core as it writes it, which
+  replaces it atomically; nothing is copied or lost if no action
+  writes). Default "replace" (owner decision).
 * Only `_record` writes the hashes of roasted files: that of a file
   holding the render, whatever its state was (an edit replaced with
   `--if-exists overwrite` is ours again; a merged field map or a
@@ -690,12 +754,24 @@ layer in 2b-iv):
   FreeSurfer tree in `derivatives/<fs>/sourcedata/`) and the
   sub-actions of a staging claim are exempt (there is no implicit
   exemption of `sourcedata/` any more). `ifexists=None` is the policy
-  of the engine (still `different` outside it); under `skip`, tables use
-  `different`, and roast sets `Action.compare` on tables: without
-  size/digests a table is regenerated and replaces the existing one
-  only if its content changed, so pristine tables follow new harvests
-  (`compare` is opt-in in the core: actions run outside roast do not
-  compare unless they set it). A claim action's `fn()` yields concrete sub-actions
+  of the engine (still `different` outside it). Roast sets
+  `Action.compare` on tables and on tracked files under `different`
+  and `update`: without size/digests the output is regenerated and
+  replaces the existing one only if its content changed (`compare` is
+  opt-in in the core: actions run outside roast do not compare unless
+  they set it). By what an action writes (r43, `RoastPolicy.prepare`):
+  a **pristine table** (every output in `<state>/orig/`) uses
+  `different` under `skip`, `update` and `different`, so pristine
+  tables follow new harvests and the visible ones are trimmed from
+  them after every roast; a **tracked file** (kind "sidecar" or
+  "table", one declared output, no claim, not staging, no `ifexists` of
+  its own: `sub-*_T1w.json`, `README`, `dataset_description.json`,
+  `participants.json`, the JSON of tables) follows the mode table
+  below; other tables (several outputs) are compared under `update`
+  and `different` and skipped under `skip`; anything else takes the
+  mode as given (`update` is `different`). An action with
+  `compare=False` is left alone under `different`/`update` once it
+  exists. A claim action's `fn()` yields concrete sub-actions
   (selected one by one; it never writes files itself); a claim is
   selected if any of its paths can be; one that yields nothing is
   counted as "empty". `ExtractMember`, `ExtractMembers` (claim,
@@ -826,6 +902,60 @@ layer in 2b-iv):
   input signature (paths, sizes, mtimes; selection; JSON policy) and
   whose outputs exist is skipped under `skip` without reopening its
   archives (a shard that yielded shards never is).
+* `--if-exists` (r43). `skip` (default) is pure: an existing file is
+  never touched and nothing is said about it; the exceptions are the
+  pristine tables (regenerated and compared) and the visible tables
+  trimmed from them (`trim_originals`, after every roast, in every
+  mode). `update` (roast only; `IfExists.UPDATE`, which the action core
+  treats as `different`) adds an edit test: a tracked file is *edited*
+  iff its SHA-256 differs from the one recorded in the manifest (origin
+  `converted`); the roast policy reads the state of each tracked file
+  (`RoastContext.recorded`, the manifest read once per run and
+  process, keyed by the manifest's inode, size and mtime, so that the
+  shards of a worker share one read). A tracked action that leaves its output holding what it
+  renders (`Action.rendered`: written, or an identical compare) reports
+  its hash (`Action.track`, `Report.digests`, also from workers);
+  `run_roast` merges them into the manifest (`finish_roast(files=)`),
+  also when the roast is partial. `write_descriptions` completes
+  (`SourceDatasets`, `DatasetType`) only the derivative descriptions
+  that the run wrote: new ones, and those it rendered or rewrote under
+  the active mode (`bids.harvest.description_hashes` before the run,
+  `untouched` after it, `write_descriptions(keep=)`); any other
+  existing description, recorded or not, edited or not, is left byte
+  for byte, in every mode (an edit kept under `update`, every existing
+  file under `skip`, `error`, `refresh` when the mtime matches). A
+  completed tracked description gets the hash of the file as left on
+  disk. The harvest (`bids.harvest.harvest`) follows the same rule.
+  Tracked files:
+
+  | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
+  |---|---|---|---|---|
+  | `skip` (default) | write | left alone | left alone | left alone |
+  | `update` | write | rewritten iff the content differs | compared: identical (a stale hash, e.g. of a killed roast): adopted; else kept, warning (`Action.keep_edit`) | identical: adopted (hash recorded); else backup in `<state>/replaced/<path>` (`Layout.replaced`, `Action.backup`; an existing backup is kept, the copy goes to `<path>.1`, `.2`...), then replaced (`bids.harvest.MIGRATION_RULE` "replace"; "keep": as edited) |
+  | `different` | write | rewritten iff the content differs | rewritten iff the content differs (edit lost) | rewritten iff the content differs |
+  | `overwrite` | write | rewritten | rewritten | rewritten |
+  | `refresh` | write | rewritten iff its mtime differs from its sources' | same | same |
+  | `error` | write | error | error | error |
+
+  A hash is recorded wherever the file ends up holding the render,
+  never for a file left alone or kept. Other outputs:
+
+  | `--if-exists` | data, `meta` (bval/bvec) | pristine tables (`<state>/orig/`) | trimmed tables (visible) |
+  |---|---|---|---|
+  | `skip` | left alone | regenerated, replaced iff the content differs | re-trimmed from the pristine copy |
+  | `update` | as `different` | same | same |
+  | `different` | rewritten only if an expected size or digest is given and differs | same | same |
+  | `overwrite` | rewritten | rewritten | same |
+  | `refresh` | rewritten iff the mtime differs from the sources' | same rule | same |
+  | `error` | error | error | same |
+
+  Trimmed tables have no edit test (an edit of `participants.tsv` is
+  lost at the next roast). Shards are skipped by signature under `skip`
+  only: under every other mode all shards run (and read their archives
+  again), so an up-to-date signature never hides a stale sidecar.
+  After a template change under `skip` the shard re-runs, every
+  sidecar action is skipped and the new signature is recorded: by
+  design (`roast --if-exists update` renders them).
 * Keys: `bids/keys.py`. `KeyAliases(tree, bids={leaf: Selection
   filters}, folders={category: [folders]})`; other leaves are
   categories; groups expand to their leaves; lookup is exact, then
@@ -942,7 +1072,6 @@ def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def roast_options(self, args) -> dict       # RoastContext.options
                                   #   (OASIS-I: --discs); default {}
-def legacy_keys(self, command, args) -> set  # legacy roasters
 def check(self, command, args) -> None      # keys, sites, subjects
 def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
 def run(self, command, layout, args)         # check, lock, then the body
@@ -987,9 +1116,8 @@ default that is a real subset (UNC-Wisconsin harvest: `raw meta`) stays
 a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
 `KeyAliases.expand`) before anything is written, and the hierarchy is
-listed in the help of the command and in `info`. Legacy roasters
-(`legacy_subjects`) got numbers: `--subs` is expanded first (files,
-`start:stop`); since the ABIDE-II port (step 5) no dataset uses them. A roast of a missing dataset folder is refused before
+listed in the help of the command and in `info`. Every roast is on the
+engine: roast `--subs` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
 anything is created. The command functions return nothing (cyclopts >=
 4 prints a return value; the cyclopts 3 console script would print it
 and exit 1); `execute` returns it.
@@ -1016,8 +1144,8 @@ break under `from __future__ import annotations`.
 | `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
 | `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (several roasters) |
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
-| `HarvestOptions` | `--if-exists`, `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--lock-wait` (`--wait`, hidden, deprecated) | harvest |
-| `RoastOptions` | `--sidecars yes\|no\|only` (`--json VALUE`, `--no-json`: hidden, deprecated), `--if-exists`, `--jobs`, `--lock-wait` | roast |
+| `HarvestOptions` | `--if-exists` (no `update`), `--jobs`, `--packet`, `--insecure`, `--dry-run`, `--lock-wait` (`--wait`, hidden, deprecated) | harvest |
+| `RoastOptions` | `--sidecars yes\|no\|only` (`--json VALUE`, `--no-json`: hidden, deprecated), `--if-exists` (`skip`, `update`, `different`, `overwrite`, `refresh`, `error`; `update` is roast only, §5), `--jobs`, `--lock-wait` | roast |
 | `CompostOptions` | `--sourcedata`, `--nested`, `--keep`, `--derivatives`, `--trim`, `--force`, `--ignore-runs`, `--yes/-y`, `--dry-run`, `--list`, `--lock-wait` (`--wait`, hidden, deprecated) | compost |
 | `LayoutOptions` | `--layout` (`layouts`), `--site-layout` (hidden) | all but info |
 | `LogOptions` | `--log`, `--level` | all |
@@ -1066,8 +1194,7 @@ match nothing are warned about by the hosted harvests (INDI, OpenNeuro;
 an error if none matches); their format is not validated. `subject_width`
 is set where subjects are numbers (IXI 3, Bullitt 3, OASIS-III 4,
 ABIDE-I 5, ABIDE-II 5, ADHD-200 7, CoRR 0: host `0003001` is BIDS
-`3001`); legacy roasters got numbers (`Dataset.numbers`, unused since
-step 5).
+`3001`).
 
 ### `register`, the catalog and `cli.main`
 
@@ -1414,7 +1541,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * ABIDE-I `download-nitrc`/`download-xnat` removed (`harvest --source`).
 * Missing optional dependencies: stub commands instead of none.
 * Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--lock-wait`,
-  `--exclude-keys` (harvests; legacy roasts: set difference),
+  `--exclude-keys` (harvests),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
   `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
   UNC-Wisconsin roast, compost `--sites` (sites layouts).
@@ -1472,8 +1599,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   records catch the cases where the lock is not shared; without a lock
   backend every command refuses unless `BRAINSPRESSO_LOCKS=0`. Windows
   releases the locks of a crashed process with a short delay.
-* Over-generalising: legacy roasts stay overrides, `cli()` is an escape
-  hatch.
+* Over-generalising: `cli()` is an escape hatch.
 
 ## 7. Grind
 
@@ -2256,8 +2382,7 @@ Each step lands as commits on the refactor branch with its tests green.
   share one roaster (ABIDE-I s3 and nitrc), so that `roast --source`
   exists only where the layouts differ. The module has a `roast(root,
   *, subs=, exclude_subs=, **options)` Python API whose subjects go
-  through `subject_labels(values, width)`, as on the command line (no
-  `legacy_subjects`, `legacy_keys` or `numbers`). Keys a roaster must
+  through `subject_labels(values, width)`, as on the command line. Keys a roaster must
   tell apart are sibling leaves of a `KeyAliases`, never a group and its
   only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
   missing input that the selection needs is a counted `Fail` (one per
@@ -2269,6 +2394,16 @@ Each step lands as commits on the refactor branch with its tests green.
   complete to `<state>/orig/` (participants) with `n/a` for missing
   values, `participant_id` with its `sub-` prefix, blank rows skipped and
   bad rows skipped with a warning.
+* `--if-exists skip` is pure (r43): a roast or harvest under the
+  default never changes a file that exists, says nothing about it, and
+  a roaster need not do anything for it (the roast policy sets the
+  `IfExists` of its actions). The only exceptions are derived tables
+  (pristine copies and the tables trimmed from them, hosted field maps'
+  `IntendedFor`, the merged tables of a sites parent) and the pristine
+  copies and generated bases of hosted datasets. Refreshing files that
+  exist is `--if-exists update` (roast: keeps edits) or `different`
+  (replaces edits). A roaster passes `ifexists=` on a sidecar only for
+  a reason it documents, which takes the file out of the tracked files.
 * Imports are at the top level of modules (ruff `PLC0415`, step 4). A
   local import is kept only for an optional dependency, a genuine
   import cycle that moving code cannot break, or the start-up time of
@@ -2276,8 +2411,7 @@ Each step lands as commits on the refactor branch with its tests green.
   `# noqa: PLC0415` and the reason (`# lazy: optional dependency`).
   Tests written before step 4 are exempt.
 * Wording: the stage is "roast" (roasters); "bidsify" only survives in
-  the names of the legacy roasters (`Bidsifier` classes, `bidsifier*.py`,
-  rewritten in step 5) and of pre-existing helpers (`freesurfer.bidsify`).
+  the names of pre-existing helpers (`freesurfer.bidsify`).
 * Layering: `actions/` (stage-agnostic) imports neither `bids/`,
   `roast/`, `percolate/` nor `grind/`; `percolate/` (plans, execution,
   stage-agnostic) builds on `actions/` and `bids/` and imports neither
@@ -2964,3 +3098,72 @@ up as an XPASS failure once fixed (then drop the marker).
   `SITE_ID` spellings, the column names of the CSV files and the
   scan folder of UCLA's high-resolution anatomical. Not done: the
   roast of the bucket copy (§9).
+* r43: engine follow-ups (PR 1). Dead legacy helpers removed: every
+  roast is on the engine since r42, so `Dataset.legacy_subjects`,
+  `legacy_keys`, `numbers`, `legacy_roast()` and `KeySpec.expand` (the
+  only user of which was `legacy_keys`) are gone; `Dataset.check` reads
+  roast `--subs` as labels, as every command does, and
+  `KeyOptions.helps` gives the engine texts of `--keys`/`--exclude-keys`
+  to every roast.
+  `--if-exists` of engine roasts (§5): `skip` is pure, so a visible
+  table-kind file (`README`, `dataset_description.json`,
+  `participants.json`, the JSON of tables) that exists is no longer
+  compared and replaced under `skip` (sidecars: unchanged); pristine
+  tables are still compared and the visible tables trimmed from them.
+  New roast-only mode `update` (`IfExists.UPDATE`, "different" in the
+  action core): a tracked file (sidecar or visible table-kind file)
+  whose content changed is rewritten unless the user edited it (kept,
+  with a warning); edits are told by the SHA-256 that every roast now
+  records for the tracked files that hold what it wrote (manifest
+  origin `converted`, `Action.track`/`rendered`, `Report.digests`,
+  `RoastContext.recorded`; a derivative description rewritten by
+  `finish_roast` is hashed as left on disk); a file without a hash is
+  adopted if identical, else copied to `<state>/replaced/<path>` and
+  replaced (`Layout.replaced`, `Action.backup`, shared with hosted
+  roasts; `MIGRATION_RULE` moved to `bids.harvest`). `different` now
+  compares sidecars too (it left an existing sidecar alone: nothing set
+  `compare` on them), so it rewrites a sidecar whose content differs,
+  edits included. Shards are still skipped by signature under `skip`
+  only, so `update` and `different` read every archive again. No
+  signature version bump, nothing rewritten at upgrade: `roast
+  --if-exists update` does what a plain roast did to visible table-kind
+  files. `harvest --if-exists` does not take `update`.
+  Hosted roasts (§4): `skip` is pure too; what hosted `skip` did (render,
+  replace if unedited, keep an edit with a warning, adopt or migrate a
+  file without a hash, remove unedited orphan fill-ins, repair existing
+  files) is now `update`, the same rule as for engine roasts. Under
+  `skip` the participants, sessions and scans tables and the field maps
+  whose `IntendedFor` is trimmed still follow `update`, a missing file
+  is written, and a file left alone is a skipped action of its shard
+  (an output, so that deleting it runs the shard again). The roast that
+  a compost runs passes `update`; `bx <ds> roast` keeps the user's
+  value (default `skip`). The hosted default stays `skip`.
+  Harvest (§4): `skip` is pure for the generated files placed directly
+  (`write_inline` leaves an existing file alone, its `generated`
+  argument is gone; `replace_generated` leaves a file now in the
+  remote dataset alone); pristine copies, generated bases and the
+  merged tables of a sites parent are still refreshed by every harvest.
+  Harvest gets no `update`: the edit-aware refresh of #26 is now
+  `roast --if-exists update` for roasted files only; `harvest
+  --if-exists different` replaces generated files, edits included.
+  Review round 1 of #39: under `update` an edited tracked file is
+  compared first (`Action.keep_edit`): one that holds the render (a
+  hash not recorded because the roast was killed) is adopted, any other
+  kept with a warning, in engine and hosted roasts alike (the "keep"
+  migration rule likewise); `write_descriptions` completes only the
+  derivative descriptions that the run wrote (new, rendered or
+  rewritten): an existing one is left byte for byte otherwise (an edit
+  kept under `update`; anything under `skip` and `error`, recorded or
+  not; also in harvests), and a completed tracked one is re-hashed as
+  left on disk; a backup never replaces an
+  earlier one (`<path>.1`, `.2`...); the recorded hashes are cached per
+  process and manifest version (`roast.context._recorded_hashes`).
+  Review round 2 of #39 (hosted): a hosted derivative description is
+  completed in the render (`complete_description`, shared with
+  `DerivativeLayout.write_descriptions`), so that it equals the render,
+  is recorded, and goes through the edit test (an edit kept under
+  `update`, an unedited one not rewritten, no backups piling up; an
+  interrupted roast leaves it complete); an edited field map that holds
+  the merge is not warned about.
+  Round 3: nested derivative descriptions too (`roast.hosted.
+  _derivative_url`).

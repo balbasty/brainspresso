@@ -17,6 +17,7 @@ producers yield, through the acceptance policy of a stage layer.
 import datetime
 import filecmp
 import os
+import shutil
 import time
 import traceback
 from contextlib import ExitStack
@@ -33,7 +34,8 @@ from brainspresso.utils.digests import get_digest, sort_digests
 
 lg = getLogger(__name__)
 
-IfExistsChoice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
+IfExistsChoice = Literal['skip', 'overwrite', 'different', 'refresh', 'error',
+                         'update']
 FilenameLike = str | os.PathLike
 FileLike = FilenameLike | IO
 FilenamesLike = Iterable[FilenameLike] | FilenameLike
@@ -113,7 +115,10 @@ class IfExists:
 
     Values: "skip" (if all outputs exist), "overwrite", "different"
     (if the size, digest or, with `Action.compare`, the content differs),
-    "refresh" (if the mtime differs from that of the sources), "error".
+    "refresh" (if the mtime differs from that of the sources), "error",
+    "update" (the core treats it as "different"; a stage layer may add
+    an edit test: roast keeps the sidecars a user edited,
+    `roast.RoastPolicy`).
 
     ```python
     action = Action(..., ifexists='overwrite')
@@ -122,7 +127,8 @@ class IfExists:
     ```
     """
 
-    Choice = Literal['skip', 'overwrite', 'different', 'refresh', 'error']
+    Choice = Literal['skip', 'overwrite', 'different', 'refresh', 'error',
+                     'update']
 
     class Enum(_Enum):
         """Singleton values."""
@@ -132,6 +138,7 @@ class IfExists:
         DIFFERENT = D = 3
         REFRESH = R = 4
         ERROR = E = 5
+        UPDATE = U = 6
 
     # Expose values
     SKIP = Enum.SKIP
@@ -139,6 +146,7 @@ class IfExists:
     DIFFERENT = Enum.DIFFERENT
     REFRESH = Enum.REFRESH
     ERROR = Enum.ERROR
+    UPDATE = Enum.UPDATE
 
     # Set (class attribute) default
     default: Enum = DIFFERENT
@@ -236,9 +244,28 @@ class Action:
       actions), for the acceptance policy (roast does not apply its
       JSON policy to them, nor to the sub-actions of a staging claim);
     * `compare=True` (outputs that are cheap to make, e.g. tables):
-      under `IfExists` "different", without an expected size or digest,
-      the outputs are written to temporary files and replace the
-      existing ones only if their content differs.
+      under `IfExists` "different" (or "update"), without an expected
+      size or digest, the outputs are written to temporary files and
+      replace the existing ones only if their content differs.
+
+    Set by the layer that runs the action (default off):
+
+    * `track`: report the SHA-256 of the outputs it leaves holding what
+      it renders (the engine sends them to `Report.digests`);
+    * `backup`: a path where the existing (single) output is copied
+      before the action replaces it, with a warning naming the copy;
+      nothing is copied if the action does not write (an identical
+      compare, a failure). Roast sets it for a file it cannot tell from
+      an edit (no recorded hash, `bids.harvest.MIGRATION_RULE`). A
+      backup that exists is never replaced: the copy goes to
+      `<backup>.1`, `<backup>.2`... (the first free name);
+    * `keep_edit`: a warning; under a compare, outputs that differ from
+      what the action renders are kept (not replaced) and the warning is
+      logged; identical ones count as rendered (roast: a file the user
+      edited, kept under `update` unless it holds the render).
+
+    Set by the action as it runs: `rendered`, whether its outputs hold
+    what it renders (outcome "done", or an identical compare).
 
     Sources are read under shared locks, outputs written under exclusive
     locks (`actions.file`). A source that is also an output (an update
@@ -286,7 +313,8 @@ class Action:
         input : {'file', 'path', 'str'}
             Whether the `action` should be given a file object, a
             Path or a string.
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file(s) already exist (default:
             that of the policy of the engine, else 'different'). With
             several
@@ -340,6 +368,10 @@ class Action:
         self.digests = digests
         self.ifexists_given = ifexists is not None
         self.ifexists = IfExists.from_any(ifexists)
+        self.track = False
+        self.backup: Path | None = None
+        self.keep_edit: str | None = None
+        self.rendered = False
 
     @property
     def declared(self) -> list[Path]:
@@ -374,6 +406,9 @@ class Action:
             lg.debug(f'IfExists from context: {IfExists.current!r}')
         else:
             lg.debug(f'IfExists from object: {self.ifexists!r}')
+        if ifexists is IfExists.UPDATE:
+            # (the edit test is the stage layer's: here, "different")
+            ifexists = IfExists.DIFFERENT
 
         if ifexists is IfExists.ERROR and any(exists):
             dst = [f for f, e in zip(dst, exists) if e]
@@ -485,6 +520,7 @@ class Action:
 
     def __iter__(self) -> Iterator[dict]:
         """Run the action, yielding statuses (and a claim's actions)."""
+        self.rendered = False
         try:
             # Protect source files for reading and perform action
             with Files(*[File(src1, "r") for src1 in self._read_sources()]):
@@ -564,6 +600,7 @@ class Action:
         if not overwrite:
             return
         compare = overwrite is _COMPARE
+        keep = False
 
         # --------------------------------------------------------------
         # Perform action
@@ -607,9 +644,29 @@ class Action:
                 ):
                     for tmp_file in tmp_files:
                         tmp_file.discard = True
+                elif compare and self.keep_edit is not None:
+                    # (differs: the existing outputs are kept)
+                    for tmp_file in tmp_files:
+                        tmp_file.discard = True
+                    keep = True
+                elif self.backup is not None and len(dst) == 1 and \
+                        dst[0].is_file():
+                    # (a copy, before the temporary file replaces it)
+                    backup = _free_name(Path(self.backup))
+                    backup.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dst[0], backup)
+                    lg.warning(f'{dst[0]!s} differs from what brainspresso '
+                               f'writes and has no recorded hash (an older '
+                               f'dataset): replaced, the old file is in '
+                               f'{backup!s}')
 
+            if keep:
+                lg.warning(self.keep_edit)
+                yield {'status': 'skipped', 'message': 'kept'}
+                return
             if compare and all(f.discard for f in tmp_files.files):
                 lg.info(f'File {dst[0]!s} is identical: skip')
+                self.rendered = True
                 yield {'status': 'skipped', 'message': 'identical'}
                 return
 
@@ -652,6 +709,7 @@ class Action:
             for dst1 in dst:
                 os.utime(dst1, (atime, mtime))
 
+            self.rendered = True
             yield {'status': 'done'}
 
         # ----------------------------------------------------------
@@ -668,6 +726,15 @@ class Action:
 
 def _keep_all(path) -> bool:
     return True
+
+
+def _free_name(path: Path) -> Path:
+    """`path`, else `<path>.1`, `<path>.2`...: the first that is free."""
+    candidate, n = path, 0
+    while lexists(candidate):
+        n += 1
+        candidate = path.with_name(f"{path.name}.{n}")
+    return candidate
 
 
 def _same_file_key(path: FilenameLike) -> str:

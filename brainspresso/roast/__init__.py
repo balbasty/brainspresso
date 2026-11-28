@@ -7,7 +7,7 @@ The roast layer of the action engine (`actions.engine`):
   source folder), `make_context`, `as_list`;
 * `policy`: `RoastPolicy`, the acceptance policy (selection, JSON
   policy, category folders, kinds from `bids.kinds`, `IfExists` of
-  tables);
+  tables and tracked files: pure `skip`, the edit test of `update`);
 * `run`: `run_roast` (engine, then trim and `finish_roast`) and
   `roast_dataset` (the `roast()` of a dataset);
 * `helpers`: `copy_templates`, `subject_shards`.

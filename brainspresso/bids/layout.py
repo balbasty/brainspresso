@@ -42,7 +42,7 @@ import os
 import posixpath
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from typing import Iterator, Literal
+from typing import Iterable, Iterator, Literal
 
 from brainspresso.actions.locks import (
     LOCKS_DIR,
@@ -67,6 +67,7 @@ MANIFEST = "manifest.json"       # in the state folder
 TASKS_DIR = "tasks"              # per-task state files, in the state folder
 ORIG_DIR = "orig"                # pristine tables, in the state folder
 GENERATED_DIR = "generated"      # generated metadata (hosted datasets)
+REPLACED_DIR = "replaced"        # backups of replaced files (`update`)
 RAW_DIR = "rawbids"              # raw dataset of a study
 SOURCE_DIR = "sourcedata"
 DERIVATIVES_DIR = "derivatives"
@@ -166,13 +167,17 @@ def _read_json(path: Path) -> dict | None:
     return out if isinstance(out, dict) else None
 
 
+def _same(path: str | os.PathLike) -> str:
+    """Key of a path, to compare files (absolute, case as the OS)."""
+    return os.path.normcase(os.path.abspath(path))
+
+
 def _write_json(path: Path, obj: dict) -> bool:
     """Write a JSON file if its content changes. Returns whether written."""
     if path.exists() and _read_json(path) == obj:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8",
-                    newline="\n")
+    path.write_bytes(description_bytes(obj))
     return True
 
 
@@ -287,6 +292,25 @@ class Layout:
         Path
         """
         return self.state / GENERATED_DIR / self._relpath(path)
+
+    def replaced(self, path: str | os.PathLike) -> Path:
+        """
+        Return the backup of a replaced file, in `<state>/replaced/`.
+
+        `roast --if-exists update` copies there a file that has no
+        recorded hash and differs from what roast writes, before it
+        replaces it (`bids.harvest.MIGRATION_RULE`).
+
+        Parameters
+        ----------
+        path : str | PathLike
+            The file (absolute, or relative to `root`)
+
+        Returns
+        -------
+        Path
+        """
+        return self.state / REPLACED_DIR / self._relpath(path)
 
     def ensure_state(self) -> Path:
         """
@@ -417,7 +441,8 @@ class Layout:
             out.update({k: raw[k] for k in _STUDY_FIELDS if k in raw})
         return out
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep: Iterable[str | os.PathLike] = ()
+                           ) -> list[Path]:
         """
         Write the descriptions that depend on the layout.
 
@@ -430,11 +455,17 @@ class Layout:
         The raw description (copied from templates or downloaded) is
         not generated here: it lives at `raw/dataset_description.json`.
 
+        Parameters
+        ----------
+        keep : list[path]
+            Derivative descriptions left exactly as they are (files the
+            user edited, `bids.harvest.finish_roast`)
+
         Returns the files written.
         """
         written = []
         for drv in self.list_derivatives():
-            written += drv.write_descriptions()
+            written += drv.write_descriptions(keep)
         return written
 
     # ------------------------------------------------------------------
@@ -495,13 +526,13 @@ class StudyLayout(Layout):
             return self.raw, "/".join(parts[1:]) or "."
         return self.root, str(rel)
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Write the study description, then those of derivatives."""
         written = []
         if _write_json(self.root / DESCRIPTION,
                        self.dataset_description("study")):
             written.append(self.root / DESCRIPTION)
-        return written + super().write_descriptions()
+        return written + super().write_descriptions(keep)
 
 
 class FlatLayout(Layout):
@@ -555,6 +586,10 @@ class DerivativeLayout(Layout):
         """Return the base of a generated file (parent's state folder)."""
         return self.parent.generated(path)
 
+    def replaced(self, path):
+        """Return the backup of a replaced file (parent's state folder)."""
+        return self.parent.replaced(path)
+
     @property
     def source_url(self) -> str:
         """Relative URL of the raw dataset, for `SourceDatasets`."""
@@ -572,23 +607,17 @@ class DerivativeLayout(Layout):
             out["SourceDatasets"] = [{"URL": self.source_url}]
         return out
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Complete the description of the derivative, if it exists."""
-        desc = _read_json(self.description)
+        kept = {_same(p) for p in keep}
+        desc = None if _same(self.description) in kept \
+            else _read_json(self.description)
         written = []
         if desc is not None:
-            desc = dict(desc)
-            desc.setdefault("DatasetType", "derivative")
-            url = self.source_url
-            sources = [s for s in desc.get("SourceDatasets", []) or []
-                       if not _is_flat_raw_url(s, url)]
-            if not any(isinstance(s, dict) and s.get("URL") == url
-                       for s in sources):
-                sources.insert(0, {"URL": url})
-            desc["SourceDatasets"] = sources
+            desc = complete_description(desc, self.source_url)
             if _write_json(self.description, desc):
                 written.append(self.description)
-        return written + super().write_descriptions()
+        return written + super().write_descriptions(keep)
 
     def to_manifest(self):
         """Layout fields of the manifest."""
@@ -602,6 +631,44 @@ class DerivativeLayout(Layout):
     def __hash__(self):
         """Hash of the kind and root."""
         return hash((type(self), self.root))
+
+
+def complete_description(desc: dict, url: str) -> dict:
+    """
+    Complete the description of a derivative dataset.
+
+    `DatasetType` "derivative" if it has none, and a `SourceDatasets`
+    entry with the URL of the raw dataset first (stale flat URLs
+    dropped). Used by `DerivativeLayout.write_descriptions`, and by the
+    hosted render (`roast.hosted`), so that a hosted derivative
+    description equals its render and its edits are told by hash.
+
+    Parameters
+    ----------
+    desc : dict
+        The description
+    url : str
+        Relative URL of the raw dataset (`DerivativeLayout.source_url`)
+
+    Returns
+    -------
+    dict
+        A completed copy
+    """
+    desc = dict(desc)
+    desc.setdefault("DatasetType", "derivative")
+    sources = [s for s in desc.get("SourceDatasets", []) or []
+               if not _is_flat_raw_url(s, url)]
+    if not any(isinstance(s, dict) and s.get("URL") == url
+               for s in sources):
+        sources.insert(0, {"URL": url})
+    desc["SourceDatasets"] = sources
+    return desc
+
+
+def description_bytes(desc: dict) -> bytes:
+    """Format a description as `write_descriptions` writes it."""
+    return (json.dumps(desc, indent=2) + "\n").encode("utf-8")
 
 
 def _is_flat_raw_url(source, url: str) -> bool:
@@ -698,11 +765,11 @@ class SitesLayout(Layout):
         """Local path of a path relative to the parent folder."""
         return self.root.joinpath(*PurePosixPath(relpath).parts)
 
-    def write_descriptions(self) -> list[Path]:
+    def write_descriptions(self, keep=()) -> list[Path]:
         """Write the descriptions of every site."""
         written = []
         for child in self.children.values():
-            written += child.write_descriptions()
+            written += child.write_descriptions(keep)
         return written
 
     def to_manifest(self):

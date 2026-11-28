@@ -1,0 +1,2 @@
+# Tools to build the documentation site: zensical build --strict
+zensical >= 0.0.11

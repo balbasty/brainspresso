@@ -3,7 +3,7 @@
   "files": {
    ".brainspresso/orig/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -25,7 +25,7 @@
     },
     "dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "participants.json": {
      "origin": "converted",
@@ -111,7 +111,7 @@
   "files": {
    ".brainspresso/orig/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "derivatives/ixi-scanner/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/ixi-scanner/dataset_description.json": "b8a4e0e4e39eb6398c6c9282aa81a8e9e2878fe02e750ec3d0df22124d538252",
    "derivatives/ixi-scanner/sub-002/dwi/sub-002_desc-trace_dwimap.json": "d819620621e967c57337581ff08d63dd5615759ef7cde72772954307b7453838",
@@ -137,7 +137,7 @@
     },
     "dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "derivatives/ixi-scanner/.bidsignore": {
      "origin": "converted",
@@ -332,7 +332,7 @@
   "files": {
    ".brainspresso/orig/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
    "participants.tsv": "525eea2bc3d721db9c8222e32a025d5e1243e68e2f22a5c67c8e2cfbe6fe56e8"
   },
@@ -344,7 +344,7 @@
     },
     "dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "participants.json": {
      "origin": "converted",
@@ -394,7 +394,7 @@
   "files": {
    ".brainspresso/orig/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -416,7 +416,7 @@
     },
     "dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "participants.json": {
      "origin": "converted",
@@ -552,7 +552,7 @@
   "files": {
    ".brainspresso/orig/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -570,7 +570,7 @@
     },
     "dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "participants.json": {
      "origin": "converted",
@@ -659,9 +659,9 @@
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "d06e74924b982a3337e2dc933c540fd70e865276bd1c537c65e981ecb8dce4c3",
-   "dataset_description.json": "84ea0b469ca62c7ba6052bde31f21265d58cf40d7c89708ef85880726eb02b66",
+   "dataset_description.json": "e2e1733be80b8cad42c67903ec1e072d72780007fe6eec03dfbc00a74c5518e0",
    "rawbids/README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "rawbids/dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "rawbids/dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "rawbids/dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "rawbids/dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "rawbids/participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -687,7 +687,7 @@
     },
     "rawbids/dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "rawbids/participants.json": {
      "origin": "converted",
@@ -779,13 +779,13 @@
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "d06e74924b982a3337e2dc933c540fd70e865276bd1c537c65e981ecb8dce4c3",
-   "dataset_description.json": "84ea0b469ca62c7ba6052bde31f21265d58cf40d7c89708ef85880726eb02b66",
+   "dataset_description.json": "e2e1733be80b8cad42c67903ec1e072d72780007fe6eec03dfbc00a74c5518e0",
    "derivatives/ixi-scanner/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/ixi-scanner/dataset_description.json": "65c1eda2a192fd5525b48e36c7915f1129f098cd028a3b2e7bc93819283a6138",
    "derivatives/ixi-scanner/sub-002/dwi/sub-002_desc-trace_dwimap.json": "d819620621e967c57337581ff08d63dd5615759ef7cde72772954307b7453838",
    "derivatives/ixi-scanner/sub-002/dwi/sub-002_desc-trace_dwimap.nii.gz": "gz:83681b9117401952a1559ccbfda3875061dd590ec907b67e51d74f89d5cb422c",
    "rawbids/README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "rawbids/dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "rawbids/dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "rawbids/dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "rawbids/dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "rawbids/participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -823,7 +823,7 @@
     },
     "rawbids/dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "rawbids/participants.json": {
      "origin": "converted",
@@ -1024,9 +1024,9 @@
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "d06e74924b982a3337e2dc933c540fd70e865276bd1c537c65e981ecb8dce4c3",
-   "dataset_description.json": "84ea0b469ca62c7ba6052bde31f21265d58cf40d7c89708ef85880726eb02b66",
+   "dataset_description.json": "e2e1733be80b8cad42c67903ec1e072d72780007fe6eec03dfbc00a74c5518e0",
    "rawbids/README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "rawbids/dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "rawbids/dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "rawbids/participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
    "rawbids/participants.tsv": "525eea2bc3d721db9c8222e32a025d5e1243e68e2f22a5c67c8e2cfbe6fe56e8"
   },
@@ -1042,7 +1042,7 @@
     },
     "rawbids/dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "rawbids/participants.json": {
      "origin": "converted",
@@ -1098,9 +1098,9 @@
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "d06e74924b982a3337e2dc933c540fd70e865276bd1c537c65e981ecb8dce4c3",
-   "dataset_description.json": "84ea0b469ca62c7ba6052bde31f21265d58cf40d7c89708ef85880726eb02b66",
+   "dataset_description.json": "e2e1733be80b8cad42c67903ec1e072d72780007fe6eec03dfbc00a74c5518e0",
    "rawbids/README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "rawbids/dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "rawbids/dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "rawbids/dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "rawbids/dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "rawbids/participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -1126,7 +1126,7 @@
     },
     "rawbids/dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "rawbids/participants.json": {
      "origin": "converted",
@@ -1274,9 +1274,9 @@
   "files": {
    ".brainspresso/orig/rawbids/participants.tsv": "843b33666e2d64a91830efdb8f60d2512f9b2eff0586d0a90e785fcaf8c7f532",
    "README": "d06e74924b982a3337e2dc933c540fd70e865276bd1c537c65e981ecb8dce4c3",
-   "dataset_description.json": "84ea0b469ca62c7ba6052bde31f21265d58cf40d7c89708ef85880726eb02b66",
+   "dataset_description.json": "e2e1733be80b8cad42c67903ec1e072d72780007fe6eec03dfbc00a74c5518e0",
    "rawbids/README": "836b9e4f0892a9e3fc2be2d7c8771d2a1878c3476c642551a58c112820247d56",
-   "rawbids/dataset_description.json": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661",
+   "rawbids/dataset_description.json": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764",
    "rawbids/dwi.bval": "aa3b8d5212d3e2ccd417bdbbe4fa6e86969f1e2fe0a4f8bf3c531296f7988c5a",
    "rawbids/dwi.bvec": "d257c659071206f0192ee20edc22a964ef7892856d5f59116cf2b12b3c8b9ac4",
    "rawbids/participants.json": "6608391b10afb95df7525e949c8c986db44820d78b0f5b9665b619f416b5c1b9",
@@ -1298,7 +1298,7 @@
     },
     "rawbids/dataset_description.json": {
      "origin": "converted",
-     "sha256": "e8e3f94b0677c2e9b3b90aaf541285ca1a75c4dd02f2d0bb85952a991c1f4661"
+     "sha256": "b1470f311ca84a2f865402cf50ce0e16b8bbc07a56a0badfbb142941a6267764"
     },
     "rawbids/participants.json": {
      "origin": "converted",

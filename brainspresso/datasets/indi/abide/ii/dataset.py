@@ -11,7 +11,7 @@ ABIDE-II dataset (autism spectrum disorders)
 * **Subproject**    ABIDE II (additional 19 sites)
 * **Modalities**    T1w, rest, (DWI, FLAIR)
 * **Populations**   Controls, Autism Spectrum Disorders
-* **License**       CC BY-NC
+* **License**       CC BY-NC-SA
 * **Funding**       NIH: R21 MH107045, and more.
 * **URL**           https://fcon_1000.projects.nitrc.org/indi/abide/abide_II.html
 """  # noqa: E501

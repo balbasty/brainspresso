@@ -1,0 +1,75 @@
+/* brainspresso docs. */
+
+/* Palette: the colours of the logo (docs/images/src/make_logos.py). */
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #6b3e26;   /* coffee */
+  --md-primary-fg-color--light: #8a5536;
+  --md-primary-fg-color--dark:  #2b1b13;   /* ink */
+  --md-accent-fg-color:         #b7783f;   /* latte */
+  --md-accent-fg-color--transparent: rgba(183, 120, 63, 0.1);
+}
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #4a2b1b;
+  --md-primary-fg-color--light: #6b3e26;
+  --md-primary-fg-color--dark:  #2b1b13;
+  --md-accent-fg-color:         #d39a5e;
+  --md-accent-fg-color--transparent: rgba(211, 154, 94, 0.1);
+  --md-typeset-a-color:         #d39a5e;
+}
+
+/* The wordmark (logo and name) as the title of the home page; the theme
+   shows the image of its palette (#only-light / #only-dark). */
+.md-typeset h1.wordmark {
+  margin: 0.4em 0 1em;
+  text-align: center;
+}
+.md-typeset h1.wordmark img {
+  width: 26rem;
+  max-width: 100%;
+}
+
+/* The workflow diagram has a background of its own. */
+.md-typeset img.diagram {
+  display: block;
+  margin: 1.5em auto;
+  border-radius: 0.4rem;
+}
+
+/* Custom admonition for the works to cite: `!!! references "References"`,
+   ending with a collapsed `??? quote "BibTeX"` (as in neuroscales/optix). */
+:root {
+  --md-admonition-icon--references: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.74 3.74 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>');
+}
+
+.md-typeset .admonition.references,
+.md-typeset details.references {
+  border-color: rgb(183, 120, 63);
+  background-color: rgba(183, 120, 63, 0.1);
+}
+
+.md-typeset .references > .admonition-title::after,
+.md-typeset .references > summary::after {
+  color: rgb(183, 120, 63);
+}
+
+.md-typeset .references > .admonition-title::before,
+.md-typeset .references > summary::before {
+  background-color: rgb(183, 120, 63);
+  -webkit-mask-image: var(--md-admonition-icon--references);
+  mask-image: var(--md-admonition-icon--references);
+}
+
+.md-typeset .references ol {
+  margin-bottom: 0.5em;
+}
+
+/* The summary table at the top of each dataset page
+   (`<div class="glance" markdown>`): two columns, no header. */
+.md-typeset .glance table:not([class]) thead {
+  display: none;
+}
+.md-typeset .glance table:not([class]) td:first-child {
+  font-weight: 700;
+  white-space: nowrap;
+}

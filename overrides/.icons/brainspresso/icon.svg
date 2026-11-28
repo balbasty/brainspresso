@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 74 504 366">
+  <defs>
+    <mask id="brainspresso-icon" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <ellipse cx="246" cy="354" rx="236" ry="80" fill="#fff"/>
+      <path d="M40 178 C40 316 118 392 236 392 C354 392 432 316 432 178 Z" fill="#000" stroke="#000" stroke-width="40" stroke-linejoin="round"/>
+      <ellipse cx="438" cy="252" rx="50" ry="40" fill="none" stroke="#000" stroke-width="72"/>
+      <ellipse cx="438" cy="252" rx="50" ry="40" fill="none" stroke="#fff" stroke-width="34"/>
+      <path d="M40 178 C40 316 118 392 236 392 C354 392 432 316 432 178 Z" fill="#fff"/>
+      <ellipse cx="236" cy="178" rx="196" ry="98" fill="#fff"/>
+      <ellipse cx="236" cy="182" rx="162" ry="68" fill="#000"/>
+      <ellipse cx="236" cy="186" rx="130" ry="46" fill="#fff"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" fill="currentColor" mask="url(#brainspresso-icon)"/>
+</svg>

@@ -1,7 +1,7 @@
 {
   "Name": "ABIDE-II",
   "BIDSVersion": "1.8.0",
-  "LICENSE": "CC BY-SA",
+  "License": "CC BY-NC-SA",
   "Authors": [
     "Di Martino, A",
     "Milham, MP",

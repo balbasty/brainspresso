@@ -17,7 +17,7 @@ ABIDE-I dataset (autism spectrum disorders)
 * **Subproject**    ABIDE I (original 17 sites)
 * **Modalities**    T1w, rest
 * **Populations**   Controls, Autism Spectrum Disorders
-* **License**       CC BY-NC
+* **License**       CC BY-NC-SA
 * **Funding**       NIH: K23 MH087770, R03 MH096321, and more.
 * **URL**           https://fcon_1000.projects.nitrc.org/indi/abide/abide_I.html
 """  # noqa: E501

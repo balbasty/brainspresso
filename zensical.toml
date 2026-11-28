@@ -60,8 +60,10 @@ copyright = """
 Copyright &copy; 2026 The authors
 """
 extra_css = ["stylesheets/extra.css"]
-# Not part of the site: the design notes and the sources of the artwork.
+# Not part of the site: the requirements of the docs build, the design notes
+# and the sources of the artwork.
 exclude_docs = """
+requirements.txt
 design/
 images/README.md
 images/src/

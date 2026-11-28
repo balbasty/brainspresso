@@ -430,7 +430,9 @@ def read_csv(src: str | Path | IO[bytes], *, delimiter: str = ",",
     -------
     Sheet
         Rows numbered by record (a cell with a line break does not
-        count twice)
+        count twice). Cells are as stored: a line break inside a quoted
+        cell stays `\r\n`, `\r` or `\n` (no normalisation here: `clean`
+        makes any run of them one space)
 
     Raises
     ------

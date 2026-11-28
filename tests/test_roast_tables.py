@@ -102,11 +102,31 @@ def test_read_csv_rows(tmp_path):
     """Blank rows dropped; rows numbered by record (a quoted line break
     does not count twice); short rows read as empty past their end"""
     path = tmp_path / "t.csv"
-    path.write_text('ID,Note\n1,"a\nb"\n\n , \n2\n')
+    path.write_bytes(b'ID,Note\n1,"a\nb"\n\n , \n2\n')
     sheet = read_csv(path)
     assert sheet.rows == [(2, ["1", "a\nb"]), (5, ["2"])]
     assert sheet.cell(sheet.rows[1][1], 1) == ""
     assert sheet.cell(sheet.rows[1][1], None, default=None) is None
+
+
+def test_read_csv_crlf(tmp_path):
+    """Files of Windows tools: CRLF rows, CRLF (or a lone CR) inside a
+    quoted cell; cells are read as stored, `clean` makes each break one
+    space"""
+    path = tmp_path / "t.csv"
+    path.write_bytes(b'ID,Note\r\n1,"a\r\nb"\r\n2,"c\rd"\r\n\r\n'
+                     b'3,"e\r\n\r\n f"\r\n')
+    sheet = read_csv(path)
+    assert sheet.header == ["ID", "Note"]
+    assert sheet.rows == [(2, ["1", "a\r\nb"]), (3, ["2", "c\rd"]),
+                          (5, ["3", "e\r\n\r\n f"])]
+    counts = Counter()
+    assert [clean(row[1], counts=counts) for _, row in sheet.rows] == [
+        "a b", "c d", "e f"]
+    assert counts == {"breaks": 3}
+    table = Table({"participant_id": "ID", "note": "Note"})
+    assert list(table.rows([path]))[1:] == [
+        ["sub-1", "a b"], ["sub-2", "c d"], ["sub-3", "e f"]]
 
 
 def test_read_csv_file_object_and_options():
@@ -233,7 +253,7 @@ def test_read_xls_errors(tmp_path, monkeypatch):
 # ----------------------------------------------------------------------
 
 def _csv(path, text):
-    path.write_text(text)
+    path.write_bytes(text.encode())      # (no "\r\n" on Windows)
     return path
 
 

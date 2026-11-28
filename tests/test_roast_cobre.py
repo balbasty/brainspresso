@@ -298,6 +298,18 @@ def test_participants_bad_rows(root, caplog):
     assert caplog.text.count("row skipped") == 2
 
 
+def test_participants_not_utf8(root, caplog):
+    """A CSV file that is not UTF-8 is read as Windows-1252 (logged)"""
+    csv = root / "sourcedata" / "COBRE_phenotypic_data.csv"
+    csv.write_bytes(CSV.replace("Left", "L\xe9ft").encode("cp1252"))
+    with caplog.at_level("INFO"):
+        report = roast(root, keys={"meta"}, display=False)
+    assert not report.errors
+    rows = read_tsv(original(root))
+    assert len(rows) == 4 and rows[2][3] == "L"
+    assert "not UTF-8, read as cp1252" in caplog.text
+
+
 def test_keys_and_subject_filters(root):
     roast(root, keys={"T1w"}, exclude_subs=[40001], display=False)
     assert raw_tree(root) == {

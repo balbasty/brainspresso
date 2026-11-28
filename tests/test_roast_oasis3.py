@@ -221,6 +221,32 @@ def test_phenotype_cells_need_no_quoting(root):
     assert cdr[-1][5] == "say 'no' here"
 
 
+def test_phenotype_cells_with_line_breaks(root):
+    """A line break in a cell is a space (a TSV table cannot hold it)"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": (CDR + 'OAS30001,OAS30001_UDSb4_d0500,500,'
+                             '67.0,1,"two\r\nlines",1\n').encode()})
+    report = roast(root, keys={"pheno", "T1w"})
+    assert not report.errors
+    cdr = pristine(root, "phenotype/UDS_b4_cdr.tsv")
+    assert cdr[-1][3:6] == ["67", "1", "two lines"]
+
+
+@pytest.mark.parametrize("name", ["demo", "UDSb4"])
+def test_corrupt_data_file(root, name):
+    """A data file that cannot be read is an error of its tables only
+    (the roast goes on)"""
+    path = root / "sourcedata" / "OASIS3_data_files" / f"{name}.tar.gz"
+    path.write_bytes(b"not a tarball")
+    report = roast(root, keys={"meta", "T1w"})
+    errors = sorted(name for _, name, _ in report.errors)
+    if name == "demo":
+        assert errors == ["participants.tsv", "sessions.tsv"]
+    else:
+        assert errors == ["UDS_b4_cdr.tsv", "sessions.tsv"]
+    assert f"{T1}.nii.gz" in raw_tree(root)
+
+
 def test_keys_all(root):
     """`--keys all` (accepted by the command line) selects every key"""
     assert roaster.KEYS.expand(["all"]) == roaster.KEYS.leaves

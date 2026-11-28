@@ -708,9 +708,63 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   actions after the unpacking: a shard that yields shards is never
   skipped by signature.
 * Shared helpers: `ExtractMember(archive, member, dst)`, converters registry
-  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table readers (step 6:
-  `roast/tables.py`; the unused `TableMapper` was removed in step 6 PR 0),
-  `ctx.resource(name)` (`sourcedata/` first, then package templates).
+  (Analyze, NRRD, MetaImage, DICOM, FreeSurfer), table helpers (step 6
+  PR B: `roast/tables.py`, below; the unused `TableMapper` was removed
+  in step 6 PR 0), `ctx.resource(name)` (`sourcedata/` first, then
+  package templates).
+* **Table conventions** (step 6 PR B, `roast/tables.py`; every roaster's
+  participants, sessions and phenotype tables):
+  * Reading: `read_csv` (a path or a binary file object, such as a tar
+    member; UTF-8 with or without BOM, else Windows-1252, then
+    Latin-1, logged; any `csv.reader` option), `read_xlsx` (openpyxl,
+    imported on use; whole workbook, never `read_only`, which trusts the
+    stored dimension; values of formulas; closed on every path),
+    `read_xls` (xlrd, imported on use; `Sheet.datemode`, `xls_date`)
+    give a `Sheet`: header, rows numbered as in the file with blank rows
+    dropped, columns found by name without case or whitespace, aliases
+    allowed, first match wins (`find`, `require`; `locate`: by name,
+    else at the expected position, with one warning). A table that
+    cannot be read, that lacks a required column, or whose optional
+    dependency is missing (with the `pip install brainspresso[<extra>]`
+    hint) is a `TableError` whose message starts with the file name.
+  * Cells: `clean` makes a cell safe for an unquoted TSV table: None
+    and NaN are `n/a` (and the spellings in `nans`, `NANS` by default,
+    when the roaster asks), each run of tabs and line breaks is one
+    space, `"` is `'`, text is stripped, and an integral float is
+    written in its shortest form (`30.0` is `30`, `0.0` is `0`, `0.5`
+    stays `0.5`; text such as `"70.0"` read from a CSV file is kept as
+    it is). Every roasted table goes through it once, in
+    `table_action`, with one warning per table that names how many
+    cells it changed; the OASIS-III medications tables are no exception
+    since #43 (they are trimmed tables too, written without an escape
+    character).
+  * Writing: `table_action(ctx, dst, rows, src, *, tag="meta",
+    pristine=True)` is the one action of a roasted table: an `Action`
+    of kind "table" that writes `ctx.layout.original(dst)` (the
+    pristine copy, trimmed after every roast by `trim_originals`;
+    `pristine=False`: `dst`, as ABIDE-I phenotypes) with
+    `utils.io.write_tsv` (unquoted); `bids.tables.write_tsv` stays the
+    quote-aware writer of trimmed and hosted tables. `rows` is a list,
+    or a picklable callable that reads the sources when the action runs.
+  * Errors: read in the action (the default), a `TableError` (or any
+    error) is an error of that table only, under its tag; read while
+    producing (one sheet gives several tables, or a header that a data
+    dictionary needs: OASIS-II, OASIS-III, Bullitt), through
+    `roast.attempt(fn, ..., name=, tag=)`, which returns `(result,
+    None)` or `(None, Fail)`. Row level: blank rows dropped silently; a
+    bad row (no subject, an ID that cannot be parsed, short, listed
+    twice) skipped with a warning naming the file and the line or row;
+    a mapped column that no file has is `n/a` with one warning.
+  * Layer 2, `Table`: a table that is a pure mapping of columns
+    (`columns`, `values`, `baseline`, `nans`, `label`, `prefix`), the
+    ABIDE tables (`datasets/indi/abide/tables.py` keeps `WIDTH`,
+    `participant_label` and its `NANS` with `-9999`). OASIS-II
+    (sessions from the MRI ID), COBRE (a diagnosis cell split in two),
+    IXI (dates, sites from image names) stay code on a `Sheet`.
+  * Warn-once caches (`roast.tables._warned`, keyed by the file and its
+    mtime) are cleared by `scripts/golden.py` before each roast. The
+    tables of hosted datasets (`datasets/indi/engine.py`,
+    `bids/hosted.py`) are not migrated.
 
 Implemented (step 2b-ii; pilots UNC-Wisconsin, IXI, OASIS-III; revised by
 the review fixes of 2b-ii-fix, then split into an action core and a roast
@@ -2402,7 +2456,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2082 passed, 2 skipped, no xfail left) |
-| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`) |
+| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`); PR B (shared table helpers `roast/tables.py` and `roast.attempt`; every roaster's tables migrated: ABIDE-I/II, COBRE, OASIS-I/II/III, Bullitt, IXI, UNC-Wisconsin) |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | done (`.github/workflows/bids-validator.yaml`, `tests/validate_bids.py`: bids-validator 3.0.2 with the BIDS 1.11.2 schema; 11 fixtures × 2 layouts, raw, study and derivative datasets; 116 known errors in `tests/bids_validator_known.json`, to fix in separate PRs; a new error fails the job) |
 
@@ -3465,3 +3519,29 @@ up as an XPASS failure once fixed (then drop the marker).
   it holds `study_readme`'s text: else it is the user's and never
   written, in any mode; `with_study_readme` keeps the attributes of the
   roaster (`functools.update_wrapper`, `tag`, `source`).
+* r48: step 6, PR B. Shared table helpers (§5 "Table conventions"):
+  `roast/tables.py` (`read_csv`, `read_xlsx`, `read_xls` -> `Sheet`
+  with header lookup by name and alias; `clean`; `TableError`;
+  `table_action`, the one action of a roasted table; `warn_once`,
+  `row_warning`; the ABIDE `Table`, moved and generalised with `nans`,
+  `label`, `prefix`) and `roast.attempt` (a reader's error as a `Fail`
+  while producing). Migrated: ABIDE-I/II (`abide/tables.py` keeps
+  `WIDTH`, `participant_label`, `NANS`), COBRE (CSV not in UTF-8 now
+  read as Windows-1252), OASIS-I (columns by name with a positional
+  fallback, an ID that cannot be parsed skipped with a warning, an
+  unreadable spreadsheet an error of `participants.tsv`), OASIS-II
+  (`column_index`, `cell`, `number` replaced), OASIS-III (participants
+  read in their action, ages, diagnoses and phenotype tables through
+  `attempt`: a data file that cannot be read is an error of its tables,
+  no longer of the whole roast; a line break in a phenotype cell is a
+  space instead of an error of the table), Bullitt, IXI (xlrd imported
+  by the reader only), UNC-Wisconsin. Owner decisions: every roasted
+  table is cleaned (the OASIS-III medications tables too: since #43 they
+  are trimmed tables written without an escape character), and
+  integral floats are written in their shortest form in every dataset,
+  in `clean`: on the fixtures, IXI `height` and `weight` (547 cells
+  each of the shipped `IXI.xls`, `164.0` -> `164`) and OASIS-III
+  `age` of the phenotype and sessions tables (`70.0` -> `70`) change
+  once on the next roast; the shard signatures do not change.
+  Replaced and removed: `abide.tables.write_table` and `read_csv`
+  (`table_action`, `roast.tables.read_csv`).

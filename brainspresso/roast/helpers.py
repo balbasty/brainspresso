@@ -22,8 +22,9 @@ from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
+from brainspresso.roast.tables import TableError
 
-__all__ = ["copy_templates", "scope", "subject_shards"]
+__all__ = ["attempt", "copy_templates", "scope", "subject_shards"]
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -169,3 +170,58 @@ def subject_shards(
             inputs=inputs(label) if inputs else None, scope=declared,
             **kwargs,
         )
+
+
+def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
+            errors: tuple[type[BaseException], ...] = (OSError, ValueError),
+            **kwargs) -> tuple[object, Fail | None]:
+    """
+    Call a reader while producing actions; its error is a `Fail`.
+
+    For sources that must be read when actions are yielded (a sheet
+    that gives several tables, the header of a table that its data
+    dictionary needs), so that nothing escapes the producer: the error
+    is that of the output `name` only.
+
+    ```python
+    sheet, error = attempt(read_xlsx, path, name="participants.tsv",
+                           tag="meta")
+    if error:
+        yield error
+        return
+    ```
+
+    Parameters
+    ----------
+    fn : callable
+        The reader, `fn(*args, **kwargs)`
+    *args
+        Its positional arguments
+    name : str
+        Output that the error is of (the name of the `Fail`)
+    tag : str
+        Progress group of the `Fail`
+    what : str, optional
+        What is read, in the message (default: `name`); a
+        `roast.tables.TableError` names its file itself
+    errors : tuple[type]
+        Errors converted (others propagate)
+    **kwargs
+        Its keyword arguments
+
+    Returns
+    -------
+    result : object | None
+        What `fn` returned (None on error)
+    error : Fail | None
+        The `Fail` (None on success)
+    """
+    try:
+        return fn(*args, **kwargs), None
+    except errors as e:
+        if isinstance(e, TableError):
+            message = str(e)
+        else:
+            message = (f"{what or name}: cannot be read "
+                       f"({type(e).__name__}: {e})")
+        return None, Fail(message, name=name, tag=tag)

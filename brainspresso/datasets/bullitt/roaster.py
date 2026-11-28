@@ -35,6 +35,7 @@ template transcribed from the PDF of the dataset) is written complete
 to `.brainspresso/orig/` and trimmed to the subjects on disk. DTI is not
 converted (no gradient table).
 """  # noqa: E501
+import csv
 import re
 from logging import getLogger
 from pathlib import Path
@@ -46,17 +47,18 @@ from brainspresso.actions import (
     CopyJSON,
     Fail,
     WriteJSON,
-    WriteTSV,
 )
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.base import KeySpec
 from brainspresso.roast import (
     RoastContext,
     as_list,
+    attempt,
     copy_templates,
     roast_dataset,
     subject_shards,
 )
+from brainspresso.roast.tables import TableError, read_csv, table_action
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.path import sorted_paths
@@ -358,14 +360,11 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
                    f"templates of the dataset)", name=PARTICIPANTS,
                    tag="meta")
         return
-    try:
-        rows = participants(src)
-    except (OSError, UnicodeDecodeError, ValueError) as e:
-        yield Fail(f"{src} cannot be read ({type(e).__name__}: {e})",
-                   name=PARTICIPANTS, tag="meta")
+    rows, error = attempt(participants, src, name=PARTICIPANTS, tag="meta")
+    if error:
+        yield error
         return
-    yield WriteTSV(rows, ctx.layout.original(raw / PARTICIPANTS), src=src,
-                   tag="meta")
+    yield table_action(ctx, raw / PARTICIPANTS, rows, src)
 
 
 def participants(path: Path) -> list[list[str]]:
@@ -387,21 +386,18 @@ def participants(path: Path) -> list[list[str]]:
 
     Raises
     ------
-    UnicodeDecodeError
-        If it is not UTF-8
-    ValueError
-        If it has no header (`participant_id` first)
+    roast.tables.TableError
+        If it cannot be read, is not UTF-8, or has no header
+        (`participant_id` first)
     """
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
-    header = [cell.strip() for cell in lines[0].split("\t")] \
-        if lines else []
+    sheet = read_csv(path, delimiter="\t", encodings=("utf-8-sig",),
+                     quoting=csv.QUOTE_NONE)
+    header = [cell.strip() for cell in sheet.header]
     if not header or header[0] != "participant_id":
-        raise ValueError("no header (participant_id, ...)")
+        raise TableError(f"{sheet.name}: no header (participant_id, ...)")
     rows = []
-    for nrow, line in enumerate(lines[1:], 2):
-        if not line.strip():
-            continue
-        row = [cell.strip() or "n/a" for cell in line.split("\t")]
+    for nrow, row in sheet.rows:
+        row = [cell.strip() or "n/a" for cell in row]
         match = PARTICIPANT_ID.fullmatch(row[0])
         if not match or len(row) != len(header):
             lg.warning(f"{path.name}, row {nrow}: {row[0]!r} with "

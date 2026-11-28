@@ -11,7 +11,10 @@ The roast layer of the action engine (`actions.engine`):
 * `run`: `run_roast` (engine, then trim and `finish_roast`) and
   `roast_dataset` (the `roast()` of a dataset);
 * `helpers`: `copy_templates`, `subject_shards`, `scope` (with `SEEN`:
-  what of a roast can change the outputs of a shard).
+  what of a roast can change the outputs of a shard), `attempt` (a
+  reader's error as a `Fail`);
+* `tables`: source tables read (`read_csv`, `read_xlsx`, `read_xls`),
+  cells cleaned (`clean`), roasted tables written (`table_action`).
 
 ```python
 def roast_ixi(ctx):
@@ -22,13 +25,19 @@ roast_dataset(roast_ixi, root, KEYS, keys=["T1w"], jobs=4)
 ```
 """
 from brainspresso.actions.engine import LocalExecutor, Shard
+from brainspresso.roast import tables
 from brainspresso.roast.context import (
     JsonPolicy,
     RoastContext,
     as_list,
     make_context,
 )
-from brainspresso.roast.helpers import copy_templates, scope, subject_shards
+from brainspresso.roast.helpers import (
+    attempt,
+    copy_templates,
+    scope,
+    subject_shards,
+)
 from brainspresso.roast.policy import SEEN, RoastPolicy
 from brainspresso.roast.run import (
     Roaster,
@@ -39,6 +48,7 @@ from brainspresso.roast.run import (
 
 __all__ = [
     "JsonPolicy", "LocalExecutor", "RoastContext", "RoastPolicy",
-    "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "copy_templates",
-    "make_context", "roast_dataset", "run_roast", "scope", "subject_shards",
+    "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "attempt",
+    "copy_templates", "make_context", "roast_dataset", "run_roast", "scope",
+    "subject_shards", "tables",
 ]

@@ -39,7 +39,7 @@ from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
-from brainspresso.actions import Action, CopyJSON, Fail, WriteTSV
+from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.oasis.i.roaster import READ_ERRORS, analyze_action
 from brainspresso.errors import UsageError
@@ -50,6 +50,14 @@ from brainspresso.roast import (
     copy_templates,
     roast_dataset,
     scope,
+)
+from brainspresso.roast.helpers import attempt
+from brainspresso.roast.tables import (
+    TableError,
+    clean,
+    integer,
+    read_xlsx,
+    table_action,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -426,7 +434,7 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         Copies of templates, participants and sessions tables (complete,
         in `.brainspresso/orig/`)
     """
-    raw, original = ctx.layout.raw, ctx.layout.original
+    raw = ctx.layout.raw
     yield from copy_templates(ctx, ["README", "dataset_description.json",
                                     "participants.json", "sessions.json"])
     xlsx = ctx.source / XLSX
@@ -434,106 +442,16 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"sourcedata/{XLSX} not found: harvest with --keys meta",
                    name="participants.tsv", tag="meta")
         return
-    try:
-        import openpyxl  # noqa: F401, PLC0415  (lazy: optional dependency)
-    except ImportError:
-        yield Fail("openpyxl is needed to read the spreadsheet: pip install "
-                   "brainspresso[oasis2]", name="participants.tsv",
-                   tag="meta")
+    found, error = attempt(read_demographics, xlsx, name="participants.tsv",
+                           tag="meta")
+    if error:
+        yield error
         return
-    try:
-        participants, sessions = read_demographics(xlsx)
-    except Exception as e:      # (openpyxl raises many kinds of errors)
-        yield Fail(f"{XLSX} cannot be read ({type(e).__name__}: {e})",
-                   name="participants.tsv", tag="meta")
-        return
-    yield WriteTSV(participants, original(raw / "participants.tsv"),
-                   src=xlsx, tag="meta")
+    participants, sessions = found
+    yield table_action(ctx, raw / "participants.tsv", participants, xlsx)
     for sub, rows in sorted(sessions.items()):
         table = raw / f"sub-{sub}" / f"sub-{sub}_sessions.tsv"
-        yield WriteTSV(rows, original(table), src=xlsx, tag="meta")
-
-
-def cell(value) -> str:
-    """
-    Format a cell of the spreadsheet.
-
-    Parameters
-    ----------
-    value : object
-        Its value
-
-    Returns
-    -------
-    str
-        `n/a` if empty or `N/A`; integral numbers without decimals
-        (`27.0` is `27`, so that CDR `0.0` is the level `0`)
-    """
-    if value is None:
-        return "n/a"
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    value = str(value).strip()
-    return "n/a" if value.upper() in ("", "N/A", "NA") else value
-
-
-def number(value) -> int | None:
-    """
-    Read an integer cell (`1`, `1.0`, `"1"`).
-
-    Parameters
-    ----------
-    value : object
-        Its value
-
-    Returns
-    -------
-    int | None
-        The integer, or None
-    """
-    try:
-        value = float(str(value).strip())
-    except ValueError:
-        return None
-    return int(value) if value.is_integer() else None
-
-
-def column_index(header) -> list[int]:
-    """
-    Find the columns of `XLSX_HEADER` in the header of the spreadsheet.
-
-    Names are compared without case and spaces; a column that is not
-    found is read at its position in `XLSX_HEADER` (with a warning).
-
-    Parameters
-    ----------
-    header : sequence
-        First row of the spreadsheet
-
-    Returns
-    -------
-    list[int]
-        Index of each column of `XLSX_HEADER`
-    """
-    def norm(name) -> str:
-        """Name without case and spaces."""
-        return re.sub(r"\s+", "", str(name or "")).lower()
-
-    names = {}
-    for i, name in enumerate(header):
-        names.setdefault(norm(name), i)
-    index, missing = [], []
-    for i, name in enumerate(XLSX_HEADER):
-        if norm(name) in names:
-            index.append(names[norm(name)])
-        else:
-            index.append(i)
-            missing.append(f"{name!r} (column {i + 1}: "
-                           f"{header[i] if i < len(header) else None!r})")
-    if missing:
-        lg.warning(f"{XLSX}: columns not found by name, read by position: "
-                   f"{', '.join(missing)}")
-    return index
+        yield table_action(ctx, table, rows, xlsx)
 
 
 def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
@@ -546,7 +464,9 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     are skipped with a warning. The session of a row is the number of
     its MRI ID (`OAS2_0001_MR2` is `ses-2`, the folder of its scans),
     else (with a warning) its visit. Participants are described by
-    their first visit. Empty and `N/A` cells are `n/a`.
+    their first visit. Cells are cleaned (`roast.tables.clean`: empty
+    and `N/A` cells are `n/a`, integral numbers have no decimals, so
+    that CDR `0.0` is the level `0`).
 
     Parameters
     ----------
@@ -559,34 +479,30 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
         Header and one row per subject
     sessions : dict[str, list[list[str]]]
         `{sub: header and one row per session}`
-    """
-    import openpyxl  # noqa: PLC0415  (lazy: optional dependency)
 
-    # (not `read_only`: it trusts the stored dimension of the sheet)
-    book = openpyxl.load_workbook(path_xlsx, data_only=True)
-    try:
-        sheet = book[book.sheetnames[0]]
-        rows = [list(row) for row in sheet.iter_rows(values_only=True)]
-    finally:
-        book.close()
-    if not rows:
-        raise ValueError("empty sheet")
-    index = column_index(rows[0])
-    width = max(index) + 1
+    Raises
+    ------
+    roast.tables.TableError
+        If the spreadsheet cannot be read (or openpyxl is missing), or
+        is empty
+    """
+    sheet = read_xlsx(path_xlsx, extra="oasis2")
+    if not sheet.header:
+        raise TableError(f"{sheet.name}: empty sheet")
+    index = sheet.locate(XLSX_HEADER)
 
     found = {}          # {sub: {ses: (visit, row)}}
-    for nrow, row in enumerate(rows[1:], 2):
-        row = row + [None] * (width - len(row))     # (empty trailing cells)
+    for nrow, row in sheet.rows:
         (sid, mri, group, visit, delay, sex, hand, age, educ, socio, mmse,
-         cdr, etiv, nwbv, asf) = (row[i] for i in index)
+         cdr, etiv, nwbv, asf) = (sheet.cell(row, i, None) for i in index)
         if not str(sid or "").strip():
-            continue                    # blank or formatted row
+            continue                    # formatted row
         match = re.fullmatch(r"OAS2_(\d+)", str(sid).strip())
         if not match:
             lg.warning(f"{XLSX}, row {nrow}: subject ID {sid!r} (skipped)")
             continue
         sub = f"{int(match[1]):0{WIDTH}d}"
-        visit = number(visit)
+        visit = integer(visit)
         match = re.fullmatch(r"OAS2_(\d+)_MR(\d+)", str(mri or "").strip())
         if match and int(match[1]) != int(sub):
             lg.warning(f"{XLSX}, row {nrow}: MRI ID {mri!r} is not of "
@@ -600,7 +516,8 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
                        f"the visit (ses-{ses})")
         else:
             lg.warning(f"{XLSX}, row {nrow}: no session in MRI ID "
-                       f"{mri!r} or visit {row[index[3]]!r} (skipped)")
+                       f"{mri!r} or visit {sheet.cell(row, index[3], None)!r} "
+                       f"(skipped)")
             continue
         if ses in found.get(sub, {}):
             lg.warning(f"{XLSX}, row {nrow}: sub-{sub} ses-{ses} is listed "
@@ -620,8 +537,8 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
     for sub, rows in sorted(found.items()):
         first = min(rows, key=lambda ses: (
             rows[ses][0] if rows[ses][0] is not None else ses, ses))
-        participants.append([f"sub-{sub}", *map(cell, rows[first][1][0])])
+        participants.append([f"sub-{sub}", *map(clean, rows[first][1][0])])
         sessions[sub] = [SESSIONS_HEADER] + [
-            [f"ses-{ses}", *map(cell, values[1])]
+            [f"ses-{ses}", *map(clean, values[1])]
             for ses, (_, values) in sorted(rows.items())]
     return participants, sessions

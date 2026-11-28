@@ -26,9 +26,9 @@ KEYS = ("meta", "T1w", "T2w", "PDw", "angio", "dwi")
 
 
 def roast_keys():
-    """Keys of the roast (imported on use: the roaster needs xlrd)."""
+    """Keys of the roast (imported on use: the roaster imports `KEYS`)."""
     from brainspresso.datasets.ixi.roaster import (  # noqa: PLC0415
-        KEYS,  # lazy: optional dependency (xlrd)
+        KEYS,  # lazy: import cycle (the roaster imports this module)
     )
     return KEYS
 
@@ -74,7 +74,7 @@ class IXI(Dataset):
             `--keys` as given; none with its default)
         """
         from brainspresso.datasets.ixi.roaster import (  # noqa: PLC0415
-            roast_options,  # lazy: optional dependency (xlrd)
+            roast_options,  # lazy: import cycle (the roaster imports KEYS)
         )
         return roast_options(args.keys.keys)
 

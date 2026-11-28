@@ -25,8 +25,9 @@ from typing import IO, Callable, Iterator, Mapping
 import nibabel as nib
 
 from brainspresso.actions import Action, CopyJSON, Fail, WriteJSON
-from brainspresso.datasets.indi.abide.tables import Table, write_table
+from brainspresso.datasets.indi.abide.tables import Table
 from brainspresso.roast import RoastContext, copy_templates
+from brainspresso.roast.tables import table_action
 from brainspresso.utils.io import read_json, write_json
 
 lg = getLogger(__name__)
@@ -415,11 +416,10 @@ def roast_meta(ctx: RoastContext, csvs: list[Path], missing: str,
         yield from copy_templates(ctx, ["README", "dataset_description.json",
                                         "participants.json"])
         if csvs:
-            yield Action(
-                csvs, ctx.layout.original(raw / "participants.tsv"),
-                partial(write_table, participants, csvs),
-                mode="t", input="path", tag="meta",
-            )
+            yield table_action(
+                ctx, raw / "participants.tsv",
+                partial(participants.rows, csvs, "participants.tsv"), csvs,
+                tag="meta")
         else:
             yield Fail(f"{missing} not found", name="participants.tsv",
                        tag="meta")
@@ -429,13 +429,10 @@ def roast_meta(ctx: RoastContext, csvs: list[Path], missing: str,
             yield Fail(f"{missing} not found", name="phenotype",
                        tag="pheno")
         for name, table in phenotypes.items() if csvs else ():
-            dst = folder / f"{name}.tsv"
-            yield Action(
-                csvs, ctx.layout.original(dst) if pristine_phenotypes
-                else dst,
-                partial(write_table, table, csvs),
-                mode="t", input="path", tag="pheno",
-            )
+            yield table_action(
+                ctx, folder / f"{name}.tsv",
+                partial(table.rows, csvs, f"{name}.tsv"), csvs, tag="pheno",
+                pristine=pristine_phenotypes)
         yield from copy_templates(
             ctx, {f"phenotype/{name}.json": folder / f"{name}.json"
                   for name in phenotypes}, tag="pheno")

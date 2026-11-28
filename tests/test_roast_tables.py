@@ -1,6 +1,7 @@
 """Shared table helpers of the roasters (`roast.tables`, `roast.attempt`)."""
 import csv
 import io
+import json
 import logging
 import math
 import re
@@ -23,9 +24,11 @@ from brainspresso.roast.tables import (
     TableError,
     clean,
     integer,
+    numeric_columns,
     read_csv,
     read_xls,
     read_xlsx,
+    sidecar_name,
     table_action,
     xls_date,
 )
@@ -99,12 +102,13 @@ def test_read_csv_encodings(tmp_path, caplog):
 
 
 def test_read_csv_rows(tmp_path):
-    """Blank rows dropped; rows numbered by record (a quoted line break
-    does not count twice); short rows read as empty past their end"""
+    """Blank rows dropped; rows numbered by the physical line they start
+    on (a quoted line break spans two); short rows read as empty past
+    their end"""
     path = tmp_path / "t.csv"
     path.write_bytes(b'ID,Note\n1,"a\nb"\n\n , \n2\n')
     sheet = read_csv(path)
-    assert sheet.rows == [(2, ["1", "a\nb"]), (5, ["2"])]
+    assert sheet.rows == [(2, ["1", "a\nb"]), (6, ["2"])]
     assert sheet.cell(sheet.rows[1][1], 1) == ""
     assert sheet.cell(sheet.rows[1][1], None, default=None) is None
 
@@ -118,8 +122,8 @@ def test_read_csv_crlf(tmp_path):
                      b'3,"e\r\n\r\n f"\r\n')
     sheet = read_csv(path)
     assert sheet.header == ["ID", "Note"]
-    assert sheet.rows == [(2, ["1", "a\r\nb"]), (3, ["2", "c\rd"]),
-                          (5, ["3", "e\r\n\r\n f"])]
+    assert sheet.rows == [(2, ["1", "a\r\nb"]), (4, ["2", "c\rd"]),
+                          (7, ["3", "e\r\n\r\n f"])]
     counts = Counter()
     assert [clean(row[1], counts=counts) for _, row in sheet.rows] == [
         "a b", "c d", "e f"]
@@ -137,6 +141,20 @@ def test_read_csv_file_object_and_options():
     with pytest.raises(TableError, match=r"^x\.csv: cannot be read "
                                          r"\(csv\.Error"):
         read_csv(io.BytesIO(b'a\n"b"c\n'), name="x.csv", strict=True)
+
+
+def test_row_warning_names_the_physical_line(tmp_path, caplog):
+    """After a cell with line breaks, a warning names the line of the
+    row in the file"""
+    path = _csv(tmp_path / "a.csv", 'SUB,NOTE\n1,"x\ny\nz"\n,lost\n')
+    with caplog.at_level(logging.WARNING):
+        list(Table({"participant_id": "SUB", "note": "NOTE"}).rows([path]))
+    assert "a.csv, line 5: row skipped (no subject)" in caplog.text
+
+
+def test_read_csv_no_encoding():
+    with pytest.raises(ValueError, match="no encoding"):
+        read_csv(io.BytesIO(b"a\n"), name="x.csv", encodings=())
 
 
 def test_read_csv_missing(tmp_path):
@@ -308,6 +326,72 @@ def test_table_cells(tmp_path, caplog):
 #   Writing (`table_action`) and trimming
 # ----------------------------------------------------------------------
 
+def test_numeric_columns():
+    """Numeric: no `Levels`, and a numeric `Format` or `Units` that are not
+    a date or time format"""
+    sidecar = {
+        "age": {"Description": "Age", "Units": "year"},
+        "count": {"Format": "integer"},
+        "score": {"Format": "number", "Units": "point"},
+        "icd9": {"Description": "Diagnosis code"},
+        "sex": {"Levels": {"M": "male"}, "Units": "n/a"},
+        "dob": {"Units": "YYYY-MM-DD"},
+        "acq_time": {"Units": "hh:mm:ss"},
+        "when": {"Units": "ISO 8601"},
+        "version": {"Format": "string", "Units": "v"},
+        "length": {"Units": "mm"},
+        "Description": "not a column",
+    }
+    assert numeric_columns(sidecar) == {"age", "count", "score", "length"}
+    assert numeric_columns(None) == set()
+
+
+def test_clean_numeric():
+    assert [clean(v, numeric=True) for v in (
+        "70.0", " 0.50 ", "1e3", "-0", "+5", "007", "295.70", "x", "inf",
+        "1.2.3", 30.0)] == [
+        "70", "0.5", "1000", "0", "5", "7", "295.7", "x", "inf", "1.2.3",
+        "30"]
+    assert clean("70.0") == "70.0"               # (not numeric: as stored)
+
+
+@pytest.mark.parametrize("sidecar", ["dict", "file", "resource"])
+def test_table_action_numeric_columns(tmp_path, sidecar):
+    """Numbers stored as text: shortest form in a numeric column only (a
+    code column keeps `295.70`)"""
+    layout = make_layout("flat", tmp_path / "DS")
+    raw = layout.raw
+    meta = {"age": {"Units": "year"}, "icd9": {"Description": "code"}}
+    found = {"dict": meta, "file": tmp_path / "p.json", "resource": True}
+    (tmp_path / "p.json").write_text(json.dumps(meta))
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    (templates / "participants.json").write_text(json.dumps(meta))
+    rows = [["participant_id", "age", "icd9"],
+            ["sub-01", "70.0", "295.70"], ["sub-02", "0.50", "n/a"]]
+
+    def roaster(ctx):
+        yield table_action(ctx, raw / "participants.tsv", rows, [],
+                           sidecar=found[sidecar])
+
+    ctx = make_context(layout, KEYS, templates=templates)
+    assert not run_roast(roaster, ctx, display=False).errors
+    assert read_tsv(layout.original(raw / "participants.tsv")) == [
+        ["participant_id", "age", "icd9"], ["sub-01", "70", "295.70"],
+        ["sub-02", "0.5", "n/a"]]
+
+
+def test_sidecar_name(tmp_path):
+    ctx = make_context(make_layout("study", tmp_path / "DS"), KEYS)
+    raw = ctx.layout.raw
+    assert [sidecar_name(ctx, raw / p) for p in (
+        "participants.tsv", "phenotype/srs.tsv",
+        "sub-01/sub-01_sessions.tsv",
+        "sub-01/ses-1/sub-01_ses-1_scans.tsv")] == [
+        "participants.json", "phenotype/srs.json", "sessions.json",
+        "scans.json"]
+
+
 @pytest.mark.parametrize("kind", LAYOUTS)
 def test_table_action_pristine_and_trimmed(tmp_path, kind, caplog):
     """Written to `.brainspresso/orig/` (cells cleaned, warned once), then
@@ -367,22 +451,28 @@ def test_table_action_reads_when_run(tmp_path):
 # ----------------------------------------------------------------------
 
 def test_attempt():
-    def reader(value, *, fail=None):
+    def reader(value, *, fail=None, name=None, tag=None):
         if fail:
             raise fail
-        return value
+        return value, name, tag
 
-    assert attempt(reader, 1, name="t.tsv", tag="meta") == (1, None)
+    # (the reader's own `name` and `tag` pass through)
+    assert attempt(reader, 1, name="n", tag="t", fail_name="t.tsv",
+                   fail_tag="meta") == ((1, "n", "t"), None)
     result, error = attempt(reader, 1, fail=TableError("x.csv: bad"),
-                            name="t.tsv", tag="meta")
+                            fail_name="t.tsv", fail_tag="meta")
     assert result is None and isinstance(error, Fail)
     assert (error.message, error.name, error.tag) == ("x.csv: bad",
                                                       "t.tsv", "meta")
-    _, error = attempt(reader, 1, fail=OSError("gone"), name="t.tsv",
-                       tag="pheno", what="x.tar.gz")
+    _, error = attempt(reader, 1, fail=OSError("gone"), fail_name="t.tsv",
+                       fail_tag="pheno", fail_what="x.tar.gz")
     assert error.message == "x.tar.gz: cannot be read (OSError: gone)"
-    _, error = attempt(reader, 1, fail=OSError("gone"), name="t.tsv",
-                       tag="pheno")
+    _, error = attempt(reader, 1, fail=OSError("gone"), fail_name="t.tsv",
+                       fail_tag="pheno")
     assert error.message == "t.tsv: cannot be read (OSError: gone)"
     with pytest.raises(KeyError):
-        attempt(reader, 1, fail=KeyError("bug"), name="t.tsv", tag="meta")
+        attempt(reader, 1, fail=KeyError("bug"), fail_name="t.tsv",
+                fail_tag="meta")
+    with pytest.raises(KeyError):
+        attempt(reader, 1, fail=KeyError("bug"), fail_name="t.tsv",
+                fail_tag="meta", fail_errors=(OSError,))

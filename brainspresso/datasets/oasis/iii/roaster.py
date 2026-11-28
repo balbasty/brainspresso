@@ -37,9 +37,11 @@ from the member names. The participants and sessions tables are
 written complete to `.brainspresso/orig/` (all subjects, all sessions
 found in `sourcedata/`) and trimmed to what is on disk.
 """  # noqa: E501
+import math
 import re
 import tarfile
 import zlib
+from collections import Counter
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -60,7 +62,15 @@ from brainspresso.roast import (
     subject_shards,
     tables,
 )
-from brainspresso.roast.tables import Sheet, row_warning, table_action
+from brainspresso.roast.tables import (
+    NANS,
+    Sheet,
+    TableError,
+    clean,
+    integer,
+    row_warning,
+    table_action,
+)
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import read_json
 from brainspresso.utils.path import sorted_paths
@@ -357,9 +367,16 @@ def read_csv(tarball: Path, **kwargs) -> Sheet:
     -------
     Sheet
         Its header and rows (blank rows dropped), named after the tarball
+
+    Raises
+    ------
+    roast.tables.TableError
+        If the tarball holds no file, or its CSV file cannot be read
     """
     with tarfile.open(tarball, "r:gz") as tar:
-        member = next(m for m in tar if m.isfile())
+        member = next((m for m in tar if m.isfile()), None)
+        if member is None:
+            raise TableError(f"{tarball.name}: no CSV file")
         return tables.read_csv(tar.extractfile(member), name=tarball.name,
                                **kwargs)
 
@@ -393,16 +410,16 @@ def roast_meta(ctx: RoastContext, sessions: dict) -> Iterator[Action]:
                    name="participants.tsv", tag="meta")
     ages = visits = {}
     if demo:
-        ages, error = attempt(entry_ages, demo, name="sessions.tsv",
-                              tag="meta", what=demo.name,
-                              errors=READ_ERRORS)
+        ages, error = attempt(entry_ages, demo, fail_name="sessions.tsv",
+                              fail_tag="meta", fail_what=demo.name,
+                              fail_errors=READ_ERRORS)
         if error:
             yield error
             return
     if cdr:
-        visits, error = attempt(diagnoses, cdr, name="sessions.tsv",
-                                tag="meta", what=cdr.name,
-                                errors=READ_ERRORS)
+        visits, error = attempt(diagnoses, cdr, fail_name="sessions.tsv",
+                                fail_tag="meta", fail_what=cdr.name,
+                                fail_errors=READ_ERRORS)
         if error:
             yield error
             return
@@ -540,20 +557,71 @@ def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
             continue
         out = ctx.layout.phenotype / f"UDS_{base}"
         medications = form.startswith("a4")
-        sheet, error = attempt(read_csv, tarball, name=f"UDS_{base}.tsv",
-                               tag="pheno", what=tarball.name,
-                               errors=READ_ERRORS)
+        table = f"UDS_{base}.tsv"
+        sheet, error = attempt(read_csv, tarball, fail_name=table,
+                               fail_tag="pheno", fail_what=tarball.name,
+                               fail_errors=READ_ERRORS)
+        if error is None:
+            header, error = attempt(phenotype_header, sheet, medications,
+                                    fail_name=table, fail_tag="pheno")
+        if error is None:
+            sidecar, error = attempt(phenotype_json, ctx, form, header,
+                                     fail_name=f"UDS_{base}.json",
+                                     fail_tag="pheno")
         if error:
             yield error
             continue
-        header = [fix_pheno_column(h, medications) for h in sheet.header]
-        name = f"phenotype/UDS_{base}.tsv"
-        rows = [fix_pheno_row(row, header) for row in
-                complete_rows((row for _, row in sheet.rows), header, name)]
-        yield table_action(ctx, Path(f"{out}.tsv"), [header, *rows],
-                           tarball, tag="pheno", name=name)
-        yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
-                        src=tarball, tag="pheno")
+        name = f"phenotype/{table}"
+        yield table_action(ctx, Path(f"{out}.tsv"),
+                           partial(phenotype_rows, sheet, header, name),
+                           tarball, tag="pheno", name=name, sidecar=sidecar)
+        yield WriteJSON(sidecar, f"{out}.json", src=tarball, tag="pheno")
+
+
+def phenotype_header(sheet: Sheet, medications: bool = False) -> list[str]:
+    """
+    Columns of a phenotype table (BIDS names, cleaned once: the table
+    and its data dictionary use the same names).
+
+    Raises
+    ------
+    roast.tables.TableError
+        If a column name cannot be converted, or there is no subject
+        column (`OASISID`)
+    """
+    header = []
+    for column in sheet.header:
+        try:
+            header.append(clean(fix_pheno_column(column, medications),
+                                nans=()))
+        except ValueError as e:
+            raise TableError(f"{sheet.name}: column {column!r} cannot be "
+                             f"read ({e})") from e
+    if "participant_id" not in header:
+        raise TableError(f"{sheet.name}: no column 'OASISID'")
+    return header
+
+
+def phenotype_rows(sheet: Sheet, header: list[str], name: str) -> list:
+    """
+    Rows of a phenotype table (run by its action).
+
+    A row whose subject is not an OASIS-III ID is skipped; a cell of
+    `delay` or `age` that is not a number is `n/a`: one warning per
+    table and column, with a count.
+    """
+    bad = Counter()
+    rows = [header]
+    for row in complete_rows((row for _, row in sheet.rows), header, name):
+        row = fix_pheno_row(row, header, bad)
+        if row is not None:
+            rows.append(row)
+    for column, count in sorted(bad.items()):
+        what = ("row(s) skipped (subject not an OASIS-III ID)"
+                if column == "participant_id" else
+                f"cell(s) of {column} not a number (n/a)")
+        lg.warning(f"{name}: {count} {what}")
+    return rows
 
 
 def complete_rows(rows, header: list[str], name: str):
@@ -589,25 +657,60 @@ def fix_pheno_column(name: str, medications: bool = False) -> str:
     return name.upper()
 
 
-def fix_pheno_row(row: list[str], header: list[str]) -> list:
+def fix_pheno_row(row: list[str], header: list[str],
+                  bad: Counter | None = None) -> list | None:
+    """
+    Convert a row of a phenotype table.
+
+    Parameters
+    ----------
+    row : list[str]
+        Its cells
+    header : list[str]
+        Its columns (`phenotype_header`)
+    bad : Counter, optional
+        Incremented per column whose cell cannot be read
+
+    Returns
+    -------
+    list | None
+        The row (other cells: `roast.tables.clean`, by `table_action`);
+        None if its subject is not an OASIS-III ID
+    """
+    bad = Counter() if bad is None else bad
     out = []
     for value, column in zip(row, header):
+        value = value.strip()
         if column == 'participant_id':
-            value = f"sub-{int(value[4:]):04d}"
+            match = re.fullmatch(r"OAS3(\d+)", value)
+            if not match:
+                bad[column] += 1
+                return None
+            value = f"sub-{int(match[1]):04d}"
         elif column == 'session_id':
             value = "ses-" + value.split('_')[-1]
-        elif not value:
+        elif not value or (column in ('delay', 'age') and value in NANS):
             value = 'n/a'
-        elif column == 'delay':
-            value = int(value)
-        elif column == 'age':
-            value = float(value)
+        elif column in ('delay', 'age'):
+            number = integer(value) if column == 'delay' else \
+                _float(value)
+            if number is None:
+                bad[column] += 1
+            value = 'n/a' if number is None else number
         elif column in ('DX1', 'DX2', 'DX3', 'DX4', 'DX5') and \
                 value in ('A', '.'):
             value = 'n/a'
-        # (other cells: `roast.tables.clean`, by `table_action`)
         out.append(value)
     return out
+
+
+def _float(value: str) -> float | None:
+    """A finite number, or None."""
+    try:
+        value = float(value)
+    except ValueError:
+        return None
+    return value if math.isfinite(value) else None
 
 
 #: Data dictionary of `session_id` in the phenotype tables

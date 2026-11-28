@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import math
 import re
 from collections import Counter
@@ -71,10 +72,12 @@ __all__ = [
     "clean",
     "column_key",
     "integer",
+    "numeric_columns",
     "read_csv",
     "read_xls",
     "read_xlsx",
     "row_warning",
+    "sidecar_name",
     "table_action",
     "warn_once",
     "xls_date",
@@ -156,8 +159,15 @@ def column_key(name) -> str:
     return re.sub(r"\s+", "", "" if name is None else str(name)).upper()
 
 
+def _shortest(value: float) -> str:
+    """Write a float in its shortest form (`30.0`: `30`; `1e+16` stays)."""
+    if value.is_integer() and abs(value) < 1e16:
+        return str(int(value))
+    return repr(value)
+
+
 def clean(value, *, nans: Iterable[str] = NANS, quotes: str = "'",
-          counts: Counter | None = None) -> str:
+          counts: Counter | None = None, numeric: bool = False) -> str:
     """
     Make one cell safe for an unquoted TSV table.
 
@@ -172,6 +182,10 @@ def clean(value, *, nans: Iterable[str] = NANS, quotes: str = "'",
     counts : Counter, optional
         Incremented: `"quotes"` if a `"` was replaced, `"breaks"` if
         tabs or line breaks were (for the warning of the table)
+    numeric : bool
+        The column is numeric (`numeric_columns`): text that reads as a
+        finite number is written as a float would be (`"70.0"` is
+        `70`, `"0.50"` is `0.5`); other text is kept
 
     Returns
     -------
@@ -186,9 +200,7 @@ def clean(value, *, nans: Iterable[str] = NANS, quotes: str = "'",
     if isinstance(value, float):
         if math.isnan(value):
             return "n/a"
-        # (shortest form: `30.0` is `30`; `1e+16` stays as it is)
-        value = str(int(value)) if value.is_integer() and \
-            abs(value) < 1e16 else repr(value)
+        value = _shortest(value)
     elif not isinstance(value, str):
         value = str(value)
     text = _BREAKS.sub(" ", value)
@@ -199,7 +211,54 @@ def clean(value, *, nans: Iterable[str] = NANS, quotes: str = "'",
         if counts is not None:
             counts["quotes"] += 1
     text = text.strip()
+    if numeric:
+        try:
+            number = float(text)
+        except ValueError:
+            number = None
+        if number is not None and math.isfinite(number):
+            text = _shortest(number)
     return "n/a" if text in nans else text
+
+
+#: `Units` of a data dictionary that are a date or time format
+#: (`YYYY-MM-DD`, `hh:mm:ss`, ISO 8601), not a unit of a number
+_DATE_UNITS = re.compile(r"YYYY|hh:|:mm|ISO\s*8601|^(date|datetime|time|"
+                         r"timestamp)$", re.IGNORECASE)
+#: `Format` of a numeric column (BIDS data dictionaries)
+NUMERIC_FORMATS = ("number", "integer")
+
+
+def numeric_columns(sidecar: Mapping | None) -> set[str]:
+    """
+    Find the numeric columns of a table from its data dictionary.
+
+    A column is numeric when it has no `Levels` and either a numeric
+    `Format` (`number`, `integer`) or `Units` that are not a date or
+    time format (and no other `Format`).
+
+    Parameters
+    ----------
+    sidecar : dict | None
+        The JSON sidecar of the table (`participants.json`...)
+
+    Returns
+    -------
+    set[str]
+        Names of its numeric columns
+    """
+    out = set()
+    for column, entry in (sidecar or {}).items():
+        if not isinstance(entry, Mapping) or entry.get("Levels"):
+            continue
+        form, units = entry.get("Format"), entry.get("Units")
+        if form is not None:
+            if str(form).lower() in NUMERIC_FORMATS:
+                out.add(column)
+        elif isinstance(units, str) and units.strip() and \
+                not _DATE_UNITS.search(units.strip()):
+            out.add(column)
+    return out
 
 
 def integer(value) -> int | None:
@@ -397,11 +456,12 @@ def _blank(row: Sequence) -> bool:
     return not any(c is not None and str(c).strip() for c in row)
 
 
-def _sheet(name: str, rows: list[list], path=None, **kwargs) -> Sheet:
-    """Make a `Sheet` of rows (header first; numbered from 1)."""
-    header = ["" if c is None else str(c) for c in rows[0]] if rows else []
-    body = [(n, row) for n, row in enumerate(rows[1:], start=2)
-            if not _blank(row)]
+def _sheet(name: str, rows: list[tuple[int, list]], path=None,
+           **kwargs) -> Sheet:
+    """Make a `Sheet` of numbered rows (header first)."""
+    header = ["" if c is None else str(c) for c in rows[0][1]] \
+        if rows else []
+    body = [(n, row) for n, row in rows[1:] if not _blank(row)]
     return Sheet(name, header, body, path=Path(path) if path else None,
                  **kwargs)
 
@@ -429,16 +489,18 @@ def read_csv(src: str | Path | IO[bytes], *, delimiter: str = ",",
     Returns
     -------
     Sheet
-        Rows numbered by record (a cell with a line break does not
-        count twice). Cells are as stored: a line break inside a quoted
-        cell stays `\r\n`, `\r` or `\n` (no normalisation here: `clean`
-        makes any run of them one space)
+        Rows numbered by the physical line they start on (a quoted cell
+        with a line break spans several lines). Cells are as stored: a
+        line break inside a quoted cell stays `\r\n`, `\r` or `\n` (no
+        normalisation here: `clean` makes any run of them one space)
 
     Raises
     ------
     TableError
         If the file cannot be read, decoded or parsed (read errors of a
         file object are not converted: they are its owner's)
+    ValueError
+        If `encodings` is empty
     """
     path = None if hasattr(src, "read") else Path(src)
     name = name or (path.name if path else
@@ -451,7 +513,9 @@ def read_csv(src: str | Path | IO[bytes], *, delimiter: str = ",",
         except OSError as e:
             raise TableError(f"{name}: cannot be read ({type(e).__name__}: "
                              f"{e})") from e
-    text = None
+    if not encodings:
+        raise ValueError("read_csv: no encoding to try")
+    text = error = None
     for encoding in encodings:
         try:
             text = data.decode(encoding)
@@ -464,11 +528,16 @@ def read_csv(src: str | Path | IO[bytes], *, delimiter: str = ",",
     if encoding != encodings[0]:
         first = "UTF-8" if encodings[0].startswith("utf-8") else encodings[0]
         lg.info(f"{name}: not {first}, read as {encoding}")
+    reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter,
+                        **csv_options)
+    rows, line = [], 0
     try:
-        rows = list(csv.reader(io.StringIO(text, newline=""),
-                               delimiter=delimiter, **csv_options))
+        for row in reader:
+            rows.append((line + 1, row))      # (first line of the record)
+            line = reader.line_num
     except csv.Error as e:
-        raise TableError(f"{name}: cannot be read (csv.Error: {e})") from e
+        raise TableError(f"{name}: cannot be read (csv.Error: "
+                         f"{e})") from e
     return _sheet(name, rows, path)
 
 
@@ -526,7 +595,7 @@ def read_xlsx(path: str | Path, *, sheet: int = 0,
                          f"({type(e).__name__}: {e})") from e
     finally:
         book.close()
-    return _sheet(path.name, rows, path)
+    return _sheet(path.name, list(enumerate(rows, start=1)), path)
 
 
 def read_xls(path: str | Path, *, sheet: int = 0,
@@ -570,7 +639,8 @@ def read_xls(path: str | Path, *, sheet: int = 0,
     except Exception as e:      # (xlrd raises many kinds of errors)
         raise TableError(f"{path.name}: cannot be read "
                          f"({type(e).__name__}: {e})") from e
-    return _sheet(path.name, rows, path, datemode=book.datemode)
+    return _sheet(path.name, list(enumerate(rows, start=1)), path,
+                  datemode=book.datemode)
 
 
 def xls_date(value: float, datemode: int) -> str:
@@ -599,8 +669,8 @@ def xls_date(value: float, datemode: int) -> str:
 #   Writing
 # ----------------------------------------------------------------------
 
-def clean_rows(rows: Iterable[Iterable], name: str,
-               key=()) -> Iterator[list[str]]:
+def clean_rows(rows: Iterable[Iterable], name: str, key=(),
+               numeric: Iterable[str] = ()) -> Iterator[list[str]]:
     """
     Clean every cell of a table (`clean`), warned once.
 
@@ -612,6 +682,8 @@ def clean_rows(rows: Iterable[Iterable], name: str,
         Its name (in the warning)
     key : hashable
         Version of its sources (`warn_once`)
+    numeric : set[str]
+        Its numeric columns (`numeric_columns`)
 
     Yields
     ------
@@ -619,30 +691,91 @@ def clean_rows(rows: Iterable[Iterable], name: str,
         The rows, cleaned (no value is read as missing but None and NaN)
     """
     counts = Counter()
+    numeric = set(numeric)
+    columns = None
     for row in rows:
-        yield [clean(value, nans=(), counts=counts) for value in row]
+        if columns is None:             # (the header)
+            row = [clean(value, nans=(), counts=counts) for value in row]
+            columns = [column in numeric for column in row]
+            yield row
+            continue
+        yield [clean(value, nans=(), counts=counts,
+                     numeric=i < len(columns) and columns[i])
+               for i, value in enumerate(row)]
     message = cleaned_message(name, counts)
     if message:
         warn_once(key, message)
 
 
-def _write(rows, name: str, src, path) -> None:
+def _sidecar(sidecar, name: str) -> Mapping | None:
+    """Read the data dictionary of a table (warned if it cannot be)."""
+    if sidecar is None or isinstance(sidecar, Mapping):
+        return sidecar
+    try:
+        with open(sidecar, encoding="utf-8") as f:
+            value = json.load(f)
+    except (OSError, ValueError) as e:
+        warn_once(_file_key(sidecar), f"{name}: data dictionary "
+                                      f"{Path(sidecar).name} cannot be read "
+                                      f"({type(e).__name__}: {e}): no "
+                                      f"column read as numeric")
+        return None
+    return value if isinstance(value, Mapping) else None
+
+
+def _write(rows, name: str, src, sidecar, path) -> None:
     """Write a roasted table (the actor of `table_action`)."""
     rows = rows() if callable(rows) else rows
     sources = [src] if isinstance(src, (str, Path)) else list(src or ())
     key = (name, *map(_file_key, sources))
-    write_tsv(clean_rows(rows, name, key), path)
+    numeric = numeric_columns(_sidecar(sidecar, name))
+    write_tsv(clean_rows(rows, name, key, numeric), path)
+
+
+def sidecar_name(ctx, dst: str | Path) -> str:
+    """
+    Name of the data dictionary of a table, as a resource.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    dst : path
+        The table, in the raw dataset
+
+    Returns
+    -------
+    str
+        `participants.json`, `phenotype/<name>.json`; `sessions.json`
+        and `scans.json` (inherited, at the top) for the tables of a
+        subject
+    """
+    dst = Path(dst)
+    try:
+        rel = dst.relative_to(ctx.layout.raw)
+    except ValueError:
+        rel = Path(dst.name)
+    for suffix in ("sessions", "scans"):
+        if rel.stem.endswith(f"_{suffix}") and rel.parts[0].startswith(
+                "sub-"):
+            return f"{suffix}.json"
+    return rel.with_suffix(".json").as_posix()
 
 
 def table_action(ctx, dst: str | Path,
                  rows: Iterable[Iterable] | Callable[[], Iterable],
                  src, *, tag: str = "meta", pristine: bool = True,
-                 name: str | None = None) -> Action:
+                 name: str | None = None,
+                 sidecar: Mapping | str | Path | bool | None = True
+                 ) -> Action:
     """
     Write a roasted table (participants, sessions, phenotypes).
 
     Every cell goes through `clean` when the action runs (one warning per
-    table if a cell is changed), so that the table needs no quoting.
+    table if a cell is changed), so that the table needs no quoting; in
+    the columns that its data dictionary declares numeric
+    (`numeric_columns`), text that reads as a number is written in its
+    shortest form (`"70.0"` is `70`), as spreadsheet floats are.
 
     Parameters
     ----------
@@ -663,6 +796,10 @@ def table_action(ctx, dst: str | Path,
         is trimmed after every roast; else to `dst`
     name : str, optional
         Name of the table in warnings (default: its file name)
+    sidecar : dict | path | bool | None
+        Its data dictionary (the JSON sidecar); True: the resource of
+        its name (`sidecar_name`, with `ctx.resource`: what roast
+        copies); None or False: none (no column is numeric)
 
     Returns
     -------
@@ -674,8 +811,12 @@ def table_action(ctx, dst: str | Path,
     name = name or Path(dst).name
     if not callable(rows):
         rows = [list(row) for row in rows]
-    return Action(src, out, partial(_write, rows, name, src), mode="t",
-                  input="path", tag=tag)
+    if sidecar is True:
+        sidecar = ctx.resource(sidecar_name(ctx, dst))
+    elif sidecar is False:
+        sidecar = None
+    return Action(src, out, partial(_write, rows, name, src, sidecar),
+                  mode="t", input="path", tag=tag)
 
 
 # ----------------------------------------------------------------------

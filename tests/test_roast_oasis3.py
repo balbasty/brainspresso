@@ -1,6 +1,7 @@
 """Characterization tests for the OASIS-III roast step."""
 import json
 import logging
+import tarfile
 
 import nibabel as nib
 import pytest
@@ -86,7 +87,8 @@ def test_roast_all(root):
     assert rows[0] == list(roaster.PARTICIPANTS_HEADER_MAP)
     assert rows[1] == ["sub-0001", "F", "R", "65.1", "n/a", "12", "2", "W",
                        "N", "N", "N", "N", "Y", "N", "Y", "33"]
-    assert rows[2][:8] == ["sub-0002", "M", "L", "70.0", "80.5", "16",
+    # (`age` is numeric in `participants.json`: "70.0" is 70)
+    assert rows[2][:8] == ["sub-0002", "M", "L", "70", "80.5", "16",
                            "n/a", "A"]
     assert rows[2][13] == "U"
 
@@ -230,6 +232,61 @@ def test_phenotype_cells_with_line_breaks(root):
     assert not report.errors
     cdr = pristine(root, "phenotype/UDS_b4_cdr.tsv")
     assert cdr[-1][3:6] == ["67", "1", "two lines"]
+
+
+def test_phenotype_bad_cells(root, caplog):
+    """A cell of `delay` or `age` that is not a number is n/a (one warning
+    per table and column), `500.0` is a day; the roast goes on"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": (CDR
+                             + "OAS30001,OAS30001_UDSb4_d0500,500.0,NA,1,"
+                               "x,1\n"
+                             + "OAS30001,OAS30001_UDSb4_d0600,600,old,1,"
+                               "x,1\n"
+                             + "OAS30001,OAS30001_UDSb4_d0700,7x,also,1,"
+                               "x,1\n"
+                             + "BAD,BAD_UDSb4_d0800,800,1,1,x,1\n").encode()})
+    with caplog.at_level(logging.WARNING):
+        report = roast(root, keys={"pheno", "T1w"})
+    assert not report.errors
+    assert f"{T1}.nii.gz" in raw_tree(root)
+    cdr = pristine(root, "phenotype/UDS_b4_cdr.tsv")
+    assert [row[2:4] for row in cdr[-3:]] == [["500", "n/a"],
+                                              ["600", "n/a"],
+                                              ["n/a", "n/a"]]
+    text = caplog.text
+    assert text.count("UDS_b4_cdr.tsv: 2 cell(s) of age not a number") == 1
+    assert text.count("UDS_b4_cdr.tsv: 1 cell(s) of delay not a number") \
+        == 1
+    assert text.count("UDS_b4_cdr.tsv: 1 row(s) skipped (subject not an "
+                      "OASIS-III ID)") == 1
+
+
+def test_phenotype_header_cleaned_once(root):
+    """The table and its data dictionary name the columns alike"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": CDR.replace(",CDRTOT,", ',"CDR\tTOT",')
+              .encode()})
+    report = roast(root, keys={"pheno"})
+    assert not report.errors
+    header = pristine(root, "phenotype/UDS_b4_cdr.tsv")[0]
+    assert "CDR TOT" in header
+    cdr = json.loads(raw_file(root, "phenotype/UDS_b4_cdr.json").read_text())
+    assert "CDR TOT" in cdr and "CDR\tTOT" not in cdr
+
+
+def test_data_file_without_csv(root):
+    """A valid tarball that holds no file is an error of its tables"""
+    path = root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz"
+    with tarfile.open(path, "w:gz") as tar:
+        info = tarfile.TarInfo("b4")
+        info.type = tarfile.DIRTYPE
+        tar.addfile(info)
+    report = roast(root, keys={"meta", "T1w"})
+    assert sorted((name, message) for _, name, message in report.errors) \
+        == [("UDS_b4_cdr.tsv", "UDSb4.tar.gz: no CSV file"),
+            ("sessions.tsv", "UDSb4.tar.gz: no CSV file")]
+    assert f"{T1}.nii.gz" in raw_tree(root)
 
 
 @pytest.mark.parametrize("name", ["demo", "UDSb4"])

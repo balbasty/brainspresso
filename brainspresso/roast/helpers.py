@@ -172,8 +172,10 @@ def subject_shards(
         )
 
 
-def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
-            errors: tuple[type[BaseException], ...] = (OSError, ValueError),
+def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
+            fail_what: str | None = None,
+            fail_errors: tuple[type[BaseException], ...] = (OSError,
+                                                            ValueError),
             **kwargs) -> tuple[object, Fail | None]:
     """
     Call a reader while producing actions; its error is a `Fail`.
@@ -181,11 +183,13 @@ def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
     For sources that must be read when actions are yielded (a sheet
     that gives several tables, the header of a table that its data
     dictionary needs), so that nothing escapes the producer: the error
-    is that of the output `name` only.
+    is that of the output `fail_name` only. The parameters of `attempt`
+    are prefixed (`fail_`), so that every other keyword argument is the
+    reader's (`name=`, `tag=`...).
 
     ```python
-    sheet, error = attempt(read_xlsx, path, name="participants.tsv",
-                           tag="meta")
+    sheet, error = attempt(read_xlsx, path, extra="oasis2",
+                           fail_name="participants.tsv", fail_tag="meta")
     if error:
         yield error
         return
@@ -197,14 +201,14 @@ def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
         The reader, `fn(*args, **kwargs)`
     *args
         Its positional arguments
-    name : str
+    fail_name : str
         Output that the error is of (the name of the `Fail`)
-    tag : str
+    fail_tag : str
         Progress group of the `Fail`
-    what : str, optional
-        What is read, in the message (default: `name`); a
+    fail_what : str, optional
+        What is read, in the message (default: `fail_name`); a
         `roast.tables.TableError` names its file itself
-    errors : tuple[type]
+    fail_errors : tuple[type]
         Errors converted (others propagate)
     **kwargs
         Its keyword arguments
@@ -218,10 +222,10 @@ def attempt(fn: Callable, *args, name: str, tag: str, what: str | None = None,
     """
     try:
         return fn(*args, **kwargs), None
-    except errors as e:
+    except fail_errors as e:
         if isinstance(e, TableError):
             message = str(e)
         else:
-            message = (f"{what or name}: cannot be read "
+            message = (f"{fail_what or fail_name}: cannot be read "
                        f"({type(e).__name__}: {e})")
-        return None, Fail(message, name=name, tag=tag)
+        return None, Fail(message, name=fail_name, tag=fail_tag)

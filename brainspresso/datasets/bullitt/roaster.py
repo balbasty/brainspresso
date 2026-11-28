@@ -360,7 +360,8 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
                    f"templates of the dataset)", name=PARTICIPANTS,
                    tag="meta")
         return
-    rows, error = attempt(participants, src, name=PARTICIPANTS, tag="meta")
+    rows, error = attempt(participants, src, fail_name=PARTICIPANTS,
+                          fail_tag="meta")
     if error:
         yield error
         return

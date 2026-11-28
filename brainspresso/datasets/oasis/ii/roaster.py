@@ -442,8 +442,8 @@ def roast_meta(ctx: RoastContext) -> Iterator[Action]:
         yield Fail(f"sourcedata/{XLSX} not found: harvest with --keys meta",
                    name="participants.tsv", tag="meta")
         return
-    found, error = attempt(read_demographics, xlsx, name="participants.tsv",
-                           tag="meta")
+    found, error = attempt(read_demographics, xlsx,
+                           fail_name="participants.tsv", fail_tag="meta")
     if error:
         yield error
         return

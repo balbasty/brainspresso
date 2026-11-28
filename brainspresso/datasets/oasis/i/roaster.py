@@ -104,6 +104,8 @@ WIDTH = 4               # subject labels: `sub-0001`
 ROAST_KEYS = ("raw", "fs", "fs-all", "fsl", "avg", "tal", "meta")
 #: Discs of images (raw, avg, tal, fsl) and of FreeSurfer trees
 DISCS = {"raw": range(1, 13), "fs": range(1, 12)}
+#: Keys of the processed images (`derivatives/<proc>`)
+PROC_KEYS = ("avg", "tal", "fsl")
 #: Keys read from each kind of disc
 DISC_KEYS = {"raw": ("raw", "avg", "tal", "fsl"), "fs": ("fs", "fs-all")}
 #: Errors of a disc that cannot be read (truncated, corrupt)
@@ -179,6 +181,41 @@ def roast(root, *, subs=(), exclude_subs=(), discs=None, **options):
     )
 
 
+#: `GeneratedBy` entry of the conversion
+BRAINSPRESSO = {
+    "Name": "brainspresso",
+    "Description": "Conversion of the OASIS-I discs to BIDS.",
+    "CodeURL": "https://github.com/balbasty/brainspresso",
+}
+
+
+def processed_description(drv) -> dict:
+    """Describe the processed images (`derivatives/<proc>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-I - processed images"
+    desc["GeneratedBy"] = [{
+        "Name": "OASIS",
+        "Description": "Images distributed with the dataset: motion-"
+                       "corrected average of the runs, gain-field "
+                       "corrected and registered to the Talairach and "
+                       "Tournoux atlas (with and without the skull), and "
+                       "its grey/white/CSF segmentation (FSL FAST).",
+    }, BRAINSPRESSO]
+    return desc
+
+
+def freesurfer_description(drv) -> dict:
+    """Describe the FreeSurfer outputs (`derivatives/<fs>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-I - FreeSurfer"
+    desc["GeneratedBy"] = [{
+        "Name": "FreeSurfer",
+        "Version": ".".join(map(str, FS_VERSION)),
+        "Description": "FreeSurfer outputs distributed with the dataset.",
+    }, BRAINSPRESSO]
+    return desc
+
+
 def check_discs(discs) -> None:
     """
     Check disc numbers.
@@ -216,11 +253,10 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
     """
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
-    if ctx.wants("fsl"):
-        drv = ctx.layout.derivative(PROC_NAME)
-        yield WriteTSV(DSEG_TABLE, drv.root / DSEG_NAME, tag="fsl")
     if ctx.wants("fs") or ctx.wants("fs-all"):
         drv = ctx.layout.derivative(FS_NAME)
+        yield WriteJSON(freesurfer_description(drv), drv.description,
+                        tag="derivatives")
         for action in fs.bidsify_toplevel(drv.root, FS_VERSION):
             action.tag = "fs"
             yield action
@@ -288,7 +324,32 @@ def warn_duplicates(ctx: RoastContext) -> Iterator[Action]:
     yield from ()
 
 
-roast_oasis1.finalize = warn_duplicates
+def processed_toplevel(ctx: RoastContext) -> Iterator[Action]:
+    """
+    Write the description and lookup table of the processed images.
+
+    Once the disc shards are done, and only if the derivative has
+    images (`sub-*/`): a roast that converts none of them (no disc, no
+    subject) leaves no derivative dataset behind.
+    """
+    if not any(map(ctx.wants, PROC_KEYS)):
+        return
+    drv = ctx.layout.derivative(PROC_NAME)
+    if not any(p.is_dir() for p in drv.root.glob("sub-*")):
+        return
+    yield WriteJSON(processed_description(drv), drv.description,
+                    tag="derivatives")
+    if ctx.wants("fsl"):
+        yield WriteTSV(DSEG_TABLE, drv.root / DSEG_NAME, tag="fsl")
+
+
+def finish_oasis1(ctx: RoastContext) -> Iterator[Action]:
+    """Finish the roast: `warn_duplicates`, then `processed_toplevel`."""
+    yield from warn_duplicates(ctx)
+    yield from processed_toplevel(ctx)
+
+
+roast_oasis1.finalize = finish_oasis1
 
 
 def disc_path(ctx: RoastContext, kind: str, disc: int) -> Path:

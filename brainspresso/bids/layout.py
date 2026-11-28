@@ -73,6 +73,7 @@ RAW_DIR = "rawbids"              # raw dataset of a study
 SOURCE_DIR = "sourcedata"
 DERIVATIVES_DIR = "derivatives"
 DESCRIPTION = "dataset_description.json"
+README = "README"                # README of a study (`study_readme`)
 
 BIDS_VERSION = "1.11.2"          # version written in generated descriptions
 
@@ -535,6 +536,56 @@ class StudyLayout(Layout):
                        self.dataset_description("study")):
             written.append(self.root / DESCRIPTION)
         return written + super().write_descriptions(keep)
+
+    def readme_of_user(self, recorded=None) -> Path | None:
+        """
+        Find a README of the user (one that `study_readme` did not write).
+
+        Any `README*` name, in any case (`readme.md`, `ReadMe.txt`); also
+        `README` itself, unless it is ours: the manifest records a hash
+        for it (`recorded(path)`, e.g. `RoastContext.recorded`), or it
+        holds `study_readme` of this study. None if there is none.
+
+        Parameters
+        ----------
+        recorded : callable(path) -> str | None, optional
+            Hash that the manifest records for a file (default: none)
+        """
+        if not self.root.is_dir():
+            return None
+        found = sorted(p for p in self.root.iterdir()
+                       if p.name.lower().startswith(README.lower()))
+        for path in found:
+            if path.name != README:
+                return path
+            if recorded is not None and recorded(path) is not None:
+                continue
+            name = self.dataset_description("study")["Name"]
+            try:
+                ours = path.read_text(encoding="utf-8") == study_readme(name)
+            except (OSError, UnicodeDecodeError):
+                ours = False
+            if not ours:
+                return path
+        return None
+
+
+def study_readme(name: str) -> str:
+    """
+    Text of the README of a study dataset (BIDS: recommended).
+
+    Written by the roasts (`roast.run.roast_dataset`) when the study has no
+    README of the user (`StudyLayout.readme_of_user`).
+    """
+    return (f"# {name}\n\n"
+            f"This folder is a BIDS study dataset (DatasetType "
+            f"\"study\"), written by brainspresso.\n\n"
+            f"* `{RAW_DIR}/`: the raw dataset (its own README, when it "
+            f"has one, describes the data, its license and how to cite "
+            f"it);\n"
+            f"* `{DERIVATIVES_DIR}/`: its derivative datasets, if any;\n"
+            f"* `{SOURCE_DIR}/`: the files it was converted from, if "
+            f"they were kept.\n")
 
 
 class FlatLayout(Layout):

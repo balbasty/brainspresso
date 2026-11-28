@@ -1,5 +1,6 @@
 """Characterization tests for the OASIS-III roast step."""
 import json
+import logging
 
 import nibabel as nib
 import pytest
@@ -17,6 +18,7 @@ from roast_utils import (
     scoped_records,
 )
 
+from brainspresso.bids.tables import trim_tables
 from brainspresso.datasets.oasis.iii import roaster
 from brainspresso.datasets.oasis.iii.roaster import roast
 
@@ -64,6 +66,13 @@ def root(tmp_path, request):
     return make_source(root)
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json', 'sessions.json'):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_all(root):
     roast(root, keys={"meta", "pheno", "T1w", "T2w"})
     assert raw_tree(root) == META | PHENO | {
@@ -84,7 +93,8 @@ def test_roast_all(root):
     rows = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
     assert rows[0] == ["participant_id", "session_id", "delay", "age",
                        "CDRTOT", "DX1", "DX1_CODE"]
-    assert rows[1] == ["sub-0001", "ses-d0000", "0", "65.1", "0",
+    # (no session of sub-0001 on day 0: session_id n/a)
+    assert rows[1] == ["sub-0001", "n/a", "0", "65.1", "0",
                        "Cognitively normal", "1"]
     assert rows[3][4:6] == ["n/a", "n/a"]
     cdr = json.loads(raw_file(root, "phenotype/UDS_b4_cdr.json").read_text())
@@ -94,6 +104,121 @@ def test_roast_all(root):
     assert read_tsv(raw_file(root, "sub-0001/sub-0001_sessions.tsv")) == [
         ["session_id", "pathology", "age"], ["ses-d0129", "1", "65.4532"],
     ]
+
+
+def test_participants_json_columns():
+    """Every column of `participants.tsv` (but the id) is described
+    (`daddem` was misspelled `dadem`)"""
+    meta = json.loads((roaster.TEMPLATES / "participants.json").read_text())
+    assert set(roaster.PARTICIPANTS_HEADER_MAP) - {"participant_id"} \
+        == set(meta)
+
+
+def pristine(root, name):
+    """Pristine copy of a phenotype table (every visit)"""
+    return read_tsv(layout_of(root).original(raw_file(root, name)))
+
+
+def test_phenotype_sessions(root, caplog):
+    """Every per-visit phenotype table: written complete to the state
+    folder, with the visit's day as `session_id`; the visible table has
+    the subjects on disk, and `session_id` n/a when the subject has no
+    session that day in the raw dataset; the day is in `delay`"""
+    a1 = (
+        "OASISID,OASIS_session_label,days_to_visit,age at visit,EDUC\n"
+        "OAS30002,OAS30002_UDSa1_d0000,0,70.0,16\n"
+        "OAS30002,OAS30002_UDSa1_d0400,400,71.1,16\n"
+    )
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSa1.tar.gz",
+             {"a1/a1.csv": a1.encode()})
+    with caplog.at_level(logging.INFO):
+        roast(root, keys={"pheno", "T1w", "T2w"})
+    assert [r[:3] for r in pristine(root, "phenotype/UDS_b4_cdr.tsv")[1:]] \
+        == [["sub-0001", "ses-d0000", "0"], ["sub-0001", "ses-d0339", "339"],
+            ["sub-0002", "ses-d0000", "0"]]
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert [r[:3] for r in cdr[1:]] == [
+        ["sub-0001", "n/a", "0"], ["sub-0001", "n/a", "339"],
+        ["sub-0002", "ses-d0000", "0"]]
+    demo = read_tsv(raw_file(root, "phenotype/UDS_a1_demographics.tsv"))
+    assert [r[:3] for r in demo[1:]] == [
+        ["sub-0002", "ses-d0000", "0"], ["sub-0002", "n/a", "400"]]
+    assert "UDS_b4_cdr.tsv: session_id n/a in 2 of 3 rows" in caplog.text
+    for name in ("UDS_b4_cdr", "UDS_a1_demographics"):
+        meta = json.loads(raw_file(root, f"phenotype/{name}.json")
+                          .read_text())
+        assert meta["session_id"] == roaster.SESSION_ID
+
+
+def test_phenotype_sessions_follow_the_disk(root):
+    """`--keys pheno` first (no image: no row), then a T1w roast under
+    the default `skip`: the table follows what is on disk (sub-0001,
+    no session on its visit days); then T2w: sub-0002's visit gets its
+    session"""
+    roast(root, keys={"pheno"})
+    assert read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))[1:] == []
+    roast(root, keys={"T1w"})
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert [r[:2] for r in cdr[1:]] == [["sub-0001", "n/a"],
+                                        ["sub-0001", "n/a"]]
+    roast(root, keys={"T2w"})
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert [r[:2] for r in cdr[1:]][-1] == ["sub-0002", "ses-d0000"]
+
+
+def test_trim_phenotype_sessions(tmp_path):
+    """`trim_tables(sessions=True)` (pristine copies of roasters): a
+    `session_id` that names no session on disk is n/a; harvested tables
+    (`sessions=False`) keep it"""
+    root = tmp_path / "DS"
+    (root / "sub-01" / "ses-1").mkdir(parents=True)
+    orig = tmp_path / "visits.tsv"
+    orig.write_text("participant_id\tsession_id\tx\nsub-01\tses-1\t1\n"
+                    "sub-01\tses-2\t2\nsub-01\tn/a\t3\n")
+    rel = "phenotype/visits.tsv"
+    for sessions, expected in ((True, ["ses-1", "n/a", "n/a"]),
+                               (False, ["ses-1", "ses-2", "n/a"])):
+        trim_tables(root, {rel: orig}, sessions=sessions)
+        assert [r[1] for r in read_tsv(root / rel)[1:]] == expected
+
+
+def test_phenotype_sessions_of_the_raw_dataset(root):
+    """`session_id` names only sessions that the raw dataset has: not a
+    session of sourcedata that is not roasted (a FreeSurfer-only
+    folder)"""
+    make_tar(root / "sourcedata" / "OAS30001_MR_d0339" /
+             "OAS30001_Freesurfer53_d0339.tar.gz",
+             {"a/b/c/d/e/f/mri/aseg.mgz": b"x"})
+    roast(root, keys={"pheno", "T1w"})
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert [r[1] for r in cdr[1:]] == ["n/a", "n/a"]
+
+
+def test_phenotype_truncated_rows(root, caplog):
+    """Blank rows are dropped, truncated rows (no participant or visit)
+    skipped with a warning, short rows padded with n/a"""
+    cdr = (CDR + "\n" + "OAS30001\n" + ",,,\n"
+           + "OAS30002,OAS30002_UDSb4_d0400,400\n")
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": cdr.encode()})
+    report = roast(root, keys={"meta", "pheno"})
+    assert not report.errors
+    rows = pristine(root, "phenotype/UDS_b4_cdr.tsv")
+    assert len(rows) == 1 + 4
+    assert rows[-1] == ["sub-0002", "ses-d0400", "400", "n/a", "n/a",
+                        "n/a", "n/a"]
+    assert "UDS_b4_cdr.tsv: 1 row(s) skipped" in caplog.text
+
+
+def test_phenotype_cells_need_no_quoting(root):
+    """A `"` or a tab in a cell (the tables are read again to be
+    trimmed) is replaced"""
+    make_tar(root / "sourcedata" / "OASIS3_data_files" / "UDSb4.tar.gz",
+             {"b4/cdr.csv": (CDR + 'OAS30001,OAS30001_UDSb4_d0500,500,'
+                             '67.0,1,"say ""no""\there",1\n').encode()})
+    roast(root, keys={"pheno", "T1w"})
+    cdr = read_tsv(raw_file(root, "phenotype/UDS_b4_cdr.tsv"))
+    assert cdr[-1][5] == "say 'no' here"
 
 
 def test_keys_all(root):
@@ -173,6 +298,13 @@ def test_freesurfer(root):
         f"{seg}.nii.gz", f"{seg}.json"}
     assert (drv.root / "atlas-Aseg_dseg.tsv").exists()
     assert raw_tree(root) == set()                  # no raw key
+    # a BIDS derivative dataset (its top-level dseg.tsv are inherited)
+    desc = json.loads(drv.description.read_text())
+    assert desc["DatasetType"] == "derivative"
+    assert desc["GeneratedBy"][0] == {
+        "Name": "FreeSurfer", "Version": "5.3",
+        "Description": "FreeSurfer outputs distributed with the dataset."}
+    assert desc["SourceDatasets"] == [{"URL": drv.source_url}]
 
     roast(root, keys={"fs-all"}, json="only")
     # unpacked files are inputs: --sidecars only does not drop them

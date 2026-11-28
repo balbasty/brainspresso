@@ -2694,6 +2694,30 @@ up as an XPASS failure once fixed (then drop the marker).
   Also fixed there: OASIS-I `--discs 12` was never downloaded, OASIS-III
   PET experiments (FDG, PIB, AV45, AV1451) were only harvested with
   `pup`, ABIDE-I xnat sent the XNAT login to the NITRC phenotype URL.
+* ~~BIDS validator (r45, 116 known errors on the fixtures): OASIS-I
+  `oasis-freesurfer` and `oasis-processed`, OASIS-III
+  `oasis-freesurfer` and ABIDE-I xnat `abide-freesurfer` had no
+  `dataset_description.json` (so their top-level `atlas-*_dseg.tsv`
+  and `space-Talairach_res-1mm_dseg.tsv`, and their `space`/`res`/`desc`
+  entities, were read as raw files); the bold sidecars of COBRE,
+  ABIDE-I and ABIDE-II had no `TaskName`, COBRE's no
+  `RepetitionTime`; `participants.json` declared levels or units that
+  the values do not have (ABIDE `sample`, COBRE `icd9_subtype`, IXI
+  `dob`/`study_date`); ABIDE-II `phenotype/cbcl_1.5-5` (a `.` in the
+  stem).~~ Fixed (r47): the roasters write the derivative descriptions
+  (`GeneratedBy`; `SourceDatasets` completed by
+  `DerivativeLayout.write_descriptions`), `abide.scans.bold_sidecar`
+  adds `TaskName` (the task entity of the name) and the header's
+  `RepetitionTime` (ABIDE: no usable TR is a `Fail` of that sidecar;
+  COBRE: 2 s, the TR of the COBRE fact sheet quoted in its
+  `templates/README`, `DOCUMENTED_TR`, with one warning per roast that
+  counts the images), the data dictionaries were corrected, the table
+  renamed `cbcl_1p5-5` (the old tables removed by the ABIDE-II roast).
+  Still known (`tests/bids_validator_known.json`):
+  OASIS-III per-visit phenotype tables have several rows per
+  participant, and the BIDS 1.11.2 schema indexes phenotype tables by
+  `participant_id` alone (`TSV_INDEX_VALUE_NOT_UNIQUE`), whatever
+  `session_id` says; left until the schema indexes `session_id` too.
 
 ## 9. Open questions
 
@@ -3379,3 +3403,65 @@ up as an XPASS failure once fixed (then drop the marker).
   default, re-run and `--sidecars only` cases). `golden.py`: `--work`
   folders replaced, `diff --base` refuses a bad revision, `record
   --prune`.
+* r47: BIDS-validator findings fixed (§8, known bugs): 116 known
+  errors down to 2. Derivative descriptions of OASIS-I (`oasis-processed`,
+  `oasis-freesurfer`), OASIS-III and ABIDE-I xnat (`*-freesurfer`),
+  written by their roasters (`GeneratedBy`: the provider's pipeline or
+  FreeSurfer and its version, then brainspresso) and completed by
+  `DerivativeLayout.write_descriptions` (`SourceDatasets`); with them,
+  the top-level `dseg.tsv` of a derivative are valid (BIDS 1.11.2:
+  `anat_discrete_segmentation`, inherited). Bold sidecars:
+  `abide.scans.bold_sidecar` (ABIDE-I, ABIDE-II, COBRE) adds the
+  `TaskName` of the task entity and, if the template has none, the
+  `RepetitionTime` of the NIfTI header (`HeaderSidecar`, now with
+  `extra` fields); COBRE writes the image before its sidecar (the
+  header is read from it; under `--sidecars only` from the member). The
+  ABIDE templates of `scripts/make_sidecars.py` are left as they are:
+  `TaskName` is a property of the BIDS name, not of the protocol
+  printout. Data dictionaries: ABIDE `sample` lists every value it
+  takes (the site, or the site and its sample); COBRE `icd9_subtype`
+  is a subtype only if it is one of `depressed`, `bipolar` (another
+  word after the code, as `295.3 Schizophrenia`, is `n/a`, warned
+  once); IXI `dob`/`study_date` are `"Format": "date"` (were numbers
+  with `Units: "yyyy-mm-dd"`); `age` in `"year"` (BIDS unit, was
+  `"years"`: `AGE_UNITS`); OASIS-III `daddem` (was described as
+  `dadem`). OASIS-III phenotype tables: `session_id` is the session of
+  the subject on the day of the visit, else `n/a` (the day is in
+  `delay`), described in each data dictionary.
+  ABIDE-II `phenotype/cbcl_1.5-5.*` renamed `cbcl_1p5-5.*`. Study
+  datasets get a `README` (`bids.layout.study_readme`). Review round 1:
+  the ABIDE-II roast removes the tables of an earlier roast under the
+  old name (`RENAMED_PHENOTYPES`: the pristine copy always, so that
+  `trim_originals` does not bring the table back; the table and its
+  dictionary unless edited, then kept with a warning), whatever
+  `--if-exists` says. COBRE: a bold header without a usable TR falls
+  back to `DOCUMENTED_TR` (2 s, the COBRE fact sheet quoted in its
+  `templates/README`), one warning per roast with a count (it was a
+  `Fail`); the "not a subtype" warning is once per roast (per table).
+  OASIS-III: blank CSV rows are dropped and truncated phenotype rows
+  skipped (warned; short rows padded with `n/a`); the phenotype tables
+  are mapped against the sessions of the raw dataset on disk, never
+  those of `sourcedata/` that are not roasted (round 2: by trimming). The study README goes through the
+  engine (`roast.run.with_study_readme`, for `roast_dataset` and the
+  command line: `--if-exists`, its hash in the manifest, tag `study`),
+  unless the user has a README of any name or case
+  (`StudyLayout.readme_of_user`); hosted roasts do not write one.
+  OASIS-I writes the description and lookup table of `oasis-processed`
+  in its `finalize` hook, only when the derivative has images. Review
+  round 2: the OASIS-III phenotype tables are trimmed tables (a
+  visible table follows what is on disk, whatever `--if-exists` says):
+  written complete to `.brainspresso/orig/` with the visit's day as
+  `session_id`, the visible ones derived after every roast by
+  `trim_originals`; `bids.tables.trim_tables` sets the `session_id` of
+  a phenotype row that names no session on disk to `n/a`
+  (`known_sessions`, an info line with a count; the `finalize` hook of
+  round 1 is gone); cells with `"` or a tab are replaced so that the
+  tables need no quoting. The ABIDE-II migration runs only when the
+  roast writes the phenotypes (`pheno`), drops the manifest entries of
+  the files it removes, and warns and goes on if a leftover cannot be
+  checked or removed. The study README is written by the `finalize`
+  hook, after the roaster (its title: the raw description's name), and
+  a `<DS>/README` is ours only if the manifest records a hash for it or
+  it holds `study_readme`'s text: else it is the user's and never
+  written, in any mode; `with_study_readme` keeps the attributes of the
+  roaster (`functools.update_wrapper`, `tag`, `source`).

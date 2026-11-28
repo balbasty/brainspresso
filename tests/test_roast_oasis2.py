@@ -22,6 +22,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    readme_counts,
 )
 
 from brainspresso.actions.state import read_task_states
@@ -104,6 +105,13 @@ RAW2 = scans(2, 1, 1)
 RAW = RAW1 | RAW2
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json', 'sessions.json'):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_raw(root):
     report = roast(root, keys={"raw"}, parts=[1], display=False)
     assert not report.errors
@@ -143,7 +151,8 @@ def test_part_without_scans(root):
     make_tar(root / "sourcedata" / "OAS2_RAW_PART1.tar.gz",
              {"OAS2_RAW_PART1/README.txt": b"hello"})
     report = roast(root, keys={"raw"}, display=False)
-    assert report.counts == {"parts": {"error": 1}}
+    assert report.counts == {"parts": {"error": 1},
+                             **readme_counts(root, "done")}
     # (no scan of the selected subjects: not an error)
     part(root / "sourcedata")
     report = roast(root, keys={"raw"}, subs=[9], display=False)
@@ -410,7 +419,8 @@ def test_missing_part(root, caplog):
     parts are skipped with a warning"""
     report = roast(root, keys={"raw"}, parts=[2], display=False)
     assert raw_tree(root) == set()
-    assert report.counts == {"parts": {"error": 1}}
+    assert report.counts == {"parts": {"error": 1},
+                             **readme_counts(root, "done")}
     report = roast(root, keys={"raw"}, display=False)
     assert not report.errors
     assert raw_tree(root) == RAW
@@ -451,7 +461,8 @@ def test_unreadable_part_is_closed(root, monkeypatch):
 
     monkeypatch.setattr(roaster, "TarArchive", Spy)
     report = roast(root, keys={"raw"}, parts=[1], display=False)
-    assert report.counts == {"parts": {"error": 1}}
+    assert report.counts == {"parts": {"error": 1},
+                             **readme_counts(root, "done")}
     assert closed == ["OAS2_RAW_PART1.tar.gz"]
 
 
@@ -570,7 +581,8 @@ def test_rerun_skips_parts(root, monkeypatch):
 
     monkeypatch.setattr(roaster, "roast_part", spy)
     report = roast(root, keys={"raw"}, display=False)
-    assert calls == [] and report.counts == {"raw": {"skipped": 8}}
+    assert calls == [] and report.counts == {
+        "raw": {"skipped": 8}, **readme_counts(root, "skipped")}
 
     tarball = root / "sourcedata" / "OAS2_RAW_PART1.tar.gz"
     mtime = tarball.stat().st_mtime - 3600

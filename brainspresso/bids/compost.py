@@ -479,7 +479,7 @@ def retrim_tables(layout: Layout) -> list[str]:
         if path.startswith("sub-") and is_trimmable(path):
             tables[_relative(bids / path, root)] = original(bids / path)
     tables = {k: v for k, v in tables.items() if k not in rendered}
-    return trim_tables(root, tables)
+    return trim_tables(root, tables, sessions=True)
 
 
 def update_manifest(layout: Layout, plan: CompostPlan, record: dict) -> None:

@@ -24,16 +24,35 @@
       }
   },
   "sample": {
-    "Description": "different samples within same site (the site itself for sites with one sample)",
+    "Description": "different samples within same site (the site itself for sites with one sample, or when the data gives none)",
     "Levels": {
+      "BNI": "the site (one sample, or none given)",
+      "EMC": "the site (one sample, or none given)",
+      "ETH": "the site (one sample, or none given)",
+      "GU": "the site (one sample, or none given)",
+      "IU": "the site (one sample, or none given)",
+      "IP": "the site (one sample, or none given)",
+      "KUL": "the site (one sample, or none given)",
+      "KKI": "the site (one sample, or none given)",
+      "NYU": "the site (one sample, or none given)",
       "NYU1": "NYU, sample 1",
       "NYU2": "NYU, sample 2",
+      "ONRC": "the site (one sample, or none given)",
       "ONRC1": "ONRC, sample 1",
       "ONRC2": "ONRC, sample 2",
+      "OHSU": "the site (one sample, or none given)",
+      "TCD": "the site (one sample, or none given)",
+      "SDSU": "the site (one sample, or none given)",
+      "SU": "the site (one sample, or none given)",
       "SU1": "SU, sample 1",
       "SU2": "SU, sample 2",
+      "UCD": "the site (one sample, or none given)",
+      "UCLA": "the site (one sample, or none given)",
       "UCLA1": "UCLA, sample 1",
       "UCLALong": "UCLA, longitudinal sample (baseline: ABIDE-I UCLA_1 or UCLA_2)",
+      "UMia": "the site (one sample, or none given)",
+      "USM": "the site (one sample, or none given)",
+      "UPSM": "the site (one sample, or none given)",
       "UPSMLong": "UPSM, longitudinal sample (baseline: ABIDE-I Pitt)"
     }
   },
@@ -49,7 +68,7 @@
   },
   "age": {
       "Description": "Age of the participant",
-      "Units": "years"
+      "Units": "year"
   },
   "handedness": {
     "Description": "Handedness of the participant",

@@ -150,10 +150,10 @@ def test_cobre(tmp_path, skipped, seed, layout):
         make_tar(src / "COBRE_scan_data.tgz", {
             "COBRE/0040000/session_1/anat_1/mprage.nii.gz": nii_bytes(),
             "COBRE/0040000/session_1/rest_1/rest.nii.gz":
-                nii_bytes((2, 2, 2, 3)),
+                nii_bytes((2, 2, 2, 3), tr=2.0),
             "COBRE/0040001/session_1/anat_1/mprage.nii.gz": nii_bytes(),
             "COBRE/0040002/session_1/rest_1/rest.nii.gz":
-                nii_bytes((2, 2, 2, 3)),
+                nii_bytes((2, 2, 2, 3), tr=2.0),
         })
 
     run_fuzz(skipped, tmp_path, "COBRE", build, roast_cobre,

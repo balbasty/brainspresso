@@ -215,7 +215,8 @@ def test_roast_unsampled_sites(tmp_path, caplog):
 
     assert "RepetitionTime" not in tpl("CMU/bold.json")    # 2 s / 1.5 s
     bold = sidecar("sub-50642/func/sub-50642_task-rest_bold.json")
-    assert bold == {**tpl("CMU/bold.json"), "RepetitionTime": 1.5}
+    assert bold == {**tpl("CMU/bold.json"), "TaskName": "rest",
+                    "RepetitionTime": 1.5}
     assert raw_file(root, "sub-50643/func/sub-50643_task-rest_bold.nii.gz"
                     ).exists()
     assert not raw_file(root, "sub-50643/func/sub-50643_task-rest_bold.json"

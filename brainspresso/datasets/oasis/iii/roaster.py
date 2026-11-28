@@ -67,6 +67,7 @@ lg = getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent / "templates"
 FS_NAME = "oasis-freesurfer"
+FS_VERSION = (5, 3)             # FreeSurfer of the OASIS-3 outputs
 DATA_FILES = "OASIS3_data_files"
 
 
@@ -219,9 +220,27 @@ def raw_path(raw: Path, sub: str, ses: str, datatype: str | None,
 
 
 def roast_freesurfer_tables(ctx: RoastContext) -> Iterator[Action]:
-    """Lookup tables of the FreeSurfer segmentations"""
-    yield from fs.bidsify_toplevel(ctx.layout.derivative(FS_NAME).root,
-                                   (5, 3))
+    """Description and lookup tables of the FreeSurfer derivative"""
+    drv = ctx.layout.derivative(FS_NAME)
+    yield WriteJSON(freesurfer_description(drv), drv.description,
+                    tag="derivatives")
+    yield from fs.bidsify_toplevel(drv.root, FS_VERSION)
+
+
+def freesurfer_description(drv) -> dict:
+    """Describe the FreeSurfer outputs (`derivatives/<fs>`)."""
+    desc = drv.dataset_description()
+    desc["Name"] = "OASIS-3 - FreeSurfer"
+    desc["GeneratedBy"] = [{
+        "Name": "FreeSurfer",
+        "Version": ".".join(map(str, FS_VERSION)),
+        "Description": "FreeSurfer outputs distributed with the dataset.",
+    }, {
+        "Name": "brainspresso",
+        "Description": "Conversion of the OASIS-3 tarballs to BIDS.",
+        "CodeURL": "https://github.com/balbasty/brainspresso",
+    }]
+    return desc
 
 
 def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
@@ -322,11 +341,13 @@ PARTICIPANTS_ROW_MAP = {
 
 
 def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
-    """Header and rows of the (first) CSV file of a tarball"""
+    """Header and rows of the (first) CSV file of a tarball (blank rows
+    dropped)"""
     with tarfile.open(tarball, "r:gz") as tar:
         member = next(m for m in tar if m.isfile())
         with TextIOWrapper(tar.extractfile(member), newline="") as f:
-            rows = list(csv.reader(f, **kwargs))
+            rows = [r for r in csv.reader(f, **kwargs)
+                    if any(c.strip() for c in r)]
     return (rows[0], rows[1:]) if rows else ([], [])
 
 
@@ -384,6 +405,8 @@ def diagnoses(cdr: Path) -> dict[str, list[tuple[int, str]]]:
     out = {}
     for row in rows:
         row = dict(zip(header, row))
+        if not row.get("oasisid") or not row.get("days_to_visit"):
+            continue                    # (truncated row)
         out.setdefault(row["oasisid"][4:], []).append(
             (int(row["days_to_visit"]), row.get("dx1_code") or "n/a")
         )
@@ -440,6 +463,18 @@ PHENOCOLMAP = {
 
 
 def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
+    """
+    Phenotype tables (one row per visit) and their data dictionaries.
+
+    The tables are written complete to `.brainspresso/orig/`, with the
+    `session_id` of the day of each visit (`ses-d<days>`); the visible
+    tables are derived from them after every roast (`trim_originals`,
+    `bids.tables.trim_tables`), as the participants table: the rows of
+    the subjects on disk, and `session_id` `n/a` when the subject has no
+    session that day in the raw dataset (the day is kept in `delay`).
+    So they follow what is on disk, whatever `--if-exists` says.
+    Truncated rows are skipped (`complete_rows`).
+    """
     for form, base in PHENOFILES.items():
         name = "pychometrics" if form == "c1" else f"UDS{form}"
         tarball = ctx.source / DATA_FILES / f"{name}.tar.gz"
@@ -451,12 +486,34 @@ def roast_phenotypes(ctx: RoastContext) -> Iterator[Action]:
         csv_opt = dict(quotechar='"') if medications else {}
         header, rows = read_csv(tarball, **csv_opt)
         header = [fix_pheno_column(h, medications) for h in header]
-        rows = (fix_pheno_row(row, header) for row in rows)
-        yield WriteTSV([header, *rows], f"{out}.tsv", src=tarball,
-                       tag="pheno", **({"escapechar": "\\"}
-                                       if medications else {}))
+        name = f"phenotype/UDS_{base}.tsv"
+        rows = (fix_pheno_row(row, header)
+                for row in complete_rows(rows, header, name))
+        yield WriteTSV([header, *rows],
+                       ctx.layout.original(Path(f"{out}.tsv")), src=tarball,
+                       tag="pheno")
         yield WriteJSON(phenotype_json(ctx, form, header), f"{out}.json",
                         src=tarball, tag="pheno")
+
+
+def complete_rows(rows, header: list[str], name: str):
+    """
+    The rows that name a participant (and a visit, if the table has
+    them); the others (truncated rows) are skipped, warned once with a
+    count when the rows are consumed.
+    """
+    ids = [header.index(c) for c in ("participant_id", "session_id")
+           if c in header]
+    skipped = 0
+    for row in rows:
+        if ids and (len(row) <= max(ids) or
+                    not all(row[i].strip() for i in ids)):
+            skipped += 1
+            continue
+        yield row + [""] * (len(header) - len(row))
+    if skipped:
+        lg.warning(f"{name}: {skipped} row(s) skipped (truncated: no "
+                   f"participant or visit)")
 
 
 def fix_pheno_column(name: str, medications: bool = False) -> str:
@@ -488,8 +545,20 @@ def fix_pheno_row(row: list[str], header: list[str]) -> list:
         elif column in ('DX1', 'DX2', 'DX3', 'DX4', 'DX5') and \
                 value in ('A', '.'):
             value = 'n/a'
+        elif isinstance(value, str):
+            # (the tables are read again to be trimmed, `trim_tables`:
+            # no cell may need quoting, as for ABIDE)
+            value = value.replace('"', "'").replace("\t", " ")
         out.append(value)
     return out
+
+
+#: Data dictionary of `session_id` in the phenotype tables
+SESSION_ID = {
+    "Description": "Session of the subject on the day of the visit "
+                   "(n/a: none that day; the day of the visit is in "
+                   "`delay`)",
+}
 
 
 def phenotype_json(ctx: RoastContext, form: str, header: list[str]) -> dict:
@@ -529,6 +598,8 @@ def phenotype_json(ctx: RoastContext, form: str, header: list[str]) -> dict:
 
     out = {key: lookup(key)[1]
            for key in ("MeasurementToolMetadata", "delay", "age")}
+    if "session_id" in header:
+        out["session_id"] = SESSION_ID
     versions = set()
     for key in header:
         if key not in ("participant_id", "session_id", "delay", "age"):

@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -154,7 +155,7 @@ def test_roast_raw(root):
         == tpl("NYU/1/T1w.json")
     assert sidecar(root, "sub-29100/ses-01/func/"
                          "sub-29100_ses-01_task-rest_bold.json") \
-        == tpl("KUL/3/bold.json")
+        == {**tpl("KUL/3/bold.json"), "TaskName": "rest"}
 
 
 def test_roast_all(root):
@@ -640,7 +641,8 @@ def test_bold_template_without_tr(root):
         assert not report.errors, report.errors
         meta = sidecar(root, "sub-29400/ses-01/func/"
                              "sub-29400_ses-01_task-rest_bold.json")
-        assert meta == {**tpl("UCLA/2/bold.json"), "RepetitionTime": 3.0}
+        assert meta == {**tpl("UCLA/2/bold.json"), "TaskName": "rest",
+                        "RepetitionTime": 3.0}
 
 
 def test_header_sidecar_under_skip_and_update(root, caplog):
@@ -669,7 +671,8 @@ def test_header_sidecar_under_skip_and_update(root, caplog):
     roast(root, keys="rest", subs=[29400, 29401], ifexists="update",
           display=False)
     assert json.loads(paths[0].read_text()) == {
-        **tpl("UCLA/2/bold.json"), "Local": 1, "RepetitionTime": 3.0}
+        **tpl("UCLA/2/bold.json"), "Local": 1, "TaskName": "rest",
+        "RepetitionTime": 3.0}
     assert json.loads(paths[1].read_text()) == {"Mine": True}
     assert "was edited" in caplog.text
 
@@ -876,6 +879,108 @@ def test_participants(root):
     assert dict(zip(rows[0], rows[1]))["sample"] == "KUL"
     # trimmed to the subjects on disk (none yet)
     assert read_tsv(raw_file(root, "participants.tsv")) == [rows[0]]
+
+
+def test_participants_json_samples():
+    """Every value of `sample` (the site, or the site and a sample) is a
+    level of `participants.json`; age in years (BIDS unit "year")"""
+    meta = json.loads((TEMPLATES / "participants.json").read_text())
+    values = {sites.sample_label(f"ABIDEII-{site}") for site in sites.SITES}
+    values |= {sites.sample_label(f"ABIDEII-{site}_{sample}")
+               for site, samples in sites.SAMPLES.items()
+               for sample in samples}
+    values |= {sites.sample_label(s) for s in ("ABIDE-I_UCLA_1",
+                                               "ABIDE-I_PITT")}
+    assert values == set(meta["sample"]["Levels"])
+    assert {"KUL", "UMia", "NYU1", "UPSMLong"} <= values
+    assert meta["age"]["Units"] == "year"
+
+
+def test_phenotype_names_are_bids():
+    """Phenotype tables are named without `.` in their stem (`cbcl_1.5-5`
+    is `cbcl_1p5-5`), each with its data dictionary"""
+    assert "cbcl_1p5-5" in tables.PHENOTYPES
+    for name in tables.PHENOTYPES:
+        assert "." not in name
+        assert (TEMPLATES / "phenotype" / f"{name}.json").is_file()
+
+
+def make_old_cbcl(root):
+    """An earlier roast that wrote `cbcl_1.5-5` (the new files renamed,
+    the manifest entry of the dictionary too)"""
+    roast(root, keys="meta", display=False)
+    lay = layout_of(root)
+    new, old = lay.phenotype / "cbcl_1p5-5", lay.phenotype / "cbcl_1.5-5"
+    for ext in (".tsv", ".json"):
+        Path(f"{new}{ext}").rename(f"{old}{ext}")
+    lay.original(Path(f"{new}.tsv")).rename(lay.original(Path(f"{old}.tsv")))
+    manifest = lay.state / "manifest.json"
+    data = json.loads(manifest.read_text())
+    key = lambda p: Path(p).relative_to(lay.root).as_posix()  # noqa: E731
+    data["files"][key(f"{old}.json")] = data["files"].pop(key(f"{new}.json"))
+    manifest.write_text(json.dumps(data))
+    return lay, old
+
+
+def manifest_files(lay):
+    return json.loads((lay.state / "manifest.json").read_text())["files"]
+
+
+def test_renamed_phenotype_removed(root, caplog):
+    """`cbcl_1.5-5` of an earlier roast: removed (pristine copy, table,
+    dictionary, their manifest entries) by a roast that writes the
+    phenotypes, under pure skip too; it does not come back"""
+    lay, old = make_old_cbcl(root)
+    key = Path(f"{old}.json").relative_to(lay.root).as_posix()
+    assert key in manifest_files(lay)
+    with caplog.at_level(logging.INFO):
+        report = roast(root, keys="pheno", display=False)
+    assert not report.errors
+    for ext in (".tsv", ".json"):
+        assert not Path(f"{old}{ext}").exists()
+    assert not lay.original(Path(f"{old}.tsv")).exists()
+    assert key not in manifest_files(lay)
+    assert "cbcl_1.5-5.tsv: removed" in caplog.text
+    assert "WARNING" not in caplog.text
+    roast(root, keys="T1w", display=False)
+    assert not Path(f"{old}.tsv").exists()
+    assert (lay.phenotype / "cbcl_1p5-5.tsv").exists()
+
+
+def test_renamed_phenotype_kept_without_pheno(root):
+    """A roast that does not write the phenotypes (`--keys T1w`) leaves
+    the old table alone (no new one would replace it)"""
+    lay, old = make_old_cbcl(root)
+    roast(root, keys="T1w", display=False)
+    for ext in (".tsv", ".json"):
+        assert Path(f"{old}{ext}").exists()
+    assert lay.original(Path(f"{old}.tsv")).exists()
+
+
+def test_renamed_phenotype_edited_kept(root, caplog):
+    """An edited `cbcl_1.5-5` table or dictionary is kept (warned); the
+    pristine copy is removed, so that it is not derived again"""
+    lay, old = make_old_cbcl(root)
+    Path(f"{old}.tsv").write_text("participant_id\tmine\n")
+    Path(f"{old}.json").write_text('{"mine": {}}')
+    roast(root, keys="pheno", display=False)
+    assert Path(f"{old}.tsv").read_text() == "participant_id\tmine\n"
+    assert Path(f"{old}.json").read_text() == '{"mine": {}}'
+    assert not lay.original(Path(f"{old}.tsv")).exists()
+    assert caplog.text.count("edited since brainspresso wrote it") == 2
+
+
+def test_renamed_phenotype_malformed(root, caplog):
+    """A malformed leftover (a pristine copy that is not UTF-8) is
+    warned about; the roast goes on"""
+    lay, old = make_old_cbcl(root)
+    lay.original(Path(f"{old}.tsv")).write_bytes(b"\xff\xfe\x00bad")
+    report = roast(root, keys="pheno", display=False)
+    assert not report.errors
+    assert Path(f"{old}.tsv").exists()              # (could not be checked)
+    assert "cbcl_1.5-5.tsv (renamed cbcl_1p5-5.tsv): not removed" \
+        in caplog.text
+    assert (lay.phenotype / "cbcl_1p5-5.tsv").exists()
 
 
 def test_participants_sub_prefix(root):

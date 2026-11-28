@@ -16,7 +16,7 @@
   },
   "age": {
     "Description": "Age of the participant",
-    "Units": "years"
+    "Units": "year"
   },
   "educ": {
     "Description": "Years of education",

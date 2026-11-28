@@ -1,5 +1,5 @@
 {
-  "age": {"Description": "Age at scan", "Units": "years"},
+  "age": {"Description": "Age at scan", "Units": "year"},
   "sex": {
     "Description": "Sex, as recorded in the source",
     "Levels": {"M": "male", "F": "female", "M->F": "male to female, as recorded in the source"}

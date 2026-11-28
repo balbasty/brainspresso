@@ -574,6 +574,17 @@ def test_abide_roast_help_notes(capsys):
         assert note in capsys.readouterr().out
 
 
+def test_roast_help_has_the_engine_key_texts(capsys):
+    # every roast is on the engine: `--keys`/`--exclude-keys` carry the
+    # engine help texts (`KeyOptions.helps`)
+    try:
+        main(["cobre", "roast", "--help"])
+    except SystemExit:
+        pass
+    out = capsys.readouterr().out
+    assert "Only these keys" in out and "Not these keys." in out
+
+
 def test_lock_states_parent_first(tmp_path):
     # the parent (one dataset per site), shared, before the site (listed
     # or not); a whole parent: itself, then its sites

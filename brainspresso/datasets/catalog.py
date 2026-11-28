@@ -196,7 +196,9 @@ CHOICES: dict[str, tuple[str, ...]] = {
         "nitrc", "s3", "wustl", "xnat",
     ),
     "info:source": ("auto", "graphql", "s3"),
-    "roast:if-exists": ("different", "error", "overwrite", "refresh", "skip"),
+    "roast:if-exists": (
+        "different", "error", "overwrite", "refresh", "skip", "update",
+    ),
     "roast:layout": ("flat", "sites", "sites:flat", "sites:study", "study"),
     "roast:sidecars": ("no", "only", "yes"),
     "roast:source": ("nitrc", "s3", "xnat"),

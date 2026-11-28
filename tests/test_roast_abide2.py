@@ -643,6 +643,37 @@ def test_bold_template_without_tr(root):
         assert meta == {**tpl("UCLA/2/bold.json"), "RepetitionTime": 3.0}
 
 
+def test_header_sidecar_under_skip_and_update(root, caplog):
+    """`HeaderSidecar` (a bold template without RepetitionTime) is a
+    tracked sidecar: left alone under `skip`, rewritten from a new
+    template under `update`, an edit kept"""
+    img = nib.Nifti1Image(np.zeros((2, 2, 2, 3), dtype=np.int16), np.eye(4))
+    img.header.set_xyzt_units("mm", "sec")
+    img.header["pixdim"][4] = 3.0
+    make_tar(root / "sourcedata" / "ABIDEII-UCLA_2.tar.gz", {
+        f"ABIDEII-UCLA_2/{i}/session_1/rest_1/rest.nii.gz":
+            gzip.compress(img.to_bytes()) for i in (29400, 29401)})
+    roast(root, keys="rest", subs=[29400, 29401], display=False)
+    paths = [raw_file(root, f"sub-{i}/ses-01/func/"
+                            f"sub-{i}_ses-01_task-rest_bold.json")
+             for i in (29400, 29401)]
+    old = [p.read_bytes() for p in paths]
+    local = root / "sourcedata" / "UCLA" / "2" / "bold.json"
+    local.parent.mkdir(parents=True)
+    local.write_text(json.dumps({**tpl("UCLA/2/bold.json"), "Local": 1}))
+    caplog.clear()
+    roast(root, keys="rest", subs=[29400, 29401], display=False)
+    assert [p.read_bytes() for p in paths] == old
+    assert "WARNING" not in caplog.text
+    paths[1].write_text('{"Mine": true}')
+    roast(root, keys="rest", subs=[29400, 29401], ifexists="update",
+          display=False)
+    assert json.loads(paths[0].read_text()) == {
+        **tpl("UCLA/2/bold.json"), "Local": 1, "RepetitionTime": 3.0}
+    assert json.loads(paths[1].read_text()) == {"Mine": True}
+    assert "was edited" in caplog.text
+
+
 def test_missing_sidecar_template(root, monkeypatch):
     """A missing sidecar template is an error only if sidecars are
     written"""
@@ -1269,7 +1300,6 @@ def test_cli_subject_ranges(tmp_path):
 
 def test_dataset_declares_the_roaster():
     abide = ABIDE2()
-    assert not abide.legacy_roast() and not abide.legacy_subjects
     sources = abide.sources()
     assert sources["nitrc"].roaster is roaster.roast_nitrc
     assert sources["s3"].roaster is roaster.roast_nitrc

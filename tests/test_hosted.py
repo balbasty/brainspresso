@@ -20,6 +20,7 @@ import pytest
 from fake_s3 import bucket_app, serve
 
 from brainspresso.actions.state import read_task_states
+from brainspresso.bids import harvest as harvest_mod
 from brainspresso.bids.compost import compost
 from brainspresso.bids.harvest import InlineEntry, sha256, update_files
 from brainspresso.bids.hosted import (
@@ -588,11 +589,15 @@ def test_sald_hybrid_placement_and_fill_in(tmp_path, templates):
     assert entries["rawbids/README"]["origin"] == "generated"
     assert entries["rawbids/README"]["source"].startswith(
         ".brainspresso/generated/")
-    # a new template reaches the dataset with a roast (no network)
+    # a new template reaches the dataset with a roast (no network),
+    # under `--if-exists update` (the default `skip` leaves it alone)
     write(sald / "T1w.json", '{"Manufacturer": "Siemens", '
           '"MagneticFieldStrength": 3, "FlipAngle": 9}')
     INDI_REQUESTS.clear()
+    before = (raw / "T1w.json").read_bytes()
     bx("sald", "roast", out)
+    assert (raw / "T1w.json").read_bytes() == before
+    bx("sald", "roast", out, "--if-exists", "update")
     assert read_json(raw / "T1w.json")["FlipAngle"] == 9
     assert not INDI_REQUESTS
 
@@ -719,7 +724,7 @@ def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
     assert [t.id for t in sald.fill_templates()] == ["T1w.json"]
 
 
-def test_edited_files_are_kept_under_skip(tmp_path, openneuro, caplog):
+def test_edited_files_are_kept_under_update(tmp_path, openneuro, caplog):
     lay = on("harvest", tmp_path, "--subs", "01")
     readme, desc = lay.raw / "README", lay.raw / "dataset_description.json"
     readme.write_text("My notes\n")
@@ -727,7 +732,13 @@ def test_edited_files_are_kept_under_skip(tmp_path, openneuro, caplog):
     pristine = lay.source / "openneuro"
     (pristine / "README").write_text("New README\n")
     (pristine / "dataset_description.json").write_text('{"Name": "y"}')
+    # skip (default): both left alone, nothing said
+    old = desc.read_bytes()
+    caplog.clear()
     on("roast", tmp_path)
+    assert desc.read_bytes() == old and readme.read_text() == "My notes\n"
+    assert "was edited" not in caplog.text
+    on("roast", tmp_path, "--if-exists", "update")
     # an unedited file follows its pristine copy, an edited one is kept
     assert read_json(desc) == {"Name": "y"}
     assert readme.read_text() == "My notes\n"
@@ -761,6 +772,9 @@ def test_edited_fill_in_sidecar_is_kept(tmp_path, templates, caplog):
     caplog.clear()
     bx("sald", "roast", out)
     assert read_json(t1w) == {"Manufacturer": "GE"}
+    assert "was edited" not in caplog.text          # (skip: silent)
+    bx("sald", "roast", out, "--if-exists", "update")
+    assert read_json(t1w) == {"Manufacturer": "GE"}
     assert "was edited since brainspresso wrote it: kept" in caplog.text
 
 
@@ -768,7 +782,7 @@ def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
     """A manifest of before hashes were recorded: a file that equals
     the roasted output is adopted, any other is kept under the "keep"
     migration rule (the "replace" default is tested below)."""
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "keep")
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
     lay = on("harvest", tmp_path, "--subs", "01")
     files = read_manifest(lay.state)["files"]
     update_files(lay, {k: {"sha256": None} for k in files})
@@ -776,7 +790,11 @@ def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
     t1w.write_text('{"EchoTime": 1}\n')
     readme = lay.raw / "README"
     caplog.clear()
-    on("roast", tmp_path, "--subs", "01")       # (the shard runs)
+    on("roast", tmp_path, "--subs", "01")       # (skip: left alone)
+    assert read_json(t1w) == {"EchoTime": 1}
+    assert "--if-exists" not in caplog.text
+    assert "sha256" not in manifest_entry(lay, readme)
+    on("roast", tmp_path, "--subs", "01", "--if-exists", "update")
     assert read_json(t1w) == {"EchoTime": 1}
     assert "--if-exists different or overwrite" in caplog.text
     assert "sha256" not in manifest_entry(lay, t1w)
@@ -1022,9 +1040,13 @@ def test_skipped_shard_never_adopts_an_edit(tmp_path, openneuro, caplog):
     (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").write_text(
         '{"EchoTime": 0.005}')
     caplog.clear()
-    on("roast", tmp_path)
+    on("roast", tmp_path)                       # skip: left alone
+    assert read_json(t1w) == {"EchoTime": 1}
+    assert "was edited" not in caplog.text
+    on("roast", tmp_path, "--if-exists", "update")
     assert read_json(t1w) == {"EchoTime": 1}
     assert "was edited since brainspresso wrote it" in caplog.text
+    assert manifest_entry(lay, t1w)["sha256"] == recorded
 
 
 def test_edited_field_map_without_pristine_copy(tmp_path, openneuro):
@@ -1060,7 +1082,7 @@ def test_edited_field_map_after_compost(tmp_path, openneuro, with_pristine):
 def test_upgraded_dataset_gets_its_fill_ins(tmp_path, templates, rule,
                                             monkeypatch, caplog):
     """An older harvest (no hashes, no fill-in): the migration rule."""
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", rule)
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
     nki = templates / "nki-rs"
     aside = tmp_path / "aside"
     aside.mkdir()
@@ -1079,6 +1101,9 @@ def test_upgraded_dataset_gets_its_fill_ins(tmp_path, templates, rule,
     old = t1w.read_bytes()
     caplog.clear()
     bx("nki-rs", "harvest", out)
+    # (skip: an existing file is left alone; a roast with `update` merges)
+    assert t1w.read_bytes() == old and "WARNING" not in caplog.text
+    bx("nki-rs", "roast", out, "--if-exists", "update")
     if rule == "keep":
         assert t1w.read_bytes() == old
         assert "has no recorded hash" in caplog.text
@@ -1110,7 +1135,10 @@ def test_fill_in_sidecar_whose_template_is_gone(tmp_path, templates, caplog,
     write(sald / "_fill.json", '{"fill": []}')
     (sald / "T1w.json").unlink()
     caplog.clear()
-    bx("sald", "roast", out)
+    bx("sald", "roast", out)                    # skip: nothing removed
+    assert t1w.exists() and "no longer applies" not in caplog.text
+    assert read_manifest(lay.state)["files"]["rawbids/T1w.json"]["fill"]
+    bx("sald", "roast", out, "--if-exists", "update")
     files = read_manifest(lay.state)["files"]
     if edited:
         assert read_json(t1w) == {"Manufacturer": "GE"}
@@ -1142,6 +1170,8 @@ def test_top_level_sidecar_change_reaches_pushed_down_fill(tmp_path):
     # the hosted top-level sidecar now gives FlipAngle, not the TR
     pristine.write_text('{"FlipAngle": 7}')
     roast_hosted(lay, fill=fill, display=False)
+    assert read_json(pushed) == {"FlipAngle": 4}        # (skip)
+    roast_hosted(lay, fill=fill, ifexists="update", display=False)
     assert read_json(pushed) == {"RepetitionTimePreparation": 9}
 
 
@@ -1160,28 +1190,40 @@ def test_forgotten_unfetched_files_re_trim_field_maps(tmp_path, openneuro):
         "anat/sub-01_T1w.nii.gz"]
 
 
-def test_directly_placed_generated_files_refresh_unless_edited(
+def test_directly_placed_generated_files_under_skip_and_different(
     tmp_path, caplog
 ):
+    """Pure skip: a generated file placed directly is left alone once it
+    exists; `--if-exists different` replaces it (edits included)"""
     root = tmp_path / "ds"
     selection = Selection(folders=["sourcedata"])
 
-    def harvest(text):
+    def harvest(text, if_exists="skip"):
         harvest_hosted([InlineEntry("sourcedata/notes.txt", text)], root,
-                       selection, folder="x", display=False)
+                       selection, folder="x", display=False,
+                       if_exists=if_exists)
 
     harvest("v1")
     lay = Layout.detect(root)
     notes = lay.source / "notes.txt"
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v1")
-    harvest("v2")                       # unedited: refreshed
+    caplog.clear()
+    harvest("v2")                       # skip: left alone, silently
+    assert notes.read_text() == "v1"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v1")
+    assert "refreshed" not in caplog.text and "edited?" not in caplog.text
+    harvest("v2", "different")          # unedited: replaced
     assert notes.read_text() == "v2"
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
     notes.write_text("mine")
-    harvest("v3")                       # edited: kept
+    caplog.clear()
+    harvest("v3")                       # edited, skip: left alone
     assert notes.read_text() == "mine"
-    assert "edited?" in caplog.text
+    assert "WARNING" not in caplog.text
     assert manifest_entry(lay, notes)["sha256"] == sha256(b"v2")
+    harvest("v3", "different")          # edited: replaced too
+    assert notes.read_text() == "v3"
+    assert manifest_entry(lay, notes)["sha256"] == sha256(b"v3")
 
 
 def test_read_manifest_that_is_not_utf8(tmp_path, caplog):
@@ -1250,10 +1292,13 @@ def test_orphans_outside_the_selection_are_kept_for_later(tmp_path,
     assert read_json(one) == read_json(two) == {"Manufacturer": "GE"}
     (coded / "_fill.json").unlink()
     (coded / "B/T1w.json").unlink()
-    roast_hosted(lay, selection=Selection(subs=["B01"]), display=False)
+    roast_hosted(lay, display=False)            # skip: nothing removed
+    assert one.exists() and two.exists()
+    roast_hosted(lay, selection=Selection(subs=["B01"]), ifexists="update",
+                 display=False)
     assert not one.exists() and two.exists()
     assert manifest_entry(lay, two)["fill"] == ["B/T1w.json"]
-    roast_hosted(lay, display=False)
+    roast_hosted(lay, ifexists="update", display=False)
     assert not two.exists()
     assert "rawbids/sub-B02/sub-B02_T1w.json" not in \
         read_manifest(lay.state)["files"]
@@ -1262,7 +1307,7 @@ def test_orphans_outside_the_selection_are_kept_for_later(tmp_path,
 @pytest.mark.parametrize("rule", ["keep", "replace"])
 def test_older_field_maps_with_remapped_targets(tmp_path, templates, caplog,
                                                 rule, monkeypatch):
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", rule)
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
     INDIDataset(Coded()).execute("harvest", path=tmp_path)
     lay = Layout.detect(tmp_path / "CODED")
     epi = lay.raw / "sub-A01/fmap/sub-A01_dir-AP_epi.json"
@@ -1318,12 +1363,15 @@ def test_no_repair_keeps_the_pristine_content(tmp_path, openneuro):
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     assert read_json(fmap)["IntendedFor"] == [
         "func/sub-01_task-rest_bold.nii.gz"]
-    # a roast repairs (the default) and records it; `--no-repair`
-    # restores the pristine content (unedited files)
+    # a roast repairs (the default) the files it writes: under `skip`
+    # an existing file stays as it is, `update` repairs it and records
+    # it; `--no-repair` restores the pristine content (unedited files)
     on("roast", tmp_path)
+    assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
+    on("roast", tmp_path, "--if-exists", "update")
     assert read_json(t1w) == {"MagneticFieldStrength": 3}
     assert manifest_entry(lay, t1w)["repair"] is True
-    on("roast", tmp_path, "--no-repair")
+    on("roast", tmp_path, "--no-repair", "--if-exists", "update")
     assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
     assert "repair" not in manifest_entry(lay, t1w)
 
@@ -1372,7 +1420,7 @@ def test_no_trim_tables_survive_a_compost(tmp_path, openneuro, caplog):
 @pytest.mark.parametrize("rule", ["keep", "replace"])
 def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
                                           rule, monkeypatch):
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", rule)
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", rule)
     lay = on("harvest", tmp_path, "--no-repair")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     pristine = ON["sub-03/anat/sub-03_T1w.json"]
@@ -1381,7 +1429,10 @@ def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
     update_files(lay, {k: {"sha256": None, "repair": None} for k in
                        read_manifest(lay.state)["files"]})
     caplog.clear()
-    on("harvest", tmp_path)
+    on("harvest", tmp_path)                     # skip: left alone
+    assert t1w.read_bytes() == pristine
+    assert "has no recorded hash" not in caplog.text
+    on("roast", tmp_path, "--if-exists", "update")
     assert "has no recorded hash" in caplog.text
     if rule == "keep":
         assert t1w.read_bytes() == pristine
@@ -1400,7 +1451,7 @@ def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
     caplog.clear()
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "keep")
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
     on("harvest", tmp_path, "--subs", "01")
     # (MIGRATION_RULE "keep": an older file that differs is kept)
     assert fmap.read_bytes() == old
@@ -1561,7 +1612,9 @@ def test_overwritten_edit_is_ours_again(tmp_path, openneuro, caplog):
     write(pristine / "README", "Newer README\n")
     write(pristine / "sub-01/anat/sub-01_T1w.json", '{"EchoTime": 0.006}')
     caplog.clear()
-    on("roast", tmp_path)
+    on("roast", tmp_path)                       # skip: left alone
+    assert readme.read_text() == "New README\n"
+    on("roast", tmp_path, "--if-exists", "update")
     assert readme.read_text() == "Newer README\n"
     assert read_json(t1w) == {"EchoTime": 0.006}
     assert "was edited" not in caplog.text
@@ -1587,7 +1640,7 @@ def test_replace_never_loses_the_file(tmp_path, openneuro, monkeypatch,
     before = t1w.read_bytes()
     update_files(lay, {k: {"sha256": None} for k in
                        read_manifest(lay.state)["files"]})
-    monkeypatch.setattr(hosted_mod, "MIGRATION_RULE", "replace")
+    monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "replace")
     if failure == "policy":
         on("roast", tmp_path, "--sidecars", "no")
         assert t1w.read_bytes() == before
@@ -1661,3 +1714,258 @@ def test_pristine_copies_without_digest_or_mtime(tmp_path, openneuro_url,
     harvest_hosted(entries, root, Selection(), folder="x", display=False)
     assert ON_REQUESTS[f"GET {DS}/README"] == 1     # (downloaded again)
     assert copy.stat().st_mtime_ns == before
+
+
+# ----------------------------------------------------------------------
+#   Pure `--if-exists skip` (r43): `update` is the old `skip`
+# ----------------------------------------------------------------------
+
+def _visible(lay) -> dict[str, bytes]:
+    """Visible metadata files of the raw dataset (no images)."""
+    return {rel: (lay.raw / rel).read_bytes() for rel in files(lay.raw)
+            if not rel.endswith(".nii.gz") and not rel.startswith(
+                ("sourcedata/", "derivatives/"))}
+
+
+def test_skip_leaves_hosted_files_alone(tmp_path, openneuro, caplog):
+    lay = on("harvest", tmp_path / "a", "--subs", "01")
+    before = _visible(lay)
+    # new bases: a new snapshot of the README, a sidecar, a field map
+    openneuro[f"{DS}/README"] = b"A new README\n"
+    openneuro[f"{DS}/sub-01/anat/sub-01_T1w.json"] = b'{"EchoTime": 0.004}'
+    openneuro[f"{DS}/sub-01/fmap/sub-01_dir-AP_epi.json"] = json.dumps(
+        {**FMAP, "TotalReadoutTime": 0.05}).encode()
+    caplog.clear()
+    lay = on("harvest", tmp_path / "a", "--subs", "01", "02")
+    after = _visible(lay)
+    # the pristine copies follow the listing
+    assert (lay.source / "openneuro/README").read_bytes() == \
+        b"A new README\n"
+    # existing files are left alone, silently
+    for rel in ("README", "dataset_description.json",
+                "sub-01/anat/sub-01_T1w.json", "task-rest_bold.json"):
+        assert after[rel] == before[rel], rel
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+    # new files are written; trimmed tables and field maps follow
+    assert "sub-02/anat/sub-02_T1w.json" in after
+    assert table_rows(lay.raw / "participants.tsv") == ["sub-01", "sub-02"]
+    assert read_json(lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json")[
+        "TotalReadoutTime"] == 0.05
+    # `update` is the old `skip`: the same files as a fresh harvest
+    on("roast", tmp_path / "a", "--if-exists", "update")
+    fresh = on("harvest", tmp_path / "b", "--subs", "01", "02")
+    assert _visible(lay) == _visible(fresh)
+    # a hosted roast records its hashes itself: no "converted" entry
+    entries = read_manifest(lay.state)["files"].values()
+    assert not [e for e in entries if e.get("origin") == "converted"]
+
+
+def test_deleted_visible_file_is_written_again_under_skip(tmp_path,
+                                                          openneuro):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    content = t1w.read_bytes()
+    on("roast", tmp_path)               # (the shard: skipped, unchanged)
+    t1w.unlink()
+    on("roast", tmp_path)
+    assert t1w.read_bytes() == content
+
+
+def test_compost_roast_runs_as_update(tmp_path, openneuro, monkeypatch):
+    lay = on("harvest", tmp_path)
+    seen = []
+    real = hosted_mod.run_roast
+
+    def spy(roaster, ctx, **kwargs):
+        seen.append(ctx.ifexists)
+        return real(roaster, ctx, **kwargs)
+
+    monkeypatch.setattr(hosted_mod, "run_roast", spy)
+    on("compost", tmp_path, "--exclude-subs", "03", "--yes")
+    assert seen == ["update"]
+    assert table_rows(lay.raw / "participants.tsv") == ["sub-01", "sub-02"]
+
+
+def test_harvest_under_skip_refreshes_bases_only(tmp_path, templates,
+                                                 caplog):
+    """A second harvest after a template change: the generated base in
+    `<state>/generated/` follows, the visible file is left alone (pure
+    skip), `roast --if-exists update` renders it"""
+    out = tmp_path / "data"
+    bx("sald", "harvest", out)
+    lay = Layout.detect(out / "SALD")
+    readme = lay.raw / "README"
+    base = lay.generated(readme)
+    old = readme.read_bytes()
+    write(templates / "sald/README", "A new README\n")
+    caplog.clear()
+    bx("sald", "harvest", out)
+    assert base.read_text() == "A new README\n"
+    assert readme.read_bytes() == old
+    assert not [r for r in caplog.records if r.levelname == "WARNING"
+                and "README" in r.getMessage()]
+    bx("sald", "roast", out, "--if-exists", "update")
+    assert readme.read_text() == "A new README\n"
+
+
+def test_frozen_file_under_skip(tmp_path, openneuro, caplog):
+    """A missing base: the visible file is left alone silently under
+    skip; a missing visible file too is still an error"""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    content = t1w.read_bytes()
+    (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").unlink()
+    caplog.clear()
+    report = roast_hosted(lay, display=False)
+    assert not report.errors and t1w.read_bytes() == content
+    assert "left as it is" not in caplog.text
+    t1w.unlink()
+    report = roast_hosted(lay, display=False)
+    assert len(report.errors) == 1 and "harvest again" in \
+        report.errors[0][2]
+
+
+def test_hosted_update_adopts_an_edit_that_holds_the_render(
+        tmp_path, openneuro, caplog):
+    """Compare before keep: a stale hash (a killed roast) is no edit"""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    readme = lay.raw / "README"
+    pristine = lay.source / "openneuro/README"
+    pristine.write_text("New README\n")
+    readme.write_bytes(pristine.read_bytes())       # (hash not recorded)
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert "was edited" not in caplog.text
+    assert manifest_entry(lay, readme)["sha256"] == \
+        sha256(readme.read_bytes())
+    pristine.write_text("Newer README\n")
+    on("roast", tmp_path, "--if-exists", "update")
+    assert readme.read_text() == "Newer README\n"
+
+
+# ----------------------------------------------------------------------
+#   Review round 2 of #39: hosted derivative descriptions
+# ----------------------------------------------------------------------
+
+DERIV_DESC = "derivatives/fmriprep/dataset_description.json"
+
+
+def _with_derivative(openneuro):
+    openneuro[f"{DS}/{DERIV_DESC}"] = \
+        b'{"Name": "fmriprep", "BIDSVersion": "1.9.0"}'
+
+
+def test_hosted_derivative_description_is_its_render(tmp_path, openneuro,
+                                                     caplog):
+    """Completed in the render (`SourceDatasets`): recorded, unedited
+    files are left alone by `update`, no backup accumulates"""
+    _with_derivative(openneuro)
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / DERIV_DESC
+    meta = read_json(desc)
+    assert meta["DatasetType"] == "derivative"
+    assert meta["SourceDatasets"][0]["URL"]
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    content = desc.read_bytes()
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == content
+        assert not [r for r in caplog.records if r.levelname == "WARNING"
+                    and desc.name in r.getMessage()]
+    assert not (lay.state / "replaced").exists()
+
+
+def test_edited_hosted_derivative_description_survives(tmp_path, openneuro,
+                                                      caplog):
+    _with_derivative(openneuro)
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / DERIV_DESC
+    desc.write_bytes(b'{"Name": "mine"}')
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == b'{"Name": "mine"}'
+        assert "was edited" in caplog.text
+    assert not (lay.state / "replaced").exists()
+
+
+def test_interrupted_roast_leaves_a_complete_description(
+        tmp_path, openneuro, monkeypatch):
+    """An interrupted `finish_roast` (no hash recorded): the description
+    is complete anyway (the render), and adopted by the next update"""
+    from brainspresso.roast import run as run_mod  # noqa: PLC0415
+
+    _with_derivative(openneuro)
+    real = run_mod.finish_roast
+    calls = []
+
+    def once(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("interrupted")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_mod, "finish_roast", once)
+    with pytest.raises(Exception):
+        on("harvest", tmp_path, "--subs", "01", "--folders", "derivatives")
+    lay = Layout.detect(tmp_path / "OpenNeuro" / DS)
+    desc = lay.root / DERIV_DESC
+    assert "SourceDatasets" in read_json(desc)
+    on("roast", tmp_path, "--if-exists", "update")
+    assert "SourceDatasets" in read_json(desc)
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    assert not (lay.state / "replaced").exists()
+
+
+def test_stale_field_map_hash_is_not_warned_about(tmp_path, openneuro,
+                                                  caplog):
+    lay = on("harvest", tmp_path, "--subs", "01")
+    fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
+    content = fmap.read_bytes()
+    update_files(lay, {_key(lay, fmap): {"sha256": "0" * 64}})   # (stale)
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert fmap.read_bytes() == content
+    assert "was edited" not in caplog.text
+    # (it holds the render: adopted)
+    assert manifest_entry(lay, fmap)["sha256"] == sha256(content)
+
+
+def _key(lay, path):
+    return Path(path).relative_to(lay.root).as_posix()
+
+
+NESTED_DESC = "derivatives/fs/derivatives/qc/dataset_description.json"
+
+
+def test_nested_hosted_derivative_description(tmp_path, openneuro, caplog):
+    """Round 3 of #39: a derivative of a derivative is completed in its
+    render too (the URL of the layout that owns it, at any depth)"""
+    openneuro[f"{DS}/derivatives/fs/dataset_description.json"] = \
+        b'{"Name": "fs", "BIDSVersion": "1.9.0"}'
+    openneuro[f"{DS}/{NESTED_DESC}"] = \
+        b'{"Name": "qc", "BIDSVersion": "1.9.0"}'
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / NESTED_DESC
+    meta = read_json(desc)
+    owner = lay.derivative("fs").derivative("qc")
+    assert meta["SourceDatasets"][0] == {"URL": owner.source_url}
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    content = desc.read_bytes()
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == content
+        assert not [r for r in caplog.records if r.levelname == "WARNING"
+                    and "dataset_description" in r.getMessage()]
+    assert not (lay.state / "replaced").exists()
+    desc.write_bytes(b'{"Name": "mine"}')
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert desc.read_bytes() == b'{"Name": "mine"}'
+    assert "was edited" in caplog.text
+    assert not (lay.state / "replaced").exists()

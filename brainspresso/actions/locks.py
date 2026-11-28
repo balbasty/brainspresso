@@ -16,7 +16,7 @@ processes "hold" it at once):
   share it (cluster nodes), wherever the filesystem shares the locks
   (see "Platforms" below), and whatever path the dataset is mounted at.
 * outside any dataset (package templates, a source folder given on the
-  command line, files written by legacy code), the lock file is in a
+  command line), the lock file is in a
   private per-user folder on the local machine
   (`$BRAINSPRESSO_LOCK_DIR`, else `$XDG_RUNTIME_DIR/brainspresso/locks`,
   else `<tmp>/brainspresso-<uid>/locks`, `<tmp>` being the per-user
@@ -43,8 +43,7 @@ before and after it appears do not exclude each other. So every command
 that writes into a dataset creates its state folder *before* it takes
 any lock (`bids.layout.Layout.ensure_state`, called by `record_run`
 before the downloads of every harvest command, by `bids.harvest.harvest`
-and `run_roast` before anything is read or written, by `compost` and by
-the legacy roasters (`Bidsifier` classes) before their actions run).
+and `run_roast` before anything is read or written, and by `compost`).
 
 The dataset of a folder is cached once found (`find_dataset`; folders
 outside any dataset are looked up each time, so a state folder created

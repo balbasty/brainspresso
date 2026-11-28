@@ -177,7 +177,7 @@ class Context:
     state : str | PathLike | None
         State folder (`<state>/tasks/` holds the task states); None: no
         task state is written, and shards are never skipped
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists` of actions that do not set their own
     tag : str
         Progress group of the producer that is running (default of
@@ -511,6 +511,9 @@ class Report:
         `(tag, name, message)` of every error
     outputs : list[Path]
         Outputs written or found already there
+    digests : dict[Path, str]
+        SHA-256 of the outputs of tracked actions (`Action.track`) that
+        hold what the action rendered
     progress : dict[str, tuple[int, int | None]]
         `{tag: (done, total)}`
     status : {"complete", "partial", "failed"}
@@ -522,6 +525,7 @@ class Report:
     )
     errors: list[tuple[str, str, str]] = field(default_factory=list)
     outputs: list[Path] = field(default_factory=list)
+    digests: dict[Path, str] = field(default_factory=dict)
     progress: dict[str, tuple[int, int | None]] = field(default_factory=dict)
     status: str = "complete"
 
@@ -589,6 +593,9 @@ class _Reporter:
     def _outputs(self, paths) -> None:
         self.events.append(("outputs", list(paths)))
 
+    def digests(self, digests: dict[str, str]) -> None:
+        self.events.append(("digests", dict(digests)))
+
 
 class _MainReporter(_Reporter):
     """Counts, collects and displays events (main process)."""
@@ -649,6 +656,12 @@ class _MainReporter(_Reporter):
 
     def _outputs(self, paths):
         self.report.outputs.extend(paths)
+
+    def digests(self, digests):
+        self._digests(digests)
+
+    def _digests(self, digests):
+        self.report.digests.update({Path(p): h for p, h in digests.items()})
 
     def live_progress(self, task: str, progress: dict | None) -> None:
         """Show the progress of a running shard (None: it is finished)."""
@@ -1595,9 +1608,25 @@ class Engine:
         elif not nb_sub:
             reporter.outcome(tag, name, "empty", "the claim yielded nothing")
         reporter.outputs(own, tag)
+        if action.track and action.rendered and own:
+            digests = _digests(own)
+            if digests:
+                reporter.digests(digests)
         if action.claim is not None:
             action.outputs = outputs + own
         return outputs + own
+
+
+def _digests(paths: Iterable[Path]) -> dict[str, str]:
+    """SHA-256 of files (those that cannot be read are left out)."""
+    out = {}
+    for path in paths:
+        try:
+            data = Path(path).read_bytes()
+            out[str(path)] = hashlib.sha256(data).hexdigest()
+        except OSError as e:
+            lg.debug(f"Could not hash {path}: {e}")
+    return out
 
 
 # ----------------------------------------------------------------------

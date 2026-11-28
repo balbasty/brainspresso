@@ -3,6 +3,7 @@ import csv
 import io
 import logging
 import math
+import re
 import sys
 import zipfile
 from collections import Counter
@@ -172,14 +173,23 @@ def test_read_xlsx(tmp_path):
 def test_read_xlsx_wrong_dimension(tmp_path):
     """Every row is read, whatever dimension the file stores"""
     path = _xlsx(tmp_path / "t.xlsx", [["ID"], ["a"], ["b"]])
+    with zipfile.ZipFile(path) as z:
+        files = {n: z.read(n) for n in z.namelist()}
+    sheet = "xl/worksheets/sheet1.xml"
+    # (the tag is written `<dimension ref="..."/>` with lxml, `... />`
+    # without; inserted after `<sheetPr>` if absent)
+    stale = b'<dimension ref="A1:A1"/>'
+    files[sheet], count = re.subn(rb'<dimension\s[^>]*/>', stale,
+                                  files[sheet])
+    if not count:
+        files[sheet], count = re.subn(
+            rb'(</sheetPr>|<sheetPr\s[^>]*/>)', rb'\1' + stale,
+            files[sheet], count=1)
+    assert count == 1 and stale in files[sheet]
     wrong = tmp_path / "wrong.xlsx"
-    with zipfile.ZipFile(path) as src, zipfile.ZipFile(wrong, "w") as dst:
-        for item in src.infolist():
-            data = src.read(item)
-            if item.filename == "xl/worksheets/sheet1.xml":
-                assert b'<dimension ref="A1:A3"/>' in data
-                data = data.replace(b'ref="A1:A3"', b'ref="A1:A1"')
-            dst.writestr(item, data)
+    with zipfile.ZipFile(wrong, "w") as z:
+        for name, data in files.items():
+            z.writestr(name, data)
     assert [row for _, row in read_xlsx(wrong).rows] == [["a"], ["b"]]
 
 

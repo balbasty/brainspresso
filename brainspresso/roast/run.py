@@ -239,24 +239,40 @@ SELECTION_ARGS = {
     "exclude_subs": "exclude_sub",
 }
 
-#: Keyword names of the `Selection` filters that every `roast()` takes
-#: among its `**options` (named after the BIDS entities, as on the
-#: command line), by `Selection` field
-FILTER_ARGS = {"sessions": "ses"}
+#: Keyword names of the BIDS filters of every `roast()` (named after the
+#: BIDS entities, as on the command line and in brainfilter), by
+#: `Selection` field: the signature, the docstring and the parsing read
+#: this table
+FILTER_ARGS = {
+    "sessions": "ses",
+    "datatypes": "datatype",
+    "suffixes": "suffix",
+    "tasks": "task",
+}
 
-#: `Selection` fields that `roast()` refuses as keywords: the filters are
-#: named after their command-line options (`SELECTION_ARGS`,
-#: `FILTER_ARGS`)
-_SELECTION_FIELDS = ("subs", "exclude_subs", "sessions", "datatypes",
-                     "suffixes", "tasks")
+#: Help of the filters of `FILTER_ARGS` (by keyword), in the docstrings
+_FILTER_DOCS = {
+    "ses": "Only these sessions (labels, with or without `ses-`; as "
+           "`--ses`, for a dataset with sessions)",
+    "datatype": "Only these datatypes (`anat`, `func`, `dwi`...)",
+    "suffix": "Only these suffixes (`T1w`, `bold`, `dwi`...)",
+    "task": "Only these tasks (labels, with or without `task-`)",
+}
+
+
+def _renamed(names: Mapping[str, str]) -> dict[str, str]:
+    """Return `Selection` field -> keyword of `roast()`, where they differ."""
+    out = {field: name for field, name in names.items()
+           if field in ("subs", "exclude_subs")}
+    out.update(FILTER_ARGS)
+    return {field: name for field, name in out.items() if field != name}
 
 #: Options of `roast_dataset` (and `make_context`) that every `roast()`
 #: takes, in the docstrings that `python_api` writes
 COMMON_OPTIONS = (
     "Those of the command line: `json` (`--sidecars`: \"yes\", \"no\", "
-    "\"only\"), `ifexists` (`--if-exists`), `layout` (`--layout`), "
-    "`ses` (`--ses`, for a dataset with sessions); `jobs` "
-    "(processes for the shards), `display` (the progress table) and "
+    "\"only\"), `ifexists` (`--if-exists`), `layout` (`--layout`); "
+    "`jobs` (processes for the shards), `display` (the progress table) and "
     "`info` (extra fields of the run, in the manifest)")
 
 
@@ -305,6 +321,9 @@ def python_api(
     * `sub`, `exclude_sub`: `sources.base.subject_labels` with the
       width of the dataset (numbers, labels with or without `sub-`,
       ranges `start:stop[:step]`, files that list one subject per line);
+    * `ses`, `datatype`, `suffix`, `task` (`FILTER_ARGS`): a value or a
+      list, the `Selection` filters `sessions`, `datatypes`, `suffixes`,
+      `tasks`; the old plural names are a `TypeError` that names them;
     * `keys`, `exclude_keys`: a name or a list (`as_list`); with a
       `spec`, through `spec.effective` as the command line does (keys
       that cover every choice count as none, `off` keys and add-ons);
@@ -365,19 +384,21 @@ def python_api(
                  list(inspect.signature(options).parameters.items())[1:]}
 
     names = dict(SELECTION_ARGS)
+    renamed = _renamed(names)
 
     def roast(root, **kwargs) -> RoastReport:
-        # (keyword-only, by `SELECTION_ARGS`: see `__signature__`)
-        for field in _SELECTION_FIELDS:
-            if field in kwargs and field not in names.values():
+        # (keyword-only, by `SELECTION_ARGS` and `FILTER_ARGS`: see
+        # `__signature__`)
+        for field, name in renamed.items():
+            if field in kwargs:
                 raise TypeError(f"roast() got an unexpected keyword "
-                                f"argument {field!r}")
+                                f"argument {field!r} (use {name!r})")
         keys, exclude_keys, subs, exclude_subs = (
             as_list(kwargs.pop(names[role], ())) for role in
             ("keys", "exclude_keys", "subs", "exclude_subs"))
         for field, name in FILTER_ARGS.items():
             if name in kwargs:
-                kwargs[field] = kwargs.pop(name)
+                kwargs[field] = as_list(kwargs.pop(name))
         if sources is not None:
             source = kwargs.pop("source", default_source)
             if source not in sources:
@@ -416,6 +437,8 @@ def python_api(
                                         default=default_source))
     params += [inspect.Parameter(name, keyword, default=())
                for name in names.values()]
+    params += [inspect.Parameter(name, keyword, default=())
+               for name in FILTER_ARGS.values()]
     params += [param.replace(kind=keyword) for param in extra.values()]
     params.append(inspect.Parameter("options",
                                     inspect.Parameter.VAR_KEYWORD))
@@ -454,6 +477,8 @@ def _roast_doc(names: dict, folder: str, width: int | None, example: int,
                   + (f"; {keys_doc}" if keys_doc else "")),
         doc_entry(f"{names['subs']}, {names['exclude_subs']} : "
                   f"int | str | list[int | str]", subjects),
+        *(doc_entry(f"{name} : str | list[str]", _FILTER_DOCS[name])
+          for name in FILTER_ARGS.values()),
     ]
     if options_doc:
         entries.append(options_doc.strip("\n"))

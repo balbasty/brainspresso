@@ -811,3 +811,18 @@ def test_old_selection_flags_refused(tmp_path):
         exit_on_error=False, print_error=False)
     select = bound.arguments["select"]
     assert (select.sub, select.exclude_sub) == (("2",), ("3",))
+
+
+def test_dataset_selection_bids_names():
+    """`Dataset.selection` takes the names of the command line"""
+    sel = IXI().selection(sub=["2"], exclude_sub=["sub-012"], ses=["ses-1"],
+                          datatype=["anat"], suffix=["T1w"], task=["rest"],
+                          include=["sub-*/anat/*"])
+    assert (sel.subs, sel.exclude_subs, sel.sessions) == (
+        {"002"}, {"012"}, {"1"})
+    assert (sel.datatypes, sel.suffixes, sel.tasks) == (
+        {"anat"}, {"T1w"}, {"rest"})
+    assert list(sel.include) == ["sub-*/anat/*"]
+    assert IXI().selection() is None
+    with pytest.raises(TypeError, match=r"'datatypes' \(use 'datatype'\)"):
+        IXI().selection(datatypes=["anat"])

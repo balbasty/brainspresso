@@ -923,7 +923,8 @@ class Dataset:
         """
         return subject_labels(values, self.subject_width)
 
-    def selection(self, sub=(), exclude_sub=(), ses=(), **filters):
+    def selection(self, sub=(), exclude_sub=(), ses=(), datatype=(),
+                  suffix=(), task=(), **filters):
         """
         Build the selection of subjects, sessions and BIDS filters.
 
@@ -933,18 +934,30 @@ class Dataset:
             `--sub`, `--exclude-sub` (see `labels`)
         ses : list[str]
             `--ses` (with or without `ses-`)
+        datatype, suffix, task : list[str]
+            `--datatype`, `--suffix`, `--task`
         **filters
-            Other `Selection` filters (`datatypes`, `suffixes`...)
+            Other `Selection` filters (`include`, `exclude`, `entities`,
+            `folders`)
 
         Returns
         -------
         Selection | None
             None if nothing is filtered
         """
+        renamed = {"subs": "sub", "exclude_subs": "exclude_sub",
+                   "sessions": "ses", "datatypes": "datatype",
+                   "suffixes": "suffix", "tasks": "task"}
+        old = sorted(renamed.keys() & filters.keys())
+        if old:
+            raise TypeError(f"selection() got an unexpected keyword "
+                            f"argument {old[0]!r} (use {renamed[old[0]]!r})")
         subs, exclude_subs = self.labels(sub), self.labels(exclude_sub)
         sessions = {s[4:] if str(s).startswith("ses-") else str(s)
                     for s in ses or ()}
-        filters = {k: v for k, v in filters.items() if v}
+        filters = {k: v for k, v in {
+            "datatypes": datatype, "suffixes": suffix, "tasks": task,
+            **filters}.items() if v}
         if not (subs or exclude_subs or sessions or filters):
             return None
         return Selection(subs=subs, exclude_subs=exclude_subs,

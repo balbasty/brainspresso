@@ -318,6 +318,27 @@ def test_keys_and_subject_filters(root):
     }
 
 
+@pytest.mark.parametrize("filters,kept", [
+    ({"datatype": ["anat"]}, "anat/"),
+    ({"datatype": "func"}, "func/"),
+    ({"suffix": ["T1w"]}, "_T1w."),
+    ({"datatype": "func", "task": "task-rest"}, "_task-rest_"),
+])
+def test_bids_filters_in_python_api(root, filters, kept):
+    """`roast(datatype=, suffix=, task=)`: the BIDS filters of the
+    selection, as their command-line options (`FILTER_ARGS`)"""
+    report = roast(root, keys={"T1w", "func"}, display=False, **filters)
+    assert not report.errors
+    tree = raw_tree(root)
+    assert tree == {p for p in RAW if kept in p}
+
+
+def test_bids_filter_excludes_all(root):
+    roast(root, keys={"T1w", "func"}, datatype="func", task=["other"],
+          display=False)
+    assert not raw_tree(root)
+
+
 def test_json_only_and_no(root):
     roast(root, keys={"T1w", "func"}, json="only", sub=[40000],
           display=False)

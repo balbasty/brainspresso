@@ -152,23 +152,34 @@ def test_python_api_subjects(calls, tmp_path):
     assert calls[-1]["subs"] == ["07", "a1"]
 
 
-@pytest.mark.parametrize("old", ["subs", "exclude_subs", "sessions",
-                                 "datatypes", "suffixes", "tasks"])
-def test_python_api_refuses_old_names(calls, old):
+@pytest.mark.parametrize("old,new", [
+    ("subs", "sub"), ("exclude_subs", "exclude_sub"), ("sessions", "ses"),
+    ("datatypes", "datatype"), ("suffixes", "suffix"), ("tasks", "task"),
+])
+def test_python_api_refuses_old_names(calls, old, new):
     """The selection arguments are named after the BIDS entities (`sub`,
-    `exclude_sub`, `ses`): the old plural names are unknown keywords"""
+    `exclude_sub`, `ses`...): the old plural names are unknown keywords,
+    and the error names the new one"""
     roast = run.python_api(roast_a, KEYS, folder="X", width=3)
     with pytest.raises(TypeError, match=f"unexpected keyword argument "
-                                        f"'{old}'"):
+                                        f"'{old}' \\(use '{new}'\\)"):
         roast("root", **{old: ["1"]})
     assert not calls
 
 
-def test_python_api_ses(calls):
-    """`ses=`: the `sessions` of the selection (`--ses`)"""
-    run.python_api(roast_a, KEYS, folder="X", width=3)("root", ses=["1"])
+def test_python_api_bids_filters(calls):
+    """`ses=`, `datatype=`, `suffix=`, `task=`: the `Selection` filters
+    `sessions`, `datatypes`, `suffixes`, `tasks` (a value or a list)"""
+    roast = run.python_api(roast_a, KEYS, folder="X", width=3)
+    roast("root", ses=["1"], datatype="anat", suffix=["T1w", "T2w"],
+          task="rest")
     call, = calls
-    assert call["sessions"] == ["1"] and "ses" not in call
+    assert call["sessions"] == ["1"] and call["datatypes"] == ["anat"]
+    assert call["suffixes"] == ["T1w", "T2w"] and call["tasks"] == ["rest"]
+    assert not {"ses", "datatype", "suffix", "task"} & set(call)
+    # not given: not passed (the defaults of `Selection`)
+    roast("root")
+    assert not {"sessions", "datatypes", "suffixes", "tasks"} & set(calls[-1])
 
 
 def test_python_api_subject_paths(calls, tmp_path):
@@ -246,7 +257,12 @@ def test_python_api_signature_and_doc():
         keys_doc="more about keys")
     params = inspect.signature(roast).parameters
     assert list(params) == ["root", "keys", "exclude_keys", "sub",
-                            "exclude_sub", "discs", "level", "options"]
+                            "exclude_sub", "ses", "datatype", "suffix",
+                            "task", "discs", "level", "options"]
+    for name in ("ses", "datatype", "suffix", "task"):
+        assert params[name].kind is inspect.Parameter.KEYWORD_ONLY
+        assert params[name].default == ()
+        assert f"{name} : str | list[str]" in roast.__doc__
     assert params["discs"].kind is inspect.Parameter.KEYWORD_ONLY
     assert params["discs"].default is None
     assert params["options"].kind is inspect.Parameter.VAR_KEYWORD

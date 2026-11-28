@@ -884,7 +884,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
 * **Roaster scaffolding** (step 6 PR D):
   * `roast.python_api(roasters, aliases, folder=, width=, spec=,
     options=, ...)` builds the `roast(root, *, keys, exclude_keys, sub,
-    exclude_sub, <dataset options>, **options)` of every ported
+    exclude_sub, ses, datatype, suffix, task, <dataset options>,
+    **options)` of every ported
     dataset, with the meaning of the command line: subjects through
     `subject_labels(values, width)` (numbers, labels with or without
     `sub-`, ranges, files; a path is a file), keys through `as_list`
@@ -3911,15 +3912,24 @@ up as an XPASS failure once fixed (then drop the marker).
   which cyclopts derives); there was no `--exclude-sessions` and no
   other plural entity filter. The config keys and `BRAINSPRESSO_OPT_*`
   variables follow (an old key is an unknown key, as any other, with
-  "did you mean"); `roast(sub=, exclude_sub=, ses=)` (`SELECTION_ARGS`,
-  `FILTER_ARGS`; the old keywords are a `TypeError`), `run_compost(sub=,
+  "did you mean"); `roast(sub=, exclude_sub=, ses=, datatype=, suffix=,
+  task=)` (`SELECTION_ARGS`, `FILTER_ARGS`, all in its signature; an old
+  keyword is a `TypeError` that names the new one), `run_compost(sub=,
   ..., site=, exclude_site=)`, `Dataset.selection(sub=, exclude_sub=,
-  ses=)` and the fields of `SelectionOptions`, `SessionOptions`,
-  `SiteOptions` and `FilterOptions`. Kept: the `Selection` fields (§3),
+  ses=, datatype=, suffix=, task=)` and the fields of
+  `SelectionOptions`, `SessionOptions`, `SiteOptions` and
+  `FilterOptions`. Kept: the `Selection` fields (§3),
   `roast.scope(subs=)` and the scope records, the per-run source
   options `sites`/`exclude_sites`, the `Args` group names (`select`,
   `sessions`, `sites`, `filters`), `Dataset.sessions`,
   `subject_selection`, `GrindOverrides.exclude_subs` and the grind
   `Query` fields (contract of §7, not options yet). The step-3 flag
   snapshot holds the new names. Golden: no change (the cases use none
-  of these options).
+  of these options). Review round 1: `roast()` takes `datatype=`,
+  `suffix=`, `task=` again (only `ses` was mapped, so the BIDS filters
+  had become unreachable from Python), in its signature and docstring;
+  `Dataset.selection` maps them too. `GrindOverrides.exclude_subs` is
+  renamed with step 7. Known: `roast(task=)` alone keeps the sidecars
+  of images without a `task` entity (`Selection.keeps` of metadata:
+  "may apply"), e.g. `T1w.json` without its image; with `datatype=` it
+  does not arise.

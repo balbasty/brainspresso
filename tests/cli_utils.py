@@ -11,7 +11,7 @@ def bx(*args):
 
 
 def flags(**options) -> list[str]:
-    """Command-line flags of keyword options (`subs=["1"]` -> `--sub 1`)."""
+    """Command-line flags of keyword options (`sub=["1"]` -> `--sub 1`)."""
     out = []
     for key, value in options.items():
         name = "--" + key.replace("_", "-")

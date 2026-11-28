@@ -309,6 +309,16 @@ class RoastPolicy(Policy):
             not declared, in the folder of categories none of which is
             declared, or of a subject that is neither declared nor seen
             (`SEEN`); None if all are inside
+
+        Notes
+        -----
+        It cannot check every category: one without a folder of its own
+        (`KeyAliases(folders=)`) is not seen in the outputs at all, and
+        a folder shared by several categories passes if any of them is
+        declared (OASIS-I `avg`, `tal`, `fsl` share
+        `derivatives/oasis-processed/`: a declaration without `tal`
+        passes). Roaster tests check those keys by running with and
+        without each one (`roast_utils.check_keys_rerun`).
         """
         declared = scope["fixed"]["declared"]
         keys, subs = declared["keys"], declared["subs"]

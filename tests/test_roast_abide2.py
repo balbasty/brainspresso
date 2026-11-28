@@ -14,6 +14,7 @@ from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
     SCOPE_SCENARIOS,
+    check_keys_rerun,
     check_scope,
     init_layout,
     layout_of,
@@ -446,6 +447,13 @@ def test_scope_of_tarballs(root, monkeypatch, scenario):
                                      "roast/raw/ABIDEII-KUL_3.tar.gz")},
         keys={"meta", "pheno", "T1w", "rest", "dti"}, key="dti",
         absent=29999)
+
+
+def test_keys_of_tarballs(root):
+    """Adding a key that a tarball shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "pheno", "T1w", "rest", "dti"},
+                     {"roast/raw/": roaster.RAW_KEYS})
 
 
 def test_hires_not_a_run(root, caplog):

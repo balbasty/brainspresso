@@ -860,7 +860,9 @@ layer in 2b-iv):
   seen subject that the new filter keeps was kept; else by the filters
   themselves) and every recorded output that the roast still selects
   (`expects`: `ctx.keeps(path) is not False`) exists; a skipped shard
-  reports those outputs only. A scoped shard that runs although its
+  reports those outputs only, and counts the actions that wrote them
+  (`groups` in the record: the outputs of each action and its progress
+  group). A scoped shard that runs although its
   record is done with the same signature and all its outputs (only
   coverage failed) extends its record (scopes and outputs carried, the
   new scope appended): `--subs A`, `--subs B`, `--subs A` skips the
@@ -876,7 +878,12 @@ layer in 2b-iv):
   declaration (a raw file of an undeclared key, a file in the folder of
   undeclared categories, a subject neither declared nor seen): a wrong
   declaration is logged and recorded as `scopes: []`, never skipped by
-  its scope; per-roaster tests check that `seen` is complete. A record
+  its scope. The audit cannot see a category without a folder of its
+  own, nor tell apart the categories of a shared folder (OASIS-I `avg`,
+  `tal`, `fsl`): per-roaster tests check that `seen` is complete, that
+  adding each key a shard reads re-runs it, and a differential test
+  (`tests/test_roast_scope_fuzz.py`) compares incremental roasts with
+  fresh ones. A record
   of before scopes whose signature equals the old formula for this
   roast is upgraded in place (scoped signature, `scopes: [scope]`):
   no re-run after the upgrade, no `_SIGNATURE_VERSION` bump. Declared:
@@ -3050,9 +3057,11 @@ up as an XPASS failure once fixed (then drop the marker).
   `_SIGNATURE_VERSION` bump), a re-run extends a record whose outputs
   are all there (`--subs A`, `B`, `A` skips the third time; at most 8
   scopes); `Engine.dispatch` signs each shard once (`Engine.plan`),
-  for `skip`, `run_shard` and `submit`. A shard of the main process
-  that an exception or an interrupt stops is recorded "failed" (it was
-  "done", and skipped by the next roast). Declared by COBRE, OASIS-I,
+  for `skip`, `run_shard` and `submit`. A shard that an exception or an
+  interrupt stops is recorded "failed", in the main process (it was
+  "done", and skipped by the next roast) and in a worker (it stayed
+  "running"). A skipped scoped shard counts the actions of the outputs
+  that the roast selects (`groups`), not those of its last run. Declared by COBRE, OASIS-I,
   OASIS-II, OASIS-III, ABIDE-I (NITRC/bucket, XNAT, FreeSurfer),
   ABIDE-II and Bullitt (the table in §5). Roasters report every
   subject before pruning (OASIS-I FreeSurfer discs: before the

@@ -9,6 +9,7 @@ from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
     SCOPE_SCENARIOS,
+    check_keys_rerun,
     check_scope,
     init_layout,
     layout_of,
@@ -350,6 +351,25 @@ def test_scope_of_the_image_shard(root, monkeypatch, scenario):
         archives={"COBRE_scan_data.tgz": ({"0040000", "0040001"},
                                           "roast/scans")},
         keys={"meta", "T1w", "func"}, key="func", absent=49999)
+
+
+def test_keys_of_the_image_shard(root):
+    """Adding a key that the shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "T1w", "func"}, {"roast/scans": ("T1w", "func")})
+
+
+def test_skipped_shard_counts_what_is_expected(root):
+    """A skipped shard counts the actions of the outputs that the roast
+    selects, not those of its last run"""
+    roast(root, subs=[40000], display=False)
+    roast(root, subs=[40001], display=False)
+    report = roast(root, keys={"T1w", "func"}, subs=[40000], display=False)
+    assert report.summary() == {"T1w": {"skipped": 2},
+                                "func": {"skipped": 2}}
+    report = roast(root, keys={"T1w", "func"}, display=False)
+    assert report.summary() == {"T1w": {"skipped": 4},
+                                "func": {"skipped": 2}}
 
 
 def test_jobs(root):

@@ -9,13 +9,14 @@ same assertions hold in both layouts. Fixtures parametrized with
 """
 import gzip
 import io
+import shutil
 import tarfile
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 
-from brainspresso.actions.state import read_task_states
+from brainspresso.actions.state import TASKS_DIR, read_task_states
 from brainspresso.bids.compost import compost
 from brainspresso.bids.harvest import record_run
 from brainspresso.bids.layout import STATE_DIR, Layout, make_layout
@@ -242,3 +243,43 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
         assert files <= raw_tree(ds_root)
     else:
         raise ValueError(scenario)
+
+
+def check_keys_rerun(ds_root: Path, roast, keys: set, shards: dict):
+    """
+    Check that adding a key that a shard reads re-runs it.
+
+    `RoastPolicy.audit` cannot tell a key missing from a declaration when
+    it has no folder of its own, or shares one (OASIS-I `avg`, `tal`,
+    `fsl`): for each key, a roast without it, then with it, must re-run
+    every shard that reads it (from no record: the task records are
+    removed first).
+
+    Parameters
+    ----------
+    ds_root : Path
+        Dataset folder
+    roast : callable(**options) -> report
+        Roast of the dataset (`keys=`)
+    keys : set[str]
+        Keys of a full roast
+    shards : dict[str, iterable[str]]
+        Task id prefix -> the keys its shards read (`ctx.wants`, or the
+        BIDS keys of their outputs)
+    """
+    state = layout_of(ds_root).state
+    for prefix, read in shards.items():
+        for key in read:
+            shutil.rmtree(state / TASKS_DIR, ignore_errors=True)
+            report = roast(keys=set(keys) - {key})
+            assert not report.errors, report.errors
+            before = {task: record.get("run") for task, record
+                      in read_task_states(state).items()}
+            report = roast(keys=set(keys))
+            assert not report.errors, report.errors
+            after = scoped_records(ds_root)
+            tasks = [task for task in after if task.startswith(prefix)]
+            assert tasks, prefix
+            for task in tasks:
+                assert after[task]["run"] != before.get(task), \
+                    f"{task} skipped when {key!r} is added"

@@ -13,6 +13,7 @@ from roast_utils import (
     LAYOUTS,
     SCOPE_SCENARIOS,
     analyze_pair,
+    check_keys_rerun,
     check_scope,
     init_layout,
     layout_of,
@@ -542,6 +543,12 @@ def test_scope_of_parts(root, monkeypatch, scenario):
             "OAS2_RAW_PART1.tar.gz": ({"0001", "0002"}, "roast/parts/part1"),
             "OAS2_RAW_PART2.tar.gz": ({"0003"}, "roast/parts/part2")},
         keys={"meta", "raw"}, key="raw", absent=9)
+
+
+def test_keys_of_parts(root):
+    """Adding a key that a part shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "raw"}, {"roast/parts/": ("raw",)})
 
 
 def test_rerun_skips_parts(root, monkeypatch):

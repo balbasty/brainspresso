@@ -10,6 +10,7 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    check_keys_rerun,
     init_layout,
     layout_of,
     make_tar,
@@ -482,6 +483,15 @@ def test_scope_of_subject_shards(root, monkeypatch):
     xnat(root, keys=["fs-all"])
     assert sorted(opened) == ["Caltech_0051456-freesurfer.tar.gz",
                               "Pitt_0050003-fs.tar.gz"]
+
+
+def test_keys_of_shards(root):
+    """Adding a key that a subject or FreeSurfer shard reads re-runs it
+    (`fs-all` implies `fs`: only `fs-all` can be added)"""
+    check_keys_rerun(root, lambda **kw: xnat(root, **kw),
+                     {"T1w", "T2w", "rest", "fs", "fs-all"},
+                     {"roast/subjects/": roaster.RAW_KEYS,
+                      "roast/fs/": ("fs-all",)})
 
 
 def test_subjects_filters_and_shards(root, monkeypatch):

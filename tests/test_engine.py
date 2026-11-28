@@ -654,8 +654,8 @@ def test_scoped_shard_skipped_when_covered(tmp_path, counted, jobs):
     assert record["seen"] == {"u": ["a", "b", "c"]}
     # narrower, or a unit that the shard does not hold: skipped
     report = toy_run(tmp_path, {"a"}, units=units, jobs=jobs)
-    # (what it did last time is counted; its expected outputs reported)
-    assert report.counts["run"] == {"skipped": 2}
+    # (the actions of its expected outputs are counted and reported)
+    assert report.counts["run"] == {"skipped": 1}
     assert report.outputs == [tmp_path / "out" / "a.txt"]
     report = toy_run(tmp_path, {"a", "b", "z"}, units=units, jobs=jobs)
     assert report.counts["run"] == {"skipped": 2}
@@ -667,6 +667,9 @@ def test_scoped_shard_skipped_when_covered(tmp_path, counted, jobs):
     record = toy_record(tmp_path)
     assert record["scopes"] == [{"wanted": ["a", "b"]}, {"wanted": ["a", "c"]}]
     assert record["outputs"] == ["out/a.txt", "out/b.txt", "out/c.txt"]
+    assert record["groups"] == [["run", [f"out/{u}.txt"]] for u in units]
+    report = toy_run(tmp_path, {"c"}, units=units, jobs=jobs)
+    assert report.counts["run"] == {"skipped": 1}
     assert record["seen"] == {"u": ["a", "b", "c"]}
     if jobs == 1:
         assert len(counted) == 2
@@ -795,3 +798,24 @@ def test_interrupted_shard_is_not_done(tmp_path):
         run(producer, ctx, display=False)
     assert read_task_states(tmp_path / "state")["demo/stop"]["status"] == \
         "failed"
+
+
+@pytest.mark.parametrize("stop", [KeyboardInterrupt, SystemExit])
+def test_interrupted_shard_in_a_worker_is_not_done(tmp_path, stop):
+    (tmp_path / "src.txt").write_text("input")
+
+    def producer(ctx):
+        yield Shard(interrupted_by, stop, id="demo/stop",
+                    inputs=[ctx.root / "src.txt"])
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    with pytest.raises(stop):
+        run(producer, ctx, jobs=2, display=False)
+    record = read_task_states(tmp_path / "state")["demo/stop"]
+    assert record["status"] == "failed"
+    assert record["outputs"] == ["out/x.txt"]
+
+
+def interrupted_by(ctx, stop):
+    yield WriteText("x", ctx.root / "out" / "x.txt")
+    raise stop

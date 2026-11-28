@@ -9,6 +9,7 @@ from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
     SCOPE_SCENARIOS,
+    check_keys_rerun,
     check_scope,
     init_layout,
     layout_of,
@@ -392,6 +393,13 @@ def test_scope_of_tarballs(root, monkeypatch, scenario):
             "Caltech.tgz": ({"51456", "51457"}, "roast/raw/Caltech.tgz"),
             "MaxMun_a.tgz": ({"51330"}, "roast/raw/MaxMun_a.tgz")},
         keys={"meta", "T1w", "T2w", "rest"}, key="rest", absent=50000)
+
+
+def test_keys_of_tarballs(root):
+    """Adding a key that a tarball shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "T1w", "T2w", "rest"},
+                     {"roast/raw/": roaster.RAW_KEYS})
 
 
 def test_subjects_pruned_before_extraction(root, monkeypatch):

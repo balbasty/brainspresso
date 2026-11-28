@@ -558,13 +558,16 @@ def replace_generated(dst: Path, digest: str | None, if_exists: str) -> bool:
 #       "error": "<message>" | null,
 #       "outputs": ["<path relative to layout.root>", ...],
 #       "scopes": [{...}, ...],                   # roast shards with a
-#       "seen": {"sub": ["<label>", ...]}         # scope, when done
+#       "seen": {"sub": ["<label>", ...]},        # scope, when done
+#       "groups": [["<tag>", ["<output>", ...]], ...]
 #     }
 #
 # `scopes`: the scopes of the runs that `outputs` cover (most recent
 # last, at most 8; empty if the outputs of the last run were outside its
 # declared scope), `seen`: the subjects that the inputs hold, as the
-# last complete run reported them (`actions.engine`, `roast.policy`).
+# last complete run reported them, `groups`: the outputs of each action
+# with its progress group (what a skip counts) (`actions.engine`,
+# `roast.policy`).
 
 MANIFEST_SCHEMA = 1
 

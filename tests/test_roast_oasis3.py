@@ -5,6 +5,7 @@ import nibabel as nib
 import pytest
 from roast_utils import (
     LAYOUTS,
+    check_keys_rerun,
     init_layout,
     layout_of,
     make_tar,
@@ -250,6 +251,12 @@ def test_scope_of_subject_shards(root, monkeypatch):
     assert calls == []
     roast(root, keys={"T1w", "FLAIR"}, subs=[1], display=False)
     assert calls == ["0001"]
+
+
+def test_keys_of_subject_shards(root):
+    """Adding a key that a subject shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"T1w", "T2w"}, {"roast/subjects/": ("T1w", "T2w")})
 
 
 def test_key_classification():

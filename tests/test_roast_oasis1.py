@@ -11,6 +11,7 @@ from roast_utils import (
     LAYOUTS,
     SCOPE_SCENARIOS,
     analyze_pair,
+    check_keys_rerun,
     check_scope,
     init_layout,
     layout_of,
@@ -538,6 +539,17 @@ def test_scope_of_image_discs(root, monkeypatch, scenario):
             "oasis_cross-sectional_disc2.tar.gz":
                 ({"0003"}, "roast/discs/raw-disc02")},
         keys={"meta", "raw", "avg", "tal", "fsl"}, key="tal", absent=9)
+
+
+def test_keys_of_discs(root):
+    """Adding a key that a disc shard reads re-runs it (`avg`, `tal`,
+    `fsl` share a folder: the audit cannot tell them apart)"""
+    freesurfer_disc(root / "sourcedata")
+    check_keys_rerun(
+        root, lambda **kw: roast(root, display=False, **kw),
+        {"meta", "raw", "avg", "tal", "fsl", "fs", "fs-all"},
+        {"roast/discs/raw-": roaster.DISC_KEYS["raw"],
+         "roast/discs/fs-": roaster.DISC_KEYS["fs"]})
 
 
 def test_scope_of_freesurfer_discs(root, monkeypatch):

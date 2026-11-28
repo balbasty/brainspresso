@@ -50,6 +50,7 @@ is not written).
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import re
 import tempfile
@@ -61,7 +62,9 @@ from pathlib import Path, PurePosixPath
 from typing import Iterator, NamedTuple
 
 from brainspresso.actions import Action, CopyJSON, Fail
+from brainspresso.bids.harvest import update_files
 from brainspresso.bids.keys import KeyAliases
+from brainspresso.bids.tables import trim_tables
 from brainspresso.datasets.base import KeySpec
 from brainspresso.datasets.indi.abide import scans
 from brainspresso.datasets.indi.abide.ii.keys import allkeys
@@ -79,8 +82,8 @@ from brainspresso.datasets.indi.abide.ii.tables import (
     PHENOTYPES,
 )
 from brainspresso.datasets.indi.abide.scans import (
-    HeaderSidecar,
     TemplateError,
+    bold_sidecar,
     image_ext,
     read_template,
 )
@@ -319,6 +322,90 @@ def template_folders(source: Path) -> list[tuple[str, str]]:
     return sorted(out)
 
 
+#: Phenotype tables renamed (old name -> new name): a `.` in a stem is
+#: not BIDS
+RENAMED_PHENOTYPES = {"cbcl_1.5-5": "cbcl_1p5-5"}
+
+
+def migrate_renamed_phenotypes(ctx: RoastContext) -> None:
+    """
+    Remove the phenotype tables of an earlier roast under an old name.
+
+    Only when the roast writes the phenotype tables (`pheno`), so that
+    the new table replaces the old one. The pristine copy
+    (`.brainspresso/orig/`) is removed, so that the visible table is not
+    derived from it again (`trim_originals`); the visible table and its
+    data dictionary too, unless they were edited (the table differs
+    from its trimmed pristine copy, the dictionary from the hash in the
+    manifest): then they are kept, with a warning. The manifest entries
+    of the files removed are dropped. The roast owns these files: done
+    whatever `--if-exists` says. A file that cannot be checked or
+    removed is warned about and left.
+    """
+    if not ctx.wants("pheno"):
+        return
+    folder = ctx.layout.phenotype
+    removed = []
+    for old, new in RENAMED_PHENOTYPES.items():
+        table, sidecar = folder / f"{old}.tsv", folder / f"{old}.json"
+        pristine = ctx.layout.original(table)
+        if not any(p.exists() for p in (pristine, table, sidecar)):
+            continue
+        checks = {table: partial(_is_trim_of, ctx, table, pristine),
+                  sidecar: partial(_is_recorded, ctx, sidecar)}
+        for path, unedited in checks.items():
+            if not path.exists():
+                continue
+            try:
+                if not unedited():
+                    lg.warning(f"phenotype/{path.name}: renamed {new}"
+                               f"{path.suffix}, but edited since "
+                               f"brainspresso wrote it: kept (delete it "
+                               f"by hand)")
+                    continue
+                path.unlink()
+            except Exception as e:
+                lg.warning(f"phenotype/{path.name} (renamed {new}"
+                           f"{path.suffix}): not removed "
+                           f"({type(e).__name__}: {e})")
+                continue
+            removed.append(path)
+            lg.info(f"phenotype/{path.name}: removed (renamed "
+                    f"{new}{path.suffix})")
+        if pristine.exists():
+            rel = pristine.relative_to(ctx.root).as_posix()
+            try:
+                pristine.unlink()
+            except OSError as e:
+                lg.warning(f"{rel}: not removed ({type(e).__name__}: {e})")
+                continue
+            removed.append(pristine)
+            lg.info(f"{rel}: removed (renamed {new}.tsv)")
+    if removed:
+        update_files(ctx.layout, deleted=[
+            p.relative_to(ctx.root).as_posix() for p in removed])
+
+
+def _is_trim_of(ctx: RoastContext, table: Path, pristine: Path) -> bool:
+    """Whether a visible table is the trimmed copy of its pristine one."""
+    if not table.exists() or not pristine.exists():
+        return False
+    rel = table.relative_to(ctx.root).as_posix()
+    with tempfile.TemporaryDirectory() as tmp:
+        trim_tables(Path(tmp), {rel: pristine}, subjects=ctx.layout.raw,
+                    sessions=True)
+        trimmed = Path(tmp) / rel
+        return trimmed.exists() and \
+            trimmed.read_bytes() == table.read_bytes()
+
+
+def _is_recorded(ctx: RoastContext, path: Path) -> bool:
+    """Whether a file holds the hash that the manifest records for it."""
+    digest = ctx.recorded(path)
+    return path.exists() and digest is not None and \
+        hashlib.sha256(path.read_bytes()).hexdigest() == digest
+
+
 def roast_nitrc(ctx: RoastContext) -> Iterator:
     """
     Roast the NITRC tarballs (sources nitrc, s3).
@@ -333,6 +420,7 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
     Action | Shard
         Metadata actions, then one shard per tarball
     """
+    migrate_renamed_phenotypes(ctx)
     yield from scans.roast_meta(
         ctx, phenotype_files(ctx.source), "ABIDEII-<SITE>_<sample>.csv",
         PARTICIPANTS, PHENOTYPES, pristine_phenotypes=True)
@@ -850,13 +938,13 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
     if error is not None:
         yield error
         return
-    if kind.suffix == "bold" and "RepetitionTime" not in content:
+    if kind.suffix == "bold":
         def open_image(image=image):
             if image.spool is not None and image.spool.is_file():
                 return open(image.spool, "rb")
             return io.BytesIO(image.data or b"")
 
-        yield HeaderSidecar(template, f"{stem}.json", image_path,
-                            open_image, image_name, tag=kind.key)
+        yield bold_sidecar(template, content, stem, image_path,
+                           open_image, image_name, tag=kind.key)
         return
     yield CopyJSON(template, f"{stem}.json", tag=kind.key)

@@ -22,19 +22,42 @@
       }
   },
   "sample": {
-    "Description": "different samples within same site",
+    "Description": "different samples within same site (the site itself for sites with one sample, or when the data gives none)",
     "Levels": {
-      "Leuven1": "",
-      "Leuven2": "",
-      "UCLA1": "",
-      "UCLA2": "",
-      "UM1": "",
-      "UM2": ""
+      "Caltech": "the site (one sample, or none given)",
+      "CMU": "the site (one sample, or none given)",
+      "CMUa": "CMU, sample a",
+      "CMUb": "CMU, sample b",
+      "KKI": "the site (one sample, or none given)",
+      "Leuven": "the site (one sample, or none given)",
+      "Leuven1": "Leuven, sample 1",
+      "Leuven2": "Leuven, sample 2",
+      "MaxMun": "the site (one sample, or none given)",
+      "MaxMuna": "MaxMun, sample a",
+      "MaxMunb": "MaxMun, sample b",
+      "MaxMunc": "MaxMun, sample c",
+      "MaxMund": "MaxMun, sample d",
+      "NYU": "the site (one sample, or none given)",
+      "OHSU": "the site (one sample, or none given)",
+      "Olin": "the site (one sample, or none given)",
+      "Pitt": "the site (one sample, or none given)",
+      "SBL": "the site (one sample, or none given)",
+      "SDSU": "the site (one sample, or none given)",
+      "Stanford": "the site (one sample, or none given)",
+      "Trinity": "the site (one sample, or none given)",
+      "UCLA": "the site (one sample, or none given)",
+      "UCLA1": "UCLA, sample 1",
+      "UCLA2": "UCLA, sample 2",
+      "UM": "the site (one sample, or none given)",
+      "UM1": "UM, sample 1",
+      "UM2": "UM, sample 2",
+      "USM": "the site (one sample, or none given)",
+      "Yale": "the site (one sample, or none given)"
     }
   },
   "age": {
       "Description": "Age of the participant",
-      "Units": "years"
+      "Units": "year"
   },
   "sex": {
       "Description": "Sex of the participant as reported by the participant",

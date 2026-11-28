@@ -29,12 +29,14 @@ wrote (`Report.digests`, origin "converted": the edit test of
 """
 from __future__ import annotations
 
+import functools
 import os
 import traceback
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from brainspresso.actions import WriteText
 from brainspresso.actions.engine import Producer, Report, run
 from brainspresso.bids.harvest import (
     description_hashes,
@@ -42,7 +44,7 @@ from brainspresso.bids.harvest import (
     trim_originals,
 )
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.bids.layout import Layout
+from brainspresso.bids.layout import README, Layout, study_readme
 from brainspresso.roast.context import RoastContext, as_list, make_context
 from brainspresso.roast.policy import RoastPolicy
 
@@ -137,6 +139,43 @@ def run_roast(
     return report
 
 
+def with_study_readme(roaster: Roaster) -> Roaster:
+    """
+    Add the README of a study dataset to a roaster.
+
+    A study (`layout.kind == "study"`) gets `<DS>/README`
+    (`bids.layout.study_readme`, BIDS: recommended) through the engine,
+    as any output (`--if-exists`, its hash in the manifest), unless the
+    user has a README of their own (`StudyLayout.readme_of_user`: any
+    `README*` name, in any case, or a `README` that we did not write):
+    that one is never written, in any mode. It is written by the
+    `finalize` hook, after that of the roaster: the raw description
+    (the name of the study) exists by then. The attributes of the
+    roaster are kept (`functools.update_wrapper`, `tag`, `source`).
+    """
+    def producer(ctx):
+        yield from roaster(ctx)
+
+    def finalize(ctx):
+        inner = getattr(roaster, "finalize", None)
+        if inner is not None:
+            yield from inner(ctx)
+        layout = ctx.layout
+        if layout.kind != "study" or \
+                layout.readme_of_user(ctx.recorded) is not None:
+            return
+        name = layout.dataset_description("study")["Name"]
+        yield WriteText(study_readme(name), layout.root / README,
+                        tag="study")
+
+    functools.update_wrapper(producer, roaster)
+    for attr in ("tag", "source"):
+        if hasattr(roaster, attr):
+            setattr(producer, attr, getattr(roaster, attr))
+    producer.finalize = finalize
+    return producer
+
+
 def roast_dataset(
     roaster: Roaster,
     root: str | os.PathLike | Layout,
@@ -181,4 +220,5 @@ def roast_dataset(
     ctx = make_context(root, aliases, select_keys=as_list(keys),
                        exclude_keys=as_list(exclude_keys),
                        templates=templates, **options)
-    return run_roast(roaster, ctx, jobs=jobs, display=display, info=info)
+    return run_roast(with_study_readme(roaster), ctx, jobs=jobs,
+                     display=display, info=info)

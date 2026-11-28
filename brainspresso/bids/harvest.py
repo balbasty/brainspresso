@@ -804,7 +804,7 @@ def trim_originals(layout: Layout) -> list[str]:
         if not whole and not (Path(layout.root) / relpath).parent.is_dir():
             continue
         originals[relpath] = path
-    written = trim_tables(layout.root, originals)
+    written = trim_tables(layout.root, originals, sessions=True)
     if written:
         lg.info(f"Trimmed tables: {written}")
     return written

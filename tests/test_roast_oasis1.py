@@ -20,6 +20,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    readme_counts,
     scoped_records,
 )
 
@@ -45,12 +46,14 @@ def drv(root, name=DRV):
 
 
 def drv_tree(root, name=DRV):
-    """Files of a derivative dataset (without its sourcedata)"""
+    """Files of a derivative dataset (without its sourcedata and its
+    description: `test_derivative_descriptions`)"""
     folder = drv(root, name)
     if not folder.is_dir():
         return set()
     return {p.relative_to(folder).as_posix() for p in folder.rglob("*")
-            if p.is_file() and p.relative_to(folder).parts[0] != "sourcedata"}
+            if p.is_file() and p.relative_to(folder).parts[0] != "sourcedata"
+            and p.relative_to(folder).as_posix() != "dataset_description.json"}
 
 
 def _analyze(members, base, data=None):
@@ -137,6 +140,13 @@ def tal_files(id=1):
             for desc in ("", "_desc-skullstripped")}
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json',):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_raw(root):
     roast(root, keys={"raw"}, discs=[1])
     assert raw_tree(root) == raw_runs(1) | raw_runs(2)
@@ -172,7 +182,8 @@ def test_missing_disc(root, caplog):
     discs are skipped with a warning"""
     report = roast(root, keys={"raw"}, discs=[2], display=False)
     assert raw_tree(root) == set()
-    assert report.counts == {"discs": {"error": 1}}
+    assert report.counts == {"discs": {"error": 1},
+                             **readme_counts(root, "done")}
     report = roast(root, keys={"raw"}, display=False)
     assert not report.errors
     assert raw_tree(root) == raw_runs(1) | raw_runs(2)
@@ -337,7 +348,8 @@ def test_unreadable_disc_is_closed(root, monkeypatch):
 
     monkeypatch.setattr(roaster, "TarArchive", Spy)
     report = roast(root, keys={"raw"}, discs=[1], display=False)
-    assert report.counts == {"discs": {"error": 1}}
+    assert report.counts == {"discs": {"error": 1},
+                             **readme_counts(root, "done")}
     assert closed == ["oasis_cross-sectional_disc1.tar.gz"]
 
 
@@ -392,6 +404,46 @@ def test_freesurfer(root):
     roast(root, keys={"fs-all"}, json="only", discs=[1])
     # unpacked files are inputs: --sidecars only does not drop them
     assert (unpacked / "stats" / "aseg.stats").exists()
+
+
+@pytest.mark.parametrize("keys", [{"fs"}, {"avg"}, {"tal", "fsl"}])
+def test_derivative_descriptions(root, keys):
+    """Each derivative that a roast writes is a BIDS derivative dataset
+    (`GeneratedBy`, `SourceDatasets`: its top-level dseg.tsv are
+    inherited); only those of the keys"""
+    freesurfer_disc(root / "sourcedata")
+    report = roast(root, keys=keys, discs=[1], display=False)
+    assert not report.errors
+    for name, wanted, generator in ((FS, {"fs"}, "FreeSurfer"),
+                                    (DRV, {"avg", "tal", "fsl"}, "OASIS")):
+        drv = layout_of(root).derivative(name)
+        if not keys & wanted:
+            assert not drv.description.exists()
+            continue
+        desc = json.loads(drv.description.read_text())
+        assert desc["DatasetType"] == "derivative"
+        assert desc["BIDSVersion"]
+        assert [g["Name"] for g in desc["GeneratedBy"]] == [
+            generator, "brainspresso"]
+        assert desc["SourceDatasets"] == [{"URL": drv.source_url}]
+    if "fs" in keys:
+        desc = json.loads(layout_of(root).derivative(FS).description
+                          .read_text())
+        assert desc["GeneratedBy"][0]["Version"] == "4.0"
+
+
+def test_processed_derivative_only_with_images(root):
+    """No avg/tal/fsl image converted (no subject of the disc kept, no
+    disc): no description nor lookup table of `oasis-processed`"""
+    proc = layout_of(root).derivative(DRV)
+    roast(root, keys={"avg", "tal", "fsl"}, discs=[1], subs=[99],
+          display=False)
+    roast(root, keys={"avg", "tal", "fsl"}, discs=[2], display=False)
+    assert not proc.description.exists()
+    assert not (proc.root / roaster.DSEG_NAME).exists()
+    roast(root, keys={"fsl"}, discs=[1], subs=[1], display=False)
+    assert proc.description.exists()
+    assert (proc.root / roaster.DSEG_NAME).exists()
 
 
 def test_freesurfer_sidecars_only(root):
@@ -597,7 +649,8 @@ def test_rerun_skips_discs(root, monkeypatch):
     monkeypatch.setattr(roaster, "roast_image_disc", spy)
     report = roast(root, keys={"raw"}, discs=[1], display=False)
     # (a skipped shard counts what it did last time as skipped)
-    assert calls == [] and report.counts == {"raw": {"skipped": 8}}
+    assert calls == [] and report.counts == {
+        "raw": {"skipped": 8}, **readme_counts(root, "skipped")}
 
     # a file edited by hand is replaced by "overwrite"
     sidecar = raw_file(root, "sub-0001/anat/sub-0001_run-1_T1w.json")

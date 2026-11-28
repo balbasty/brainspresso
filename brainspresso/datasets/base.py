@@ -57,6 +57,7 @@ from brainspresso.datasets.compost import run_compost
 from brainspresso.errors import DatasetNotFound, UsageError
 from brainspresso.roast import make_context, run_roast
 from brainspresso.roast.hosted import roast_hosted
+from brainspresso.roast.run import with_study_readme
 from brainspresso.sources.base import (
     Wants,
     harvest_sources,
@@ -1216,7 +1217,8 @@ class Dataset:
         source, roaster = self.select_roaster(ctx, args.source.source)
         if source is not None:
             ctx.source = Path(source.destination(layout))
-        return run_roast(roaster, ctx, jobs=args.roast.jobs)
+        return run_roast(with_study_readme(roaster), ctx,
+                         jobs=args.roast.jobs)
 
     def roast_options(self, args: Args) -> dict:
         """

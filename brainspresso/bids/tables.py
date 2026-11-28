@@ -11,8 +11,11 @@ import csv
 import io
 import operator
 import re
+from logging import getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterable
+
+lg = getLogger(__name__)
 
 _OPS = {
     "==": operator.eq, "!=": operator.ne,
@@ -96,11 +99,14 @@ def trim_tables(
     root: Path,
     originals: dict[str, Path],
     subjects: Path | None = None,
+    sessions: bool = False,
 ) -> list[str]:
     """
     Write trimmed copies of BIDS tables in `root`.
 
-    Only the rows that refer to something present on disk are kept.
+    Only the rows that refer to something present on disk are kept
+    (and, with `sessions`, the `session_id` of a phenotype table that
+    names no session on disk is `n/a`, `known_sessions`).
 
     Parameters
     ----------
@@ -112,6 +118,10 @@ def trim_tables(
     subjects : Path, default=folder of the participants table
         Folder that contains the `sub-*` folders listed in
         `participants.tsv`.
+    sessions : bool
+        Set the `session_id` of phenotype rows that name no session on
+        disk to `n/a` (the pristine copies of roasters: `trim_originals`,
+        compost's `retrim_tables`; harvested tables are left as they are)
 
     Returns
     -------
@@ -133,6 +143,8 @@ def trim_tables(
             base = Path(subjects) if subjects is not None else folder.parent
             rows = [r for r in rows
                     if (base / r.get("participant_id", "")).is_dir()]
+            if sessions and "session_id" in header:
+                rows = known_sessions(rows, base, relpath)
         elif name.endswith("_sessions.tsv"):
             rows = [r for r in rows
                     if (folder / r.get("session_id", "")).is_dir()]
@@ -145,6 +157,31 @@ def trim_tables(
         write_tsv(root / relpath, header, rows)
         written.append(relpath)
     return written
+
+
+def known_sessions(rows: list[dict], subjects: Path,
+                   relpath: str = "") -> list[dict]:
+    """
+    Set the `session_id` of phenotype rows to n/a if not on disk.
+
+    A `session_id` names a session of the dataset: one that the
+    participant does not have in `subjects` (`sub-<label>/ses-<label>/`)
+    is `n/a` (e.g. OASIS-III visits on a day without a session, or a
+    session not roasted). The pristine copy keeps it, so that a later
+    trim brings it back once the session is on disk.
+    """
+    out, unknown = [], 0
+    for row in rows:
+        ses = row.get("session_id") or "n/a"
+        if ses != "n/a" and not (
+                subjects / row.get("participant_id", "") / ses).is_dir():
+            row = {**row, "session_id": "n/a"}
+            unknown += 1
+        out.append(row)
+    if unknown:
+        lg.info(f"{relpath}: session_id n/a in {unknown} of {len(rows)} "
+                f"rows (no such session on disk)")
+    return out
 
 
 def is_phenotype(relpath: str) -> bool:

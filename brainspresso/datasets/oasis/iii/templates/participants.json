@@ -16,7 +16,7 @@
   },
   "age": {
     "Description": "Age of the participant at time of *first* visit",
-    "Units": "years"
+    "Units": "year"
   },
   "age_at_death": {
     "Description": "Age of the participant at time of death",
@@ -83,7 +83,7 @@
       "Y": "Yes"
     }
   },
-  "dadem": {
+  "daddem": {
     "Description": "Does/did subject's father have dementia, as indicated by symptoms, history or diagnosis?",
     "Levels": {
       "N": "No",

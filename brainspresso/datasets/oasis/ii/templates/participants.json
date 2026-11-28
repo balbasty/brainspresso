@@ -15,6 +15,6 @@
   },
   "age": {
     "Description": "Age of the participant at time of *first* visit",
-    "Units": "years"
+    "Units": "year"
   }
 }

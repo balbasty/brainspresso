@@ -1,4 +1,5 @@
 """Characterization tests for the COBRE roast step (on the roast engine)."""
+import hashlib
 import json
 import os
 
@@ -19,6 +20,7 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    readme_counts,
 )
 
 from brainspresso.actions.locks import FileLock, find_dataset
@@ -29,7 +31,7 @@ from brainspresso.datasets.indi.cobre.roaster import roast
 
 CSV = (
     ",Current Age,Gender,Handedness,Subject Type,Diagnosis\n"
-    "0040000,20,Male,Right,Patient,295.3 Schizophrenia\n"
+    "0040000,20,Male,Right,Patient,295.70 depressed\n"
     "0040001,30,Female,Left,Control,None\n"
     "0040002,Disenrolled,Disenrolled,Disenrolled,Disenrolled,Disenrolled\n"
 )
@@ -42,7 +44,8 @@ def make_source(root):
     (src / "COBRE_phenotypic_data.csv").write_text(CSV)
     make_tar(src / "COBRE_scan_data.tgz", {
         "COBRE/0040000/session_1/anat_1/mprage.nii.gz": nii_bytes(),
-        "COBRE/0040000/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "COBRE/0040000/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3), tr=2.0),
         "COBRE/0040001/session_1/anat_1/mprage.nii.gz": nii_bytes(),
     }, dirs=["COBRE", "COBRE/0040000"])
     return root
@@ -76,6 +79,13 @@ def original(root, name="participants.tsv"):
     return layout_of(root).original(raw_file(root, name))
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json',):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_all(root):
     report = roast(root, keys={"meta", "T1w", "func"}, display=False)
     assert not report.errors
@@ -89,12 +99,110 @@ def test_roast_all(root):
     ) == json.loads((roaster.TEMPLATES / "T1w.json").read_text())
 
 
+def test_study_readme(tmp_path, caplog):
+    """A study gets a README through the engine, after the roaster (its
+    title: the name of the raw description, not of the folder): its hash
+    in the manifest, `--if-exists` as any output (an edit kept by
+    `update`); none if the user has a README of any name or case; none
+    in a flat layout"""
+    root = tmp_path / "cobre-local"
+    init_layout(root, "study")
+    make_source(root)
+    readme = root / "README"
+    roast(root, keys={"meta"}, display=False)
+    assert readme.read_text().startswith("# COBRE\n")
+    assert "`rawbids/`" in readme.read_text()
+    files = json.loads((root / ".brainspresso" / "manifest.json")
+                       .read_text())["files"]
+    assert files["README"]["sha256"] == \
+        hashlib.sha256(readme.read_bytes()).hexdigest()
+    readme.write_text("edited")
+    roast(root, keys={"meta"}, ifexists="update", display=False)
+    assert readme.read_text() == "edited"
+    assert "was edited" in caplog.text
+    roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert readme.read_text() != "edited"
+    readme.unlink()
+    (root / "readme.md").write_text("mine")
+    report = roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert "study" not in report.counts
+    assert {p.name for p in root.glob("*") if "eadme" in p.name.lower()} \
+        == {"readme.md"}
+
+    flat = tmp_path / "flat" / "COBRE"
+    init_layout(flat, "flat")
+    make_source(flat)
+    roast(flat, keys={"meta"}, display=False)
+    assert (flat / "README").read_text() == \
+        (roaster.TEMPLATES / "README").read_text()
+
+
+@pytest.mark.parametrize("policy", ["skip", "different", "overwrite",
+                                    "update"])
+def test_study_readme_of_user_never_written(tmp_path, policy):
+    """A `<DS>/README` that we did not write (no hash in the manifest,
+    not our text) is the user's: never written or replaced"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "study")
+    make_source(root)
+    (root / "README").write_text("my study")
+    report = roast(root, keys={"meta"}, ifexists=policy, display=False)
+    assert not report.errors
+    assert (root / "README").read_text() == "my study"
+    assert "study" not in report.counts
+    files = json.loads((root / ".brainspresso" / "manifest.json")
+                       .read_text())["files"]
+    assert "README" not in files
+
+
+BOLD = "sub-0040000/func/sub-0040000_task-rest_bold.json"
+
+
+def test_bold_sidecar(root):
+    """The bold template has no RepetitionTime nor TaskName (REQUIRED):
+    TaskName from the name, RepetitionTime from the NIfTI header (of the
+    member under `--sidecars only`)"""
+    template = json.loads((roaster.TEMPLATES / "bold.json").read_text())
+    assert not {"RepetitionTime", "TaskName"} & set(template)
+    for policy in ("only", "yes"):
+        report = roast(root, keys={"func"}, json=policy,
+                       ifexists="overwrite", display=False)
+        assert not report.errors, report.errors
+        assert json.loads(raw_file(root, BOLD).read_text()) == {
+            **template, "TaskName": "rest", "RepetitionTime": 2.0}
+
+
+@pytest.mark.parametrize("policy", ["yes", "only"])
+def test_bold_sidecar_without_tr(tmp_path, caplog, policy):
+    """No usable TR in the header (no time unit; out of range): the TR of
+    the COBRE fact sheet (2 s), one warning per roast with a count"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "flat")
+    make_source(root)
+    make_tar(root / "sourcedata" / "COBRE_scan_data.tgz", {
+        "COBRE/0040000/session_1/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "COBRE/0040001/session_1/rest_1/rest.nii.gz":
+            nii_bytes((2, 2, 2, 3), tr=300.0),
+    })
+    assert "TR: 2 s" in (roaster.TEMPLATES / "README").read_text()
+    report = roast(root, keys={"func"}, json=policy, display=False)
+    assert not report.errors, report.errors
+    template = json.loads((roaster.TEMPLATES / "bold.json").read_text())
+    for sub in ("0040000", "0040001"):
+        meta = json.loads(raw_file(
+            root, f"sub-{sub}/func/sub-{sub}_task-rest_bold.json").read_text())
+        assert meta == {**template, "TaskName": "rest",
+                        "RepetitionTime": 2.0}
+    assert caplog.text.count("without a usable RepetitionTime") == 1
+    assert "2 bold image(s)" in caplog.text
+
+
 def test_participants(root):
     roast(root, display=False)
     rows = read_tsv(raw_file(root, "participants.tsv"))
     assert rows[0] == HEADER
-    assert rows[1] == ["sub-0040000", "20", "M", "R", "Y", "295.3",
-                       "Schizophrenia"]
+    assert rows[1] == ["sub-0040000", "20", "M", "R", "Y", "295.70",
+                       "depressed"]
     assert rows[2][:5] == ["sub-0040001", "30", "F", "L", "N"]
     # trimmed to the subjects on disk; the pristine copy has them all
     assert [r[0] for r in rows[1:]] == ["sub-0040000", "sub-0040001"]
@@ -104,6 +212,37 @@ def test_participants(root):
     assert raw_file(root, "participants.tsv").read_bytes() == \
         b"".join(line for line in original(root).read_bytes()
                  .splitlines(keepends=True) if b"0040002" not in line)
+
+
+def test_participants_subtype(caplog):
+    """The word after a diagnosis code is a subtype only if
+    `participants.json` declares it (else n/a, warned once)"""
+    levels = json.loads((roaster.TEMPLATES / "participants.json")
+                        .read_text())["icd9_subtype"]["Levels"]
+    assert set(roaster.SUBTYPES) == set(levels)
+    row = ["40000", "20", "Male", "Right", "Patient"]
+    warned = set()
+    assert roaster.participant_row(row + ["295.70 Bipolar"], warned)[-2:] \
+        == ["295.70", "bipolar"]
+    assert "WARNING" not in caplog.text
+    for _ in range(2):
+        assert roaster.participant_row(row + ["295.3 Schizophrenia"],
+                                       warned)[-2:] == ["295.3", "n/a"]
+    assert caplog.text.count("is not a subtype") == 1
+
+
+def test_participants_subtype_warned_per_roast(tmp_path, caplog):
+    """The "not a subtype" warning: once per roast, not per process"""
+    root = tmp_path / "COBRE"
+    init_layout(root, "flat")
+    make_source(root)
+    (root / "sourcedata" / "COBRE_phenotypic_data.csv").write_text(
+        CSV.splitlines(keepends=True)[0]
+        + "0040000,20,Male,Right,Patient,295.3 Schizophrenia\n"
+        + "0040001,30,Female,Left,Patient,295.3 Schizophrenia\n")
+    for _ in range(2):
+        roast(root, keys={"meta"}, ifexists="overwrite", display=False)
+    assert caplog.text.count("is not a subtype") == 2
 
 
 def test_participants_meta_only(root):
@@ -466,10 +605,12 @@ def test_skipped_shard_counts_what_is_expected(root):
     roast(root, subs=[40001], display=False)
     report = roast(root, keys={"T1w", "func"}, subs=[40000], display=False)
     assert report.summary() == {"T1w": {"skipped": 2},
-                                "func": {"skipped": 2}}
+                                "func": {"skipped": 2},
+                                **readme_counts(root, "skipped")}
     report = roast(root, keys={"T1w", "func"}, display=False)
     assert report.summary() == {"T1w": {"skipped": 4},
-                                "func": {"skipped": 2}}
+                                "func": {"skipped": 2},
+                                **readme_counts(root, "skipped")}
 
 
 def test_jobs(root):

@@ -466,7 +466,7 @@ def test_oasis_message_form(tmp_path):
     (root / "sourcedata").mkdir()
     (root / "sourcedata" / "OAS2_RAW_PART1.tar.gz").write_bytes(b"garbage")
     report = roast_oasis2(root, keys={"raw"}, parts=[1], display=False)
-    assert report.counts == {"parts": {"error": 1}}
+    assert report.counts["parts"] == {"error": 1}
     assert "OAS2_RAW_PART1.tar.gz: cannot be read (ReadError" in \
         str(report.errors[0])
 

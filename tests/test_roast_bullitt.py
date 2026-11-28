@@ -122,6 +122,13 @@ def deriv_tree(root) -> set[str]:
             if p.is_file()}
 
 
+def test_age_units():
+    """`age` in years: BIDS unit "year" (not "years")"""
+    for name in ('participants.json',):
+        meta = json.loads((roaster.TEMPLATES / name).read_text())
+        assert meta["age"]["Units"] == "year"
+
+
 def test_roast_all(root):
     roast(root)
     layout = layout_of(root)
@@ -132,7 +139,7 @@ def test_roast_all(root):
     expected = {".brainspresso", "dataset_description.json", "derivatives",
                 "sourcedata"}
     if layout.kind == "study":
-        expected |= {"rawbids"}
+        expected |= {"rawbids", "README"}
         study = json.loads((root / "dataset_description.json").read_text())
         assert study["DatasetType"] == "study"
     else:

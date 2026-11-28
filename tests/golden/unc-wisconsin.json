@@ -1308,6 +1308,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
    ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
    ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769",
    "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
    "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
@@ -1346,6 +1347,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769"
+    },
     "derivatives/unc-wisconsin/.bidsignore": {
      "origin": "converted",
      "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
@@ -1424,6 +1429,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -1465,6 +1473,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -1578,6 +1589,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
    ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
    ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769",
    "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
    "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
@@ -1616,6 +1628,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769"
+    },
     "derivatives/unc-wisconsin/.bidsignore": {
      "origin": "converted",
      "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
@@ -1694,6 +1710,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -1744,6 +1763,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -1854,6 +1876,7 @@
  },
  "study/keys-images": {
   "files": {
+   "README": "110741ac9d196a907f5ffa8f19b798e5f91c418caea0a12f91348766f854459b",
    "dataset_description.json": "3b76a3d999003fb1fd16226deecedc90665a5a7fcb07f2749c2c9d04058d15fd",
    "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bval": "b5224ad4bf15b516a34d4cc69ca1b55c8ffa4c09372500a0d73b80ececdaf2e6",
    "rawbids/sub-001/ses-12months/dwi/sub-001_ses-12months_dwi.bvec": "17817bc5b3c34fc7fe8f60d622ef8c4bc857fe50e58623e2fb21a7a9dd13bfc3",
@@ -1863,7 +1886,12 @@
    "rawbids/sub-001/ses-16months/dwi/sub-001_ses-16months_dwi.nii.gz": "gz:e8187566721753c084e3219dfdec3820e795affae4600b4a105759a41a5ce972"
   },
   "manifest": {
-   "files": {},
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "110741ac9d196a907f5ffa8f19b798e5f91c418caea0a12f91348766f854459b"
+    }
+   },
    "layout": "study",
    "runs": [
     {
@@ -1874,6 +1902,9 @@
      "counts": {
       "dwi": {
        "done": 2
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -1897,6 +1928,9 @@
      "counts": {
       "dwi": {
        "done": 2
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -1966,6 +2000,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
    ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
    ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769",
    "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
    "rawbids/README": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012",
    "rawbids/dataset_description.json": "ef0b37b4a4c23d1d5ef9a1aeefd5116f4d4afb558a7836768b08bb36114499ea",
@@ -1975,6 +2010,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769"
+    },
     "rawbids/README": {
      "origin": "converted",
      "sha256": "119f5f2dc1ab8b15e8d34d6253b24cb800055e2b100fa5c08f241b5135a79012"
@@ -2002,6 +2041,9 @@
      "counts": {
       "meta": {
        "done": 7
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -2025,6 +2067,9 @@
      "counts": {
       "meta": {
        "done": 7
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -2083,6 +2128,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
    ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
    ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769",
    "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
    "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
@@ -2121,6 +2167,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769"
+    },
     "derivatives/unc-wisconsin/.bidsignore": {
      "origin": "converted",
      "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
@@ -2199,6 +2249,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "yes",
@@ -2233,6 +2286,9 @@
       },
       "reg": {
        "skipped": 6
+      },
+      "study": {
+       "skipped": 1
       }
      },
      "json": "yes",
@@ -2274,6 +2330,9 @@
       },
       "reg": {
        "done": 6
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],
@@ -2303,6 +2362,9 @@
       },
       "reg": {
        "skipped": 6
+      },
+      "study": {
+       "skipped": 1
       }
      },
      "errors": [],
@@ -2416,6 +2478,7 @@
    ".brainspresso/orig/rawbids/participants.tsv": "aaf00d31a9e3d46385accd34106c788c232558e38cc910011b2556a72af1d932",
    ".brainspresso/orig/rawbids/sub-001/sub-001_sessions.tsv": "c843e46c13462eaca277d3f78c6494d8c9a7621ef26aeec9420b43edb72a4fcb",
    ".brainspresso/orig/rawbids/sub-002/sub-002_sessions.tsv": "7d9d5d89ed4b8d398c53106af8d361133744a040b9a0646ae766f3f999d546e6",
+   "README": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769",
    "dataset_description.json": "6c5893e2d0ba8c0244b30bcb11afcd1cdf867adfe014ab08d322d0b006c10119",
    "derivatives/unc-wisconsin/.bidsignore": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad",
    "derivatives/unc-wisconsin/README": "9eca2e61d5cad342619f3b306e1a41a53bcca24b0481088731be2f2bcabc4521",
@@ -2434,6 +2497,10 @@
   },
   "manifest": {
    "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "cc7f7fecb9403b6176eb877a3363d52291bf61b9bf0124b39a66d1c6267ea769"
+    },
     "derivatives/unc-wisconsin/.bidsignore": {
      "origin": "converted",
      "sha256": "0725cafd73199fa6771f88665ab13383807da4812348cc1580d3fbb345abf8ad"
@@ -2503,6 +2570,9 @@
       },
       "reg": {
        "done": 3
+      },
+      "study": {
+       "done": 1
       }
      },
      "json": "only",
@@ -2538,6 +2608,9 @@
       },
       "reg": {
        "done": 3
+      },
+      "study": {
+       "done": 1
       }
      },
      "errors": [],

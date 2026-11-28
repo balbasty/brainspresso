@@ -267,7 +267,10 @@ def build_fixture(name: str, parent: Path, layout: str) -> Path:
     with patched(gzip, time=_FixedTime()):
         root = FIXTURES[name].build(parent, layout)
     for path in root.rglob("*"):
-        os.utime(path, (MTIME, MTIME), follow_symlinks=False)
+        # (no fixture has symbolic links; `follow_symlinks=False` is not
+        # available on Windows)
+        if not path.is_symlink():
+            os.utime(path, (MTIME, MTIME))
     return root
 
 

@@ -812,12 +812,21 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     ..., "bvec": ...}` adds outputs written by the same conversion
     (passed by keyword; give `kind="data"`), the other keywords are
     options of the converter. `convert(src, dst, **options)` is the
-    function. DICOM is not in it (no user yet).
+    function. DICOM is not in it (no user yet). The registry is keyed by
+    the lower-case extension; a companion file (the `.img` of an
+    Analyze `.HDR`) is looked for in the case of the source first, then
+    in the other (`analyze.pair`). `SOURCES` gives the files a source
+    consists of (`sources_of`: a `.mhd` and its data file, a `.nhdr` and
+    its data, an Analyze pair; never raises): they are the sources of
+    `Convert`, locked while it runs and dating its output.
   * Error contract: a corrupt, truncated or unsupported input raises
     `ConvertError` (a `ValueError`; `"<file name>: <reason>"`, the
     original error chained): a missing or empty header field, an
     unknown element type, a data file that is missing or not a file,
-    data shorter than declared, data that neither zlib nor gzip reads,
+    data shorter than declared or an implausible declared size
+    (`base.check_size`, in Python integers: `np.prod` overflows;
+    `MAX_BYTES`), data that neither zlib nor gzip reads, a truncated
+    archive member (named after the member),
     pynrrd's and nibabel's read errors (`convert.base.input_errors`
     wraps the reading of an input, `READ_ERRORS`). Never
     `IsADirectoryError`, `KeyError`, `zlib.error` or `struct.error`. An
@@ -3806,3 +3815,14 @@ up as an XPASS failure once fixed (then drop the marker).
   too (an unreadable one is a `Fail` of its sidecar, as in ABIDE).
   Golden: no change. Left: the FreeSurfer validator warnings of #43
   (`hemisphere` column, atlas descriptions), see §8 known bugs.
+  Review round 1: an Analyze pair named in upper case (`X.HDR`) finds
+  its companion in its own case, else the other (`analyze.pair`); sizes
+  declared by MetaImage, NRRD and Analyze headers are computed in
+  Python integers and an implausible or too large one is a
+  `ConvertError` (an absurd `DimSize` overflowed `np.prod` and raised a
+  bare `ValueError`); a singular DWI frame is "unsupported DWI
+  gradients" (`LinAlgError` is a `ValueError`); `Convert` lists every
+  file of its input as a source (`SOURCES`, `sources_of`); a truncated
+  archive member of `analyze_action` is a `ConvertError` naming it
+  (was a bare `ReadError`/`EOFError`); `header_tr` decompresses a
+  `.NII.GZ` too.

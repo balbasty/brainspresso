@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import os
+import tarfile
 from pathlib import Path, PurePosixPath
 from typing import IO, Iterable, Mapping, Sequence
 
@@ -17,11 +18,83 @@ import numpy as np
 from nibabel.fileholders import FileHolder
 
 from brainspresso.actions.action import Action
-from brainspresso.convert.base import ConvertError, input_errors, name_of
+from brainspresso.convert.base import (
+    READ_ERRORS,
+    ConvertError,
+    check_size,
+    input_errors,
+    name_of,
+)
 from brainspresso.convert.volume import relabel
 from brainspresso.utils.log import LoggingOutputSuppressor
 
-__all__ = ["analyze_action", "analyze_to_nifti"]
+__all__ = ["analyze_action", "analyze_to_nifti", "pair", "sources"]
+
+
+def companion(path: str | os.PathLike, ext: str) -> Path:
+    """
+    Find the companion of a file: same stem, another extension.
+
+    Parameters
+    ----------
+    path : path
+        A file (`x.HDR`)
+    ext : str
+        Extension of its companion, in lower case (`.img`)
+
+    Returns
+    -------
+    Path
+        The companion in the case of `path`'s extension (`x.IMG`), else
+        in lower or upper case, whichever exists (the first if none
+        does, for the message of the error that follows)
+    """
+    path = Path(path)
+    upper = path.suffix.isupper()
+    cases = [ext.upper(), ext] if upper else [ext, ext.upper()]
+    candidates = [path.with_suffix(e) for e in cases]
+    return next((c for c in candidates if c.exists()), candidates[0])
+
+
+def pair(path: str | os.PathLike) -> tuple[Path, Path]:
+    """
+    Give the `.hdr` and `.img` of an Analyze image named by either.
+
+    Parameters
+    ----------
+    path : path
+        Its `.hdr` or its `.img`, in any case
+
+    Returns
+    -------
+    hdr, img : Path
+        The two files (`companion`: the case of the other file is that
+        of the one given, else whichever exists)
+    """
+    path = Path(path)
+    if path.suffix.lower() == ".hdr":
+        return path, companion(path, ".img")
+    return companion(path, ".hdr"), path
+
+
+def sources(path: str | os.PathLike) -> list[Path]:
+    """
+    List the files of an Analyze image (the sources of its conversion).
+
+    Parameters
+    ----------
+    path : path
+        Its `.hdr` or its `.img`
+
+    Returns
+    -------
+    list[Path]
+        `path`, then its companion if it exists
+    """
+    path = Path(path)
+    hdr, img = pair(path)
+    other = img if hdr == path else hdr
+    return [path, other] if other.exists() else [path]
 
 
 def _bytes(src: str | os.PathLike | IO[bytes]) -> bytes:
@@ -76,6 +149,9 @@ def analyze_to_nifti(
             "image": FileHolder(fileobj=io.BytesIO(_bytes(img))),
         }
         image = nib.AnalyzeImage.from_file_map(file_map)
+        # (Python integers: `np.prod` overflows for absurd dimensions)
+        check_size(name, image.header.get_data_shape(),
+                   image.header.get_data_dtype().itemsize, field="dim")
         data = np.asarray(image.dataobj)
     if sources is not None:
         data = relabel(data, sources)
@@ -121,8 +197,10 @@ def analyze_action(
         """Read the members (in the order given), then convert them."""
         content = {}
         for member in members:
-            with archive.extractfile(member) as f:
-                content[PurePosixPath(member).suffix.lower()] = f.read()
+            with input_errors(member, errors=(*READ_ERRORS,
+                                              tarfile.TarError)):
+                with archive.extractfile(member) as f:
+                    content[PurePosixPath(member).suffix.lower()] = f.read()
         image = next((m for m in members if m.lower().endswith(".img")),
                      members[-1])
         if set(content) != {".hdr", ".img"}:

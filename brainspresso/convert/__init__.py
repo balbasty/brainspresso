@@ -37,22 +37,22 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping
 
 from brainspresso.actions.action import Action, IfExistsChoice, Kind
+from brainspresso.convert import analyze, metaimage, nrrd
 from brainspresso.convert.analyze import analyze_to_nifti
 from brainspresso.convert.base import ConvertError
 from brainspresso.convert.metaimage import metaimage_to_nifti
 from brainspresso.convert.nibabel import BabelConvert, nibabel_convert
 from brainspresso.convert.nrrd import nrrd_to_nifti
 
-__all__ = ["CONVERTERS", "BabelConvert", "Convert", "ConvertError",
-           "convert", "converter_of"]
+__all__ = ["CONVERTERS", "SOURCES", "BabelConvert", "Convert",
+           "ConvertError", "convert", "converter_of", "sources_of"]
 
 
 def _analyze(src: str | os.PathLike, dst: str | os.PathLike,
              **options) -> object:
     """Convert an Analyze pair named by its `.hdr` or its `.img`."""
-    src = Path(src)
-    return analyze_to_nifti(src.with_suffix(".hdr"), src.with_suffix(".img"),
-                            dst, name=src.name, **options)
+    hdr, img = analyze.pair(src)        # (the other file in any case)
+    return analyze_to_nifti(hdr, img, dst, name=Path(src).name, **options)
 
 
 #: Converter of a source extension (lower case), `fn(src, dst, **options)`
@@ -66,6 +66,39 @@ CONVERTERS: dict[str, Callable] = {
     ".mgz": nibabel_convert,
     ".mgh": nibabel_convert,
 }
+
+
+#: Files that a source of an extension consists of, `fn(src) -> [paths]`
+#: (`src` first; a detached header names its data file): the sources
+#: of its `Convert` action. Other extensions: `[src]`.
+SOURCES: dict[str, Callable[[Path], list[Path]]] = {
+    ".mha": metaimage.sources,
+    ".mhd": metaimage.sources,
+    ".nrrd": nrrd.sources,
+    ".nhdr": nrrd.sources,
+    ".hdr": analyze.sources,
+    ".img": analyze.sources,
+}
+
+
+def sources_of(src: str | os.PathLike) -> list[Path]:
+    """
+    List the files that a source consists of.
+
+    Parameters
+    ----------
+    src : path
+        Source file
+
+    Returns
+    -------
+    list[Path]
+        `src`, then its companion data files that exist (`SOURCES`;
+        never raises)
+    """
+    src = Path(src)
+    hook = SOURCES.get(src.suffix.lower())
+    return hook(src) if hook is not None else [src]
 
 
 def converter_of(src: str | os.PathLike) -> Callable:
@@ -129,7 +162,10 @@ class Convert(Action):
 
     The conversion runs when the action runs: a corrupt input is an
     error of its outputs only (the engine reports the `ConvertError`
-    under the name of the output, none of them is written).
+    under the name of the output, none of them is written). Its sources
+    are every file of the input (`sources_of`: a detached header and
+    its data), so that they are locked while it runs and their times
+    count for `--if-exists refresh`/`update`.
 
     Parameters
     ----------
@@ -173,7 +209,8 @@ class Convert(Action):
         self.options = options
         dsts: Iterable = [Path(dst), *map(Path, (outputs or {}).values())]
         super().__init__(
-            src, Path(dst) if not self.names else list(dsts), self.convert,
+            sources_of(src), Path(dst) if not self.names else list(dsts),
+            self.convert,
             input="path", tag=tag, kind=kind, ifexists=ifexists,
         )
 

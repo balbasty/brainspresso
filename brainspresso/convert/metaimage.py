@@ -22,9 +22,10 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from brainspresso.convert.base import ConvertError, input_errors
+from brainspresso.convert.base import ConvertError, check_size, input_errors
 
-__all__ = ["ELEMENT_TYPES", "metaimage_to_nifti", "read", "read_header"]
+__all__ = ["ELEMENT_TYPES", "metaimage_to_nifti", "read", "read_header",
+           "sources"]
 
 ELEMENT_TYPES = {
     "MET_CHAR": "i1", "MET_UCHAR": "u1",
@@ -89,6 +90,35 @@ def read_header(path: str | Path) -> tuple[dict, int]:
         raise ConvertError(f"{path.name}: incomplete MetaImage header: "
                            f"{'; '.join(problems)}{cut}")
     return header, offset
+
+
+def sources(path: str | Path) -> list[Path]:
+    """
+    List the files of a MetaImage (the sources of its conversion).
+
+    Parameters
+    ----------
+    path : path
+        `.mha` or `.mhd` file
+
+    Returns
+    -------
+    list[Path]
+        `path`, then the data file that its `ElementDataFile` names, if
+        it is one file that exists (never raises: a header that cannot
+        be read is the conversion's error)
+    """
+    path = Path(path)
+    try:
+        header, _ = read_header(path)
+    except ConvertError:
+        return [path]
+    datafile = header["ElementDataFile"]
+    if datafile == "LOCAL" or datafile.split()[0] == "LIST" or \
+            "%" in datafile:
+        return [path]
+    data = path.parent / datafile
+    return [path, data] if data.is_file() else [path]
 
 
 def _ints(header: dict, key: str, name: str) -> list[int]:
@@ -183,14 +213,12 @@ def read(path: str | Path) -> tuple[np.ndarray, np.ndarray, dict]:
     )
     dtype = dtype.newbyteorder(">" if msb.lower() == "true" else "<")
 
+    # (Python integers: `np.prod` overflows for an absurd `DimSize`)
+    check_size(name, [*shape, channels], dtype.itemsize, field="DimSize")
     raw = _data(path, header, offset)
-    count = int(np.prod(shape)) * channels
-    if len(raw) < count * dtype.itemsize:
-        raise ConvertError(
-            f"{name}: truncated data: {len(raw)} bytes for "
-            f"{count * dtype.itemsize} expected"
-        )
-    data = np.frombuffer(raw, dtype=dtype, count=count)
+    nbytes = check_size(name, [*shape, channels], dtype.itemsize, len(raw),
+                        field="DimSize")
+    data = np.frombuffer(raw, dtype=dtype, count=nbytes // dtype.itemsize)
     # x varies fastest (Fortran order); channels, if any, fastest of all
     if channels > 1:
         data = data.reshape([*shape[::-1], channels])

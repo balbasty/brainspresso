@@ -24,9 +24,9 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from brainspresso.convert.base import ConvertError, input_errors
+from brainspresso.convert.base import ConvertError, check_size, input_errors
 
-__all__ = ["dwi_gradients", "nrrd_affine", "nrrd_to_nifti"]
+__all__ = ["dwi_gradients", "nrrd_affine", "nrrd_to_nifti", "sources"]
 
 # NRRD space -> sign flips to RAS
 SPACES = {
@@ -39,6 +39,41 @@ SPACES = {
     "scanner-xyz": (1, 1, 1),
 }
 SPATIAL_KINDS = {"domain", "space"}
+
+
+def sources(path: str | Path) -> list[Path]:
+    """
+    List the files of a NRRD (the sources of its conversion).
+
+    Parameters
+    ----------
+    path : path
+        `.nrrd` or `.nhdr` file
+
+    Returns
+    -------
+    list[Path]
+        `path`, then the data file that its `data file` field names
+        (detached header, `.nhdr`), if it is one file that exists
+        (never raises; read without pynrrd)
+    """
+    path = Path(path)
+    try:
+        with open(path, "rb") as f:
+            for line in f:
+                text = line.decode("latin1").strip()
+                if not text:
+                    break               # (end of the header)
+                key, sep, value = text.partition(":")
+                if sep and key.strip().lower() in ("data file", "datafile"):
+                    value = value.lstrip("=").strip()
+                    if value.split()[0] == "LIST" or "%" in value:
+                        break
+                    data = path.parent / value
+                    return [path, data] if data.is_file() else [path]
+    except (OSError, IndexError):
+        pass
+    return [path]
 
 
 def _spatial_axes(header: dict) -> list[int]:
@@ -176,6 +211,12 @@ def nrrd_to_nifti(
     name = Path(inp).name
     try:
         with input_errors(name):
+            # (Python integers: an absurd `sizes` would overflow pynrrd's
+            # `np.prod`, at least one byte per element)
+            sizes = nrrd.read_header(str(inp)).get("sizes")
+            if sizes is None:
+                raise ConvertError(f"{name}: no sizes in the NRRD header")
+            check_size(name, sizes, 1, field="sizes")
             data, header = nrrd.read(str(inp))
     except nrrd.NRRDError as e:
         if "does not equal the product" in str(e):
@@ -194,12 +235,14 @@ def nrrd_to_nifti(
         others = [i for i in range(data.ndim) if i not in axes]
         data = np.transpose(data, axes + others)
     if dwi:
-        try:
-            with input_errors(name, "invalid DWI gradients"):
+        with input_errors(name, "invalid DWI gradients"):
+            # (`LinAlgError` is a `ValueError`: caught before
+            # `input_errors` sees it)
+            try:
                 bvals, bvecs = dwi_gradients(header, directions, affine)
-        except (NotImplementedError, np.linalg.LinAlgError) as e:
-            raise ConvertError(f"{name}: unsupported DWI gradients "
-                               f"({type(e).__name__}: {e})") from e
+            except (NotImplementedError, np.linalg.LinAlgError) as e:
+                raise ConvertError(f"{name}: unsupported DWI gradients "
+                                   f"({type(e).__name__}: {e})") from e
         if len(bvals) != data.shape[-1]:
             raise ConvertError(
                 f"{name}: {len(bvals)} gradients for {data.shape[-1]} "

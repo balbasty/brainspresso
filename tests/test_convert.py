@@ -1,7 +1,9 @@
 """Converters (`brainspresso.convert`): round trips and the error
 contract (a corrupt input is a `ConvertError` naming its file)"""
 import ast
+import gzip
 import io
+import tarfile
 import zlib
 from pathlib import Path
 
@@ -16,6 +18,7 @@ from brainspresso.convert import (
     ConvertError,
     convert,
     converter_of,
+    sources_of,
 )
 from brainspresso.convert import nrrd as convert_nrrd
 from brainspresso.convert.analyze import analyze_action, analyze_to_nifti
@@ -667,3 +670,136 @@ def test_layering():
         "brainspresso.actions", "brainspresso.utils", "brainspresso.errors"}
     assert imported(package / "convert") <= {
         "brainspresso.actions", "brainspresso.utils", "brainspresso.convert"}
+
+
+# ----------------------------------------------------------------------
+#   Review round 1
+# ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("names", [("X.HDR", "X.IMG"), ("x.hdr", "x.IMG"),
+                                   ("X.HDR", "X.img")])
+def test_analyze_pair_any_case(tmp_path, volume, names):
+    """`X.IMG` (an upper-case extension reaches the registry) finds its
+    `.hdr` in its own case, else in the other"""
+    hdr, img = write_analyze(tmp_path, volume)
+    hdr.rename(tmp_path / names[0])
+    img.rename(tmp_path / names[1])
+    for name in names:
+        out = tmp_path / f"{name}.nii.gz"
+        convert(tmp_path / name, out)
+        np.testing.assert_array_equal(np.asarray(nib.load(out).dataobj),
+                                      volume)
+    assert sources_of(tmp_path / names[1]) == [tmp_path / names[1],
+                                               tmp_path / names[0]]
+
+
+def test_metaimage_absurd_dimsize(tmp_path, volume):
+    """`np.prod` of this `DimSize` overflows int64 (to 0): the size is
+    computed with Python integers"""
+    path = write_mha(tmp_path / "x.mha", volume)
+    path.write_bytes(path.read_bytes().replace(
+        b"DimSize = 4 3 2", b"DimSize = 4294967296 4294967296 4294967296"))
+    with pytest.raises(ConvertError, match=r"^x\.mha: implausible DimSize"):
+        read(path)
+    path = write_mha(tmp_path / "x.mha", volume, compressed=False)
+    path.write_bytes(path.read_bytes().replace(b"DimSize = 4 3 2",
+                                               b"DimSize = 4 3 3"))
+    with pytest.raises(ConvertError, match="truncated data: 48 bytes for "
+                                           "72 expected"):
+        read(path)
+
+
+def test_analyze_absurd_dims(tmp_path, labels):
+    hdr, img = write_analyze(tmp_path, labels)
+    header = nib.AnalyzeHeader.from_fileobj(io.BytesIO(hdr.read_bytes()))
+    header.set_data_shape((30000, 30000, 30000))
+    hdr.write_bytes(header.binaryblock)
+    with pytest.raises(ConvertError, match=r"^x\.img: implausible dim"):
+        analyze_to_nifti(hdr, img, tmp_path / "x.nii.gz")
+
+
+@needs_nrrd
+def test_nrrd_absurd_sizes(tmp_path):
+    path = tmp_path / "t.nrrd"
+    path.write_bytes(b"NRRD0004\ntype: short\ndimension: 3\n"
+                     b"sizes: 4294967296 4294967296 4294967296\n"
+                     b"encoding: raw\n\n" + b"\0" * 16)
+    with pytest.raises(ConvertError, match=r"^t\.nrrd: implausible sizes"):
+        nrrd_to_nifti(path, tmp_path / "t.nii.gz")
+
+
+@needs_nrrd
+def test_nrrd_singular_directions(tmp_path):
+    """`LinAlgError` (a `ValueError`) is "unsupported", not "invalid\""""
+    data = np.zeros((2, 2, 2, 1), dtype=np.int16)
+    write_nrrd(
+        tmp_path / "dwi.nrrd", data,
+        np.asarray([[1, 0, 0], [1, 0, 0], [0, 0, 1], [np.nan] * 3]),
+        (0, 0, 0), kinds=["space"] * 3 + ["list"],
+        extra=dwi_header([(1, 0, 0)]),
+    )
+    with pytest.raises(ConvertError, match="unsupported DWI gradients "
+                                           r"\(LinAlgError"):
+        nrrd_to_nifti(tmp_path / "dwi.nrrd", tmp_path / "dwi.nii.gz",
+                      bval=tmp_path / "dwi.bval", bvec=tmp_path / "dwi.bvec")
+
+
+@needs_nrrd
+def test_sources_of_detached_headers(tmp_path, volume):
+    """A detached header and its data are the sources of `Convert`"""
+    mhd = write_mha(tmp_path / "x.mhd", volume, compressed=False,
+                    external=True)
+    assert sources_of(mhd) == [mhd, tmp_path / "x.raw"]
+    assert Convert(mhd, tmp_path / "x.nii.gz").src == [mhd,
+                                                       tmp_path / "x.raw"]
+    mha = write_mha(tmp_path / "y.mha", volume)
+    assert sources_of(mha) == [mha]
+    nrrd.write(str(tmp_path / "z.nhdr"), volume, {"encoding": "raw"},
+               detached_header=True)
+    data = next(p for p in tmp_path.glob("z.*") if p.suffix != ".nhdr")
+    assert sources_of(tmp_path / "z.nhdr") == [tmp_path / "z.nhdr", data]
+    assert sources_of(tmp_path / "x.mgz") == [tmp_path / "x.mgz"]
+    # (never raises: the conversion reports a bad header)
+    (tmp_path / "bad.mha").write_bytes(b"")
+    assert sources_of(tmp_path / "bad.mha") == [tmp_path / "bad.mha"]
+    # (the data file is locked and dates the output)
+    out = tmp_path / "out" / "x.nii.gz"
+    assert run(Convert(mhd, out))[-1]["status"] == "done"
+    assert out.stat().st_mtime == pytest.approx(
+        max(mhd.stat().st_mtime, (tmp_path / "x.raw").stat().st_mtime))
+
+
+class BrokenArchive(Archive):
+    """An archive whose members are cut."""
+
+    def __init__(self, folder, error):
+        super().__init__(folder)
+        self.error = error
+
+    def extractfile(self, name):
+        if name.endswith(".img"):
+            raise self.error
+        return super().extractfile(name)
+
+
+@pytest.mark.parametrize("error", [tarfile.ReadError("unexpected end"),
+                                   EOFError("Compressed file ended")])
+def test_analyze_action_truncated_member(tmp_path, labels, error):
+    write_analyze(tmp_path, labels)
+    out = tmp_path / "out" / "x.nii.gz"
+    status = run(analyze_action(BrokenArchive(tmp_path, error),
+                                tmp_path / "x.img", ["x.hdr", "x.img"],
+                                out))[-1]
+    assert status["status"] == "error"
+    assert status["message"].startswith(
+        f"x.img: cannot be read ({type(error).__name__}: ")
+    assert not out.exists()
+
+
+def test_header_tr_upper_case_gz():
+    header = nib.Nifti1Header()
+    header.set_data_shape((2, 2, 2, 3))
+    header.set_xyzt_units("mm", "sec")
+    header.set_zooms((1, 1, 1, 2.5))
+    data = gzip.compress(header.binaryblock + b"\0" * 4)
+    assert header_tr(io.BytesIO(data), "REST.NII.GZ") == 2.5

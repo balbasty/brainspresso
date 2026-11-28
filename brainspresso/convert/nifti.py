@@ -47,7 +47,8 @@ def header_tr(fileobj: IO[bytes], name: str = "") -> float | None:
     Parameters
     ----------
     fileobj : file
-        Opened image (gzip-compressed if `name` ends with `.gz`)
+        Opened image (gzip-compressed if `name` ends with `.nii.gz`, in
+        any case)
     name : str
         Its name
 
@@ -63,7 +64,7 @@ def header_tr(fileobj: IO[bytes], name: str = "") -> float | None:
         If the header cannot be read (truncated, not NIfTI-1, not gzip)
     """
     with input_errors(name or name_of(fileobj), "unreadable NIfTI header"):
-        if name.endswith(".gz"):
+        if image_ext(name) == ".nii.gz":
             fileobj = gzip.GzipFile(fileobj=fileobj)
         hdr = nib.Nifti1Header.from_fileobj(fileobj)
     if hdr["dim"][0] < 4:

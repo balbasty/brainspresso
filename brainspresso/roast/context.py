@@ -374,7 +374,8 @@ def make_context(
     source : path
         Source folder (default: `layout.source`)
     **filters
-        `Selection` filters (`subs`, `exclude_subs`, `sessions`...)
+        `Selection` filters (`subs`, `exclude_subs`, `sessions`...:
+        the fields of `--sub`, `--exclude-sub`, `--ses`...)
 
     Returns
     -------

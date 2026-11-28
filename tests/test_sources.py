@@ -557,7 +557,7 @@ def test_abide2_harvest_nitrc_login(host, nitrc_env, tmp_path, monkeypatch):
                                    site="BNI")],
     })
     before = len(host["logins"])
-    bx("abide2", "harvest", tmp_path, "--keys", "meta", "--sites", "BNI")
+    bx("abide2", "harvest", tmp_path, "--keys", "meta", "--site", "BNI")
     src = tmp_path / "ABIDE-2" / "sourcedata"
     assert files(src) == {"ABIDEII-BNI_1.csv"}
     assert (src / "ABIDEII-BNI_1.csv").read_bytes() == \
@@ -576,7 +576,7 @@ def test_abide1_harvest_xnat(host, nitrc_env, tmp_path, monkeypatch):
         abide1_sources.NITRC.entry(f"{url}/data/a.txt", "Caltech/anat.pdf"),
     ]})
     bx("abide1", "harvest", tmp_path, "--source", "xnat", "--keys", "meta",
-       "anat", "qa-man", "--subs", "51456")
+       "anat", "qa-man", "--sub", "51456")
     src = tmp_path / "ABIDE-1" / "sourcedata"
     assert files(src) == {
         "Phenotypic_V1_0b.csv", "Caltech/anat.pdf",

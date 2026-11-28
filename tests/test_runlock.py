@@ -215,7 +215,7 @@ def two_sites(tmp_path):
 
 def _compost_site(root, name, *extra):
     main(["openneuro", "compost", "ds1", "--out", str(root / name),
-          "--exclude-subs", "01", "--yes", *extra])
+          "--exclude-sub", "01", "--yes", *extra])
 
 
 def _hold(command, *states):
@@ -268,7 +268,7 @@ def test_compost_site_next_to_roast_of_sibling(two_sites, capsys):
     try:
         with pytest.raises(SystemExit) as e:
             main(["openneuro", "compost", "ds1", "--out", str(root / "A"),
-                  "--exclude-subs", "02", "--yes"])
+                  "--exclude-sub", "02", "--yes"])
         assert e.value.code == 1
         assert "roast running" in capsys.readouterr().err
         assert (root / "A" / "sub-02").exists()
@@ -280,7 +280,7 @@ def test_compost_site_next_to_roast_of_sibling(two_sites, capsys):
     try:
         with pytest.raises(SystemExit):
             main(["openneuro", "compost", "ds1", "--out", str(root),
-                  "--exclude-subs", "02", "--yes"])
+                  "--exclude-sub", "02", "--yes"])
         assert "roast running" in capsys.readouterr().err
     finally:
         proc.kill()

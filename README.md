@@ -135,12 +135,12 @@ roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 
 * **Dataset** (`path`, `--out`, the arguments of a dataset such as an
   OpenNeuro accession, `--layout`).
-* **Selection** (`--subs`, `--exclude-subs`, `--sessions`, `--sites`,
-  `--exclude-sites`): subject labels with or without `sub-` (a file
+* **Selection** (`--sub`, `--exclude-sub`, `--ses`, `--site`,
+  `--exclude-site`): subject labels with or without `sub-` (a file
   lists one per line). Datasets with numbered subjects also accept
-  numbers (`--subs 2 12` is `002 012` for IXI) and ranges (`1:10`);
-  other labels are kept verbatim (`--subs 00448`).
-* **Filters** (BIDS filters: `--datatypes`, `--suffixes`, `--tasks`,
+  numbers (`--sub 2 12` is `002 012` for IXI) and ranges (`1:10`);
+  other labels are kept verbatim (`--sub 00448`).
+* **Filters** (BIDS filters: `--datatype`, `--suffix`, `--task`,
   `--include`, `--exclude`, `--where`; `--folders` of hosted datasets).
 * **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
   (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
@@ -196,16 +196,16 @@ is added automatically, following the BIDS inheritance principle.
 ```shell
 # What is in a dataset, and what would a selection download?
 bx openneuro info ds000224
-bx openneuro harvest ds000224 --datatypes anat --dry-run
+bx openneuro harvest ds000224 --datatype anat --dry-run
 
 # Anatomical scans of two subjects, from snapshot 1.0.4
-bx openneuro harvest ds000224 /data --tag 1.0.4 --subs MSC01 MSC02 --datatypes anat
+bx openneuro harvest ds000224 /data --tag 1.0.4 --sub MSC01 MSC02 --datatype anat
 
 # Filter participants on participants.tsv columns
-bx openneuro harvest ds000224 /data --suffixes T1w T2w --where "age>=30" "gender==M"
+bx openneuro harvest ds000224 /data --suffix T1w T2w --where "age>=30" "gender==M"
 ```
 
-Useful options: `--sessions`, `--suffixes`, `--tasks`, `--include`/`--exclude`
+Useful options: `--ses`, `--suffix`, `--task`, `--include`/`--exclude`
 (globs on paths relative to the dataset root), `--folders derivatives`,
 `--jobs`, `--list`. By default, `participants.tsv`, `*_sessions.tsv` and
 `*_scans.tsv` are rewritten to only list what is present locally (the
@@ -224,7 +224,7 @@ INDI below, and trimmed to what was downloaded; `--no-repair` keeps the
 content of the pristine copies, also on `roast`, or `repair = false` in
 a config file). `bx openneuro roast ds000224 /data` roasts the metadata
 again from those copies, without the network (after deleting or editing
-a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
+a file, or with `--sub`, `--sidecars`). `--sidecars no` does not
 download the JSON sidecars of the data files, `--sidecars only` only
 downloads metadata (no images; tables and field maps are still trimmed to
 the images selected). A harvest or roast that runs again leaves the
@@ -253,7 +253,7 @@ of birth) and per-subject `sessions.tsv` (scan date, age, weight).
 
 ```shell
 pip install "brainspresso[unc-wisconsin] @ git+https://github.com/balbasty/brainspresso"
-bx unc-wisconsin harvest /data --subs 001 002 --sessions 12months
+bx unc-wisconsin harvest /data --sub 001 002 --ses 12months
 bx unc-wisconsin roast /data
 ```
 
@@ -275,7 +275,7 @@ data, and writes `participants.tsv` (age, sex, race, handedness, notes)
 transcribed from the dataset's demographics PDF.
 
 ```shell
-bx bullitt harvest /data --subs 1 2 3
+bx bullitt harvest /data --sub 1 2 3
 bx bullitt roast /data
 ```
 
@@ -292,10 +292,10 @@ Curated commands for projects of the International Neuroimaging
 Data-sharing Initiative mirrored on the public `fcp-indi` bucket (no
 login needed). Each dataset is harvested to the raw BIDS dataset of
 `<path>/<DATASET>/` (see [Local layout](#local-layout)), with the same
-selection options as `bx openneuro harvest` (`--subs`, `--sessions`,
-`--datatypes`, `--suffixes`, `--tasks`, `--include`/`--exclude`,
+selection options as `bx openneuro harvest` (`--sub`, `--ses`,
+`--datatype`, `--suffix`, `--task`, `--include`/`--exclude`,
 `--where`, `--folders derivatives`, `--sidecars`, `--dry-run`...) plus
-`--sites` for multi-site datasets, and with the same hybrid placement:
+`--site` for multi-site datasets, and with the same hybrid placement:
 images go straight to their place, metadata to
 `sourcedata/fcp-indi/<bucket key>` and is then roasted (repaired, filled
 in, trimmed; `bx <project> roast` does it again). Only the selected
@@ -316,10 +316,10 @@ immediately.
 
 ```shell
 bx fcon1000 info
-bx fcon1000 harvest /data --sites ICBM NYU_TRT --datatypes func --dry-run
+bx fcon1000 harvest /data --site ICBM NYU_TRT --datatype func --dry-run
 bx fcon1000 harvest /data --where "age>=60" --folders derivatives
-bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
-bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
+bx hbn harvest /data --site Site-RU --suffix T1w --where "Age<10"
+bx fcon1000 harvest /data --layout sites --site ICBM --sub 00448
 ```
 
 `bx <project> info` also shows the INDI sharing category of the project
@@ -341,9 +341,9 @@ ways:
   `task-rest_bold.json` per site). This is "option 1" of the BIDS
   recommendations for multi-site studies. The parent folder is not a
   BIDS dataset: it holds the README and the merged `participants.tsv`,
-  which is also what `--where` queries. `--subs` accepts both the site
+  which is also what `--where` queries. `--sub` accepts both the site
   labels and the merged labels. `compost` processes each site dataset
-  (`--sites`: only these).
+  (`--site`: only these).
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
 curated (see `brainspresso/datasets/indi/<project>/`): FCON1000's per-site folders
@@ -390,10 +390,10 @@ left is then roasted again (field maps lose the `IntendedFor` targets
 that were deleted); nothing deleted is re-created.
 
 ```shell
-bx ixi compost /data --exclude-subs 012 145      # delete two subjects
-bx ixi compost /data --suffixes T1w T2w           # only keep T1w and T2w
+bx ixi compost /data --exclude-sub 012 145      # delete two subjects
+bx ixi compost /data --suffix T1w T2w           # only keep T1w and T2w
 bx abide1 compost /data --where "age>=18" --derivatives
-bx openneuro compost ds000224 /data --datatypes anat
+bx openneuro compost ds000224 /data --datatype anat
 ```
 
 `--derivatives` applies the subject and session filters to
@@ -452,7 +452,7 @@ no-bids = true             # --no-bids
 
 [openneuro.ds000224.harvest]
 tag = "1.0.4"
-datatypes = ["anat"]
+datatype = ["anat"]
 ```
 
 The same values as environment variables: `BRAINSPRESSO_OPT_<KEY>`

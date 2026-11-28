@@ -191,7 +191,7 @@ def subjects_of(paths: Iterable[str]) -> set[str]:
 
 def check_selected_subjects(selection, entries, found=None) -> None:
     """
-    Warn about `--subs` labels that match nothing (error if none does).
+    Warn about `--sub` labels that match nothing (error if none does).
 
     Parameters
     ----------

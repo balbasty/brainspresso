@@ -601,7 +601,7 @@ def participant_rows(path_xls, sites: dict[str, str]) -> list[list]:
 #   Python API
 # ----------------------------------------------------------------------
 
-#: Roast `<root>` (the `IXI` folder): `roast(root, keys=..., subs=...)`
+#: Roast `<root>` (the `IXI` folder): `roast(root, keys=..., sub=...)`
 roast = python_api(
     roast_ixi, KEYS, folder="IXI", width=WIDTH,
     example=2, spec=ROAST_SPEC, options=roast_options,

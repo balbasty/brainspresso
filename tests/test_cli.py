@@ -61,9 +61,9 @@ INDI = ("acpi", "fcon1000", "hbn", "mpi-lemon", "natview", "nki-rs",
 EXCEPTIONS = {
     # free text checked by `Dataset.select_sites` (was a choice list);
     # default () = all sites (was the list of sites)
-    ("abide1", "harvest", "--sites"): "choices, default",
-    ("abide2", "harvest", "--sites"): "choices, default",
-    ("corr", "harvest", "--sites"): "choices, default",
+    ("abide1", "harvest", "--site"): "choices, default",
+    ("abide2", "harvest", "--site"): "choices, default",
+    ("corr", "harvest", "--site"): "choices, default",
     # default () = all discs (was the list of discs), so that a roast
     # tells named discs (a missing one is an error) from the default
     ("oasis1", "*", "--discs"): "default",
@@ -224,7 +224,7 @@ def test_broken_dataset(monkeypatch, capsys):
     monkeypatch.setitem(catalog.CATALOG, "broken",
                         ("brainspresso.datasets.nowhere:X", "Broken"))
     with pytest.raises(SystemExit) as e:
-        cli.main(["broken", "harvest", "--subs", "1"])
+        cli.main(["broken", "harvest", "--sub", "1"])
     assert e.value.code == 1
     assert "dataset broken is unavailable" in capsys.readouterr().err
 
@@ -283,7 +283,7 @@ def test_toy_commands():
     assert harvest["--jobs"]["default"] == 3
     assert harvest["--colour"]["default"] == "red"
     assert "--token" in harvest and "--user" not in harvest
-    assert "--sites" not in harvest
+    assert "--site" not in harvest
 
 
 def snapshot_of(app, command):
@@ -376,7 +376,7 @@ def test_compost_zero_padded_labels(tmp_path):
     (root / "dataset_description.json").write_text(
         '{"Name": "x", "BIDSVersion": "1.10.0"}')
     bx("openneuro", "compost", "ds000001", "--out", root,
-       "--exclude-subs", "0005", "--yes")
+       "--exclude-sub", "0005", "--yes")
     assert not (root / "sub-0005").exists()
     assert (root / "sub-5").exists()
 
@@ -409,12 +409,12 @@ def test_commands_return_nothing(tmp_path, capsys):
     out = run_python("-c", (
         "import sys\nfrom brainspresso.cli import main\n"
         f"sys.exit(main(['openneuro', 'compost', 'ds1', '--out', "
-        f"{str(root)!r}, '--exclude-subs', '0005', '--dry-run']))\n"))
+        f"{str(root)!r}, '--exclude-sub', '0005', '--dry-run']))\n"))
     assert out.returncode == 0, out.stderr
     assert "CompostPlan(" not in out.stdout + out.stderr
     try:
         assert main(["openneuro", "compost", "ds1", "--out", str(root),
-                     "--exclude-subs", "0005", "--dry-run"]) is None
+                     "--exclude-sub", "0005", "--dry-run"]) is None
     except SystemExit as e:     # (cyclopts >= 4 exits after a command)
         assert not e.code
     assert "CompostPlan(" not in capsys.readouterr().out
@@ -427,7 +427,7 @@ def test_ignore_runs_is_not_force(tmp_path, capsys):
     (runs / "elsewhere-12.json").write_text(json.dumps(
         {"command": "harvest", "host": "elsewhere", "pid": 12}))
     args = ["openneuro", "compost", "ds1", "--out", str(root),
-            "--exclude-subs", "0005", "--yes"]
+            "--exclude-sub", "0005", "--yes"]
     with pytest.raises(SystemExit):
         main([*args, "--force"])
     assert "--ignore-runs" in capsys.readouterr().err
@@ -441,7 +441,7 @@ def test_roast_bad_options_create_nothing(tmp_path, capsys):
     # more: `legacy_subjects` went with the ABIDE-II port)
     (tmp_path / "ABIDE-2").mkdir()
     with pytest.raises(SystemExit):
-        main(["abide2", "roast", str(tmp_path), "--subs", "a:b"])
+        main(["abide2", "roast", str(tmp_path), "--sub", "a:b"])
     assert "not numbers" in capsys.readouterr().err
     assert not any((tmp_path / "ABIDE-2").iterdir())
     # a missing dataset
@@ -549,7 +549,7 @@ def test_bad_subject_range(tmp_path, capsys):
     with pytest.raises(UsageError, match="not numbers"):
         IXI().labels(["a:b"])
     with pytest.raises(SystemExit) as e:
-        main(["ixi", "roast", str(tmp_path), "--subs", "a:b"])
+        main(["ixi", "roast", str(tmp_path), "--sub", "a:b"])
     assert e.value.code == 1
     assert "not numbers" in capsys.readouterr().err
 
@@ -770,3 +770,59 @@ def test_roast_wait_suggests_lock_wait(tmp_path):
     with pytest.raises(CycloptsError, match="--lock-wait"):
         register(IXI()).parse_args(["roast", str(tmp_path), "--wait", "3"],
                                    exit_on_error=False, print_error=False)
+
+
+# ----------------------------------------------------------------------
+#   Selection options named after the BIDS entities
+# ----------------------------------------------------------------------
+
+#: old plural name -> BIDS entity name (no deprecated alias is kept)
+RENAMED = {"--" + old: "--" + new for old, new in (
+    ("subs", "sub"), ("exclude-subs", "exclude-sub"), ("sessions", "ses"),
+    ("sites", "site"), ("exclude-sites", "exclude-site"),
+    ("datatypes", "datatype"), ("suffixes", "suffix"), ("tasks", "task"),
+)}
+
+
+def test_selection_flags_renamed(current):
+    """No old name anywhere; each new name has its `--empty-` negation"""
+    seen = set()
+    for ds, commands in current.items():
+        for cmd, cmd_flags in commands.items():
+            names = {n for f in cmd_flags.values() for n in f["names"]}
+            for old, new in RENAMED.items():
+                assert old not in names, (ds, cmd, old)
+                assert "--empty-" + old[2:] not in names, (ds, cmd, old)
+                if new in cmd_flags:
+                    seen.add(new)
+                    assert "--empty-" + new[2:] in cmd_flags[new]["names"]
+    assert seen == set(RENAMED.values())
+
+
+def test_old_selection_flags_refused(tmp_path):
+    app = register(IXI())
+    for old in ("--sub", "--exclude-sub"):
+        old += "s"
+        with pytest.raises(CycloptsError):
+            app.parse_args(["harvest", str(tmp_path), old, "2"],
+                           exit_on_error=False, print_error=False)
+    _, bound, _ = app.parse_args(
+        ["harvest", str(tmp_path), "--sub", "2", "--exclude-sub", "3"],
+        exit_on_error=False, print_error=False)
+    select = bound.arguments["select"]
+    assert (select.sub, select.exclude_sub) == (("2",), ("3",))
+
+
+def test_dataset_selection_bids_names():
+    """`Dataset.selection` takes the names of the command line"""
+    sel = IXI().selection(sub=["2"], exclude_sub=["sub-012"], ses=["ses-1"],
+                          datatype=["anat"], suffix=["T1w"], task=["rest"],
+                          include=["sub-*/anat/*"])
+    assert (sel.subs, sel.exclude_subs, sel.sessions) == (
+        {"002"}, {"012"}, {"1"})
+    assert (sel.datatypes, sel.suffixes, sel.tasks) == (
+        {"anat"}, {"T1w"}, {"rest"})
+    assert list(sel.include) == ["sub-*/anat/*"]
+    assert IXI().selection() is None
+    with pytest.raises(TypeError, match=r"'datatypes' \(use 'datatype'\)"):
+        IXI().selection(datatypes=["anat"])

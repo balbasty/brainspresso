@@ -257,6 +257,6 @@ def _dirs(path: Path) -> list[Path]:
 # ----------------------------------------------------------------------
 
 #: Roast `<root>` (the `UNC-Wisconsin` folder): `roast(root, keys=...,
-#: subs=...)`; subject labels are kept as they are (`Dataset.subject_width`
+#: sub=...)`; subject labels are kept as they are (`Dataset.subject_width`
 #: None)
 roast = python_api(roast_uncwisc, KEYS, folder="UNC-Wisconsin", width=None)

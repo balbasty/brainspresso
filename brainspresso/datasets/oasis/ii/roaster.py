@@ -481,7 +481,7 @@ def part_options(keys, parts=None) -> dict | None:
     return {"parts": sorted(set(parts))}
 
 
-#: Roast `<root>` (the `OASIS-2` folder): `roast(root, keys=..., subs=...,
+#: Roast `<root>` (the `OASIS-2` folder): `roast(root, keys=..., sub=...,
 #: parts=...)`
 roast = python_api(
     roast_oasis2, KEYS, folder="OASIS-2", width=WIDTH,

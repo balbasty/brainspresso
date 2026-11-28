@@ -356,8 +356,8 @@ def test_openneuro_hybrid_placement(tmp_path, openneuro, kind):
 
 
 def test_openneuro_partial_harvests(tmp_path, openneuro):
-    on("harvest", tmp_path, "--subs", "02")
-    lay = on("harvest", tmp_path, "--subs", "03")
+    on("harvest", tmp_path, "--sub", "02")
+    lay = on("harvest", tmp_path, "--sub", "03")
     rows = (lay.raw / "participants.tsv").read_text().splitlines()
     assert rows == ["participant_id\tage", "sub-02\t40", "sub-03\t50"]
     assert not (lay.raw / "sub-01").exists()
@@ -369,7 +369,7 @@ def test_openneuro_partial_harvests(tmp_path, openneuro):
 
 @pytest.mark.parametrize("policy", ["no", "only"])
 def test_openneuro_sidecars(tmp_path, openneuro, policy):
-    lay = on("harvest", tmp_path, "--subs", "01", "--sidecars", policy)
+    lay = on("harvest", tmp_path, "--sub", "01", "--sidecars", policy)
     raw, pristine = lay.raw, lay.source / "openneuro"
     sidecar = "sub-01/anat/sub-01_T1w.json"
     image = "sub-01/anat/sub-01_T1w.nii.gz"
@@ -390,32 +390,32 @@ def test_openneuro_sidecars(tmp_path, openneuro, policy):
 
 
 def test_openneuro_rerun_skips_unchanged_subjects(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     task = "roast/hosted/sub-01"
     first = read_task_states(lay.state)[task]
     assert first["status"] == "done"
     sidecar = lay.raw / "sub-01/anat/sub-01_T1w.json"
     mtime = sidecar.stat().st_mtime_ns
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     # same inputs: the shard is skipped (its record is not rewritten)
     assert read_task_states(lay.state)[task]["started"] == first["started"]
     assert sidecar.stat().st_mtime_ns == mtime
     # a new pristine copy (new snapshot) reaches the dataset
     openneuro[f"{DS}/sub-01/anat/sub-01_T1w.json"] = b'{"EchoTime": 0.004}'
-    lay = on("harvest", tmp_path, "--subs", "01", "--if-exists",
+    lay = on("harvest", tmp_path, "--sub", "01", "--if-exists",
              "overwrite")
     assert read_json(sidecar) == {"EchoTime": 0.004}
 
 
 def test_openneuro_roast_on_its_own(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01", "02")
+    lay = on("harvest", tmp_path, "--sub", "01", "02")
     raw = lay.raw
     sidecar = raw / "sub-01/anat/sub-01_T1w.json"
     other = raw / "sub-02/anat/sub-02_T1w.json"
     sidecar.unlink()
     other.write_text('{"EchoTime": 1}')
     # a roast of one subject: only its files (shards in a process pool)
-    on("roast", tmp_path, "--subs", "01", "--jobs", "2")
+    on("roast", tmp_path, "--sub", "01", "--jobs", "2")
     assert sidecar.read_bytes() == ON["sub-01/anat/sub-01_T1w.json"]
     assert read_json(other) == {"EchoTime": 1}
     # under "skip", a subject whose inputs did not change is skipped (an
@@ -434,7 +434,7 @@ def test_openneuro_roast_on_its_own(tmp_path, openneuro):
 
 
 def test_openneuro_compost_keeps_pristine_metadata(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     pristine = lay.source / "openneuro"
     copies = files(pristine)
     assert copies
@@ -449,7 +449,7 @@ def test_openneuro_compost_keeps_pristine_metadata(tmp_path, openneuro):
     on("roast", tmp_path)
     assert (lay.raw / "sub-01/anat/sub-01_T1w.json").exists()
     # the next harvest fetches them again
-    on("harvest", tmp_path, "--subs", "01")
+    on("harvest", tmp_path, "--sub", "01")
     assert files(pristine) == copies
 
 
@@ -471,7 +471,7 @@ def test_openneuro_compost_re_roasts_what_is_left(tmp_path, openneuro):
 
 def test_openneuro_dry_run(tmp_path, openneuro, capsys):
     bx("openneuro", "harvest", DS, tmp_path, "--source", "s3", "--dry-run",
-       "--subs", "01")
+       "--sub", "01")
     out = capsys.readouterr().out
     assert "sub-01/anat/sub-01_T1w.json  [sourcedata]" in out
     assert "sub-01/anat/sub-01_T1w.nii.gz  [direct]" in out
@@ -637,7 +637,7 @@ def test_acpi_fill_in_by_site(tmp_path, templates):
     # a roast of one site of a sites layout
     (nyu_1 / "task-rest_bold.json").unlink()
     (du_1.raw / "T1w.json").unlink()
-    bx("acpi", "roast", out, "--sites", "nyu_1")
+    bx("acpi", "roast", out, "--site", "nyu_1")
     assert (nyu_1 / "task-rest_bold.json").exists()
     assert not (du_1.raw / "T1w.json").exists()
 
@@ -677,7 +677,7 @@ def test_roast_hosted_without_manifest(tmp_path):
 
 
 def test_missing_pristine_copy(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     pristine = lay.source / "openneuro/sub-01/anat/sub-01_T1w.json"
     sidecar = lay.raw / "sub-01/anat/sub-01_T1w.json"
     pristine.unlink()
@@ -702,8 +702,8 @@ def test_hosted_commands():
         assert found["harvest"]["--sidecars"]["default"] == "yes"
         assert found["roast"]["--sidecars"]["choices"] == ["no", "only",
                                                           "yes"]
-    assert "--sites" in snapshot_flags("acpi")["roast"]
-    assert "--sites" not in snapshot_flags("openneuro")["roast"]
+    assert "--site" in snapshot_flags("acpi")["roast"]
+    assert "--site" not in snapshot_flags("openneuro")["roast"]
 
 
 def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
@@ -725,7 +725,7 @@ def test_fill_templates_come_from_the_dataset_package(tmp_path, templates):
 
 
 def test_edited_files_are_kept_under_update(tmp_path, openneuro, caplog):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     readme, desc = lay.raw / "README", lay.raw / "dataset_description.json"
     readme.write_text("My notes\n")
     # new pristine copies (e.g. fetched by a later harvest)
@@ -783,18 +783,18 @@ def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
     the roasted output is adopted, any other is kept under the "keep"
     migration rule (the "replace" default is tested below)."""
     monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     files = read_manifest(lay.state)["files"]
     update_files(lay, {k: {"sha256": None} for k in files})
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     t1w.write_text('{"EchoTime": 1}\n')
     readme = lay.raw / "README"
     caplog.clear()
-    on("roast", tmp_path, "--subs", "01")       # (skip: left alone)
+    on("roast", tmp_path, "--sub", "01")       # (skip: left alone)
     assert read_json(t1w) == {"EchoTime": 1}
     assert "--if-exists" not in caplog.text
     assert "sha256" not in manifest_entry(lay, readme)
-    on("roast", tmp_path, "--subs", "01", "--if-exists", "update")
+    on("roast", tmp_path, "--sub", "01", "--if-exists", "update")
     assert read_json(t1w) == {"EchoTime": 1}
     assert "--if-exists different or overwrite" in caplog.text
     assert "sha256" not in manifest_entry(lay, t1w)
@@ -804,13 +804,13 @@ def test_datasets_without_hashes(tmp_path, openneuro, caplog, monkeypatch):
 
 
 def test_later_harvest_re_trims_field_maps(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01", "--datatypes", "anat",
+    lay = on("harvest", tmp_path, "--sub", "01", "--datatype", "anat",
              "fmap")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     assert "IntendedFor" not in read_json(fmap)        # no func yet
     assert table_rows(lay.raw / "sub-01/sub-01_scans.tsv") == [
         "anat/sub-01_T1w.nii.gz"]
-    on("harvest", tmp_path, "--subs", "01", "--datatypes", "func")
+    on("harvest", tmp_path, "--sub", "01", "--datatype", "func")
     assert read_json(fmap)["IntendedFor"] == [
         "func/sub-01_task-rest_bold.nii.gz"]
     assert table_rows(lay.raw / "sub-01/sub-01_scans.tsv") == [
@@ -823,7 +823,7 @@ def table_rows(path):
 
 
 def test_sidecars_only_trims_against_the_selection(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01", "--sidecars", "only")
+    lay = on("harvest", tmp_path, "--sub", "01", "--sidecars", "only")
     raw = lay.raw
     assert not (raw / "sub-01/func/sub-01_task-rest_bold.nii.gz").exists()
     fmap = raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
@@ -837,12 +837,12 @@ def test_sidecars_only_trims_against_the_selection(tmp_path, openneuro):
     entry = manifest_entry(lay, raw / "sub-01/anat/sub-01_T1w.nii.gz")
     assert entry["fetched"] is False
     # fetched later: an ordinary file
-    on("harvest", tmp_path, "--subs", "01")
+    on("harvest", tmp_path, "--sub", "01")
     entry = manifest_entry(lay, raw / "sub-01/anat/sub-01_T1w.nii.gz")
     assert "fetched" not in entry
     # a compost forgets the unfetched files it drops
-    lay = on("harvest", tmp_path, "--subs", "02", "--sidecars", "only")
-    on("compost", tmp_path, "--exclude-subs", "02", "--yes")
+    lay = on("harvest", tmp_path, "--sub", "02", "--sidecars", "only")
+    on("compost", tmp_path, "--exclude-sub", "02", "--yes")
     files = read_manifest(lay.state)["files"]
     assert not any(k.startswith("rawbids/sub-02") for k in files)
 
@@ -858,7 +858,7 @@ for i in range(40):
 
 
 def test_concurrent_manifest_updates(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     procs = [subprocess.Popen([sys.executable, "-c", WRITER, str(lay.root),
                                name], cwd=Path(__file__).parents[1])
              for name in ("a", "b")]
@@ -980,7 +980,7 @@ def test_compost_re_roasts_before_pristine_copies_go(tmp_path, openneuro,
         # next harvest fetches its pristine copy again
         assert read_json(fmap) == {
             "IntendedFor": ["func/sub-01_task-rest_bold.nii.gz"]}
-        on("harvest", tmp_path, "--subs", "01", "--datatypes", "anat",
+        on("harvest", tmp_path, "--sub", "01", "--datatype", "anat",
            "fmap")
         assert "IntendedFor" not in read_json(fmap)
 
@@ -1018,20 +1018,20 @@ def test_paths_in_hosted_metadata_are_relabelled(tmp_path, templates):
 
 def test_no_trim_restores_the_full_table(tmp_path, openneuro):
     """Owner (Q5): trimming always starts from the pristine copy."""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     table = lay.raw / "participants.tsv"
     assert table_rows(table) == ["sub-01"]
-    on("harvest", tmp_path, "--subs", "01", "--no-trim")
+    on("harvest", tmp_path, "--sub", "01", "--no-trim")
     assert table.read_bytes() == ON["participants.tsv"]
     assert not lay.original(table).exists()     # (hosted: no `orig/`)
     on("roast", tmp_path)                       # stays untrimmed
     assert table.read_bytes() == ON["participants.tsv"]
-    on("harvest", tmp_path, "--subs", "01")     # trimmed again
+    on("harvest", tmp_path, "--sub", "01")     # trimmed again
     assert table_rows(table) == ["sub-01"]
 
 
 def test_skipped_shard_never_adopts_an_edit(tmp_path, openneuro, caplog):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     recorded = manifest_entry(lay, t1w)["sha256"]
     t1w.write_text('{"EchoTime": 1}\n')
@@ -1176,7 +1176,7 @@ def test_top_level_sidecar_change_reaches_pushed_down_fill(tmp_path):
 
 
 def test_forgotten_unfetched_files_re_trim_field_maps(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01", "--sidecars", "only")
+    lay = on("harvest", tmp_path, "--sub", "01", "--sidecars", "only")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     assert read_json(fmap)["IntendedFor"] == [
         "func/sub-01_task-rest_bold.nii.gz"]
@@ -1265,17 +1265,17 @@ def test_unrenamed_files_point_at_renamed_runs(tmp_path, templates):
 
 
 def test_no_trim_without_pristine_copy_keeps_every_row(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     table = lay.raw / "participants.tsv"
     on("compost", tmp_path, "--sourcedata", "--yes")
     # the pristine table cannot be fetched again
     ON_FAIL.add(f"{DS}/participants.tsv")
-    bx("openneuro", "harvest", DS, tmp_path, "--source", "s3", "--subs",
+    bx("openneuro", "harvest", DS, tmp_path, "--source", "s3", "--sub",
        "01", "--no-trim")
     # no base: the table is frozen (nothing written from a partial copy)
     assert table_rows(table) == ["sub-01"]
     ON_FAIL.clear()
-    on("harvest", tmp_path, "--subs", "01", "--no-trim")
+    on("harvest", tmp_path, "--sub", "01", "--no-trim")
     assert table.read_bytes() == ON["participants.tsv"]
 
 
@@ -1333,7 +1333,7 @@ def test_old_tables_without_copies_are_left_alone(tmp_path, openneuro):
     scans = lay.raw / "sub-01/sub-01_scans.tsv"
     # no pristine copy any more: frozen, not an error
     on("compost", tmp_path, "--sourcedata", "--yes")
-    on("compost", tmp_path, "--exclude-subs", "03", "--yes")
+    on("compost", tmp_path, "--exclude-sub", "03", "--yes")
     runs = read_manifest(lay.state)["runs"]
     assert runs[-2]["stage"] == "roast" and runs[-2]["status"] == "complete"
     assert scans.exists()
@@ -1345,7 +1345,7 @@ def test_old_tables_without_copies_are_left_alone(tmp_path, openneuro):
 # ----------------------------------------------------------------------
 
 def test_openneuro_metadata_repaired_by_default(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "03")
+    lay = on("harvest", tmp_path, "--sub", "03")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     assert read_json(t1w) == {"MagneticFieldStrength": 3}
     assert manifest_entry(lay, t1w)["repair"] is True
@@ -1355,7 +1355,7 @@ def test_openneuro_metadata_repaired_by_default(tmp_path, openneuro):
 
 
 def test_no_repair_keeps_the_pristine_content(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01", "03", "--no-repair")
+    lay = on("harvest", tmp_path, "--sub", "01", "03", "--no-repair")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
     assert "repair" not in manifest_entry(lay, t1w)
@@ -1379,7 +1379,7 @@ def test_no_repair_keeps_the_pristine_content(tmp_path, openneuro):
 def test_repair_from_a_config_file(tmp_path, openneuro):
     write(tmp_path / ".brainspresso/config.toml",
           "[harvest]\nrepair = false\n")
-    lay = on("harvest", tmp_path, "--subs", "03")
+    lay = on("harvest", tmp_path, "--sub", "03")
     t1w = lay.raw / "sub-03/anat/sub-03_T1w.json"
     assert t1w.read_bytes() == ON["sub-03/anat/sub-03_T1w.json"]
 
@@ -1390,14 +1390,14 @@ def test_repair_from_a_config_file(tmp_path, openneuro):
 
 def test_edited_tables_are_kept(tmp_path, openneuro, caplog):
     """B1: tables are ordinary roasted files, with the edit rule."""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     table = lay.raw / "participants.tsv"
     table.write_bytes(b"participant_id\tage\tnote\nsub-01\t30\tmine\n")
     scans = lay.raw / "sub-01/sub-01_scans.tsv"
     edited = scans.read_bytes().replace(b"n/a", b"2020-01-01")
     scans.write_bytes(edited)
     caplog.clear()
-    on("roast", tmp_path, "--if-exists", "skip", "--subs", "01")
+    on("roast", tmp_path, "--if-exists", "skip", "--sub", "01")
     assert table.read_bytes() == \
         b"participant_id\tage\tnote\nsub-01\t30\tmine\n"
     assert scans.read_bytes() == edited
@@ -1405,14 +1405,14 @@ def test_edited_tables_are_kept(tmp_path, openneuro, caplog):
 
 
 def test_no_trim_tables_survive_a_compost(tmp_path, openneuro, caplog):
-    lay = on("harvest", tmp_path, "--no-trim", "--subs", "01", "02")
+    lay = on("harvest", tmp_path, "--no-trim", "--sub", "01", "02")
     table = lay.raw / "participants.tsv"
     full = ["sub-01", "sub-02", "sub-03"]
     assert table_rows(table) == full
-    on("compost", tmp_path, "--subs", "01", "--yes")
+    on("compost", tmp_path, "--sub", "01", "--yes")
     assert not (lay.raw / "sub-02").exists()
     assert table_rows(table) == full            # (not trimmed)
-    on("harvest", tmp_path, "--no-trim", "--subs", "01")
+    on("harvest", tmp_path, "--no-trim", "--sub", "01")
     assert table_rows(table) == full
     assert "was edited" not in caplog.text
 
@@ -1444,7 +1444,7 @@ def test_upgrade_of_an_unrepaired_dataset(tmp_path, openneuro, caplog,
 
 def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
                                           monkeypatch):
-    lay = on("harvest", tmp_path, "--subs", "01", "--datatypes", "anat",
+    lay = on("harvest", tmp_path, "--sub", "01", "--datatype", "anat",
              "fmap")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     old = fmap.read_bytes()
@@ -1452,7 +1452,7 @@ def test_upgrade_of_a_field_map_that_grows(tmp_path, openneuro, caplog,
                        read_manifest(lay.state)["files"]})
     caplog.clear()
     monkeypatch.setattr(harvest_mod, "MIGRATION_RULE", "keep")
-    on("harvest", tmp_path, "--subs", "01")
+    on("harvest", tmp_path, "--sub", "01")
     # (MIGRATION_RULE "keep": an older file that differs is kept)
     assert fmap.read_bytes() == old
     assert "has no recorded hash" in caplog.text
@@ -1487,7 +1487,7 @@ def test_push_down_without_the_top_level_base(tmp_path):
 
 def test_flat_dataset_compost_then_roast(tmp_path, openneuro):
     lay = on("harvest", tmp_path, "--layout", "flat")
-    on("compost", tmp_path, "--subs", "01", "--yes")
+    on("compost", tmp_path, "--sub", "01", "--yes")
     pristine = lay.source / "openneuro"
     assert (pristine / "sub-01/anat/sub-01_T1w.json").exists()
     on("roast", tmp_path)
@@ -1496,11 +1496,11 @@ def test_flat_dataset_compost_then_roast(tmp_path, openneuro):
 
 
 def test_harvest_merges_entries_and_keeps_edits(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     entry = manifest_entry(lay, t1w)
     t1w.write_text('{"EchoTime": 1}\n')
-    on("harvest", tmp_path, "--subs", "01", "02")
+    on("harvest", tmp_path, "--sub", "01", "02")
     assert read_json(t1w) == {"EchoTime": 1}
     # merged: the hash only the roast writes is still the one it wrote
     assert manifest_entry(lay, t1w) == entry
@@ -1510,39 +1510,39 @@ def test_harvest_merges_entries_and_keeps_edits(tmp_path, openneuro):
 
 
 def test_restricted_roast_leaves_other_files_alone(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     t1w.unlink()
-    on("roast", tmp_path, "--sessions", "9")
+    on("roast", tmp_path, "--ses", "9")
     assert not t1w.exists()
     on("roast", tmp_path)
     assert t1w.exists()
 
 
 def test_edited_field_map_round_trip(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     fmap.write_text(json.dumps({**read_json(fmap), "Note": "mine"}))
     on("compost", tmp_path, "--exclude", "sub-01/func/*", "--yes")
     assert read_json(fmap) == {"Note": "mine"}
-    on("harvest", tmp_path, "--subs", "01")
+    on("harvest", tmp_path, "--sub", "01")
     assert read_json(fmap) == {
         "Note": "mine", "IntendedFor": ["func/sub-01_task-rest_bold.nii.gz"]}
 
 
 def test_pristine_copies_follow_the_listing(tmp_path, openneuro):
     """S4: a new snapshot of a pristine copy, under `--if-exists skip`."""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     openneuro[f"{DS}/participants.tsv"] = \
         ON["participants.tsv"] + b"sub-04\t60\n"
     openneuro[f"{DS}/sub-04/anat/sub-04_T1w.nii.gz"] = b"\x09" * 64
-    on("harvest", tmp_path, "--subs", "04")
+    on("harvest", tmp_path, "--sub", "04")
     assert table_rows(lay.raw / "participants.tsv") == ["sub-01", "sub-04"]
 
 
 def test_render_version_and_bidsignore_sign_shards(tmp_path, openneuro,
                                                    monkeypatch):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     task = "roast/hosted/sub-01"
     first = read_task_states(lay.state)[task]["started"]
     on("roast", tmp_path)
@@ -1574,7 +1574,7 @@ def test_deleted_files_return(tmp_path, openneuro):
 
 def test_deleted_kept_edit_returns(tmp_path, openneuro):
     """N2: a file the last shard run left as it is, then deleted."""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     t1w.write_text('{"EchoTime": 1}\n')
     (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").write_text(
@@ -1587,7 +1587,7 @@ def test_deleted_kept_edit_returns(tmp_path, openneuro):
 
 
 def test_deleted_frozen_file_is_reported(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").unlink()
     roast_hosted(lay, display=False)        # frozen
@@ -1598,7 +1598,7 @@ def test_deleted_frozen_file_is_reported(tmp_path, openneuro):
 
 def test_overwritten_edit_is_ours_again(tmp_path, openneuro, caplog):
     """N1: after `--if-exists overwrite`, the file follows its base."""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     readme = lay.raw / "README"
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     readme.write_text("My notes\n")
@@ -1627,7 +1627,7 @@ def test_old_tables_are_still_trimmed_by_compost(tmp_path, openneuro):
                            "sha256": None}
                        for k, v in read_manifest(lay.state)["files"].items()
                        if v.get("source")})
-    on("compost", tmp_path, "--subs", "01", "--yes")
+    on("compost", tmp_path, "--sub", "01", "--yes")
     assert table_rows(lay.raw / "participants.tsv") == ["sub-01"]
 
 
@@ -1657,11 +1657,11 @@ def test_replace_never_loses_the_file(tmp_path, openneuro, monkeypatch,
 def test_edited_field_map_intended_for_follows_the_render(tmp_path,
                                                           openneuro,
                                                           caplog):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     fmap.write_text(json.dumps({"IntendedFor": [], "Note": "mine"}))
     caplog.clear()
-    on("roast", tmp_path, "--subs", "01")
+    on("roast", tmp_path, "--sub", "01")
     assert read_json(fmap) == {
         "IntendedFor": ["func/sub-01_task-rest_bold.nii.gz"], "Note": "mine"}
     assert "IntendedFor is taken from the pristine copy" in caplog.text
@@ -1670,7 +1670,7 @@ def test_edited_field_map_intended_for_follows_the_render(tmp_path,
 def test_compost_no_trim_leaves_hosted_tables(tmp_path, openneuro):
     lay = on("harvest", tmp_path)
     table = lay.raw / "participants.tsv"
-    on("compost", tmp_path, "--subs", "01", "--no-trim", "--yes")
+    on("compost", tmp_path, "--sub", "01", "--no-trim", "--yes")
     assert table_rows(table) == ["sub-01", "sub-02", "sub-03"]
     on("roast", tmp_path)
     assert table_rows(table) == ["sub-01"]
@@ -1691,10 +1691,10 @@ def test_trim_rows_labels_and_short_rows(caplog):
 
 
 def test_unchanged_pristine_copies_keep_their_mtime(tmp_path, openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     readme = lay.source / "openneuro/README"
     before = readme.stat().st_mtime_ns
-    on("harvest", tmp_path, "--subs", "01")
+    on("harvest", tmp_path, "--sub", "01")
     assert readme.stat().st_mtime_ns == before
 
 
@@ -1728,7 +1728,7 @@ def _visible(lay) -> dict[str, bytes]:
 
 
 def test_skip_leaves_hosted_files_alone(tmp_path, openneuro, caplog):
-    lay = on("harvest", tmp_path / "a", "--subs", "01")
+    lay = on("harvest", tmp_path / "a", "--sub", "01")
     before = _visible(lay)
     # new bases: a new snapshot of the README, a sidecar, a field map
     openneuro[f"{DS}/README"] = b"A new README\n"
@@ -1736,7 +1736,7 @@ def test_skip_leaves_hosted_files_alone(tmp_path, openneuro, caplog):
     openneuro[f"{DS}/sub-01/fmap/sub-01_dir-AP_epi.json"] = json.dumps(
         {**FMAP, "TotalReadoutTime": 0.05}).encode()
     caplog.clear()
-    lay = on("harvest", tmp_path / "a", "--subs", "01", "02")
+    lay = on("harvest", tmp_path / "a", "--sub", "01", "02")
     after = _visible(lay)
     # the pristine copies follow the listing
     assert (lay.source / "openneuro/README").read_bytes() == \
@@ -1753,7 +1753,7 @@ def test_skip_leaves_hosted_files_alone(tmp_path, openneuro, caplog):
         "TotalReadoutTime"] == 0.05
     # `update` is the old `skip`: the same files as a fresh harvest
     on("roast", tmp_path / "a", "--if-exists", "update")
-    fresh = on("harvest", tmp_path / "b", "--subs", "01", "02")
+    fresh = on("harvest", tmp_path / "b", "--sub", "01", "02")
     assert _visible(lay) == _visible(fresh)
     # a hosted roast records its hashes itself: no "converted" entry
     entries = read_manifest(lay.state)["files"].values()
@@ -1762,7 +1762,7 @@ def test_skip_leaves_hosted_files_alone(tmp_path, openneuro, caplog):
 
 def test_deleted_visible_file_is_written_again_under_skip(tmp_path,
                                                           openneuro):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     content = t1w.read_bytes()
     on("roast", tmp_path)               # (the shard: skipped, unchanged)
@@ -1781,7 +1781,7 @@ def test_compost_roast_runs_as_update(tmp_path, openneuro, monkeypatch):
         return real(roaster, ctx, **kwargs)
 
     monkeypatch.setattr(hosted_mod, "run_roast", spy)
-    on("compost", tmp_path, "--exclude-subs", "03", "--yes")
+    on("compost", tmp_path, "--exclude-sub", "03", "--yes")
     assert seen == ["update"]
     assert table_rows(lay.raw / "participants.tsv") == ["sub-01", "sub-02"]
 
@@ -1811,7 +1811,7 @@ def test_harvest_under_skip_refreshes_bases_only(tmp_path, templates,
 def test_frozen_file_under_skip(tmp_path, openneuro, caplog):
     """A missing base: the visible file is left alone silently under
     skip; a missing visible file too is still an error"""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
     content = t1w.read_bytes()
     (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").unlink()
@@ -1828,7 +1828,7 @@ def test_frozen_file_under_skip(tmp_path, openneuro, caplog):
 def test_hosted_update_adopts_an_edit_that_holds_the_render(
         tmp_path, openneuro, caplog):
     """Compare before keep: a stale hash (a killed roast) is no edit"""
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     readme = lay.raw / "README"
     pristine = lay.source / "openneuro/README"
     pristine.write_text("New README\n")
@@ -1860,7 +1860,7 @@ def test_hosted_derivative_description_is_its_render(tmp_path, openneuro,
     """Completed in the render (`SourceDatasets`): recorded, unedited
     files are left alone by `update`, no backup accumulates"""
     _with_derivative(openneuro)
-    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+    lay = on("harvest", tmp_path, "--sub", "01", "--folders",
              "derivatives")
     desc = lay.root / DERIV_DESC
     meta = read_json(desc)
@@ -1880,7 +1880,7 @@ def test_hosted_derivative_description_is_its_render(tmp_path, openneuro,
 def test_edited_hosted_derivative_description_survives(tmp_path, openneuro,
                                                       caplog):
     _with_derivative(openneuro)
-    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+    lay = on("harvest", tmp_path, "--sub", "01", "--folders",
              "derivatives")
     desc = lay.root / DERIV_DESC
     desc.write_bytes(b'{"Name": "mine"}')
@@ -1910,7 +1910,7 @@ def test_interrupted_roast_leaves_a_complete_description(
 
     monkeypatch.setattr(run_mod, "finish_roast", once)
     with pytest.raises(Exception):
-        on("harvest", tmp_path, "--subs", "01", "--folders", "derivatives")
+        on("harvest", tmp_path, "--sub", "01", "--folders", "derivatives")
     lay = Layout.detect(tmp_path / "OpenNeuro" / DS)
     desc = lay.root / DERIV_DESC
     assert "SourceDatasets" in read_json(desc)
@@ -1922,7 +1922,7 @@ def test_interrupted_roast_leaves_a_complete_description(
 
 def test_stale_field_map_hash_is_not_warned_about(tmp_path, openneuro,
                                                   caplog):
-    lay = on("harvest", tmp_path, "--subs", "01")
+    lay = on("harvest", tmp_path, "--sub", "01")
     fmap = lay.raw / "sub-01/fmap/sub-01_dir-AP_epi.json"
     content = fmap.read_bytes()
     update_files(lay, {_key(lay, fmap): {"sha256": "0" * 64}})   # (stale)
@@ -1948,7 +1948,7 @@ def test_nested_hosted_derivative_description(tmp_path, openneuro, caplog):
         b'{"Name": "fs", "BIDSVersion": "1.9.0"}'
     openneuro[f"{DS}/{NESTED_DESC}"] = \
         b'{"Name": "qc", "BIDSVersion": "1.9.0"}'
-    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+    lay = on("harvest", tmp_path, "--sub", "01", "--folders",
              "derivatives")
     desc = lay.root / NESTED_DESC
     meta = read_json(desc)

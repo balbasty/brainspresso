@@ -199,7 +199,7 @@ def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
     server, _ = xnat
     monkeypatch.setattr(dl.NitrcIR, "server", server)
     monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})
-    bx("ixi", "harvest", tmp_path, "--keys", "T2w", "meta", "--subs", 12)
+    bx("ixi", "harvest", tmp_path, "--keys", "T2w", "meta", "--sub", 12)
     assert files(tmp_path / "IXI" / "sourcedata") == {
         "nitrc_experiments.json", "IXI-T2/IXI012-HH-1211-T2.nii.gz",
     }
@@ -333,7 +333,7 @@ def test_roast_shards_in_processes(tmp_path):
             for name, data in collections.get("NIfTI", {}).items():
                 (folder / name).write_bytes(data)
     report = roaster.roast(root, keys={"T1w", "T2w", "dwi"}, json="no",
-                           exclude_subs=[12], jobs=2, display=False)
+                           exclude_sub=[12], jobs=2, display=False)
     raw = Layout.detect(root).raw
     out = {p for p in files(raw)
            if not p.startswith(("sourcedata/", ".brainspresso/"))}
@@ -538,10 +538,10 @@ def test_dwi_per_subject_bvecs_negated(tmp_path):
 
 
 def test_dwi_subs_keep_dataset_table(tmp_path):
-    """`--subs` does not change the dataset-level table"""
+    """`--sub` does not change the dataset-level table"""
     root = tmp_path / "IXI"
     make_dti(root, dti_files())
-    roaster.roast(root, subs=[999], layout="flat", display=False)
+    roaster.roast(root, sub=[999], layout="flat", display=False)
     assert (root / "dwi.bval").read_bytes() == \
         (TEMPLATES / "bvals.txt").read_bytes()
     assert not (root / "sub-002").exists()
@@ -575,14 +575,14 @@ def test_dwi_exclude_trace(tmp_path, layout):
 
 
 def test_dwi_subs_prune_before_loading(tmp_path, monkeypatch):
-    """Subjects dropped by `--subs` are not loaded"""
+    """Subjects dropped by `--sub` are not loaded"""
     root = tmp_path / "IXI"
     make_dti(root, {**dti_files(), **dti_files("IXI012-HH-1211")})
     loaded = []
     load = roaster.load_volume
     monkeypatch.setattr(roaster, "load_volume", lambda a, m: (
         loaded.append(m.name), load(a, m))[1])
-    report = roast_dti(root, "flat", subs=[2], jobs=1)
+    report = roast_dti(root, "flat", sub=[2], jobs=1)
     assert not report.errors
     assert loaded and all("IXI002" in name for name in loaded)
     assert not (root / "sub-012").exists()
@@ -716,7 +716,7 @@ def test_missing_dti_named_by_trace(tmp_path):
 @pytest.mark.parametrize("subs", [
     ["sub-012"], ["012"], [12], "12", "10:13", "file"])
 def test_python_subs_labels_ranges_files(tmp_path, subs):
-    """`roast(subs=)` takes what `--subs` takes: numbers, labels with or
+    """`roast(subs=)` takes what `--sub` takes: numbers, labels with or
     without `sub-`, ranges, files (`roast.run.python_api`)"""
     root = tmp_path / "IXI"
     write_tarballs(root / "sourcedata")
@@ -724,9 +724,9 @@ def test_python_subs_labels_ranges_files(tmp_path, subs):
         subs = tmp_path / "subs.txt"
         subs.write_text("012\n")
         subs = [str(subs)]
-    roaster.roast(root, keys={"T1w"}, subs=subs, json="no", display=False)
+    roaster.roast(root, keys={"T1w"}, sub=subs, json="no", display=False)
     assert outputs(root)[1] == {"sub-012/anat/sub-012_T1w.nii.gz"}
-    roaster.roast(root, keys={"T1w"}, exclude_subs="10:13", json="no",
+    roaster.roast(root, keys={"T1w"}, exclude_sub="10:13", json="no",
                   display=False)
     assert "sub-002/anat/sub-002_T1w.nii.gz" in outputs(root)[1]
 
@@ -738,6 +738,6 @@ def test_python_subs_paths(tmp_path):
     listed = tmp_path / "subs.txt"
     listed.write_text("012\n")
     for subs in (listed, [listed]):
-        roaster.roast(root, keys={"T1w"}, subs=subs, json="no",
+        roaster.roast(root, keys={"T1w"}, sub=subs, json="no",
                       display=False)
         assert outputs(root)[1] == {"sub-012/anat/sub-012_T1w.nii.gz"}

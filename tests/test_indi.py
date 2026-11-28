@@ -233,7 +233,7 @@ def raw(root: Path, site: str | None = None) -> Path:
 
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_fcon1000_harvest(tmp_path, layout):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM", "Atlanta",
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM", "Atlanta",
        "--folders", "derivatives", "--layout", layout)
     root = tmp_path / "FCON1000"
     assert Layout.detect(root).kind == layout
@@ -314,12 +314,12 @@ def test_fcon1000_layout_sites(tmp_path, caplog, site_layout, spelling):
     if spelling == "alias":         # deprecated (until the end of step 5)
         layout = ["--layout", "sites", "--site-layout", site_layout]
         bx("fcon1000", "harvest", tmp_path, *layout,
-           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+           "--site", "ICBM", "Atlanta", "--folders", "derivatives")
         assert "--site-layout is deprecated: use --layout sites:flat" \
             in caplog.text
     else:
         bx("fcon1000", "harvest", tmp_path, "--layout", spelling,
-           "--sites", "ICBM", "Atlanta", "--folders", "derivatives")
+           "--site", "ICBM", "Atlanta", "--folders", "derivatives")
     root = tmp_path / "FCON1000"
     layout = Layout.detect(root)
     assert layout.to_manifest() == {
@@ -376,7 +376,7 @@ def test_fcon1000_layout_sites(tmp_path, caplog, site_layout, spelling):
 def test_fcon1000_layout_sites_labels(tmp_path):
     # labels of the site datasets and merged labels are both accepted
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
+       "--site", "ICBM", "Atlanta", "--sub", "00448", "ICBM11111")
     root = tmp_path / "FCON1000"
     assert sorted(
         p.name for site in ("ICBM", "Atlanta")
@@ -388,13 +388,13 @@ def test_fcon1000_layout_sites_labels(tmp_path):
 def test_merged_table_of_a_sites_parent_follows_every_harvest(tmp_path):
     # (like a trimmed table: rewritten under the default `skip`)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--subs", "00448")
+       "--site", "ICBM", "Atlanta", "--sub", "00448")
     root = tmp_path / "FCON1000"
     rows = table(root / "participants.tsv")
     assert sorted(r[0] for r in rows[1:]) == [
         "sub-Atlanta00448", "sub-ICBM00448"]
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--subs", "00448", "ICBM11111")
+       "--site", "ICBM", "Atlanta", "--sub", "00448", "ICBM11111")
     rows = table(root / "participants.tsv")
     assert sorted(r[0] for r in rows[1:]) == [
         "sub-Atlanta00448", "sub-ICBM00448", "sub-ICBM11111"]
@@ -403,28 +403,28 @@ def test_merged_table_of_a_sites_parent_follows_every_harvest(tmp_path):
 def test_fcon1000_layout_sites_skipped(tmp_path):
     # a site without selected files is not recorded as a site
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta", "--subs", "11111")
+       "--site", "ICBM", "Atlanta", "--sub", "11111")
     root = tmp_path / "FCON1000"
     assert set(Layout.detect(root).children) == {"ICBM"}
     assert not (root / "Atlanta").exists()
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "11111", "--yes")
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "11111", "--yes")
     assert not (raw(root, "ICBM") / "sub-11111").exists()
 
 
 def test_fcon1000_layout_conflict(tmp_path, capsys):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
-       "--subs", "ICBM00448")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448")
     with pytest.raises(SystemExit):
-        app(["fcon1000", "harvest", str(tmp_path), "--sites", "ICBM",
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "ICBM",
              "--layout", "flat"])
     assert "conflicts with --layout flat" in capsys.readouterr().err
 
 
 def test_fcon1000_compost(tmp_path):
     # merged layout: one dataset
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM")
     root = tmp_path / "FCON1000"
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "ICBM11111",
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "ICBM11111",
        "--yes")
     bids = raw(root)
     assert not (bids / "sub-ICBM11111").exists()
@@ -443,38 +443,38 @@ def test_fcon1000_site_layout_alone(tmp_path, capsys):
 def test_fcon1000_zero_padded_labels(tmp_path):
     # labels are verbatim (no width): `00448` is not `448`
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites:study",
-       "--sites", "ICBM", "--subs", "00448")
+       "--site", "ICBM", "--sub", "00448")
     icbm = raw(tmp_path / "FCON1000", "ICBM")
     assert {p.name for p in icbm.glob("sub-*")} == {"sub-00448"}
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "00448", "--yes")
     assert not (icbm / "sub-00448").exists()
 
 
 def test_fcon1000_compost_sites_flag(tmp_path, capsys):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM")
-    # --sites only applies to a dataset with one dataset per site
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM")
+    # --site only applies to a dataset with one dataset per site
     with pytest.raises(SystemExit):
-        app(["fcon1000", "compost", str(tmp_path), "--sites", "ICBM",
-             "--exclude-subs", "ICBM11111", "--yes"])
-    assert "--sites/--exclude-sites only apply" in capsys.readouterr().err
+        app(["fcon1000", "compost", str(tmp_path), "--site", "ICBM",
+             "--exclude-sub", "ICBM11111", "--yes"])
+    assert "--site/--exclude-site only apply" in capsys.readouterr().err
 
 
 def test_fcon1000_unmatched_subjects(tmp_path, capsys, caplog):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
-       "--subs", "ICBM00448", "ICBM99999", "--dry-run")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448", "ICBM99999", "--dry-run")
     assert "ICBM99999" in caplog.text
     with pytest.raises(SystemExit):
-        app(["fcon1000", "harvest", str(tmp_path), "--sites", "ICBM",
-             "--subs", "ICBM99999", "--dry-run"])
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "ICBM",
+             "--sub", "ICBM99999", "--dry-run"])
     assert "No selected subject" in capsys.readouterr().err
 
 
 def test_fcon1000_compost_layout_sites(tmp_path):
     # sites layout: every site dataset (labels of the site)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta")
+       "--site", "ICBM", "Atlanta")
     root = tmp_path / "FCON1000"
-    bx("fcon1000", "compost", tmp_path, "--exclude-subs", "00448", "--yes")
+    bx("fcon1000", "compost", tmp_path, "--exclude-sub", "00448", "--yes")
     assert not (raw(root, "ICBM") / "sub-00448").exists()
     assert not (raw(root, "Atlanta") / "sub-00448").exists()
     assert (raw(root, "ICBM") / "sub-11111").is_dir()
@@ -482,8 +482,8 @@ def test_fcon1000_compost_layout_sites(tmp_path):
 
 
 def test_fcon1000_prunes_listing(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
-       "--subs", "ICBM00448")
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
+       "--sub", "ICBM00448")
     root = tmp_path / "FCON1000"
     assert not any("ICBM11111" in p for p in files(root))
     # the unselected subject is never listed, nor other sites
@@ -494,7 +494,7 @@ def test_fcon1000_prunes_listing(tmp_path):
 
 
 def test_fcon1000_where(tmp_path):
-    bx("fcon1000", "harvest", tmp_path, "--sites", "ICBM",
+    bx("fcon1000", "harvest", tmp_path, "--site", "ICBM",
        "--where", "site==ICBM", "age>=30", "--dry-run")
     # nothing written on a dry run
     assert not (tmp_path / "FCON1000").exists()
@@ -502,7 +502,7 @@ def test_fcon1000_where(tmp_path):
 
 def test_fcon1000_unknown_site(tmp_path, capsys):
     with pytest.raises(SystemExit):
-        app(["fcon1000", "harvest", str(tmp_path), "--sites", "Nowhere"])
+        app(["fcon1000", "harvest", str(tmp_path), "--site", "Nowhere"])
     assert "Unknown sites" in capsys.readouterr().err
 
 
@@ -734,7 +734,7 @@ def test_replace_generated_under_skip(tmp_path, caplog):
 
 
 def test_slim_sessions_trimmed(tmp_path):
-    bx("slim", "harvest", tmp_path, "--sessions", "1")
+    bx("slim", "harvest", tmp_path, "--ses", "1")
     root = raw(tmp_path / "SLIM")
     assert [r[0] for r in table(
         root / "sub-25629/sub-25629_sessions.tsv"
@@ -889,14 +889,14 @@ def test_repair_tsv(tmp_path):
     )
 
 
-@pytest.mark.parametrize("option", ["--sites", "--exclude-sites"])
+@pytest.mark.parametrize("option", ["--site", "--exclude-site"])
 def test_fcon1000_compost_some_sites(tmp_path, option):
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", "Atlanta")
+       "--site", "ICBM", "Atlanta")
     root = tmp_path / "FCON1000"
-    site = "ICBM" if option == "--sites" else "Atlanta"
+    site = "ICBM" if option == "--site" else "Atlanta"
     bx("fcon1000", "compost", tmp_path, option, site,
-       "--exclude-subs", "00448", "--yes")
+       "--exclude-sub", "00448", "--yes")
     # only ICBM is composted
     assert not (raw(root, "ICBM") / "sub-00448").exists()
     assert (raw(root, "Atlanta") / "sub-00448").is_dir()
@@ -906,7 +906,7 @@ def test_fcon1000_sites_unmatched_writes_nothing(tmp_path, capsys):
     # a selection that matches nothing is refused before any download
     with pytest.raises(SystemExit):
         app(["fcon1000", "harvest", str(tmp_path), "--layout", "sites",
-             "--sites", "ICBM", "--subs", "99999"])
+             "--site", "ICBM", "--sub", "99999"])
     assert "No selected subject" in capsys.readouterr().err
     root = tmp_path / "FCON1000"
     assert files(root) == set()     # (only the state folder, if any)
@@ -923,7 +923,7 @@ def test_fcon1000_new_site_holds_its_run_lock(tmp_path, monkeypatch):
 
     monkeypatch.setattr(indi, "harvest_hosted", spy)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM")
+       "--site", "ICBM")
     site, held = seen[0]
     assert site == tmp_path / "FCON1000" / "ICBM" / ".brainspresso"
     assert str(site) in held
@@ -943,7 +943,7 @@ def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
     # a harvest of the parent holds the parent and its sites (shared), so
     # a compost of one site (`--out <DS>/<site>`) fails
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM")
+       "--site", "ICBM")
     root = tmp_path / "FCON1000"
     parents, targets = Dataset.lock_states(Layout.detect(root))
     proc = subprocess.Popen(
@@ -953,7 +953,7 @@ def test_fcon1000_site_compost_waits_for_parent_harvest(tmp_path, capsys):
         assert proc.stdout.readline().strip() == "ready"
         with pytest.raises(SystemExit):
             app(["fcon1000", "compost", "--out", str(root / "ICBM"),
-                 "--exclude-subs", "11111", "--yes"])
+                 "--exclude-sub", "11111", "--yes"])
         assert "harvest running" in capsys.readouterr().err
     finally:
         proc.kill()
@@ -974,7 +974,7 @@ def test_fcon1000_site_lock_waits(tmp_path, monkeypatch, caplog, flag):
 
     monkeypatch.setattr(indi, "run_lock", spy)
     bx("fcon1000", "harvest", tmp_path, "--layout", "sites",
-       "--sites", "ICBM", flag, 3)
+       "--site", "ICBM", flag, 3)
     assert waits == [3]
     deprecated = "--wait is deprecated: use --lock-wait"
     assert (deprecated in caplog.text) is (flag == "--wait")

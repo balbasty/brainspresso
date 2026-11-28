@@ -880,7 +880,7 @@ ROASTERS: dict[str, Callable] = {
 # ----------------------------------------------------------------------
 
 #: Roast `<root>` (the `ABIDE-1` folder): `roast(root, source=...,
-#: keys=..., subs=...)`
+#: keys=..., sub=...)`
 roast = python_api(
     ROASTERS, KEYS, folder="ABIDE-1", width=WIDTH,
     example=51456, spec=ROAST_SPEC, default_source="s3",

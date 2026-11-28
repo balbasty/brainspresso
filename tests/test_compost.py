@@ -283,7 +283,7 @@ def test_cli(tmp_path, capsys, kind):
     make(roasted, tree)
     try:
         app(["ixi", "compost", str(tmp_path), "--dry-run",
-             "--exclude-subs", "001", "002"])
+             "--exclude-sub", "001", "002"])
     except SystemExit as e:
         assert not e.code
     out = capsys.readouterr().out

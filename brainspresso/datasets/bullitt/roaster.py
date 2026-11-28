@@ -491,7 +491,7 @@ def roast_subject(ctx: RoastContext, sub: str) -> Iterator[Action]:
 #   Python API
 # ----------------------------------------------------------------------
 
-#: Roast `<root>` (the `Bullitt` folder): `roast(root, keys=..., subs=...)`
+#: Roast `<root>` (the `Bullitt` folder): `roast(root, keys=..., sub=...)`
 roast = python_api(
     roast_bullitt, KEYS, folder="Bullitt", width=WIDTH,
     spec=ROAST_SPEC, options=roast_options,

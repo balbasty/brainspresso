@@ -63,7 +63,8 @@ accepts both forms of the labels.
 Hosted projects are downloaded anonymously from the bucket. The original
 archives of the ported datasets, and the ABIDE derivatives, are on NITRC, which
 requires a free NITRC account. INDI asks users to register with NITRC and with
-the 1000 Functional Connectomes Project before using the data.
+the 1000 Functional Connectomes Project before using the data, including the
+copies on the bucket.
 
 ```shell
 export NITRC_USER=myname

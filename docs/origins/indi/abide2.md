@@ -62,7 +62,9 @@ bx abide2 roast /data --keys dti pheno
 
 ## How to cite
 
-Acknowledge the funding sources listed on the ABIDE-II website, and cite:
+The ABIDE usage agreement asks users to specify which ABIDE datasets were
+included in their analyses, and to acknowledge the funding sources listed on
+the ABIDE-II website. The dataset is described in:
 
 !!! references "References"
 

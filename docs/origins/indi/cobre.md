@@ -55,11 +55,12 @@ bx cobre roast /data --keys T1w meta
 
 ## How to cite
 
-The data providers ask users to acknowledge the source of the data:
+The COBRE page credits the data as follows:
 
-> Data were collected and shared by the Mind Research Network and the
-> University of New Mexico, funded by a National Institutes of Health Center of
-> Biomedical Research Excellence (COBRE) grant 1P20RR021938-01A2.
+> The imaging data and phenotypic information was collected and shared by the
+> Mind Research Network and the University of New Mexico funded by a National
+> Institute of Health Center of Biomedical Research Excellence (COBRE) grant
+> 1P20RR021938-01A2.
 
 The dataset is described in:
 

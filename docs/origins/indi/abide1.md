@@ -79,10 +79,11 @@ bx abide1 roast /data --source xnat --keys fs
 
 ## How to cite
 
-Cite the ABIDE paper below, specify which ABIDE datasets were included in the
-analyses, and acknowledge the funding sources listed on the ABIDE website.
-The `ReferencesAndLinks` of the roasted `dataset_description.json` also lists
-the papers of the individual sites.
+The ABIDE usage agreement asks users to specify which ABIDE datasets were
+included in their analyses, and to acknowledge the funding sources listed on
+the ABIDE website. The dataset is described in the paper below. The
+`ReferencesAndLinks` of the roasted `dataset_description.json` also lists the
+papers of the individual sites.
 
 !!! references "References"
 

@@ -534,22 +534,7 @@
    {
     "args": [
      "--keys",
-     "T1w",
-     "T2w",
-     "ants",
-     "ccs",
-     "civet",
-     "cpac",
-     "dparsf",
-     "fs",
-     "fs-all",
-     "meta",
-     "niak",
-     "pheno",
-     "proc-min",
-     "qa-man",
-     "qa-pcp",
-     "rest"
+     "all"
     ],
     "exit": 0,
     "report": {
@@ -2445,22 +2430,7 @@
    {
     "args": [
      "--keys",
-     "T1w",
-     "T2w",
-     "ants",
-     "ccs",
-     "civet",
-     "cpac",
-     "dparsf",
-     "fs",
-     "fs-all",
-     "meta",
-     "niak",
-     "pheno",
-     "proc-min",
-     "qa-man",
-     "qa-pcp",
-     "rest"
+     "all"
     ],
     "exit": 0,
     "report": {

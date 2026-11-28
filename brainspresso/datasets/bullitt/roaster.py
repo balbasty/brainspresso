@@ -286,7 +286,7 @@ def raw_image(folder: Path, key: str) -> Path | None:
         The first `.mha` of the folders of the key (with a warning if
         there are several), or None
     """
-    images = sorted(
+    images = sorted_paths(
         image for name, k in FOLDER_KEYS.items() if k == key
         for image in (folder / name).glob("*.mha") if image.is_file())
     if len(images) > 1:

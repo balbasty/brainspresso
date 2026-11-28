@@ -209,8 +209,8 @@ def roast_session(ctx, sub: str, ses: str, sesdir: Path) -> Iterator[Action]:
             yield _convert(src, out / "anat" / f"{base}_{suffix}", suffix)
 
     # one DWI series per session (Girder item folder holding the file)
-    dwis = sorted(p for p in (sesdir / "DTI" / "ORIG").glob("**/*.nrrd")
-                  if p.is_file())
+    dwis = sorted_paths(p for p in (sesdir / "DTI" / "ORIG").glob("**/*.nrrd")
+                        if p.is_file())
     if dwis:
         yield _convert(dwis[0], out / "dwi" / f"{base}_dwi", "dwi", dwi=True)
 

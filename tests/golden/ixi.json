@@ -52,17 +52,11 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 4
@@ -81,7 +75,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -92,17 +86,11 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 4
@@ -111,26 +99,10 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}
@@ -471,18 +443,12 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "done": 4
       },
@@ -500,22 +466,16 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     },
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "skipped": 4
       },
       "T2w": {
        "skipped": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "skipped": 4
       },
@@ -533,7 +493,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -544,18 +504,12 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "done": 4
       },
@@ -563,43 +517,21 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    },
    {
     "args": [],
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "skipped": 4
       },
       "T2w": {
        "skipped": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "skipped": 4
@@ -608,26 +540,10 @@
        "skipped": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}
@@ -681,17 +597,11 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 2
       },
       "T2w": {
        "done": 1
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 3
@@ -710,7 +620,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -724,17 +634,11 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 2
       },
       "T2w": {
        "done": 1
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 3
@@ -743,26 +647,10 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}
@@ -821,17 +709,11 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 4
@@ -850,7 +732,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -861,17 +743,11 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 4
@@ -880,26 +756,10 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}
@@ -1244,18 +1104,12 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "done": 4
       },
@@ -1273,22 +1127,16 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     },
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "skipped": 4
       },
       "T2w": {
        "skipped": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "skipped": 4
       },
@@ -1306,7 +1154,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -1317,18 +1165,12 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 4
       },
       "T2w": {
        "done": 2
       },
-      "angio": {
-       "error": 1
-      },
       "dwi": {
        "done": 4
       },
@@ -1336,43 +1178,21 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    },
    {
     "args": [],
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "skipped": 4
       },
       "T2w": {
        "skipped": 2
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "skipped": 4
@@ -1381,26 +1201,10 @@
        "skipped": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}
@@ -1455,17 +1259,11 @@
    "runs": [
     {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 2
       },
       "T2w": {
        "done": 1
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 3
@@ -1484,7 +1282,7 @@
       "meta"
      ],
      "stage": "roast",
-     "status": "partial"
+     "status": "complete"
     }
    ],
    "schema": 1
@@ -1498,17 +1296,11 @@
     "exit": 0,
     "report": {
      "counts": {
-      "PDw": {
-       "error": 1
-      },
       "T1w": {
        "done": 2
       },
       "T2w": {
        "done": 1
-      },
-      "angio": {
-       "error": 1
       },
       "dwi": {
        "done": 3
@@ -1517,26 +1309,10 @@
        "done": 4
       }
      },
-     "errors": [
-      [
-       "PDw",
-       "IXI-PD",
-       "IXI-PD.tar (or IXI-PD/) not found"
-      ],
-      [
-       "angio",
-       "IXI-MRA",
-       "IXI-MRA.tar (or IXI-MRA/) not found"
-      ]
-     ],
-     "status": "partial"
+     "errors": [],
+     "status": "complete"
     },
-    "warnings": [
-     "ERROR: brainspresso.actions.action: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-PD: IXI-PD.tar (or IXI-PD/) not found",
-     "ERROR: brainspresso.actions.action: IXI-MRA.tar (or IXI-MRA/) not found",
-     "ERROR: brainspresso.actions.engine: IXI-MRA: IXI-MRA.tar (or IXI-MRA/) not found"
-    ]
+    "warnings": []
    }
   ],
   "tasks": {}

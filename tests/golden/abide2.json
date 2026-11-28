@@ -996,11 +996,7 @@
    {
     "args": [
      "--keys",
-     "T1w",
-     "dti",
-     "meta",
-     "pheno",
-     "rest"
+     "all"
     ],
     "exit": 0,
     "report": {
@@ -4187,11 +4183,7 @@
    {
     "args": [
      "--keys",
-     "T1w",
-     "dti",
-     "meta",
-     "pheno",
-     "rest"
+     "all"
     ],
     "exit": 0,
     "report": {

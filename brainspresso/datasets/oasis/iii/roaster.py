@@ -83,8 +83,8 @@ def _pet(tracer):
 # Keys are matched against the output names (after `fix_name`), in
 # this order (first match: `TSE` before `T2w`). "meta" (README,
 # participants, sessions) is a category, and the group of all metadata
-# ("pheno" included).
-KEYS = KeyAliases({**allkeys, "meta": {"meta", "pheno"}}, bids={
+# ("pheno" included); "all" is the group of every key (`--keys all`).
+KEYS = KeyAliases({"all": {**allkeys, "meta": {"meta", "pheno"}}}, bids={
     "T1w": _anat("T1w"),
     "TSE": _anat("T2w", acq=["TSE"]),
     "T2w": _anat("T2w"),

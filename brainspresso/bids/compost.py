@@ -54,6 +54,7 @@ from brainspresso.bids.tables import (
     trim_tables,
 )
 from brainspresso.errors import DatasetNotFound, UsageError
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -469,7 +470,8 @@ def retrim_tables(layout: Layout) -> list[str]:
     # phenotype tables, those with a pristine copy only (written by a
     # roaster; hosted and older ones are left as they are)
     phenotype = bids / "phenotype"
-    for path in sorted(phenotype.glob("*.tsv")) if phenotype.is_dir() else ():
+    tsvs = phenotype.glob("*.tsv") if phenotype.is_dir() else ()
+    for path in sorted_paths(tsvs):
         if layout.original(path).exists():
             tables[_relative(path, root)] = layout.original(path)
     # sessions/scans tables, inside subject folders

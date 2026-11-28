@@ -2502,8 +2502,9 @@ Each step lands as commits on the refactor branch with its tests green.
   lists them). `tests/test_golden.py` checks a reduced matrix
   (`golden.CI_MATRIX`) in every test run. A change that is meant to
   change outputs regenerates the baseline explicitly (`python
-  scripts/golden.py record`, for every dataset, or `--datasets`,
-  `--layouts`, `--cases` to replace only some entries), commits it,
+  scripts/golden.py record`, for every dataset, which also drops stale
+  entries, or `--datasets`, `--layouts`, `--cases` to replace only some
+  entries, `--prune` to drop the others), commits it,
   and pastes `python scripts/golden.py diff` (the baseline at `HEAD`,
   or `--base REV`, against the working tree) in the pull request;
   `python scripts/golden.py check` prints the same list without
@@ -3362,4 +3363,19 @@ up as an XPASS failure once fixed (then drop the marker).
   session in another order on Windows (`anat1` before
   `OAS3..._Freesurfer...`; the golden check found it); ABIDE-I,
   ABIDE-II, Bullitt and UNC-Wisconsin listings too. No roaster output
-  changes on POSIX.
+  changes on POSIX. Review round 1: the harness and the test suite
+  read no root config file (`BDP_PATH` points at an empty folder: the
+  root of `--out` datasets is read from it, else from the current
+  folder); `sorted_paths` also where a listing picks a file (Bullitt
+  `raw_image`, UNC-Wisconsin DWI series, INDI templates) and in
+  `bids/layout.py` (derivatives, sites), `bids/compost.py` (phenotype
+  tables) and `actions/state.py` (task records); the run records of
+  `actions/runlock.py` keep `sorted` (they only order a message).
+  OASIS-III accepts `--keys all` (an `all` group above its keys, as
+  ABIDE-I/II). IXI: a missing tarball (or folder) is a `Fail` only when
+  `--keys` names its key (`roast_options` `named`, as Bullitt; the
+  default `--keys` names nothing), else an info line; the default roast
+  of a dataset without PD or MRA images is complete (golden: IXI
+  default, re-run and `--sidecars only` cases). `golden.py`: `--work`
+  folders replaced, `diff --base` refuses a bad revision, `record
+  --prune`.

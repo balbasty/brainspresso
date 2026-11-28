@@ -566,28 +566,7 @@
    {
     "args": [
      "--keys",
-     "AV1451",
-     "AV45",
-     "CT",
-     "FDG",
-     "FLAIR",
-     "PIB",
-     "T1w",
-     "T2star",
-     "T2w",
-     "TSE",
-     "angio",
-     "asl",
-     "bold",
-     "dwi",
-     "fmap",
-     "fs",
-     "fs-all",
-     "meta",
-     "pasl",
-     "pheno",
-     "pup",
-     "swi"
+     "all"
     ],
     "exit": 0,
     "report": {
@@ -2917,28 +2896,7 @@
    {
     "args": [
      "--keys",
-     "AV1451",
-     "AV45",
-     "CT",
-     "FDG",
-     "FLAIR",
-     "PIB",
-     "T1w",
-     "T2star",
-     "T2w",
-     "TSE",
-     "angio",
-     "asl",
-     "bold",
-     "dwi",
-     "fmap",
-     "fs",
-     "fs-all",
-     "meta",
-     "pasl",
-     "pheno",
-     "pup",
-     "swi"
+     "all"
     ],
     "exit": 0,
     "report": {

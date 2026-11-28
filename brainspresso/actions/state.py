@@ -18,6 +18,8 @@ from logging import getLogger
 from pathlib import Path
 from urllib.parse import quote, unquote
 
+from brainspresso.utils.path import sorted_paths
+
 lg = getLogger(__name__)
 
 __all__ = [
@@ -214,7 +216,7 @@ def read_task_states(state: str | os.PathLike) -> dict[str, dict]:
     out = {}
     if not folder.is_dir():
         return out
-    for path in sorted(folder.glob("*.json")):
+    for path in sorted_paths(folder.glob("*.json")):
         try:
             record = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):

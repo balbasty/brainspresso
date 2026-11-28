@@ -51,12 +51,14 @@ Usage::
 
     python scripts/golden.py check [--datasets ...] [--layouts ...]
         [--cases ...] [--ci] [--work DIR] [--verbose]
-    python scripts/golden.py record [...]
+    python scripts/golden.py record [...] [--prune]
     python scripts/golden.py diff [--base REV]
 
 `check` roasts and prints what differs from the baseline (exit status
 1 if anything does); `record` regenerates the baseline (only the
-entries of the selection are replaced): run it when a change of output
+entries of the selection are replaced; `--prune` drops the other
+entries of the datasets recorded, and a record of the whole matrix
+drops every stale entry and file): run it when a change of output
 is intended, and paste the output of `diff` (the committed baseline at
 `--base`, default `HEAD`, against the working tree) in the pull
 request. `--work DIR` keeps the roasted datasets (`DIR/<dataset>/
@@ -73,6 +75,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -172,17 +175,21 @@ class Fixture(typing.NamedTuple):
     images: tuple = ()
     #: Arguments of every roast
     extra: tuple = ()
+    #: `--keys all` is one of its choices (else the `keys-all` case
+    #: names every leaf of `roaster.KEYS`)
+    all: bool = False
 
 
 FIXTURES = {
     "abide1-nitrc": Fixture("abide1", source(
         "ABIDE-1", test_roast_abide1_nitrc.make_source), abide1,
-        ("rest",)),
+        ("rest",), all=True),
     "abide1-xnat": Fixture("abide1", source(
         "ABIDE-1", test_roast_abide1_xnat.make_source), abide1,
-        ("fs",), ("--source", "xnat")),
+        ("fs",), ("--source", "xnat"), all=True),
     "abide2": Fixture("abide2", source(
-        "ABIDE-2", test_roast_abide2.make_source), abide2, ("dti",)),
+        "ABIDE-2", test_roast_abide2.make_source), abide2, ("dti",),
+        all=True),
     "bullitt": Fixture("bullitt", source(
         "Bullitt", test_roast_bullitt.make_source), bullitt,
         ("mprage", "vessels")),
@@ -199,7 +206,8 @@ FIXTURES = {
         "OASIS-2", test_roast_oasis2.make_source), oasis2, ("raw",)),
     "oasis3": Fixture("oasis3", source(
         "OASIS-3", test_roast_oasis3.make_source,
-        test_roast_oasis3.add_freesurfer), oasis3, ("T1w", "fs")),
+        test_roast_oasis3.add_freesurfer), oasis3, ("T1w", "fs"),
+        all=True),
     "unc-wisconsin": Fixture("unc-wisconsin", unc_wisconsin, uncwisc,
                              ("dwi",)),
 }
@@ -213,8 +221,8 @@ def cases(name: str) -> dict[str, list[list[str]]]:
         "sidecars-only": [["--sidecars", "only"]],
         "keys-meta": [["--keys", "meta"]],
         "keys-images": [["--keys", *fixture.images]],
-        # (every leaf: `all` is not a choice of every dataset)
-        "keys-all": [["--keys", *sorted(fixture.roaster.KEYS.leaves)]],
+        "keys-all": [["--keys", *(["all"] if fixture.all else
+                                  sorted(fixture.roaster.KEYS.leaves))]],
         "rerun": [[], []],
     }
 
@@ -248,10 +256,17 @@ class _FixedTime:
 
 @contextlib.contextmanager
 def quiet_config():
-    """No user config file, no `BRAINSPRESSO_OPT_*` variable"""
+    """
+    Read no config file of the user running the harness.
+
+    No user file (`BRAINSPRESSO_CONFIG_HOME`), no root file (`BDP_PATH`,
+    the root of `--out` datasets, else the current folder: an empty
+    folder), no `BRAINSPRESSO_OPT_*` variable.
+    """
     saved = dict(os.environ)
-    with tempfile.TemporaryDirectory() as home:
-        os.environ["BRAINSPRESSO_CONFIG_HOME"] = home
+    with tempfile.TemporaryDirectory() as tmp:
+        os.environ["BRAINSPRESSO_CONFIG_HOME"] = os.path.join(tmp, "home")
+        os.environ["BDP_PATH"] = os.path.join(tmp, "root")
         for var in list(os.environ):
             if var.startswith("BRAINSPRESSO_OPT_"):
                 del os.environ[var]
@@ -501,6 +516,8 @@ def run(selection: dict, work: Path | None = None) -> dict:
         for name, pairs in selection.items():
             for layout, case in pairs:
                 parent = work / name / layout / case
+                # (a folder of an earlier run of `--work DIR`)
+                shutil.rmtree(parent, ignore_errors=True)
                 parent.mkdir(parents=True)
                 out.setdefault(name, {})[f"{layout}/{case}"] = \
                     roast_case(name, layout, case, parent)
@@ -511,25 +528,51 @@ def run(selection: dict, work: Path | None = None) -> dict:
 #   Baseline and differences
 # ----------------------------------------------------------------------
 
-def baseline_path(name: str, folder: Path = GOLDEN) -> Path:
+def baseline_path(name: str) -> Path:
     """Baseline file of a dataset"""
-    return folder / f"{name}.json"
+    return GOLDEN / f"{name}.json"
+
+
+class GitError(RuntimeError):
+    """A git revision or file that cannot be read"""
+
+
+def _git(*args) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=REPO, capture_output=True,
+                          text=True)
 
 
 def load(name: str, rev: str | None = None) -> dict:
-    """Baseline of a dataset (in the working tree, or at a git revision)"""
+    """
+    Baseline of a dataset (in the working tree, or at a git revision).
+
+    Empty if the dataset has no baseline (at a revision: no file at
+    that revision); `GitError` if the revision or the file cannot be
+    read.
+    """
     if rev is None:
         path = baseline_path(name)
         return json.loads(path.read_text()) if path.exists() else {}
-    rel = baseline_path(name).relative_to(REPO).as_posix()
-    out = subprocess.run(["git", "show", f"{rev}:{rel}"], cwd=REPO,
-                         capture_output=True, text=True)
-    return json.loads(out.stdout) if out.returncode == 0 else {}
+    if _git("rev-parse", "--verify", "--quiet",
+            f"{rev}^{{commit}}").returncode:
+        raise GitError(f"not a git revision: {rev!r}")
+    rel = f"tests/golden/{name}.json"
+    if _git("cat-file", "-e", f"{rev}:{rel}").returncode:
+        return {}
+    out = _git("show", f"{rev}:{rel}")
+    if out.returncode:
+        raise GitError(f"cannot read {rel} at {rev}: {out.stderr.strip()}")
+    return json.loads(out.stdout)
 
 
-def save(name: str, records: dict) -> None:
-    """Merge records into the baseline of a dataset"""
-    data = load(name)
+def save(name: str, records: dict, prune: bool = False) -> None:
+    """
+    Write records into the baseline of a dataset.
+
+    They replace the entries of the same cases; with `prune`, the other
+    entries are dropped.
+    """
+    data = {} if prune else load(name)
     data.update(records)
     data = {k: data[k] for k in sorted(data)}
     GOLDEN.mkdir(parents=True, exist_ok=True)
@@ -571,7 +614,8 @@ def _list_diff(old: list, new: list) -> list[str]:
 
 def _value_diff(path: str, old, new) -> list[str]:
     """Lines of the difference of two leaves"""
-    if isinstance(old, list) and isinstance(new, list):
+    if isinstance(old, list) and isinstance(new, list) \
+            and not path.endswith("args"):
         return [f"{path}: {line}" for line in _list_diff(old, new)]
     return [f"{path}: {_short(old)} -> {_short(new)}"]
 
@@ -670,6 +714,10 @@ def main(argv=None):
                         help="keep the roasted datasets in this folder")
     parser.add_argument("--base", default="HEAD",
                         help="diff: the git revision of the old baseline")
+    parser.add_argument("--prune", action="store_true",
+                        help="record: drop the entries of the datasets "
+                        "recorded that are not in the selection (implied "
+                        "by a record of the whole matrix)")
     parser.add_argument("--verbose", action="store_true",
                         help="show the output and the log of the commands")
     args = parser.parse_args(argv)
@@ -683,15 +731,25 @@ def main(argv=None):
     selection = CI_MATRIX if args.ci else \
         select(args.datasets, args.layouts, args.cases)
     if args.mode == "diff":
-        old = {name: load(name, args.base) for name in args.datasets}
+        try:
+            old = {name: load(name, args.base) for name in args.datasets}
+        except GitError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 2
         new = {name: load(name) for name in args.datasets}
         lines = diff(old, new)
         print("\n".join(lines) if lines else "No change.")
         return 0
     start = time.monotonic()
     if args.mode == "record":
+        # (the whole matrix: what it does not hold is stale)
+        full = selection == select(FIXTURES, LAYOUTS, CASES)
         for name, records in run(selection, args.work).items():
-            save(name, records)
+            save(name, records, prune=args.prune or full)
+        if full:
+            for path in GOLDEN.glob("*.json"):
+                if path.stem not in FIXTURES:
+                    path.unlink()
         print(f"Recorded in {time.monotonic() - start:.1f} s")
         return 0
     lines = check(selection, args.work)

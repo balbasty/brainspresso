@@ -58,6 +58,26 @@ class IXI(Dataset):
             return KeySpec(roast_keys, (*KEYS, "trace"), KEYS, ("trace",))
         return self.keys
 
+    def roast_options(self, args):
+        """
+        Return the options of the roaster (`roaster.roast_options`).
+
+        Parameters
+        ----------
+        args : Args
+            Values of the command line
+
+        Returns
+        -------
+        dict
+            `named`: the keys whose missing tarballs are errors (from
+            `--keys` as given; none with its default)
+        """
+        from brainspresso.datasets.ixi.roaster import (  # noqa: PLC0415
+            roast_options,  # lazy: optional dependency (xlrd)
+        )
+        return roast_options(args.keys.keys)
+
     def sources(self, args=None):
         """NITRC-IR, Imperial (offline), bundled metadata."""
         return sources()

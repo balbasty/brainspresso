@@ -274,12 +274,9 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
     assert ids == {"sub-002", "sub-012"}
 
 
-@pytest.mark.parametrize("layout", LAYOUTS)
-def test_roast_from_tarballs(xnat, tmp_path, layout):
-    """The original tarballs are still supported"""
-    root = tmp_path / "IXI"
-    src = root / "sourcedata"
-    src.mkdir(parents=True)
+def write_tarballs(src: Path):
+    """Write the original IXI tarballs (`IXI-<scan>.tar`) of SUBJECTS."""
+    src.mkdir(parents=True, exist_ok=True)
     members = {}
     for (_, _), scans in SUBJECTS.items():
         for scan, collections in scans.items():
@@ -291,6 +288,13 @@ def test_roast_from_tarballs(xnat, tmp_path, layout):
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
                 tar.addfile(info, io.BytesIO(data))
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_roast_from_tarballs(xnat, tmp_path, layout):
+    """The original tarballs are still supported"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
     roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
     check_roast(root, per_subject=None, layout=layout)
 

@@ -41,10 +41,8 @@ META = {"README", "dataset_description.json", "participants.json",
 PHENO = {"phenotype/UDS_b4_cdr.tsv", "phenotype/UDS_b4_cdr.json"}
 
 
-@pytest.fixture(params=LAYOUTS)
-def root(tmp_path, request):
-    root = tmp_path / "OASIS-3"
-    init_layout(root, request.param)
+def make_source(root):
+    """Write the harvested files of OASIS-III."""
     src = root / "sourcedata"
     d = src / "OASIS3_data_files"
     make_tar(d / "demo.tar.gz", {"demo/demo.csv": DEMO.encode()})
@@ -56,6 +54,13 @@ def root(tmp_path, request):
             f"{b}_{mod}.nii.gz": nii_bytes(),
         })
     return root
+
+
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
+    root = tmp_path / "OASIS-3"
+    init_layout(root, request.param)
+    return make_source(root)
 
 
 def test_roast_all(root):

@@ -469,7 +469,7 @@ def test_edited_derivative_description_survives_updates(tmp_path, caplog):
             mine.pop("SourceDatasets")
         path.write_bytes(json.dumps(mine).encode())
         edit = path.read_bytes()
-        for mode in ("update", "update", "skip"):
+        for mode in ("update", "update", "skip", "error"):
             caplog.clear()
             roast(root, ifexists=mode)
             assert path.read_bytes() == edit
@@ -482,6 +482,29 @@ def test_edited_derivative_description_survives_updates(tmp_path, caplog):
     desc = json.loads(path.read_text())
     assert desc["Name"] == "toy" and "SourceDatasets" in desc
     assert read_manifest(lay.state)["files"][key]["sha256"] == digest(path)
+
+
+@pytest.mark.parametrize("mode", ["skip", "error", "refresh"])
+def test_existing_description_is_never_completed(tmp_path, mode):
+    """Pure skip: a description that exists before the roast, without a
+    recorded hash nor `SourceDatasets`, is left byte for byte (also under
+    `error`; `refresh` rewrites it, then completes it)"""
+    root = make_root(tmp_path)
+    lay = layout_of(root)
+    path = lay.derivatives / "toy" / DESCRIPTION_NAME
+    path.parent.mkdir(parents=True)
+    theirs = b'{"Name": "theirs", "BIDSVersion": "1.8.0"}'
+    path.write_bytes(theirs)
+    for _ in range(2):
+        roast(root, ifexists=mode)
+        if mode != "refresh":
+            assert path.read_bytes() == theirs
+    if mode == "refresh":
+        # (no mtime to compare: rewritten, so completed)
+        assert "SourceDatasets" in json.loads(path.read_text())
+    else:
+        assert path.relative_to(lay.root).as_posix() not in \
+            read_manifest(lay.state)["files"]
 
 
 def test_unrecorded_derivative_description_under_update(tmp_path):

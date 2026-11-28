@@ -36,7 +36,11 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from brainspresso.actions.engine import Producer, Report, run
-from brainspresso.bids.harvest import finish_roast, trim_originals
+from brainspresso.bids.harvest import (
+    description_hashes,
+    finish_roast,
+    trim_originals,
+)
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.bids.layout import Layout
 from brainspresso.roast.context import RoastContext, as_list, make_context
@@ -96,10 +100,14 @@ def run_roast(
     report = RoastReport(status="failed")
     if isinstance(ctx, RoastContext):
         ctx.forget()                # (hashes recorded by an earlier run)
+    descriptions = None
     try:
         # the state folder holds the lock files of the dataset
         # (`actions.locks`): create it before anything is read or written
         ctx.layout.ensure_state()
+        # (descriptions that exist: completed only if the roast writes
+        # them, `finish_roast`)
+        descriptions = description_hashes(ctx.layout)
         run(roaster, ctx, policy=policy or RoastPolicy(), jobs=jobs,
             display=display, executor=executor, report=report)
     finally:
@@ -119,7 +127,7 @@ def run_roast(
             except ValueError:
                 continue
             files[key] = {"origin": "converted", "sha256": digest}
-        finish_roast(ctx.layout, files=files, **{
+        finish_roast(ctx.layout, files=files, descriptions=descriptions, **{
             **({"keys": sorted(keys)} if keys is not None else {}),
             "json": ctx.json,
             "status": status,

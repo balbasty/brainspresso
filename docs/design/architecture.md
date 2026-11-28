@@ -908,15 +908,17 @@ layer in 2b-iv):
   renders (`Action.rendered`: written, or an identical compare) reports
   its hash (`Action.track`, `Report.digests`, also from workers);
   `run_roast` merges them into the manifest (`finish_roast(files=)`),
-  also when the roast is partial; a derivative description that
-  `write_descriptions` rewrites gets the hash of the file as left on
-  disk if it held what roast wrote (rendered by this roast, or
-  unedited before the rewrite); an edited one that this roast did not
-  render is left exactly as it is (`write_descriptions(keep=)`: no
-  `SourceDatasets` added, no new hash), so it stays an edit; under
-  `different`/`overwrite`, or once backed up and replaced under
-  `update` (no recorded hash), the render replaces it and is
-  completed. Tracked files:
+  also when the roast is partial. `write_descriptions` completes
+  (`SourceDatasets`, `DatasetType`) only the derivative descriptions
+  that the run wrote: new ones, and those it rendered or rewrote under
+  the active mode (`bids.harvest.description_hashes` before the run,
+  `untouched` after it, `write_descriptions(keep=)`); any other
+  existing description, recorded or not, edited or not, is left byte
+  for byte, in every mode (an edit kept under `update`, every existing
+  file under `skip`, `error`, `refresh` when the mtime matches). A
+  completed tracked description gets the hash of the file as left on
+  disk. The harvest (`bids.harvest.harvest`) follows the same rule.
+  Tracked files:
 
   | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
   |---|---|---|---|---|
@@ -3140,10 +3142,11 @@ up as an XPASS failure once fixed (then drop the marker).
   compared first (`Action.keep_edit`): one that holds the render (a
   hash not recorded because the roast was killed) is adopted, any other
   kept with a warning, in engine and hosted roasts alike (the "keep"
-  migration rule likewise); `finish_roast` leaves an edited derivative
-  description exactly as it is (`Layout.write_descriptions(keep=)`:
-  no `SourceDatasets` added, not re-hashed), so it survives every
-  `update` byte for byte, and re-hashes a completed one only if it
-  held what roast wrote; a backup never replaces an
+  migration rule likewise); `write_descriptions` completes only the
+  derivative descriptions that the run wrote (new, rendered or
+  rewritten): an existing one is left byte for byte otherwise (an edit
+  kept under `update`; anything under `skip` and `error`, recorded or
+  not; also in harvests), and a completed tracked one is re-hashed as
+  left on disk; a backup never replaces an
   earlier one (`<path>.1`, `.2`...); the recorded hashes are cached per
   process and manifest version (`roast.context._recorded_hashes`).

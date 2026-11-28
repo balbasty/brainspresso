@@ -121,10 +121,26 @@ def test_missing_optional_dependencies():
 def test_package_data():
     root = Path(brainspresso.__file__).parent
     assert (root / "freesurfer" / "lut" / "FreeSurferColorLUT.txt").exists()
-    assert (root / "datasets" / "IXI" / "templates" / "README").exists()
-    templates = root / "datasets" / "OASIS" / "III" / "templates"
+    assert (root / "datasets" / "ixi" / "templates" / "README").exists()
+    templates = root / "datasets" / "oasis" / "iii" / "templates"
     assert any((templates / "phenotype" / "UDSv3").glob("*.json"))
-    bullitt = root / "datasets" / "Bullitt" / "templates"
+    bullitt = root / "datasets" / "bullitt" / "templates"
     for name in ("participants.tsv", "acq-flash_T1w.json",
                  "derivatives_bidsignore"):
         assert (bullitt / name).exists()
+    # INDI: templates and fill-in indexes next to each project
+    indi = root / "datasets" / "indi"
+    for name in ("mpi_lemon", "nki_rs", "sald", "slim"):
+        assert (indi / name / "templates" / "_fill.json").exists()
+    assert (indi / "hbn" / "templates" / ".bidsignore").exists()
+    assert (indi / "fcon1000" / "templates" / "_sites.tsv").exists()
+    assert (indi / "simon" / "templates" / "derivatives" / "niak"
+            / "dataset_description.json").exists()
+    for path in ("abide/i", "abide/ii", "corr", "cobre"):
+        assert any((indi / path / "templates").rglob("*.json")), path
+    for name in CATALOG:
+        folder = load(name).template_dir
+        if folder is not None and name != "natview":     # (none)
+            assert folder.is_dir(), name
+    # printouts are not shipped
+    assert not list(root.rglob("*.pdf"))

@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item A1"
+    },
+    "direct_gaze": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A1_DIRECT_GAZE"
+    },
+    "social_smile": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A1_SOCIAL_SMILE"
+    },
+    "facial_expressions": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A1_FACIAL_EXPRESSIONS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_A1_TOTAL"
+    }
+}

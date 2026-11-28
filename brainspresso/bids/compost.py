@@ -18,8 +18,9 @@ Two things can be composted:
    `subs=["01", "02"]` leaves exactly what harvesting with the same
    filters would have downloaded. Metadata that still applies to a kept
    data file (BIDS inheritance principle) is kept, dataset-level files
-   are never touched, and participants/sessions/scans tables are
-   rewritten so that they only list what is left.
+   are never touched, and participants/sessions/scans tables (and the
+   phenotype tables with a pristine copy) are rewritten so that they
+   only list what is left.
 
 Paths come from the dataset `Layout` (`bids.layout`): the BIDS tree is
 `layout.raw` (`<dataset>/rawbids/` for a study, `<dataset>/` for a flat
@@ -53,6 +54,7 @@ from brainspresso.bids.tables import (
     trim_tables,
 )
 from brainspresso.errors import DatasetNotFound, UsageError
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -441,7 +443,7 @@ def delete_files(root: Path, files: Iterable[str]) -> int:
 
 def retrim_tables(layout: Layout) -> list[str]:
     """
-    Rewrite participants/sessions/scans tables to what is on disk.
+    Trim the participants, sessions, scans and phenotype tables to disk.
 
     Untouched copies saved by `harvest` in
     `.brainspresso/orig/` are used as reference when they exist. Tables
@@ -465,6 +467,13 @@ def retrim_tables(layout: Layout) -> list[str]:
     if (bids / "participants.tsv").exists():
         path = bids / "participants.tsv"
         tables[_relative(path, root)] = original(path)
+    # phenotype tables, those with a pristine copy only (written by a
+    # roaster; hosted and older ones are left as they are)
+    phenotype = bids / "phenotype"
+    tsvs = phenotype.glob("*.tsv") if phenotype.is_dir() else ()
+    for path in sorted_paths(tsvs):
+        if layout.original(path).exists():
+            tables[_relative(path, root)] = layout.original(path)
     # sessions/scans tables, inside subject folders
     for path in list_files(bids, bids):
         if path.startswith("sub-") and is_trimmable(path):
@@ -535,8 +544,8 @@ def compost(
     derivatives : bool
         Apply subject/session filters to `derivatives/*/` too
     trim : bool
-        Rewrite participants/sessions/scans tables after composting
-        BIDS data
+        Rewrite participants/sessions/scans tables (and the phenotype
+        tables with a pristine copy) after composting BIDS data
     force : bool
         Compost source data even if nothing seems to have been roasted
     yes : bool

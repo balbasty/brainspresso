@@ -150,11 +150,10 @@ def test_abide1_harvest_s3_keys_and_samples(tmp_path):
 @pytest.mark.parametrize("layout", ["study", "flat"])
 def test_abide1_roast_from_s3_folder(tmp_path, layout):
     from brainspresso.bids.layout import Layout
-    from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import Bidsifier
     bx("abide1", "harvest", tmp_path, "--source", "s3", "--sites",
        "Caltech", "--keys", "raw", "--layout", layout)
     root = tmp_path / "ABIDE-1"
-    Bidsifier(root, keys={"T1w", "rest"}).run()
+    bx("abide1", "roast", tmp_path, "--keys", "T1w", "rest")
     found = Layout.detect(root)
     assert found.kind == layout
     raw = found.raw
@@ -182,7 +181,7 @@ def test_abide1_roast_from_s3_folder(tmp_path, layout):
 # ----------------------------------------------------------------------
 
 def test_corr_harvest_s3(tmp_path):
-    from brainspresso.datasets.CoRR.harvest import download_s3
+    from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
         src, keys={"raw", "meta"}, sites={"BMB", "IBA"}, subs=set(),
@@ -197,7 +196,7 @@ def test_corr_harvest_s3(tmp_path):
 
 
 def test_corr_harvest_s3_raw_only(tmp_path):
-    from brainspresso.datasets.CoRR.harvest import download_s3
+    from brainspresso.datasets.indi.corr.harvest import download_s3
     src = tmp_path / "CoRR" / "sourcedata"
     download_s3(
         src, keys={"raw"}, sites={"BMB"}, subs={3002}, exclude_subs=set(),

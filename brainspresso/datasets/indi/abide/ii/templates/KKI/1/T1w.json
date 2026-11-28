@@ -1,0 +1,17 @@
+{
+    "Manufacturer": "Philips",
+    "MagneticFieldStrength": 3.0,
+    "ImagingFrequency": 127.728,
+    "Modality": "MR",
+    "EchoTime": 0.0037,
+    "FlipAngle": 8.0,
+    "MRAcquisitionType": "3D",
+    "ScanningSequence": [
+        "GR",
+        "IR"
+    ],
+    "PulseSequenceType": "Inversion Recovery Turbo Field Echo (MPRAGE-like)",
+    "ParallelAcquisitionTechnique": "SENSE",
+    "SliceThickness": 1.0,
+    "PhaseEncodingAxis": "i"
+}

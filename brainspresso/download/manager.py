@@ -1,5 +1,5 @@
 """Parallel execution of downloads, with a progress table."""
-__all__ = ["DownloadManager", "DownloadTable"]
+__all__ = ["DownloadManager", "DownloadTable", "DEFAULT_JOBS"]
 import asyncio
 import time
 import warnings
@@ -16,6 +16,9 @@ from brainspresso.utils.log import HideLoggingStream
 from brainspresso.utils.tabular import LogSafeTabular, get_style
 
 lg = getLogger(__name__)
+
+#: Concurrent downloads when none is given (`DownloadManager(jobs=None)`)
+DEFAULT_JOBS = 4
 
 # Keys of "progress" statuses, which are rate-limited before display
 _PROGRESS_KEYS = frozenset({"done", "done%", "dspeed", "wspeed", "tspeed"})
@@ -109,7 +112,7 @@ class DownloadManager:
         self.ifexists = IfExists.from_any(ifexists)
         self.on_error = on_error
         self.path = path
-        self.jobs = max(1, jobs or 4)
+        self.jobs = max(1, jobs or DEFAULT_JOBS)
         self.jobs_per_host = max(1, jobs_per_host or self.jobs)
         self.out = DownloadTable(max_workers=tabular_jobs or self.jobs)
 

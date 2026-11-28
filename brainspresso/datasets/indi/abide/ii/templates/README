@@ -1,0 +1,24 @@
+# Autism Brain Imaging Data Exchange II (ABIDE-II)
+
+ABIDE II is the second initiative of the Autism Brain Imaging Data Exchange
+(ABIDE), an effort of the International Neuroimaging Data-sharing
+Initiative (INDI). Its 19 sites, among which institutions that contributed
+to ABIDE I and new members, share resting state functional magnetic
+resonance imaging (R-fMRI), anatomical and phenotypic datasets of
+individuals with Autism Spectrum Disorder (ASD) and of typical controls.
+Some sites also share diffusion imaging data, and two sites share
+longitudinal data (a second session of individuals scanned earlier).
+
+In accordance with HIPAA guidelines and 1000 Functional Connectomes Project /
+INDI protocols, all datasets have been anonymized, with no protected health
+information included.
+
+Data usage agreement, credits and acknowledgements:
+https://fcon_1000.projects.nitrc.org/indi/abide/abide_II.html
+
+## This dataset
+
+Converted to BIDS by brainspresso (`bx abide2`) from the NITRC release
+(`ABIDEII-<SITE>_<sample>.tar.gz` images, `ABIDEII-<SITE>_<sample>.csv`
+phenotypes). Sidecars are built from the protocol printouts of each site
+and sample, not from the DICOM headers.

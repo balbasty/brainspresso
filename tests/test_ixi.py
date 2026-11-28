@@ -20,7 +20,7 @@ from cli_utils import bx
 from roast_utils import LAYOUTS
 
 from brainspresso.bids.layout import Layout
-from brainspresso.datasets.IXI import roaster
+from brainspresso.datasets.ixi import roaster
 from brainspresso.download import DownloadManager
 
 # Templates of the installed package (CI tests the installed package)
@@ -145,7 +145,7 @@ def xnat():
 
 
 def harvest(server, src, **kwargs):
-    from brainspresso.datasets.IXI.harvest import nitrc_downloaders
+    from brainspresso.datasets.ixi.harvest import nitrc_downloaders
     kwargs.setdefault("keys", {"T1w", "T2w", "PDw", "angio", "dwi"})
     DownloadManager(
         nitrc_downloaders(src, server=server, **kwargs),
@@ -194,7 +194,7 @@ def test_harvest_nitrc_filters(xnat, tmp_path):
 def test_harvest_command_per_key_sources(xnat, tmp_path, monkeypatch):
     # images from NITRC-IR (default), metadata from the bundled IXI.xls
     # (nothing to download, the offline imperial host is not tried)
-    from brainspresso.datasets.IXI import harvest as dl
+    from brainspresso.datasets.ixi import harvest as dl
     server, _ = xnat
     monkeypatch.setattr(dl.NitrcIR, "server", server)
     monkeypatch.setattr(dl.Imperial, "urls", {"meta": ["http://0.0.0.0:9/x"]})
@@ -274,12 +274,9 @@ def test_roast_bundled_metadata(xnat, tmp_path, layout):
     assert ids == {"sub-002", "sub-012"}
 
 
-@pytest.mark.parametrize("layout", LAYOUTS)
-def test_roast_from_tarballs(xnat, tmp_path, layout):
-    """The original tarballs are still supported"""
-    root = tmp_path / "IXI"
-    src = root / "sourcedata"
-    src.mkdir(parents=True)
+def write_tarballs(src: Path):
+    """Write the original IXI tarballs (`IXI-<scan>.tar`) of SUBJECTS."""
+    src.mkdir(parents=True, exist_ok=True)
     members = {}
     for (_, _), scans in SUBJECTS.items():
         for scan, collections in scans.items():
@@ -291,6 +288,13 @@ def test_roast_from_tarballs(xnat, tmp_path, layout):
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
                 tar.addfile(info, io.BytesIO(data))
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_roast_from_tarballs(xnat, tmp_path, layout):
+    """The original tarballs are still supported"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
     roaster.roast(root, keys={"T1w", "T2w", "dwi"}, layout=layout)
     check_roast(root, per_subject=None, layout=layout)
 
@@ -621,3 +625,64 @@ def test_dwi_ragged_table_message(tmp_path):
     report = roast_dti(root, "flat")
     assert any("has rows of 2, 1 entries" in e[2] for e in report.errors)
     assert not any("None" in e[2] for e in report.errors)
+
+
+# ----------------------------------------------------------------------
+#   Missing tarballs: an error only for the keys that `--keys` names
+# ----------------------------------------------------------------------
+
+def test_roast_options_named():
+    """`named`: the keys of `--keys` as given; none with its default"""
+    assert roaster.roast_options(()) == {"named": []}
+    assert roaster.roast_options(list(roaster.DATASET_KEYS)) == \
+        {"named": []}
+    assert roaster.roast_options(["pdw", "meta"]) == {"named": ["PDw"]}
+    assert roaster.roast_options(["dwi", "trace"]) == \
+        {"named": ["dwi", "trace"]}
+
+
+def test_missing_tarballs_not_named(tmp_path, caplog):
+    """Without `--keys`, a missing tarball (no PD, no MRA) is an info
+    line: the roast is complete"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    with caplog.at_level("INFO"):
+        report = roaster.roast(root, display=False)
+    assert not report.errors, report.errors
+    assert report.status == "complete"
+    assert "IXI-PD.tar (or IXI-PD/) not found (skipped)" in caplog.text
+
+
+@pytest.mark.parametrize("keys", [["PDw"], ["pdw", "T1w"]])
+def test_missing_tarballs_named(tmp_path, keys):
+    """A missing tarball of a key that `--keys` names is an error"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    report = roaster.roast(root, keys=keys, display=False)
+    assert [e[:2] for e in report.errors] == [("PDw", "IXI-PD")]
+    assert report.status == "partial"
+
+
+@pytest.mark.parametrize("named", [False, True])
+def test_missing_tarballs_cli(tmp_path, named):
+    """The command line: its default `--keys` names nothing"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    keys = ["--keys", "T1w", "angio"] if named else []
+    bx("ixi", "roast", "--out", root, *keys)
+    layout = Layout.detect(root)
+    run = json.loads((layout.state / "manifest.json").read_text())["runs"][-1]
+    assert run["status"] == ("partial" if named else "complete")
+    assert ("angio" in run["counts"]) is named
+    assert (layout.raw / "sub-002" / "anat" / "sub-002_T1w.nii.gz").is_file()
+
+
+def test_missing_dti_named_by_trace(tmp_path):
+    """`--keys trace` reads the DTI tarball: its absence is an error"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    (root / "sourcedata" / "IXI-DTI.tar").unlink()
+    report = roaster.roast(root, keys=["trace"], display=False)
+    assert [e[1] for e in report.errors] == ["IXI-DTI"]
+    report = roaster.roast(root, display=False)
+    assert not report.errors

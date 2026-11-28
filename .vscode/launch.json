@@ -8,12 +8,6 @@
             "args": ["--keys", "meta", "--keys", "dwi", "--subs", "002", "--if-exists", "refresh"],
         },
         {
-            "name": "Python Debugger: download.test",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "braindataprep.download.test",
-        },
-        {
             "name": "Python Debugger: Python File",
             "type": "debugpy",
             "request": "launch",

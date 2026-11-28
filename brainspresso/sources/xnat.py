@@ -220,6 +220,7 @@ class XNAT(Source):
     """
 
     name = "xnat"
+    title = "XNAT"
     server: str = DEFAULT_SERVER
     project: str = ""
     login: bool = True
@@ -237,6 +238,12 @@ class XNAT(Source):
             self.server = server.rstrip("/")
 
     # ------------------------------------------------------------------
+    def reads(self, option: str) -> bool:
+        """`user` and `password` only with `login` (see `Source.reads`)."""
+        if option in ("user", "password") and not self.login:
+            return False
+        return super().reads(option)
+
     def auth(self) -> XnatAuth | None:
         """Return the XNAT login hook (None if `login` is false)."""
         if not self.login:

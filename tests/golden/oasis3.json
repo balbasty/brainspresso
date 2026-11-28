@@ -1,0 +1,4664 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "all"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "fs"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "fs"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "fs"
+      ],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "fs"
+      ],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "participants.tsv": "cff440e94663de930c8664f4522c5b87cb6fbc761db5dd380f918634cf1a5775",
+   "phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta",
+      "pheno"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "anat": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 8
+      },
+      "meta": {
+       "skipped": 7
+      },
+      "pheno": {
+       "skipped": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 8
+      },
+      "meta": {
+       "skipped": 7
+      },
+      "pheno": {
+       "skipped": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "skipped": 2
+     },
+     "fs": {
+      "skipped": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "only",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 1
+     },
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "rawbids/participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "rawbids/phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "rawbids/sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "rawbids/participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "rawbids/phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "rawbids/sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "all"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "dataset_description.json": "be4098a1d2f2f144f494d93cc19d1349d60a793f244403f23f1f913031f5dc22",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "fs"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "fs"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 2
+     },
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "fs"
+      ],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "fs"
+      ],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
+   "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "rawbids/participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "rawbids/participants.tsv": "cff440e94663de930c8664f4522c5b87cb6fbc761db5dd380f918634cf1a5775",
+   "rawbids/phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "rawbids/sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta",
+      "pheno"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {},
+    "error": null,
+    "groups": [],
+    "outputs": [],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [],
+      "mode": "keys",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz": "gz:ac6be052a9a94c4c61cdde7401a0bca757a58adb2b2499e9e9644c7b345221ab",
+   "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "rawbids/participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "rawbids/phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "rawbids/sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "anat": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 8
+      },
+      "meta": {
+       "skipped": 7
+      },
+      "pheno": {
+       "skipped": 2
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 4
+      },
+      "fs": {
+       "done": 8
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "skipped": 4
+      },
+      "fs": {
+       "skipped": 8
+      },
+      "meta": {
+       "skipped": 7
+      },
+      "pheno": {
+       "skipped": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "skipped": 2
+     },
+     "fs": {
+      "skipped": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.nii.gz",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json",
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   ".brainspresso/orig/rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   ".brainspresso/orig/rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea",
+   "dataset_description.json": "0577e7a232f0c3d6805a993756791c42f67ef24ec7b7f9a4e9b2992bcda9846e",
+   "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e",
+   "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b",
+   "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075",
+   "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz": "gz:14f67846146d2d1443b07d2fbfb778f7f08d3a91ce84b541c1bb715910ccace1",
+   "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats": "1928675b4159b80667f16e26da5a84804f36efd8608deed0b21a5c8d2d727112",
+   "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db",
+   "rawbids/README": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144",
+   "rawbids/dataset_description.json": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557",
+   "rawbids/participants.json": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224",
+   "rawbids/participants.tsv": "a24f8f2fdba211e787023b1639702e18d4f5987d86d9f83219a69f2214a75d63",
+   "rawbids/phenotype/UDS_b4_cdr.json": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e",
+   "rawbids/phenotype/UDS_b4_cdr.tsv": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b",
+   "rawbids/sessions.json": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019",
+   "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0001/sub-0001_sessions.tsv": "71334d9150ea844d002e662dbcdf6814d69961b0d87ead5f87949cdfe4858c9c",
+   "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d",
+   "rawbids/sub-0002/sub-0002_sessions.tsv": "f6d5979556d528acc9dfb2ab612fe8b0399cd3dd53520916aa2e2ecf5831d1ea"
+  },
+  "manifest": {
+   "files": {
+    "derivatives/oasis-freesurfer/atlas-AsegDesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "83ae1666085536f54847cc6ebdc52e2964bcb871e253de9dd6ee4c2b51ab340e"
+    },
+    "derivatives/oasis-freesurfer/atlas-Aseg_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "7d7eef572d97d23a22916f729d42433425792b2d330d616b60706cc50ff1065b"
+    },
+    "derivatives/oasis-freesurfer/atlas-DesikanKilliany_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "fb4845c9091c33dbcdb66ad4ca9b3b532978f66a4769298d5dd70898e1c0f075"
+    },
+    "derivatives/oasis-freesurfer/atlas-Destrieux_dseg.tsv": {
+     "origin": "converted",
+     "sha256": "645285ae792a03c081f4c090cb4eb77f2e732b28e9e22446820052f838ab8f1f"
+    },
+    "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json": {
+     "origin": "converted",
+     "sha256": "93a155b160229d4e93dfce347057bdc266dab0867374cc4c99634ec25db9f6db"
+    },
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "1c2aa13830ca426b8741e85549779178c3da2f328c23336b0e21de1bad2dc144"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "e2272dafa94e23a464bf8ed0dcd63994e3d14ada696528d9da98f3f2b388f557"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6e5a34906b54d492b63fa823470bb7bf2de1f0bb24b72a39ea15aa5c7840c224"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.json": {
+     "origin": "converted",
+     "sha256": "a1b70bee03852d81a134772994e2c47dcf2738234d5cb71849b34000a8d9cd1e"
+    },
+    "rawbids/phenotype/UDS_b4_cdr.tsv": {
+     "origin": "converted",
+     "sha256": "1787148344ffdd5c9b0d9ed6bd6fadc9fdc0bf780ae591962d59aabdabd1e32b"
+    },
+    "rawbids/sessions.json": {
+     "origin": "converted",
+     "sha256": "9f0c53b6cb84c5dc21f1c21f602016c35dc682a835ce4502c4371b3b0ad1d019"
+    },
+    "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    },
+    "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json": {
+     "origin": "converted",
+     "sha256": "8550010de6cb1cf9c4d67fbf66f16805d9521c128ab48f9e9df818d73d54024d"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "json": "only",
+     "keys": [
+      "AV1451",
+      "AV45",
+      "CT",
+      "FDG",
+      "FLAIR",
+      "PIB",
+      "T1w",
+      "T2star",
+      "T2w",
+      "TSE",
+      "angio",
+      "asl",
+      "bold",
+      "dwi",
+      "fmap",
+      "fs",
+      "fs-all",
+      "meta",
+      "pasl",
+      "pheno",
+      "pup",
+      "swi"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "anat": {
+       "done": 2
+      },
+      "fs": {
+       "done": 7
+      },
+      "meta": {
+       "done": 7
+      },
+      "pheno": {
+       "done": 2
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/subjects/sub-0001": {
+    "children": 1,
+    "counts": {
+     "anat": {
+      "done": 1
+     },
+     "fs": {
+      "done": 3
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats"
+      ]
+     ],
+     [
+      "fs",
+      [
+       "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json"
+      ]
+     ],
+     [
+      "anat",
+      [
+       "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/mri/aseg.mgz",
+     "derivatives/oasis-freesurfer/sourcedata/sub-0001/ses-d0129/stats/aseg.stats",
+     "derivatives/oasis-freesurfer/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_atlas-Aseg_dseg.json",
+     "rawbids/sub-0001/ses-d0129/anat/sub-0001_ses-d0129_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0001"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0001"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "00c5d546398ec9489b49432cd6bab2a7ddcc39cf1fcfa37efbbfe6ec427530c1",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0001",
+    "unit": {
+     "sub": "0001"
+    }
+   },
+   "roast/subjects/sub-0002": {
+    "children": 0,
+    "counts": {
+     "anat": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "anat",
+      [
+       "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0002/ses-d0000/anat/sub-0002_ses-d0000_T2w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "subjects": [
+      null,
+      1
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "AV1451",
+         "AV45",
+         "CT",
+         "FDG",
+         "FLAIR",
+         "PIB",
+         "T1w",
+         "T2star",
+         "T2w",
+         "TSE",
+         "angio",
+         "asl",
+         "bold",
+         "dwi",
+         "fmap",
+         "fs",
+         "fs-all",
+         "pasl",
+         "pup",
+         "swi"
+        ],
+        "subs": [
+         "0002"
+        ]
+       },
+       "json": "only"
+      },
+      "keys": [
+       "AV1451",
+       "AV45",
+       "CT",
+       "FDG",
+       "FLAIR",
+       "PIB",
+       "T1w",
+       "T2star",
+       "T2w",
+       "TSE",
+       "angio",
+       "asl",
+       "bold",
+       "dwi",
+       "fmap",
+       "fs",
+       "fs-all",
+       "pasl",
+       "pup",
+       "swi"
+      ],
+      "mode": "all",
+      "subs": {
+       "kept": [
+        "0002"
+       ]
+      }
+     }
+    ],
+    "seen": {},
+    "signature": "7236fbe5b5a09e6a39d241c9ded55f82ef6c6e8b4b1387a2e49c0ad2719a9e08",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/subjects/sub-0002",
+    "unit": {
+     "sub": "0002"
+    }
+   }
+  }
+ }
+}

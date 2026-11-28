@@ -110,8 +110,8 @@ def bidsify_toplevel(
     FreeSurfer segmentations
 
     * atlas-Aseg_dseg.tsv
-    * atlas-AsegDesikanKillian_dseg.tsv
-    * atlas-Desikan-Killian_dseg.tsv
+    * atlas-AsegDesikanKilliany_dseg.tsv
+    * atlas-DesikanKilliany_dseg.tsv
     * atlas-Destrieux_dseg.tsv
 
     Parameters
@@ -134,13 +134,13 @@ def bidsify_toplevel(
     )
 
     yield Action(
-        [], dst / 'atlas-AsegDesikanKillian_dseg.tsv',
+        [], dst / 'atlas-AsegDesikanKilliany_dseg.tsv',
         partial(write_lookup, mode='aparc+aseg'),
         mode="t", input="path",
     )
 
     yield Action(
-        [], dst / 'atlas-Desikan-Killian_dseg.tsv',
+        [], dst / 'atlas-DesikanKilliany_dseg.tsv',
         partial(write_lookup, mode='ak'),
         mode="t", input="path",
     )

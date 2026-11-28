@@ -2,7 +2,7 @@
 # Run `python scripts/make_sidecars.py ABIDE1` to regenerate the sidecars.
 #
 # Each [[sidecar]] entry has:
-#   output    path of the sidecar, relative to brainspresso/datasets/ABIDE/I/templates/
+#   output    path of the sidecar, relative to brainspresso/datasets/indi/abide/i/templates/
 #   printout  path of the protocol printout, relative to printouts/ABIDE1
 #   select    (optional) protocol selector: 0-based index or name glob
 #             (see `p2b list <printout>`); must match exactly one protocol
@@ -29,9 +29,10 @@
 # when the data names no sample, the site folder (`<Site>/`) holds what
 # the samples share (`common`), else (samples sharing one protocol) the
 # first sample is used.
-# `acq-hires_T1w.json` is the high-resolution anatomical of UCLA
-# (`anat_hires` in convert_ABIDE1.sh, protocol index 1 of anat.pdf); it is
-# not read by the roast yet.
+# `acq-hires_T2w.json` is the high-resolution anatomical of UCLA
+# (`anat_hires` in convert_ABIDE1.sh, protocol index 1 of anat.pdf), read
+# by the roast for `anat_2` (`sub-<label>_acq-hires_T2w`): a "Matched
+# Bandwidth HiRes" 2D spin-echo EPI, so T2w, not T1w (owner decision).
 
 
 [[sidecar]]
@@ -240,11 +241,11 @@ nii = "UCLA_1/nii/anat.nii"
 previous = "UCLA/T1w.json"
 
 [[sidecar]]
-output = "UCLA_1/acq-hires_T1w.json"
+output = "UCLA_1/acq-hires_T2w.json"
 printout = "UCLA_1/anat.pdf"
 select = "1"
 nii = "UCLA_1/nii/anat_hires.nii"
-note = "high-resolution T1w (`anat_hires` in convert_ABIDE1.sh)"
+note = "high-resolution anatomical, a spin-echo EPI: T2w (owner decision; `anat_hires` in convert_ABIDE1.sh)"
 
 [[sidecar]]
 output = "UCLA_1/bold.json"
@@ -260,11 +261,11 @@ nii = "UCLA_2/nii/anat.nii"
 previous = "UCLA/T1w.json"
 
 [[sidecar]]
-output = "UCLA_2/acq-hires_T1w.json"
+output = "UCLA_2/acq-hires_T2w.json"
 printout = "UCLA_2/anat.pdf"
 select = "1"
 nii = "UCLA_2/nii/anat_hires.nii"
-note = "high-resolution T1w (`anat_hires` in convert_ABIDE1.sh)"
+note = "high-resolution anatomical, a spin-echo EPI: T2w (owner decision; `anat_hires` in convert_ABIDE1.sh)"
 
 [[sidecar]]
 output = "UCLA_2/bold.json"

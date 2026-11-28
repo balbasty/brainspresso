@@ -301,6 +301,7 @@ class S3Prefix(Source):
         Local path, relative to `destination(layout)` (None: skip)
     """
 
+    title = "S3"
     jobs = 4
 
     def __init__(self, bucket, prefix: str = "", *, keep=None, rename=None,

@@ -78,7 +78,8 @@ class WriteJSON(Action):
         ----------------
         src : str | Path | sequence[str | Path]
             Dependencies (only used to compute mtime)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -154,7 +155,8 @@ class CopyJSON(Action):
 
         Other Parameters
         ----------------
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -233,7 +235,8 @@ class WriteTSV(Action):
         ----------------
         src : str | Path | sequence[str | Path]
             Dependencies (only used to compute mtime)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -311,7 +314,8 @@ class WriteBytes(Action):
         ----------------
         src : str | Path | sequence[str | Path]
             Dependencies (only used to compute mtime)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -383,7 +387,8 @@ class CopyBytes(Action):
 
         Other Parameters
         ----------------
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -457,7 +462,8 @@ class WriteText(Action):
         ----------------
         src : str | Path | sequence[str | Path]
             Dependencies (only used to compute mtime)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -538,7 +544,8 @@ class BabelConvert(Action):
             Output format  (default: guess)
         affine : np.ndarray
             Orientation matrix (default: from input)
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)
@@ -616,7 +623,8 @@ class Freesurfer2Gifti(Action):
 
         Other Parameters
         ----------------
-        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh'}
+        ifexists : {'error', 'skip', 'overwrite', 'different', 'refresh',
+                    'update'}
             Behaviour if destination file already exists
         kind : str
             Kind of output (default: set by the layer that runs it)

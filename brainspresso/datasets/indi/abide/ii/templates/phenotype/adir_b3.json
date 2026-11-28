@@ -1,0 +1,20 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item B3"
+    },
+    "stereotyped_utterances": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B3_STEREOTYPED_UTTERANCES"
+    },
+    "inappropriate_questions": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B3_INAPPROPRIATE_QUESTIONS"
+    },
+    "pronominal_reversal": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B3_PRONOMINAL_REVERSAL"
+    },
+    "neologisms": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B3_NEOLOGISMS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_B3_Total"
+    }
+}

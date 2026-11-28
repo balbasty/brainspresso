@@ -8,7 +8,8 @@ python scripts/make_catalog.py --check  # exit 1 if it is out of date
 
 Every `Dataset` subclass with a `name` in `brainspresso/datasets/**/
 dataset.py` is an entry (summary: the first line of its help), and so
-is every curated INDI project (`INDI.dataset.project_dataset`). The
+is every curated INDI project (`indi/<project>/dataset.py`: its
+`project_dataset(<Project>)`, see `indi.dataset.project_dataset`). The
 config file reads two more tables: `ARGUMENTS` (the arguments of the
 entries that take some: OpenNeuro's accession) and `KEYS` (the config
 keys of each command, over every dataset), and `DEPRECATED` (the
@@ -27,10 +28,7 @@ sys.path.insert(0, str(ROOT))   # (this checkout, not an installed copy)
 
 from brainspresso.config import FORBIDDEN  # noqa: E402
 from brainspresso.datasets.base import Dataset  # noqa: E402
-from brainspresso.datasets.INDI.dataset import (  # noqa: E402
-    project_dataset,
-    projects,
-)
+from brainspresso.datasets.indi.engine import Project  # noqa: E402
 from brainspresso.datasets.register import (  # noqa: E402
     command_names,
     config_options,
@@ -54,9 +52,12 @@ def datasets() -> dict[str, tuple[str, Dataset]]:
                     isinstance(obj.__dict__.get("name"), str) and obj.name:
                 if obj.name not in SKIP:
                     out[obj.name] = (f"{module}:{attr}", obj())
-    for name in projects():
-        out[name] = ("brainspresso.datasets.INDI.dataset:project_dataset",
-                     project_dataset(name))
+            # an INDI project (`indi.dataset.project_dataset`)
+            project = getattr(obj, "project", None)
+            if callable(obj) and inspect.isclass(project) and \
+                    issubclass(project, Project) and \
+                    project.__module__ == module and project.name:
+                out[project.name] = (f"{module}:{attr}", obj(project.name))
     return dict(sorted(out.items()))
 
 

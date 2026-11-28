@@ -377,7 +377,7 @@ def test_subject_labels(tmp_path):
 
 
 def test_url_list_with_a_byte_order_mark(tmp_path):
-    from brainspresso.datasets.ADNI.I.dataset import URLOptions
+    from brainspresso.datasets.adni.i.dataset import URLOptions
     urls = tmp_path / "urls.txt"
     urls.write_bytes(b"\xef\xbb\xbfhttps://a/1\r\nhttps://a/2\n")
     options = URLOptions(urls=(str(urls), "https://b/3"))
@@ -546,7 +546,7 @@ def test_nitrc_auth_logs_in_on_401(host, nitrc_env, tmp_path):
 
 
 def test_abide2_harvest_nitrc_login(host, nitrc_env, tmp_path, monkeypatch):
-    from brainspresso.datasets.ABIDE.II import harvest as abide2
+    from brainspresso.datasets.indi.abide.ii import harvest as abide2
     url = host["url"]
     monkeypatch.setattr(abide2.NITRCTarballs, "login_url",
                         f"{url}/account/login.php")
@@ -566,7 +566,7 @@ def test_abide2_harvest_nitrc_login(host, nitrc_env, tmp_path, monkeypatch):
 
 
 def test_abide1_harvest_xnat(host, nitrc_env, tmp_path, monkeypatch):
-    from brainspresso.datasets.ABIDE.I import sources as abide1_sources
+    from brainspresso.datasets.indi.abide.i import sources as abide1_sources
     url = host["url"]
     monkeypatch.setattr(abide1_sources.XNATImages, "server", f"{url}/ir")
     monkeypatch.setattr(abide1_sources.XNATMeta, "login_url",
@@ -657,7 +657,7 @@ def test_nitrc_sources_are_insecure_by_default():
 
 
 def test_unc_folders_json_merged(tmp_path):
-    from brainspresso.datasets.UNCWisconsin.harvest import Girder
+    from brainspresso.datasets.unc_wisconsin.harvest import Girder
     src = tmp_path / "sourcedata"
     src.mkdir()
     (src / "folders.json").write_text(json.dumps({"001": {"sex": "F"}}))
@@ -691,13 +691,13 @@ def no_credentials(monkeypatch):
 
 
 def test_ixi_user_without_password(no_credentials):
-    from brainspresso.datasets.IXI.harvest import NitrcIR
+    from brainspresso.datasets.ixi.harvest import NitrcIR
     auth = NitrcIR().configure(user="anon").auth()
     assert (auth.user, auth.password) == ("anon", "")
 
 
 def test_ixi_listing_access_denied():
-    from brainspresso.datasets.IXI.harvest import NitrcIR
+    from brainspresso.datasets.ixi.harvest import NitrcIR
 
     async def deny(request):
         return web.Response(status=403)
@@ -786,7 +786,7 @@ def test_dry_run_nitrc_without_credentials(host, no_credentials, tmp_path):
 def test_abide2_s3_sidecars_filtered_by_site():
     from types import SimpleNamespace
 
-    from brainspresso.datasets.ABIDE.II.harvest import S3
+    from brainspresso.datasets.indi.abide.ii.harvest import S3
     s3 = S3()
     s3.sites = frozenset({"ETH"})
 

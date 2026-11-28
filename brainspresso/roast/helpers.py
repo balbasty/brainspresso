@@ -4,6 +4,8 @@ Helpers shared by roasters.
 ```python
 yield from copy_templates(ctx, ["README", "dataset_description.json"])
 yield from subject_shards(ctx, labels, roast_subject)
+yield Shard(roast_archive, path, id=..., inputs=[path],
+            scope=scope(keys=("T1w", "bold"), subs=SEEN))
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -19,8 +21,50 @@ from brainspresso.actions.action import Action, Fail
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.roast.context import RoastContext
+from brainspresso.roast.policy import SEEN
 
-__all__ = ["copy_templates", "subject_shards"]
+__all__ = ["copy_templates", "scope", "subject_shards"]
+
+
+def scope(keys: Iterable[str] | None = None,
+          subs: Iterable[str] | str | None = None) -> dict:
+    """
+    Declare what of a roast can change the outputs of a shard.
+
+    `Shard(scope=scope(...))`: the shard is then signed by its inputs and
+    `config` only, and a later roast skips it if it writes no more than
+    a recorded one (`RoastPolicy.covers`). The roaster promises that the
+    selection decides which of its outputs exist, never their content
+    (what else does goes in `config`), and that a selection that keeps
+    no more writes no more.
+
+    Parameters
+    ----------
+    keys : list[str] | None
+        Every key whose being wanted can change what the shard writes:
+        the BIDS keys of its raw outputs and the categories it reads
+        with `ctx.wants`; None: all keys
+    subs : list[str] | SEEN | None
+        Its subjects: a list of labels (it writes only for them);
+        `SEEN`: it asks `ctx.keeps_subject(label)` for every subject its
+        inputs hold, before any other pruning, on every run; None:
+        unknown (the whole subject filter counts)
+
+    Returns
+    -------
+    dict
+        The declaration (`Shard(scope=)`)
+    """
+    if isinstance(keys, str):
+        keys = [keys]
+    if isinstance(subs, str) and subs != SEEN:
+        raise ValueError(f"subs must be a list of labels, SEEN or None: "
+                         f"{subs!r}")
+    if subs is not None and subs != SEEN:
+        subs = sorted({str(s)[4:] if str(s).startswith("sub-") else str(s)
+                       for s in subs})
+    return {"keys": None if keys is None else sorted(set(keys)),
+            "subs": subs}
 
 
 def copy_templates(
@@ -76,6 +120,7 @@ def subject_shards(
     *args,
     tag: str = "subjects",
     inputs: Callable[[str], list] | None = None,
+    scope_keys: Iterable[str] | str | None = None,
     **kwargs,
 ) -> Iterator[Shard]:
     """
@@ -100,8 +145,12 @@ def subject_shards(
         Progress group
     inputs : callable(label) -> list[path] | None
         Source files of a subject (see `Shard(inputs=)`)
+    scope_keys : list[str] | "all" | None
+        Keys that a subject shard can write (`scope`: each shard gets
+        `scope(keys=scope_keys, subs=[label])`, "all": every key);
+        None: no scope declared
     **kwargs
-        Keyword arguments of `fn`
+        Keyword arguments of `fn` (and `config` of the shards)
 
     Yields
     ------
@@ -112,8 +161,11 @@ def subject_shards(
               if ctx.selection.keeps_subject(label)]
     ctx.progress(total=len(labels), tag=tag)
     for label in labels:
+        declared = None if scope_keys is None else scope(
+            keys=None if scope_keys == "all" else scope_keys, subs=[label])
         yield Shard(
             fn, label, *args, tag=tag, advance=tag,
             id=f"roast/{tag}/sub-{label}", unit={"sub": label},
-            inputs=inputs(label) if inputs else None, **kwargs,
+            inputs=inputs(label) if inputs else None, scope=declared,
+            **kwargs,
         )

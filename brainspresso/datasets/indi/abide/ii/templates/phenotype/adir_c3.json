@@ -1,0 +1,17 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), item C3"
+    },
+    "hand_finger_mannerisms": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C3_HAND_FINGER_MANNERISMS"
+    },
+    "higher": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C3_HIGHER"
+    },
+    "other_complex_mannerisms": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C3_OTHER_COMPLEX_MANNERISMS"
+    },
+    "total": {
+        "Description": "ABIDE-II phenotypic column ADI_R_C3_TOTAL"
+    }
+}

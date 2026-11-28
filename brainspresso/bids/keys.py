@@ -253,20 +253,35 @@ class KeySelection:
 
     def fingerprint(self) -> str:
         """Stable description (state signatures)."""
-        def norm(obj):
-            if dataclasses.is_dataclass(obj):
-                return norm(dataclasses.asdict(obj))
-            if isinstance(obj, Mapping):
-                return {str(k): norm(v) for k, v in sorted(obj.items())}
-            if isinstance(obj, (set, frozenset)):
-                return sorted(map(norm, obj))
-            if isinstance(obj, (list, tuple)):
-                return [norm(v) for v in obj]
-            return obj
-        return json.dumps(norm({
+        return json.dumps(normalize({
             "base": self.base, "wanted": self.wanted,
             "keys": [k.name for k in self.predicates],
         }), sort_keys=True, default=str)
+
+
+def normalize(obj):
+    """
+    Turn a selection (dataclasses, sets...) into sorted JSON-able values.
+
+    Parameters
+    ----------
+    obj : Any
+        A `Selection`, a mapping, a collection or a value
+
+    Returns
+    -------
+    Any
+        Dicts with sorted string keys, sorted lists for sets
+    """
+    if dataclasses.is_dataclass(obj):
+        return normalize(dataclasses.asdict(obj))
+    if isinstance(obj, Mapping):
+        return {str(k): normalize(v) for k, v in sorted(obj.items())}
+    if isinstance(obj, (set, frozenset)):
+        return sorted(map(normalize, obj))
+    if isinstance(obj, (list, tuple)):
+        return [normalize(v) for v in obj]
+    return obj
 
 
 class KeyAliases:

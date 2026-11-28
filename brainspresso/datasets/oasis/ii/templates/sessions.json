@@ -1,0 +1,59 @@
+{
+  "visit": {
+    "Description": "Visit number (the session label is the number of the MRI ID)"
+  },
+  "delay": {
+    "Description": "Time since the first visit",
+    "Units": "days"
+  },
+  "pathology": {
+    "Levels": {
+      "N": "nondemented",
+      "D": "demented",
+      "C": "converted"
+    },
+    "Description": "Group of the participant across the study (converted: nondemented at the first visit, demented at a later one)"
+  },
+  "age": {
+    "Description": "Age of the participant",
+    "Units": "years"
+  },
+  "educ": {
+    "Description": "Years of education",
+    "Units": "years"
+  },
+  "ses": {
+    "Description": "Socioeconomic status, assessed by the Hollingshead Index of Social Position and classified into categories from 1 (highest status) to 5 (lowest status) (Hollingshead, 1957).",
+    "Levels": {
+      "1": "highest socioeconomic status.",
+      "2": "",
+      "3": "",
+      "4": "",
+      "5": "lowest socioeconomic status"
+    }
+  },
+  "mmse": {
+    "Description": "Mini-Mental State Examination. Ranges from 0 (worst) to 30 (best) (Folstein, Folstein, & McHugh, 1975)"
+  },
+  "cdr": {
+    "Description": "Clinical Dementia Rating (Morris, 1993). All participants with dementia (CDR >0) were diagnosed with probable AD.",
+    "Levels": {
+      "0": "no dementia",
+      "0.5": "very mild AD",
+      "1": "mild AD",
+      "2": "moderate AD"
+    }
+  },
+  "etiv": {
+    "Description": "Estimated Total Intracranial Volume",
+    "Units": "cubic centimeter"
+  },
+  "nwbv": {
+    "Description": "Normalized Whole Brain Volume, expressed as a percent of all voxels in the atlas-masked image that are labeled as gray or white matter by the automated tissue segmentation process (Fotenos et al., 2005)",
+    "Units": "unitless"
+  },
+  "asf": {
+    "Description": "Atlas Scaling Factor. Computed scaling factor that transforms native-space brain and skull to the atlas target (i.e., the determinant of the transform matrix) (Buckner et al., 2004)",
+    "Units": "unitless"
+  }
+}

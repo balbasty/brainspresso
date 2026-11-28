@@ -55,7 +55,7 @@ Usage: brainspresso COMMAND
 ┃       Brainspresso : Harvest, Roast and Grind public neuroimaging datasets        ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
- • Plantation : A public neuroimaging dataset supported brainspresso
+ • Origin     : A public neuroimaging dataset supported by brainspresso
  • Harvest    : Download raw data
  • Roast      : Convert source data to BIDS
  • Grind      : Preprocess data with standard pipelines
@@ -65,7 +65,7 @@ Usage: brainspresso COMMAND
 │ --help,-h  Display this message and exit.                                         │
 │ --version  Display application version.                                           │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
-╭─ Plantations ─────────────────────────────────────────────────────────────────────╮
+╭─ Origins ─────────────────────────────────────────────────────────────────────────╮
 │ ixi        IXI dataset (controls)                                                 │
 │ oasis1     OASIS-1 dataset (adult lifespan, dementia)                             │
 │ oasis2     OASIS-2 dataset (longitudinal, dementia)                               │
@@ -119,7 +119,7 @@ Harvest: images from NITRC-IR (no login needed; the original tarballs of
 brain-development.org with --source imperial), saved in
 IXI/sourcedata/IXI-{T1,T2,PD,MRA,DTI}/ with the file names of the original tarballs.
 NITRC-IR does not host IXI.xls (demographics): roast uses the copy shipped with
-brainspresso if there is none in sourcedata/. Roast: see IXI/roaster.py.
+brainspresso if there is none in sourcedata/. Roast: see datasets/ixi/roaster.py.
 
 ╭─ Commands ───────────────────────────────────────────────────────────────────────────╮
 │ compost  Delete source data, or BIDS data outside a filter.                          │
@@ -133,19 +133,33 @@ Every dataset has the same commands (`harvest`, `roast` when it can be
 roasted, `compost`, `info`), with the same option groups; `bx <dataset>
 <command> --help` lists them:
 
-* **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
-  (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
-  files that match no key.
+* **Dataset** (`path`, `--out`, the arguments of a dataset such as an
+  OpenNeuro accession, `--layout`).
 * **Selection** (`--subs`, `--exclude-subs`, `--sessions`, `--sites`,
   `--exclude-sites`): subject labels with or without `sub-` (a file
   lists one per line). Datasets with numbered subjects also accept
   numbers (`--subs 2 12` is `002 012` for IXI) and ranges (`1:10`);
   other labels are kept verbatim (`--subs 00448`).
-* **Sources** (`--source`), **Credentials** (`--user`/`--password`, or
-  `--token`; else environment variables or a prompt).
-* **Harvest** / **Roast** / **Compost** (`--if-exists`, `--jobs`,
-  `--dry-run`...), **Dataset** (`path`, `--out`, `--layout`) and
-  **Logging** (`--log`, `--level`; `--level debug` prints tracebacks).
+* **Filters** (BIDS filters: `--datatypes`, `--suffixes`, `--tasks`,
+  `--include`, `--exclude`, `--where`; `--folders` of hosted datasets).
+* **Keys** (`--keys`, `--exclude-keys`): data categories of the dataset
+  (`bx <dataset> info` lists them). `--exclude-keys` alone keeps the
+  files that match no key.
+* **Harvest** / **Roast** / **Compost**: options of the command
+  (`--if-exists`, `--dry-run`, `--lock-wait`...; roast `--jobs`).
+  `--if-exists skip` (the default) leaves existing files alone, except
+  the tables derived from what is on disk; `roast --if-exists update`
+  rewrites the sidecars and metadata files whose content changed and
+  keeps the ones you edited; `different` replaces edits too.
+* **Sources** (`--source`, and the download options of every source:
+  `--jobs`, `--packet`, `--insecure`, whose help gives the default of
+  each source), then one panel per source that needs options of its
+  own, e.g. **NITRC (--source nitrc)** (`--user`/`--password`) or
+  **Dataverse** (`--token`); credentials not given are read from
+  environment variables, or prompted for.
+* Options of a collection (**INDI**) or of one dataset (**OASIS-1**:
+  `--discs`), then **Logging** (`--log`, `--level`; `--level debug`
+  prints tracebacks).
 * Roast `--sidecars yes|no|only` (default `yes`): `yes` writes the
   sidecars; `no` skips the JSON sidecars (bval/bvec and tables are still
   written); `only` writes the sidecars and metadata only, not the
@@ -213,10 +227,15 @@ again from those copies, without the network (after deleting or editing
 a file, or with `--subs`, `--sidecars`). `--sidecars no` does not
 download the JSON sidecars of the data files, `--sidecars only` only
 downloads metadata (no images; tables and field maps are still trimmed to
-the images selected). A harvest that runs again skips what did not
-change, and a roasted file you edit is kept (`--if-exists overwrite`
-replaces it). `bx openneuro roast` repairs by default, also what a
-`harvest --no-repair` placed, unless a config file says `repair = false`.
+the images selected). A harvest or roast that runs again leaves the
+files that exist alone (`--if-exists skip`, the default), except the
+tables and the `IntendedFor` of field maps, which follow the images on
+disk. `bx openneuro roast --if-exists update` brings the metadata up to
+date with the pristine copies and templates, and keeps a file you
+edited (`--if-exists different` or `overwrite` replaces it). A roast
+repairs the files it writes by default, also what a `harvest
+--no-repair` placed (with `--if-exists update`), unless a config file
+says `repair = false`.
 
 Files are listed through the OpenNeuro API, which pins the exact snapshot
 and provides SHA256 checksums for annexed files. If the API cannot be
@@ -303,6 +322,11 @@ bx hbn harvest /data --sites Site-RU --suffixes T1w --where "Age<10"
 bx fcon1000 harvest /data --layout sites --sites ICBM --subs 00448
 ```
 
+`bx <project> info` also shows the INDI sharing category of the project
+(`retro`, `pro` or `enhanced`, as on the INDI website), as does `bx
+<dataset> info` for the other INDI datasets (ABIDE, ADHD-200, CoRR,
+COBRE).
+
 Multi-site datasets (`fcon1000`, `hbn`, `acpi`) can be harvested in two
 ways:
 
@@ -322,7 +346,7 @@ ways:
   (`--sites`: only these).
 
 Bucket copies are rarely valid BIDS as they are, so each dataset is
-curated (see `brainspresso/datasets/INDI`): FCON1000's per-site folders
+curated (see `brainspresso/datasets/indi/<project>/`): FCON1000's per-site folders
 are merged with site-prefixed labels (`sub-AnnArborA04111`), runs and
 typos in file names are fixed and repetition times read from the NIfTI
 headers; multi-site participant tables are merged with a `site` column;
@@ -331,7 +355,7 @@ put in BIDS order; and common metadata defects (numbers stored as text,
 slice timing in milliseconds, invalid JSON, sessions tables without
 `session_id`, field maps whose `IntendedFor` is a tag such as `"fMRI"`...)
 are repaired when the metadata is roasted (`brainspresso/bids/repair.py`).
-Sidecar templates listed in `templates/<project>/_fill.json` (e.g. scan
+Sidecar templates listed in `indi/<project>/templates/_fill.json` (e.g. scan
 parameters from protocol printouts) add the keys that the bucket's
 sidecars lack, never changing a key the bucket gives.
 Each dataset's `README` lists what was changed.

@@ -1,0 +1,95 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Behavior Assessment System for Children, Second Edition (BASC-2), Parent Rating Scales"
+    },
+    "version": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_VERSION"
+    },
+    "anger": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ANGER_T"
+    },
+    "hyperactivity": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_HYPERACTIVITY_T"
+    },
+    "aggression": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_AGGRESSION_T"
+    },
+    "conduct": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_CONDUCT_T"
+    },
+    "external": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_EXTERNAL_T"
+    },
+    "external_mean": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_EXTERNAL_MEAN_T"
+    },
+    "anxiety": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ANXIETY_T"
+    },
+    "depression": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_DEPRESSION_T"
+    },
+    "somatization": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_SOMATIZATION_T"
+    },
+    "internal": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_INTERNAL_T"
+    },
+    "internal_mean": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_INTERNAL_MEAN_T"
+    },
+    "atypicality": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ATYPICALITY_T"
+    },
+    "withdrawal": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_WITHDRAWAL_T"
+    },
+    "attention": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ATTENTION_T"
+    },
+    "bsi": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_BSI_T"
+    },
+    "bsi_mean": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_BSI_MEAN_T"
+    },
+    "adaptability": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ADAPTABILITY_T"
+    },
+    "social": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_SOCIAL_T"
+    },
+    "leadership": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_LEADERSHIP_T"
+    },
+    "activities": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ACTIVITIES_T"
+    },
+    "functional": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_FUNCTIONAL_T"
+    },
+    "adaptive": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ADAPTIVE_T"
+    },
+    "adaptive_mean": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_ADAPTIVE_MEAN_T"
+    },
+    "bully": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_BULLY_T"
+    },
+    "dsd": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_DSD_T"
+    },
+    "emotional": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_EMOTIONAL_T"
+    },
+    "executive": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_EXECUTIVE_T"
+    },
+    "negative": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_NEGATIVE_T"
+    },
+    "resiliency": {
+        "Description": "ABIDE-II phenotypic column BASC2_PRS_RESILIENCY_T"
+    }
+}

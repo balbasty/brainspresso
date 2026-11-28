@@ -1163,7 +1163,7 @@ protocol2bids 0.0.0 (commit 1987062); baseline `aa3e2f1`
 - changed `CoilCombinationMethod`: "Sum of Squares" -> "rSOS"
 - changed `RepetitionTimePreparation`: 2.3 -> 2.3000000000000003
 
-## UCLA_1/acq-hires_T1w.json
+## UCLA_1/acq-hires_T2w.json
 
 protocol2bids 0.0.0 (commit 1987062); baseline `aa3e2f1`
 
@@ -1291,7 +1291,7 @@ protocol2bids 0.0.0 (commit 1987062); baseline `aa3e2f1`
 - changed `CoilCombinationMethod`: "Sum of Squares" -> "rSOS"
 - changed `RepetitionTimePreparation`: 2.3 -> 2.3000000000000003
 
-## UCLA_2/acq-hires_T1w.json
+## UCLA_2/acq-hires_T2w.json
 
 protocol2bids 0.0.0 (commit 1987062); baseline `aa3e2f1`
 

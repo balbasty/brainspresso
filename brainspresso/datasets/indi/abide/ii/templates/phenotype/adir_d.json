@@ -1,0 +1,20 @@
+{
+    "MeasurementToolMetadata": {
+        "Description": "Autism Diagnostic Interview-Revised (ADI-R), domain D (onset)"
+    },
+    "age_parent_noticed": {
+        "Description": "ABIDE-II phenotypic column ADI_R_D_AGE_PARENT_NOTICED"
+    },
+    "age_first_single_words": {
+        "Description": "ABIDE-II phenotypic column ADI_R_D_AGE_FIRST_SINGLE_WORDS"
+    },
+    "age_first_phrases": {
+        "Description": "ABIDE-II phenotypic column ADI_R_D_AGE_FIRST_PHRASES"
+    },
+    "age_when_abnormality": {
+        "Description": "ABIDE-II phenotypic column ADI_R_D_AGE_WHEN_ABNORMALITY"
+    },
+    "interviewer_judgement": {
+        "Description": "ABIDE-II phenotypic column ADI_R_D_INTERVIEWER_JUDGMENT"
+    }
+}

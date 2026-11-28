@@ -83,6 +83,23 @@ files) and finished without errors is skipped by a later run under
 are unchanged and its outputs exist: its inputs are not
 reopened (its `finalize` still runs). A shard that yielded shards is
 never skipped this way.
+
+Scope
+-----
+A shard may declare what of the run can change its outputs
+(`Shard(scope=)`, opaque here). The policy turns it into a JSON-able
+description of the run (`Policy.scope`); the signature then holds only
+the inputs and `config` (not `fingerprint`), and the scope is stored in
+the record (`scopes`, the last ones that the record's outputs cover).
+Such a shard is skipped if one of them **covers** the new scope
+(`Policy.covers`: the new run writes no more than that one did) and
+every recorded output that the run still expects (`Policy.expects`)
+exists. A producer reports what its inputs hold (`ctx.seen("sub",
+label)`, recorded as `seen` on a complete run), which the policy may use
+to tell coverage. `Policy.audit` checks the outputs of a run against
+its declaration; a declaration found wrong makes the shard never
+skippable by its scope. A shard that declares nothing is skipped as
+above.
 """
 from __future__ import annotations
 
@@ -160,7 +177,7 @@ class Context:
     state : str | PathLike | None
         State folder (`<state>/tasks/` holds the task states); None: no
         task state is written, and shards are never skipped
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists` of actions that do not set their own
     tag : str
         Progress group of the producer that is running (default of
@@ -225,6 +242,25 @@ class Context:
         """
         if self._reporter is not None:
             self._reporter.progress(tag or self.tag, total, advance)
+
+    def seen(self, entity: str, value: str) -> None:
+        """
+        Report a unit that the inputs of the running shard hold.
+
+        It is recorded (as `seen`, on a complete run) in the state of
+        the innermost running task; no event, and nothing without one.
+        A policy may use it to tell whether a later run covers this one
+        (`Policy.covers`).
+
+        Parameters
+        ----------
+        entity : str
+            Kind of unit (e.g. "sub")
+        value : str
+            Its label
+        """
+        if self._reporter is not None:
+            self._reporter.seen(entity, value)
 
 
 class Rejected(Exception):
@@ -302,6 +338,96 @@ class Policy:
         """
         return {}
 
+    def scope(self, ctx: Context, shard) -> dict | None:
+        """
+        Describe the run as far as a shard declares it can matter.
+
+        A shard that returns a scope is signed by its inputs and
+        `config` only, and its record keeps the scope, compared by
+        `covers` (see the module).
+
+        Parameters
+        ----------
+        ctx : Context
+            Context of the run
+        shard : Producer
+            The shard (its `scope` attribute, if any)
+
+        Returns
+        -------
+        dict | None
+            JSON-serializable scope; None (default): the shard is signed
+            with the whole `fingerprint` and skipped on equality
+        """
+        return None
+
+    def covers(self, old: dict, new: dict, seen: dict) -> bool:
+        """
+        Whether a run of scope `new` writes no more than one of `old`.
+
+        Parameters
+        ----------
+        old : dict
+            A scope of the record
+        new : dict
+            The scope of this run
+        seen : dict
+            `{entity: [values]}` reported by the recorded run
+            (`Context.seen`; empty if none)
+
+        Returns
+        -------
+        bool
+            Default: `old == new`
+        """
+        return old == new
+
+    def expects(self, path: Path, ctx: Context) -> bool:
+        """
+        Whether a recorded output of a scoped shard is still wanted.
+
+        Only those must exist for the shard to be skipped (and only
+        those are reported as its outputs when it is).
+
+        Parameters
+        ----------
+        path : Path
+            The output (absolute)
+        ctx : Context
+            Context of the run
+
+        Returns
+        -------
+        bool
+            Default: True
+        """
+        return True
+
+    def audit(self, ctx: Context, scope: dict, outputs: list[str],
+              seen: dict) -> str | None:
+        """
+        Check the outputs of a scoped shard against its scope.
+
+        Parameters
+        ----------
+        ctx : Context
+            Context of the run
+        scope : dict
+            Its scope (`scope`)
+        outputs : list[str]
+            The outputs of this run (as recorded: relative to
+            `ctx.root`)
+        seen : dict
+            `{entity: [values]}` reported by this run
+
+        Returns
+        -------
+        str | None
+            What is wrong with the declaration (the record is then never
+            skippable by its scope), or None (default)
+        """
+        return None
+
 
 class Shard:
     """
@@ -330,19 +456,24 @@ class Shard:
     config : JSON-able, optional
         What else decides its outputs (e.g. the options of each file it
         writes): part of its input signature, with `inputs`
+    scope : JSON-able, optional
+        What of the run can change its outputs (opaque here: the policy
+        reads it, `Policy.scope`; e.g. `roast.scope`); None: everything
+        the policy fingerprints
     **kwargs
         Keyword arguments of `fn` (none of the names above)
     """
 
     def __init__(self, fn, *args, tag=None, id=None, inputs=None,
                  advance=None, unit=None, source=None, config=None,
-                 **kwargs):
+                 scope=None, **kwargs):
         self.fn, self.args, self.kwargs = fn, args, kwargs
         self.tag, self.id, self.advance = tag, id, advance
         self.inputs = list(inputs) if inputs is not None else None
         self.unit = dict(unit or {})
         self.source = source
         self.config = config
+        self.scope = scope
 
     def __call__(self, ctx):
         """Run the producer: `fn(ctx, *args, **kwargs)`."""
@@ -380,6 +511,9 @@ class Report:
         `(tag, name, message)` of every error
     outputs : list[Path]
         Outputs written or found already there
+    digests : dict[Path, str]
+        SHA-256 of the outputs of tracked actions (`Action.track`) that
+        hold what the action rendered
     progress : dict[str, tuple[int, int | None]]
         `{tag: (done, total)}`
     status : {"complete", "partial", "failed"}
@@ -391,6 +525,7 @@ class Report:
     )
     errors: list[tuple[str, str, str]] = field(default_factory=list)
     outputs: list[Path] = field(default_factory=list)
+    digests: dict[Path, str] = field(default_factory=dict)
     progress: dict[str, tuple[int, int | None]] = field(default_factory=dict)
     status: str = "complete"
 
@@ -440,10 +575,14 @@ class _Reporter:
             self.tasks[-1].progress(tag, total, advance)
         self._progress(tag, total, advance)
 
-    def outputs(self, paths: list[Path]) -> None:
+    def outputs(self, paths: list[Path], tag: str | None = None) -> None:
         if self.tasks:
-            self.tasks[-1].outputs(paths)
+            self.tasks[-1].outputs(paths, tag)
         self._outputs(paths)
+
+    def seen(self, entity: str, value: str) -> None:
+        if self.tasks:
+            self.tasks[-1].seen(entity, value)
 
     def _outcome(self, tag, path, outcome, message="") -> None:
         self.events.append(("outcome", tag, path, outcome, message))
@@ -453,6 +592,9 @@ class _Reporter:
 
     def _outputs(self, paths) -> None:
         self.events.append(("outputs", list(paths)))
+
+    def digests(self, digests: dict[str, str]) -> None:
+        self.events.append(("digests", dict(digests)))
 
 
 class _MainReporter(_Reporter):
@@ -515,6 +657,12 @@ class _MainReporter(_Reporter):
     def _outputs(self, paths):
         self.report.outputs.extend(paths)
 
+    def digests(self, digests):
+        self._digests(digests)
+
+    def _digests(self, digests):
+        self.report.digests.update({Path(p): h for p, h in digests.items()})
+
     def live_progress(self, task: str, progress: dict | None) -> None:
         """Show the progress of a running shard (None: it is finished)."""
         old = self.live.pop(task, {})
@@ -524,15 +672,31 @@ class _MainReporter(_Reporter):
             if (progress or {}).get(tag) != old.get(tag):
                 self._show_progress(tag)
 
-    def skipped_task(self, record: dict, tag: str, name: str) -> None:
-        """Count a shard skipped as unchanged: what it did last time."""
-        for group, counts in (record.get("counts") or {}).items():
-            done = sum(n for outcome, n in counts.items()
-                       if outcome in ("done", "skipped"))
-            self.report.counts[group]["skipped"] += done
+    def skipped_task(self, record: dict, tag: str, name: str,
+                     expects: Callable[[Path], bool] | None = None) -> None:
+        """
+        Count a shard skipped as unchanged: what it did last time.
+
+        `expects(path)`: which of its recorded outputs are outputs of
+        this run (default: all). With it, a record with `groups` (the
+        outputs of each action, scoped shards) counts the actions with
+        an expected output, else those of the last run. (Progress is
+        that of the last run.)
+        """
+        groups = record.get("groups")
+        if expects is not None and groups is not None:
+            for group, outputs in groups:
+                if any(expects(self.root / p) for p in outputs):
+                    self.report.counts[group]["skipped"] += 1
+        else:
+            for group, counts in (record.get("counts") or {}).items():
+                done = sum(n for outcome, n in counts.items()
+                           if outcome in ("done", "skipped"))
+                self.report.counts[group]["skipped"] += done
         for group, (total, advance) in (record.get("progress") or {}).items():
             self._progress(group, total, advance)
-        self._outputs(self.root / p for p in record.get("outputs") or [])
+        outputs = (self.root / p for p in record.get("outputs") or [])
+        self._outputs(p for p in outputs if expects is None or expects(p))
         self._show({"modality": tag, "path": name, "status": "skipped",
                     "message": "unchanged since the last run"})
 
@@ -549,12 +713,31 @@ class _MainReporter(_Reporter):
 #   Task state (<state>/tasks/<id>.json)
 # ----------------------------------------------------------------------
 
+#: Most scopes kept in a task record
+MAX_SCOPES = 8
+
+
 class _TaskState:
-    """State file of a shard, written as it runs (no-op without state)."""
+    """
+    State file of a shard, written as it runs (no-op without state).
+
+    A scoped shard (`scope`) also records, when it is done, its scopes
+    (that of this run, after those of `carry`, the record it extends),
+    what it reported (`seen`) and the outputs of each action with its
+    progress group (`groups`, what a skip counts), unless
+    `policy.audit` finds its outputs outside its scope (then `scopes`
+    is empty).
+    """
 
     def __init__(self, ctx: Context, task: str, run: str, *,
-                 signature: str | None = None, unit: dict | None = None):
+                 signature: str | None = None, unit: dict | None = None,
+                 scope: dict | None = None, carry: dict | None = None,
+                 policy: Policy | None = None):
         self.state, self.root, self.task = ctx.state, ctx.root, task
+        self.ctx, self.policy = ctx, policy
+        self.scope, self.carry = scope, carry
+        self._seen: dict[str, set] = {}
+        self._groups: list[list] = []
         self.record = {
             "stage": ctx.stage, "pipeline": getattr(ctx, "pipeline", None),
             "unit": dict(unit or {}),
@@ -590,24 +773,73 @@ class _TaskState:
         progress[1] += advance
         self.write()
 
-    def outputs(self, paths) -> None:
+    def outputs(self, paths, tag: str | None = None) -> None:
         root = Path(self.root)
+        relative = []
         for path in paths:
             try:
                 path = Path(path).relative_to(root).as_posix()
             except ValueError:
                 path = str(path)
-            self.record["outputs"].append(path)
+            relative.append(path)
+        self.record["outputs"] += relative
+        if self.scope is not None and relative:
+            # (one per action: what a skip counts, `skipped_task`)
+            self._groups.append([tag, relative])
+
+    def seen(self, entity: str, value) -> None:
+        self._seen.setdefault(str(entity), set()).add(str(value))
 
     def finish(self, status: str | None = None) -> None:
         failed = any(c.get("error") for c in self.record["counts"].values())
         self.record["status"] = status or ("failed" if failed else "done")
         self.record["finished"] = now()
+        if self.scope is not None and self.record["status"] == "done":
+            self._record_scope()
         self.write()
 
+    def _record_scope(self) -> None:
+        """Add `scopes` and `seen` to the record of a done scoped shard."""
+        record, carry = self.record, self.carry or {}
+        seen = {entity: sorted(values)
+                for entity, values in sorted(self._seen.items())}
+        message = None
+        if self.policy is not None:
+            try:
+                message = self.policy.audit(self.ctx, self.scope,
+                                            list(record["outputs"]), seen)
+            except Exception as e:      # (a wrong declaration, or a bug)
+                message = f"audit failed ({type(e).__name__}: {e})"
+        for entity, values in (carry.get("seen") or {}).items():
+            seen[entity] = sorted(set(seen.get(entity, ())) | set(values))
+        if carry.get("outputs"):
+            outputs = list(dict.fromkeys([*carry["outputs"],
+                                          *record["outputs"]]))
+            record["outputs"] = outputs
+        groups = {json.dumps(g): g
+                  for g in [*(carry.get("groups") or []), *self._groups]}
+        if message:
+            lg.warning(f"{self.task}: {message}: its scope is not "
+                       f"recorded (it is not skipped by it)")
+            scopes = []
+        else:
+            scopes = [s for s in carry.get("scopes") or []
+                      if s != self.scope]
+            scopes = [*scopes, self.scope][-MAX_SCOPES:]
+        record["scopes"] = scopes
+        record["seen"] = seen
+        record["groups"] = list(groups.values())
 
-def _signature(ctx: Context, policy: Policy, shard: Shard) -> str | None:
-    """Input signature of a shard: inputs and policy fingerprint."""
+
+def _signature(ctx: Context, policy: Policy, shard: Shard,
+               scope: dict | None = None) -> str | None:
+    """
+    Input signature of a shard.
+
+    Its inputs (paths, sizes, mtimes) and `config`, with the policy
+    fingerprint if it has no scope (a scoped shard: its scope is in its
+    record, compared by `policy.covers`).
+    """
     if not shard.inputs:
         return None
     inputs = []
@@ -620,11 +852,26 @@ def _signature(ctx: Context, policy: Policy, shard: Shard) -> str | None:
     config = getattr(shard, "config", None)
     blob = json.dumps({
         "version": _SIGNATURE_VERSION, "inputs": inputs,
-        **policy.fingerprint(ctx),
+        # (the policy's part is the scope, in the record)
+        **(policy.fingerprint(ctx) if scope is None else {"scoped": True}),
         # (a key no policy fingerprint uses)
         **({"shard_config": config} if config is not None else {}),
     }, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()
+
+
+@dataclass
+class _Plan:
+    """What the main process decided about a shard (`Engine.plan`)."""
+
+    #: Input signature (None: no `id` or no `inputs`)
+    signature: str | None = None
+    #: Its scope (`Policy.scope`; None: signed with the fingerprint)
+    scope: dict | None = None
+    #: Skipped as unchanged (its record, to replay)
+    skip: dict | None = None
+    #: The record a re-run extends (scopes, outputs, seen)
+    carry: dict | None = None
 
 
 # ----------------------------------------------------------------------
@@ -686,6 +933,7 @@ class _Pending:
     task: str
     auto: bool
     started: Path | None = None     # start marker (local pool)
+    plan: _Plan | None = None
 
 
 @dataclass
@@ -703,6 +951,9 @@ class _ShardTask:
     #: dies, the main process tells whether it had started, even
     #: without a (writable) state folder
     started: str | None = None
+    #: Its scope, and the record it extends (`_Plan`)
+    scope: dict | None = None
+    carry: dict | None = None
 
     def __call__(self) -> tuple[list, list, list]:
         if self.started is not None:
@@ -719,18 +970,25 @@ class _ShardTask:
                         worker=True)
         reporter.tasks.append(_TaskState(
             ctx, self.task, self.run, signature=self.signature,
-            unit=self.shard.unit,
+            unit=self.shard.unit, scope=self.scope, carry=self.carry,
+            policy=self.policy,
         ))
-        engine.run_shard(self.shard, self.tag)
-        # finalize hooks go back to the main process if they can; those
-        # run here run before the task state is popped, so that `_drive`
-        # counts the shards they yield on it, as those of the shard
-        finalizers = []
-        for fin, tag in engine.finalizers:
-            if _picklable(fin, warn=False):
-                finalizers.append((fin, tag))
-            else:
-                engine.drive(fin, tag)
+        try:
+            engine.run_shard(self.shard, self.tag)
+            # finalize hooks go back to the main process if they can;
+            # those run here run before the task state is popped, so
+            # that `_drive` counts the shards they yield on it, as those
+            # of the shard
+            finalizers = []
+            for fin, tag in engine.finalizers:
+                if _picklable(fin, warn=False):
+                    finalizers.append((fin, tag))
+                else:
+                    engine.drive(fin, tag)
+        except BaseException:
+            # (an interrupted shard is not done: never skipped)
+            reporter.tasks.pop().finish("failed")
+            raise
         state = reporter.tasks.pop()
         state.finish()
         return reporter.events, engine.deferred, finalizers
@@ -964,18 +1222,24 @@ class Engine:
             if _picklable(item, warn=False):
                 self.deferred.append((item, tag))       # to the main process
                 return
-        elif self.skip(item, tag):
+            self.run_shard(item, tag)
+            return
+        plan = self.plan(item)
+        if plan.skip is not None:
+            self.reporter.skipped_task(
+                plan.skip, tag, _name(item),
+                None if plan.scope is None else self._expects)
             # its `finalize` runs all the same (once per run)
             finalize = getattr(item, "finalize", None)
             if finalize is not None:
                 self.finalizers.append((finalize, tag))
             return
-        elif self.executor is not None and _picklable(item):
-            self.submit(item, tag)
+        if self.executor is not None and _picklable(item):
+            self.submit(item, tag, plan)
             return
-        self.run_shard(item, tag)
+        self.run_shard(item, tag, plan)
 
-    def run_shard(self, shard, tag: str) -> None:
+    def run_shard(self, shard, tag: str, plan: _Plan | None = None) -> None:
         """
         Run a shard here (with its state file if it has an id).
 
@@ -985,60 +1249,119 @@ class Engine:
             The shard
         tag : str
             Its progress group
+        plan : _Plan | None
+            Its signature, scope and carried record (`plan`; computed
+            if not given)
         """
         task_id = getattr(shard, "id", None)
-        if task_id and not self.worker:
+        tracked = bool(task_id) and not self.worker
+        if tracked:
+            plan = plan if plan is not None else self.plan(shard, skip=False)
             self.reporter.tasks.append(_TaskState(
-                self.ctx, task_id, self.run,
-                signature=_signature(self.ctx, self.policy, shard),
-                unit=shard.unit,
+                self.ctx, task_id, self.run, signature=plan.signature,
+                unit=shard.unit, scope=plan.scope, carry=plan.carry,
+                policy=self.policy,
             ))
+        finished = False
         try:
             self.drive(shard, tag)
             advance = getattr(shard, "advance", None)
             if advance:
                 self.ctx.progress(advance=1, tag=advance)
+            finished = True
         finally:
-            if task_id and not self.worker:
-                self.reporter.tasks.pop().finish()
+            if tracked:
+                # (an interrupted shard is not done: never skipped)
+                self.reporter.tasks.pop().finish(
+                    None if finished else "failed")
 
-    def skip(self, shard, tag: str) -> bool:
+    def _expects(self, path: Path) -> bool:
+        return self.policy.expects(path, self.ctx)
+
+    def plan(self, shard, skip: bool = True) -> _Plan:
         """
-        Skip a shard whose inputs did not change (under "skip").
+        Sign a shard, and decide whether it is skipped (under "skip").
 
         Parameters
         ----------
         shard : Producer
-            The shard (only a `Shard` with `id` and `inputs` can be
-            skipped)
-        tag : str
-            Its progress group
+            The shard (only a `Shard` with `id` and `inputs` is signed,
+            and can be skipped)
+        skip : bool
+            Whether skipping it is an option
 
         Returns
         -------
-        bool
-            Whether it was skipped
+        _Plan
+            Its signature and scope; its record if it is skipped (see
+            the module), or the record that its run extends (a scoped
+            shard whose record is done, with the same signature and all
+            its outputs, that the record's scopes do not cover)
         """
-        if not isinstance(shard, Shard) or not shard.id or not shard.inputs:
-            return False
+        if not getattr(shard, "id", None):
+            return _Plan()
+        inputs = getattr(shard, "inputs", None)
+        scope = self.policy.scope(self.ctx, shard) if inputs else None
+        plan = _Plan(_signature(self.ctx, self.policy, shard, scope), scope)
+        if not (skip and isinstance(shard, Shard) and inputs):
+            return plan
         if self.ctx.state is None:
-            return False
+            return plan
         if IfExists.from_any(self.ctx.ifexists) is not IfExists.SKIP:
-            return False
+            return plan
         record = read_task(self.ctx.state, shard.id)
         if not record or record.get("status") != "done" \
                 or record.get("children"):
-            return False
-        if record.get("config_hash") != _signature(self.ctx, self.policy,
-                                                   shard):
-            return False
+            return plan
         root = Path(self.ctx.root)
-        if not all((root / p).exists() for p in record.get("outputs", [])):
-            return False
-        self.reporter.skipped_task(record, tag, _name(shard))
-        return True
+        outputs = [root / p for p in record.get("outputs") or []]
+        if scope is None:
+            if record.get("config_hash") == plan.signature \
+                    and all(p.exists() for p in outputs):
+                plan.skip = record
+            return plan
 
-    def submit(self, shard, tag: str) -> None:
+        def expected() -> bool:
+            return all(p.exists() for p in outputs if self._expects(p))
+
+        if "scopes" not in record:
+            # a record of before scopes: covered if it was made with
+            # this very selection (its signature with the fingerprint);
+            # it is upgraded in place
+            legacy = _signature(self.ctx, self.policy, shard)
+            if record.get("config_hash") == legacy and expected():
+                record.update(config_hash=plan.signature, scopes=[scope])
+                self._rewrite(shard.id, record)
+                plan.skip = record
+            return plan
+        if record.get("config_hash") != plan.signature:
+            return plan
+        seen = record.get("seen") or {}
+        if any(self._covers(old, scope, seen)
+               for old in record.get("scopes") or []):
+            if expected():
+                plan.skip = record
+            return plan     # (an expected output is gone: from scratch)
+        if all(p.exists() for p in outputs):
+            plan.carry = {key: record.get(key)
+                          for key in ("scopes", "outputs", "seen", "groups")}
+        return plan
+
+    def _covers(self, old, new: dict, seen: dict) -> bool:
+        try:
+            return bool(self.policy.covers(old, new, seen))
+        except Exception as e:      # (a record of another version)
+            lg.debug(f"covers: {type(e).__name__}: {e}")
+            return False
+
+    def _rewrite(self, task: str, record: dict) -> None:
+        """Write a task record again (upgraded in place)."""
+        try:
+            write_task_state(self.ctx.state, task, record)
+        except OSError as e:      # (skipped all the same)
+            lg.warning(f"Could not write the state of {task}: {e}")
+
+    def submit(self, shard, tag: str, plan: _Plan | None = None) -> None:
         """
         Submit a shard to the executor.
 
@@ -1048,7 +1371,12 @@ class Engine:
             The shard (picklable)
         tag : str
             Its progress group
+        plan : _Plan | None
+            Its signature, scope and carried record (`plan`; computed
+            if not given)
         """
+        if plan is None:
+            plan = self.plan(shard, skip=False)
         if not isinstance(shard, Shard):
             shard = Shard(shard, tag=tag,
                           source=getattr(shard, "source", None))
@@ -1067,18 +1395,18 @@ class Engine:
                 started = self.markers / f"{self.count}.started"
         task = _ShardTask(
             shard, self.ctx, self.policy, tag, task_id, self.run,
-            _signature(self.ctx, self.policy, shard) if shard.id else None,
-            str(started) if started is not None else None,
+            plan.signature, str(started) if started is not None else None,
+            plan.scope, plan.carry,
         )
         try:
             future = self.executor.submit(task)
         except (BrokenProcessPool, RuntimeError) as e:
             # the pool broke (a worker died) before we collected it
             self.stop_pool(e)
-            self.run_shard(shard, tag)
+            self.run_shard(shard, tag, plan)
             return
         self.pending[future] = _Pending(shard, tag, task_id, not shard.id,
-                                        started)
+                                        started, plan)
 
     def poll(self, block: bool = False) -> None:
         """
@@ -1177,7 +1505,7 @@ class Engine:
         started = record is not None or (
             pending.started is not None and pending.started.exists())
         if not started:
-            self.run_shard(pending.shard, pending.tag)
+            self.run_shard(pending.shard, pending.tag, pending.plan)
             return
         self.reporter.outcome(
             pending.tag, _name(pending.shard), "error",
@@ -1279,10 +1607,26 @@ class Engine:
             reporter.outcome(tag, name, "error", message)
         elif not nb_sub:
             reporter.outcome(tag, name, "empty", "the claim yielded nothing")
-        reporter.outputs(own)
+        reporter.outputs(own, tag)
+        if action.track and action.rendered and own:
+            digests = _digests(own)
+            if digests:
+                reporter.digests(digests)
         if action.claim is not None:
             action.outputs = outputs + own
         return outputs + own
+
+
+def _digests(paths: Iterable[Path]) -> dict[str, str]:
+    """SHA-256 of files (those that cannot be read are left out)."""
+    out = {}
+    for path in paths:
+        try:
+            data = Path(path).read_bytes()
+            out[str(path)] = hashlib.sha256(data).hexdigest()
+        except OSError as e:
+            lg.debug(f"Could not hash {path}: {e}")
+    return out
 
 
 # ----------------------------------------------------------------------

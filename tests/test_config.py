@@ -26,10 +26,10 @@ from brainspresso.bids.layout import Layout, is_sites_parent, make_layout
 from brainspresso.cli import build_app, global_options, main
 from brainspresso.config import ConfigError, Loader, dataset_names, tree
 from brainspresso.datasets import base
-from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Dataset
 from brainspresso.datasets.catalog import ARGUMENTS, CATALOG, KEYS, load
-from brainspresso.datasets.IXI.dataset import IXI
+from brainspresso.datasets.indi.adhd200.dataset import ADHD200
+from brainspresso.datasets.ixi.dataset import IXI
 from brainspresso.errors import UsageError
 
 # ----------------------------------------------------------------------
@@ -824,7 +824,7 @@ IMPORTED = (
     (["config", "--help"], []),
     (["config", "show"], []),
     (["config", "paths"], []),
-    (["config", "show", "ixi", "info"], ["IXI"]),
+    (["config", "show", "ixi", "info"], ["ixi"]),
 ])
 def test_config_commands_import_no_dataset(tokens, datasets):
     out = run_python(IMPORTED.format(tokens=tokens))
@@ -1248,3 +1248,21 @@ def test_shared_list_warns_once(tmp_path, home, caplog):
     assert "'nosuchkey' not a choice of any dataset" in warnings[0]
     assert "['bold'] are not choices of ixi" in warnings[1]
     assert "nosuchkey" not in warnings[1]
+
+
+# ----------------------------------------------------------------------
+#   `--if-exists update`: roast only
+# ----------------------------------------------------------------------
+
+def test_if_exists_update_is_a_roast_choice(tmp_path, home):
+    args, _ = parse("cobre", "roast", tmp_path, "--if-exists", "update")
+    assert value(args, "roast", "if_exists") == "update"
+    with pytest.raises(CycloptsError, match="update"):
+        parse("cobre", "harvest", tmp_path, "--if-exists", "update")
+    user(home, "[cobre.roast]\nif-exists = 'update'\n")
+    args, report = parse("cobre", "roast", tmp_path)
+    assert value(args, "roast", "if_exists") == "update"
+    assert origin(report, "if-exists").kind == "user"
+    user(home, "[cobre.harvest]\nif-exists = 'update'\n")
+    with pytest.raises(CycloptsError, match="update"):
+        parse("cobre", "harvest", tmp_path)

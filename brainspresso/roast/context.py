@@ -6,6 +6,7 @@ ctx = make_context(root, KEYS, select_keys=["T1w"], json="no")
 ctx.wants("meta")               # is a category wanted?
 ctx.resource("README")          # ctx.source, then the dataset templates
 ctx.keeps(path)                 # is an output selected?
+ctx.keeps_subject("01")         # is a subject kept? (and report it)
 ```
 """
 from __future__ import annotations
@@ -18,9 +19,15 @@ from typing import Iterable, Literal
 
 from brainspresso.actions.action import IfExists, Kind
 from brainspresso.actions.engine import Context
+from brainspresso.bids.harvest import manifest_files
 from brainspresso.bids.keys import KeyAliases, KeySelection
 from brainspresso.bids.kinds import accepts
-from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
+from brainspresso.bids.layout import (
+    MANIFEST,
+    ORIG_DIR,
+    Layout,
+    resolve_layout,
+)
 
 __all__ = ["JsonPolicy", "RoastContext", "as_list", "make_context"]
 
@@ -47,7 +54,7 @@ class RoastContext(Context):
         Keys of the dataset (predicates, categories and their folders)
     json : {"yes", "no", "only"}
         Write sidecars only (`only`), not at all (`no`), or with data
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists` of actions that do not set their own
     options : dict
         Dataset-specific options
@@ -78,6 +85,7 @@ class RoastContext(Context):
         """Normalize `json` and `source`."""
         self._reporter = None
         self._folders: list[tuple[Path, frozenset]] | None = None
+        self._recorded: dict[str, str] | None = None
         if isinstance(self.json, bool):
             self.json = "yes" if self.json else "no"
         self.json = str(self.json).lower()
@@ -85,6 +93,43 @@ class RoastContext(Context):
             raise ValueError(f"json must be yes, no or only: {self.json}")
         self.source = Path(self.source) if self.source is not None \
             else Path(self.layout.source)
+
+    def __getstate__(self) -> dict:
+        """Pickle without the reporter and the manifest read."""
+        state = super().__getstate__()
+        state["_recorded"] = None
+        return state
+
+    def forget(self) -> None:
+        """Drop the manifest read by `recorded` (a new run starts)."""
+        self._recorded = None
+
+    def recorded(self, path: str | os.PathLike) -> str | None:
+        """
+        SHA-256 recorded in the manifest for an output.
+
+        The hashes are read once per process and version of the manifest
+        (`_recorded_hashes`: keyed by its path, inode, size and mtime),
+        so that the shards a worker runs share one read; the manifest
+        changes at the end of a roast only.
+
+        Parameters
+        ----------
+        path : str | PathLike
+            Absolute path of an output
+
+        Returns
+        -------
+        str | None
+            Its `sha256` (None: no entry, or no hash)
+        """
+        if self._recorded is None:
+            self._recorded = _recorded_hashes(self.layout)
+        try:
+            key = Path(path).relative_to(self.layout.root).as_posix()
+        except ValueError:
+            return None
+        return self._recorded.get(key)
 
     @property
     def root(self) -> Path:
@@ -112,6 +157,30 @@ class RoastContext(Context):
             `selection.wants(key)`
         """
         return self.selection.wants(key)
+
+    def keeps_subject(self, label: str) -> bool:
+        """
+        Whether a subject is kept, and report it as seen.
+
+        A shard that declares `scope(subs=SEEN)` asks this for every
+        subject its inputs hold, before any other pruning: the subjects
+        seen by a complete run tell a later run whether it adds one that
+        this shard holds (`RoastPolicy.covers`).
+
+        Parameters
+        ----------
+        label : str
+            Subject label (with or without `sub-`)
+
+        Returns
+        -------
+        bool
+            `selection.keeps_subject(label)`
+        """
+        label = str(label)
+        label = label[4:] if label.startswith("sub-") else label
+        self.seen("sub", label)
+        return self.selection.keeps_subject(label)
 
     def resource(self, name: str | os.PathLike) -> Path | None:
         """
@@ -170,8 +239,8 @@ class RoastContext(Context):
             return None
         return Path(dataset), "" if rel == "." else rel
 
-    def _blocked(self, path) -> bool:
-        """In the folder of categories that are all unwanted."""
+    def _categories(self, path) -> list[frozenset]:
+        """Categories of each category folder that holds a path."""
         if self._folders is None:
             folders = defaultdict(set)
             for category, prefixes in getattr(
@@ -180,13 +249,15 @@ class RoastContext(Context):
                     folders[self.layout.resolve(prefix)].add(category)
             self._folders = [(p, frozenset(c)) for p, c in folders.items()]
         if not self._folders:
-            return False
+            return []
         path = self._unorig(path)
-        for prefix, categories in self._folders:
-            if path == prefix or prefix in path.parents:
-                if not any(map(self.selection.wants, categories)):
-                    return True
-        return False
+        return [categories for prefix, categories in self._folders
+                if path == prefix or prefix in path.parents]
+
+    def _blocked(self, path) -> bool:
+        """In the folder of categories that are all unwanted."""
+        return any(not any(map(self.selection.wants, categories))
+                   for categories in self._categories(path))
 
     def keeps(
         self, path: str | os.PathLike, partial: bool = False
@@ -223,6 +294,32 @@ class RoastContext(Context):
         return self.selection.base.keeps(rel, partial)
 
 
+#: `_recorded_hashes`: (manifest path, version) and its hashes, per process
+_HASHES: dict[str, tuple[tuple, dict[str, str]]] = {}
+
+
+def _recorded_hashes(layout: Layout) -> dict[str, str]:
+    """SHA-256 of the files of the manifest, cached per manifest version."""
+    path = Path(layout.state) / MANIFEST
+    try:
+        stat = path.stat()
+        version = (stat.st_ino, stat.st_size, stat.st_mtime_ns)
+    except OSError:
+        version = None
+    cached = _HASHES.get(str(path))
+    if version is not None and cached is not None and cached[0] == version:
+        return cached[1]
+    try:
+        files = manifest_files(layout)
+    except OSError:
+        files = {}
+    hashes = {key: entry["sha256"] for key, entry in files.items()
+              if isinstance(entry.get("sha256"), str)}
+    if version is not None:
+        _HASHES[str(path)] = (version, hashes)
+    return hashes
+
+
 def make_context(
     root: str | os.PathLike | Layout,
     aliases: KeyAliases | None = None,
@@ -252,7 +349,7 @@ def make_context(
         `--keys`, `--exclude-keys`
     json : {"yes", "no", "only"} | bool
         Sidecar policy (`RoastOptions.sidecar_policy`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Default `IfExists`
     templates : path
         Templates shipped with the dataset

@@ -29,10 +29,10 @@ architecture.md`, §4, "State model"):
 * a missing base freezes the file: it is left as it is (one info line),
   and only a missing visible file too is an error (`Fail`);
 * a visible file is edited iff its SHA-256 differs from the recorded
-  one; an edit is kept under `skip` (an edited field map keeps the
+  one; an edit is kept under `update` (an edited field map keeps the
   user's keys and takes `IntendedFor` from the render); without a
   record (an older dataset), a file equal to the render is adopted,
-  any other follows `MIGRATION_RULE`;
+  any other follows `bids.harvest.MIGRATION_RULE` (re-exported here);
 * only `_record` writes the hashes, of the files that hold the render.
 
 It runs after the images are placed (repairs read siblings:
@@ -49,15 +49,20 @@ Rules (`docs/design/architecture.md`, §4):
   roast, it drops the actions of the kinds it excludes (files on disk
   are left as they are).
 * `--repair/--no-repair` (default on): recorded per file, in the shard
-  config; a roast with the default repairs (also what a harvest with
-  `--no-repair` placed).
+  config; a roast with the default repairs the files it writes (also
+  what a harvest with `--no-repair` placed, under `--if-exists
+  update`).
 * Selection: a harvest roasts what it selected and the files of the
   subjects it touched; a roast takes `--subs`, `--exclude-subs`,
   `--sessions` (files that describe no selected data are left alone).
-* `--if-exists`: governs the visible files only. Under "skip" (default)
-  a file is rendered and replaces the visible one if its content changed
-  and it is not edited; "overwrite" rewrites, "error" refuses an
-  existing file, "refresh" compares mtimes with the base.
+* `--if-exists`: governs the visible files only. "skip" (default) is
+  pure: an existing file is left alone (not rendered, no log line, no
+  orphan removed), but for the trimmed tables and the field maps whose
+  `IntendedFor` is trimmed, which follow "update"; a missing file is
+  written. Under "update" a file is rendered and replaces the visible
+  one if its content changed and it is not edited (the edit test
+  above); "different" replaces edits too, "overwrite" rewrites, "error"
+  refuses an existing file, "refresh" compares mtimes with the base.
 * Re-runs: one shard per subject (`roast/hosted/sub-<label>`), whose
   input signature is its bases, fill-in templates, the files of the
   subject on disk, `.bidsignore` and `Shard.config` (per-file options,
@@ -67,17 +72,18 @@ from __future__ import annotations
 
 import functools
 import os
-import shutil
 from logging import getLogger
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Iterator, Literal
+from typing import Iterable, Iterator
 
 from humanize import naturalsize
 
 from brainspresso.actions.action import Action, Fail, IfExists
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import Unlink
+from brainspresso.bids import harvest
 from brainspresso.bids.harvest import (
+    MIGRATION_RULE,
     InlineEntry,
     _filters,
     manifest_files,
@@ -97,7 +103,15 @@ from brainspresso.bids.hosted import (
 )
 from brainspresso.bids.keys import KeySelection
 from brainspresso.bids.kinds import accepts, default_kind
-from brainspresso.bids.layout import Layout, SitesLayout, resolve_layout
+from brainspresso.bids.layout import (
+    DERIVATIVES_DIR,
+    DESCRIPTION,
+    Layout,
+    SitesLayout,
+    complete_description,
+    description_bytes,
+    resolve_layout,
+)
 from brainspresso.bids.repair import (
     dumps,
     loads,
@@ -108,6 +122,7 @@ from brainspresso.bids.select import OPTIONAL_FOLDERS, Selection
 from brainspresso.bids.tables import is_trimmable
 from brainspresso.download import Downloader, DownloadManager
 from brainspresso.roast.context import RoastContext
+from brainspresso.roast.policy import RoastPolicy
 from brainspresso.roast.run import RoastReport, run_roast
 from brainspresso.sources.base import write_content
 
@@ -124,12 +139,6 @@ TAG = "hosted"
 #: Version of what `render` writes: bump it when the repairs or the
 #: rendering change, so that unchanged shards are roasted again
 RENDER_VERSION = 1
-#: A file without a recorded hash (an older dataset) that differs from
-#: the render: "keep" it (with a warning), or "replace" it (moved to
-#: `<state>/replaced/<path>` first)
-MIGRATION_RULE: Literal["keep", "replace"] = "keep"
-#: Backups of the files replaced by the migration rule, in the state
-REPLACED_DIR = "replaced"
 
 
 # ----------------------------------------------------------------------
@@ -206,8 +215,10 @@ def harvest_hosted(
         Trim tables and `IntendedFor` to what is present (recorded per
         file: a later roast keeps the choice)
     if_exists : {"skip", "overwrite", "different", "refresh", "error"}
-        Downloads of data files, and the visible files of the roast;
-        pristine copies are always refreshed against the listing
+        Downloads of data files, generated files placed directly (left
+        alone under "skip" once they exist) and the visible files of the
+        roast (`roast_hosted`); pristine copies and generated bases are
+        always refreshed against the listing
     jobs : int
         Concurrent downloads
     dry_run, listing : bool
@@ -267,7 +278,6 @@ def harvest_hosted(
         raise ValueError(f"{layout.root} holds one dataset per site: "
                          f"harvest each site")
     layout.ensure_state()
-    before = manifest_files(layout)
     # entries are merged into the manifest (None clears a field); only
     # the roast writes the hashes of roasted files (`_record`)
     files: dict[str, dict] = {}
@@ -330,9 +340,8 @@ def harvest_hosted(
                               **extra}
                 placed.add(key)
             else:
-                # placed directly: refreshed if unedited (#26)
-                old = before.get(key, {}).get("sha256")
-                nb_generated += write_inline(e, local, if_exists, old)
+                # placed directly: left alone under `skip` once it exists
+                nb_generated += write_inline(e, local, if_exists)
                 files[key] = {"origin": "generated", "size": e.size,
                               **extra}
                 if local.is_file() and local.read_bytes() == e.content:
@@ -625,6 +634,9 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
             else:
                 relabel = [mapping, PurePosixPath(remote).parent.as_posix(),
                            PurePosixPath(rel).parent.as_posix()]
+    # the description of a derivative dataset: completed in the render
+    # (`SourceDatasets`), so that the file equals it (edits by hash)
+    source_url = _derivative_url(layout, target)
     # files that count as present without being on disk (unfetched)
     if trimmable and rel == "participants.tsv":
         present = context["unfetched"].get((dataset, "*"), [])
@@ -644,6 +656,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "intended": intended,
         "fmap": fmap,
         "rows": trimmable and trim,
+        "table": trimmable,
         "sibling": sibling,
         "fill": plan,
         "subject": _subject(rel),
@@ -651,7 +664,33 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "previous": previous,
         "present": present,
         "relabel": relabel,
+        "source_url": source_url,
     }
+
+
+def _derivative_url(layout: Layout, target: Path) -> str | None:
+    """
+    `SourceDatasets` URL of a derivative description, at any depth.
+
+    `derivatives/<a>/dataset_description.json`,
+    `derivatives/<a>/derivatives/<b>/dataset_description.json`...: the
+    `source_url` of the `DerivativeLayout` that owns it (it need not be
+    on disk yet). None for any other file.
+    """
+    target = Path(target)
+    if target.name != DESCRIPTION:
+        return None
+    try:
+        parts = target.parent.relative_to(layout.derivatives).parts
+    except ValueError:
+        return None
+    if not parts or len(parts) % 2 == 0 or any(
+            p != DERIVATIVES_DIR for p in parts[1::2]):
+        return None
+    owner = layout
+    for name in parts[::2]:
+        owner = owner.derivative(name)
+    return owner.source_url
 
 
 def _here(folder: Path, dataset: Path, present: Iterable[str]):
@@ -684,7 +723,7 @@ class RoastMetadata(Action):
     ----------
     item : dict
         What to roast (`roast.hosted._item`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
         Behaviour if the output exists (default: that of the roast)
     tag : str
         Progress group
@@ -701,7 +740,6 @@ class RoastMetadata(Action):
                  keep: bool = False, backup=None):
         self.item = item
         self.keep = keep
-        self.backup = backup
         fill: FillPlan | None = item.get("fill")
         src = [p for p in (item["source"], item["sibling"]) if p]
         src += fill.paths if fill else []
@@ -710,6 +748,8 @@ class RoastMetadata(Action):
             action=self.write, mode="wb", input="file", ifexists=ifexists,
             tag=tag, compare=True,
         )
+        # (copied by the action core before it replaces the file)
+        self.backup = Path(backup) if backup is not None else None
 
     def render(self) -> bytes:
         """Content of the output."""
@@ -731,6 +771,13 @@ class RoastMetadata(Action):
         out = render(content, target.name, repair=item["repair"],
                      fill=item["fill"], intended=intended, sibling=sibling,
                      relabel=item.get("relabel"), rows=rows)
+        if item.get("source_url") is not None:
+            # (as `write_descriptions` completes it: equal if complete)
+            desc = _read_json_bytes(out)
+            if desc is not None:
+                done = complete_description(desc, item["source_url"])
+                if done != desc:
+                    out = description_bytes(done)
         if self.keep:
             # an edited field map: the user's keys, the render's targets
             mine = _read_json(target) or {}
@@ -744,11 +791,6 @@ class RoastMetadata(Action):
 
     def write(self, file) -> None:
         """Write the output (the actor of the action)."""
-        target = Path(self.item["target"])
-        if self.backup is not None and target.is_file():
-            # (a copy: the file itself is replaced atomically, or kept)
-            Path(self.backup).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(target, self.backup)
         file.write(self.render())
 
 
@@ -791,21 +833,37 @@ def _migrate(ctx: RoastContext, item: dict, rule: str
     """
     dst = Path(item["target"])
     if rule == "replace":
-        backup = Path(ctx.layout.state) / REPLACED_DIR / item["key"]
-        lg.warning(f"{dst} differs from what brainspresso writes and has no "
-                   f"recorded hash (an older harvest): replaced, the old "
-                   f"file is in {backup}")
-        return True, backup
+        # (`Action.backup`: the copy and its warning)
+        return True, ctx.layout.replaced(dst)
     lg.warning(f"{dst} differs from what brainspresso writes and has no "
                f"recorded hash (an older harvest, or edited): kept "
                f"(--if-exists different or overwrite replaces it)")
     return False, None
 
 
+def _trimmed(item: dict) -> bool:
+    """
+    Tell a derived file, which follows `update` under `skip`.
+
+    A participants, sessions or scans table of the raw dataset (trimmed
+    to what is present, or restored whole under `--no-trim`), or a field
+    map whose `IntendedFor` is trimmed or repaired.
+    """
+    return bool(item.get("table") or item["intended"])
+
+
 def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
     source, dst = item["source"], Path(item["target"])
-    skip = IfExists.from_any(ctx.ifexists) is IfExists.SKIP
-    ifexists = "different" if skip else None
+    mode = IfExists.from_any(ctx.ifexists)
+    if mode is IfExists.SKIP and not _trimmed(item) and dst.exists():
+        # pure skip: left alone, never rendered (also a frozen file); a
+        # skipped action makes it an output of the shard, so that
+        # deleting it runs the shard again (`_record` ignores it)
+        yield RoastMetadata(item, ifexists="skip", tag=ctx.tag)
+        return
+    # (`update`, and the trimmed files under `skip`: the edit test)
+    update = mode is IfExists.UPDATE or mode is IfExists.SKIP
+    ifexists = "different" if update else None
     if source is not None and not Path(source).exists():
         # a missing base freezes the file
         if dst.exists():
@@ -814,18 +872,32 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
         yield Fail(f"{item['key']}: its base {source} is missing "
                    f"(harvest again)", name=dst.name, tag=ctx.tag)
         return
-    state = item["state"] if skip else "ours"
+    state = item["state"] if update else "ours"
     if state == "edited":
         if item["fmap"] and item["intended"]:
-            lg.warning(f"{dst} was edited since brainspresso wrote it: "
-                       f"kept, but its IntendedFor is taken from the "
-                       f"pristine copy (yours is replaced; --if-exists "
-                       f"different or overwrite replaces the whole file)")
-            yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
-                                keep=True)
+            action = RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
+                                   keep=True)
+            try:
+                same = action.render() == dst.read_bytes()
+            except (OSError, ValueError):
+                same = False
+            if not same:
+                # (compared first: one that holds the merge is no edit
+                # to warn about, e.g. a stale hash)
+                lg.warning(f"{dst} was edited since brainspresso wrote it: "
+                           f"kept, but its IntendedFor is taken from the "
+                           f"pristine copy (yours is replaced; --if-exists "
+                           f"different or overwrite replaces the whole "
+                           f"file)")
+            yield action
             return
-        lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
-                   f"(--if-exists different or overwrite replaces it)")
+        # compared first: a file that holds the render is adopted (a
+        # stale hash is no edit), any other kept with the warning
+        action = RoastMetadata(item, ifexists=ifexists, tag=ctx.tag)
+        action.keep_edit = (
+            f"{dst} was edited since brainspresso wrote it: kept "
+            f"(--if-exists different or overwrite replaces it)")
+        yield action
         return
     backup = None
     if state == "unknown":
@@ -834,7 +906,7 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
         except (OSError, ValueError):
             same = False
         if not same:
-            write, backup = _migrate(ctx, item, MIGRATION_RULE)
+            write, backup = _migrate(ctx, item, harvest.MIGRATION_RULE)
             if not write:
                 return
     yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag, backup=backup)
@@ -905,7 +977,7 @@ def _config(items: list[dict]) -> dict:
     roast records.
     """
     skipped = ("sha256", "fill", "state", "source", "target", "dataset",
-               "sibling")
+               "sibling", "left", "table")
     out = []
     for item in items:
         fill = item["fill"]
@@ -1011,8 +1083,10 @@ def roast_hosted(
     tables : bool
         Roast the participants, sessions and scans tables (False: left
         as they are, `compost --no-trim`)
-    ifexists : {"skip", "overwrite", "different", "refresh", "error"}
-        Default `IfExists` of the visible files
+    ifexists : {"skip", "update", "different", "overwrite", "refresh", "error"}
+        Default `IfExists` of the visible files: under "skip" an existing
+        file is left alone, but for the trimmed tables and the field maps
+        whose `IntendedFor` is trimmed, which follow "update"
     jobs : int
         Processes (subject shards)
     display : bool
@@ -1034,14 +1108,20 @@ def roast_hosted(
         every=every, repair=repair, selection=selection)
     if not tables:
         items = [i for i in items if not is_trimmable(i["rel"])]
+    skip = IfExists.from_any(ifexists) is IfExists.SKIP
     for item in items:
+        exists = Path(item["target"]).exists()
+        frozen = item["source"] is not None and \
+            not Path(item["source"]).exists()
+        if skip and not _trimmed(item):
+            # pure skip: an existing file is left alone (not even hashed)
+            item["state"], item["kept"], item["left"] = None, None, exists
+            continue
         item["state"] = _state(item)        # (before anything changes)
         # a file the shard leaves as it is (an edit, a file without a
         # hash, a frozen one) is no recorded output: whether it exists
         # is in the shard config, so that deleting it runs the shard
-        frozen = item["source"] is not None and \
-            not Path(item["source"]).exists()
-        item["kept"] = Path(item["target"]).exists() \
+        item["kept"] = exists \
             if frozen or item["state"] in ("edited", "unknown") else None
     base = selection or Selection()
     ctx = RoastContext(
@@ -1054,15 +1134,18 @@ def roast_hosted(
     )
     for orphan in orphans:
         # what this roast handles: in the selection, under the policy
-        orphan["handled"] = ctx.accepts("sidecar") and (
+        # (not under `skip`: a removal touches an existing file)
+        orphan["handled"] = not skip and ctx.accepts("sidecar") and (
             orphan["subject"] is None
             or ctx.selection.keeps_subject(orphan["subject"]))
     roaster = functools.partial(roast_metadata, items=items,
                                 orphans=orphans)
     roaster.__name__ = "roast_metadata"
-    # (tables are trimmed as they are rendered: no `trim_originals`)
+    # (tables are trimmed as they are rendered: no `trim_originals`;
+    # `_record` writes the hashes: no "converted" entries)
     report = run_roast(roaster, ctx, jobs=jobs, display=display,
-                       info={"hosted": True, **(info or {})}, trim=False)
+                       info={"hosted": True, **(info or {})}, trim=False,
+                       policy=RoastPolicy(track=False))
     _record(layout, items, orphans, report, ctx, repair)
     return report
 
@@ -1079,9 +1162,9 @@ def _record(layout, items, orphans, report, ctx, repair) -> None:
     recorded = {}
     for item in items:
         dst = Path(item["target"])
-        if os.path.normcase(os.path.abspath(dst)) not in written or \
-                not dst.is_file():
-            continue
+        if item.get("left") or not dst.is_file() or \
+                os.path.normcase(os.path.abspath(dst)) not in written:
+            continue                # (left alone under `skip`: no hash)
         data = dst.read_bytes()
         # whatever its state was: ours iff it holds the render (an edit
         # replaced by `--if-exists overwrite` is ours; an edited field

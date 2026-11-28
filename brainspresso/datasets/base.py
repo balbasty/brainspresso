@@ -63,7 +63,7 @@ from brainspresso.sources.base import (
     select_roaster,
     subject_labels,
 )
-from brainspresso.utils.keys import flatten_keys, get_leaves, lower_keys
+from brainspresso.utils.keys import get_leaves, lower_keys
 from brainspresso.utils.path import get_tree_path
 
 lg = logging.getLogger(__name__)
@@ -85,6 +85,9 @@ def _names(keys) -> tuple:
 def tree_lines(tree, indent: int = 0) -> list[str]:
     """
     Lines of a key hierarchy (nested dicts and sets), for the help.
+
+    Groups in their order, the leaves of a set or list sorted; a key
+    under two groups is listed under each (`tree_keys` lists it once).
 
     Parameters
     ----------
@@ -110,6 +113,38 @@ def tree_lines(tree, indent: int = 0) -> list[str]:
     return out
 
 
+def tree_keys(tree) -> tuple[str, ...]:
+    """
+    Keys of a hierarchy, in the order of `tree_lines`.
+
+    Parameters
+    ----------
+    tree : dict | set | list | str
+
+    Returns
+    -------
+    tuple[str]
+        The keys of `tree_lines`, in its order, each once: a key under
+        two groups where `tree_lines` first lists it (a group before its
+        children; an unnamed group, e.g. OASIS-III's "", is not a key)
+    """
+    out = []
+
+    def walk(node):
+        if isinstance(node, str):
+            out.append(node)
+        elif not isinstance(node, Mapping):
+            out.extend(sorted(node))        # (as `tree_lines`)
+        else:
+            for name, sub in node.items():
+                out.append(name)
+                if sub:
+                    walk(sub)
+
+    walk(tree)
+    return tuple(k for k in dict.fromkeys(out) if k)
+
+
 @dataclasses.dataclass(frozen=True)
 class KeySpec:
     """
@@ -129,12 +164,17 @@ class KeySpec:
     off : tuple[str]
         Keys only selected when asked for (`--keys` names them): with the
         default `--keys`, they are excluded (IXI roast: `trace`)
+    implies : tuple[tuple[str, str]]
+        `(add_on, key)` pairs: an add-on implies its key (`--keys add_on`
+        also selects `key`) and goes with it (`--exclude-keys key` also
+        excludes `add_on`). ABIDE-I: `("fs-all", "fs")`.
     """
 
     tree: Any = None
     choices: tuple | None = None
     default: tuple = ()
     off: tuple = ()
+    implies: tuple = ()
 
     def resolve(self) -> Any:
         """Return the key hierarchy (calls `tree` if it is a function)."""
@@ -145,34 +185,22 @@ class KeySpec:
         return tree
 
     def all_choices(self) -> tuple | None:
-        """Return the values of `--keys` (None: any text)."""
+        """
+        Return the values of `--keys` (None: any text).
+
+        In the order of the hierarchy (that of the help) when they are
+        its keys, else in the order of `choices`.
+        """
+        tree = self.static_tree()
+        ordered = tree_keys(tree) if isinstance(tree, Mapping) else None
         if self.choices is not None:
-            return tuple(self.choices)
+            choices = tuple(self.choices)
+            if ordered is not None and set(choices) == set(ordered):
+                return ordered
+            return choices
         if isinstance(self.tree, Mapping):
-            # (an unnamed group, e.g. OASIS-III's "", is not a key)
-            return tuple(sorted(k for k in flatten_keys(self.tree) if k))
+            return ordered
         return None
-
-    def expand(self, names: Iterable[str]) -> set:
-        """
-        Return the names given and the leaves below them.
-
-        Parameters
-        ----------
-        names : list[str]
-
-        Returns
-        -------
-        set[str]
-        """
-        names = _names(names)
-        if not isinstance(self.tree, Mapping):
-            return set(names)
-        every = get_leaves(self.tree)
-        out = set()
-        for name in names:
-            out |= (lower_keys(name, self.tree) & every) | {name}
-        return out
 
     def leaves(self, names: Iterable[str]) -> set:
         """
@@ -185,9 +213,19 @@ class KeySpec:
         Returns
         -------
         set[str]
-            The names themselves without a nested-dict hierarchy
+            Through a nested-dict or `KeyAliases` hierarchy (names that
+            are not keys of a `KeyAliases` are kept); the names
+            themselves without a hierarchy
         """
         names = _names(names)
+        if hasattr(self.tree, "expand"):
+            out = set()
+            for name in names:
+                try:
+                    out |= self.tree.expand([name])
+                except UsageError:
+                    out.add(name)
+            return out
         if not isinstance(self.tree, Mapping):
             return set(names)
         every = get_leaves(self.tree)
@@ -213,7 +251,7 @@ class KeySpec:
         spec whose default is "all but `off`", counts as no `--keys`, so
         that `--exclude-keys` alone means "all but" (and, in a roast,
         keeps the files that match no key). With the default `--keys`,
-        the `off` keys are excluded.
+        the `off` keys are excluded. Add-ons follow their key (`implies`).
 
         Parameters
         ----------
@@ -225,7 +263,48 @@ class KeySpec:
             Empty: all keys
         exclude : tuple[str]
         """
-        keys, exclude = _names(keys), _names(exclude)
+        keys, exclude = self._effective(*_names(keys), exclude=exclude)
+        for add_on, key in self.implies:
+            if self.selects(keys, add_on) and not self.selects(keys, key):
+                keys += (key,)
+            if self.selects(exclude, key) and \
+                    not self.selects(exclude, add_on):
+                exclude += (add_on,)
+        return keys, exclude
+
+    def selects(self, names: Iterable[str], leaf: str) -> bool:
+        """
+        Whether keys select a leaf, through the hierarchy.
+
+        Names are matched case-insensitively (`--keys FS-ALL`), and a
+        group selects the leaves below it (`--keys derivatives`).
+
+        Parameters
+        ----------
+        names : list[str]
+            Keys (`--keys`, `--exclude-keys`)
+        leaf : str
+            A key of the hierarchy
+
+        Returns
+        -------
+        bool
+        """
+        names = _names(names)
+        if not names:
+            return False
+        tree = self.resolve()
+        if hasattr(tree, "expand"):
+            return leaf in tree.expand(names)
+        if isinstance(tree, Mapping):
+            known = {k.lower(): k for k in tree_keys(tree)}
+            names = [known.get(n.lower(), n) for n in names]
+        return leaf in self.leaves(names) or leaf in names
+
+    def _effective(self, *keys: str, exclude: Iterable[str] = ()
+                   ) -> tuple[tuple, tuple]:
+        """Return `effective` before the add-ons (`implies`)."""
+        keys, exclude = tuple(keys), _names(exclude)
         choices = self.all_choices()
         if not keys or set(keys) == set(self.default):
             covers = choices is None or not self.default or (
@@ -417,6 +496,10 @@ class Dataset:
         `arguments` ("OpenNeuro/{dataset}")
     title, help : str
         Title, and markdown help (its first line is the catalog summary)
+    indi_category : str | None
+        INDI sharing category ("retro", "pro" or "enhanced": the folder
+        of the dataset's page under `fcon_1000.projects.nitrc.org/indi/`),
+        shown by `info`; None outside INDI
     keys : KeySpec | None
         Keys of the commands (see `keys_for`); None: no `--keys`
     subject_width : int | None
@@ -444,15 +527,16 @@ class Dataset:
         Fixed `DownloadOptions` of harvest (`on_error`, `path`)
     option_defaults : dict[str, dict[str, Any]]
         Other defaults: `{command: {field: default}}`
+    panels : dict[str, tuple[str, float]]
+        Help panel (title, sort key) of standard groups, by `Args` field,
+        instead of their own or that of the sources that read them
+        (`datasets.options.group_panels`; OpenNeuro: `--token`)
     folder_choices : tuple[str]
         Values of `--folders` (hosted harvests)
     hosted : bool
         Hosted as BIDS: harvest takes the BIDS filters
     harvest_subjects : bool
         Whether harvest takes `--subs` (its sources can prune subjects)
-    legacy_subjects : bool
-        Whether roast takes subject numbers (a legacy roaster, see
-        `numbers`)
     requires : dict[str, tuple[str]]
         Optional modules of each command
     extra : str | None
@@ -467,6 +551,7 @@ class Dataset:
     folder: ClassVar[str] = ""
     title: ClassVar[str] = ""
     help: ClassVar[str] = ""
+    indi_category: ClassVar[str | None] = None
     keys: ClassVar[KeySpec | None] = None
     subject_width: ClassVar[int | None] = None
     sessions: ClassVar[bool] = False
@@ -480,10 +565,10 @@ class Dataset:
     harvest_jobs: ClassVar[int | None] = None
     download: ClassVar[Mapping[str, Any]] = EMPTY
     option_defaults: ClassVar[Mapping[str, Mapping[str, Any]]] = EMPTY
+    panels: ClassVar[Mapping[str, tuple]] = EMPTY
     folder_choices: ClassVar[tuple] = ()
     hosted: ClassVar[bool] = False
     harvest_subjects: ClassVar[bool] = True
-    legacy_subjects: ClassVar[bool] = False
     requires: ClassVar[Mapping[str, tuple]] = EMPTY
     extra: ClassVar[str | None] = None
     commands: ClassVar[tuple] = ("harvest", "roast", "compost", "info")
@@ -678,8 +763,10 @@ class Dataset:
         if command == "harvest":
             hosted = ("filters", "hosted") if self.hosted else ()
             select = ("select",) if self.harvest_subjects else ()
-            return (*keys, *select, *sessions, *sites, *hosted, *source,
-                    *creds, "harvest", "layout", "log")
+            # (the order of the options in their panels)
+            filters, hosted = hosted[:1], hosted[1:]
+            return (*keys, *select, *sessions, *sites, *filters, *source,
+                    *creds, "harvest", *hosted, "layout", "log")
         if command == "roast":
             roasters = {id(s.roaster) for s in self.sources().values()
                         if getattr(s, "roaster", None) is not None}
@@ -762,10 +849,6 @@ class Dataset:
         if not isinstance(tree, Mapping) or not tree:
             return ""
         return "\n".join(tree_lines(tree))
-
-    def legacy_roast(self) -> bool:
-        """Whether `roast` is overridden (not the roast engine)."""
-        return type(self).roast is not Dataset.roast
 
     def has_roast(self) -> bool:
         """Whether the dataset can be roasted."""
@@ -883,58 +966,6 @@ class Dataset:
         keys, exclude = spec.effective(keys, exclude_keys)
         return Wants(keys or None, spec.resolve(), exclude=exclude)
 
-    def legacy_keys(self, command: str, args: Args) -> set:
-        """
-        Keys of a legacy roaster: `--keys` (else all) minus excluded.
-
-        The names given stay, with the leaves below them (`fs` is not
-        `fs-all`: a group with one leaf can mean something of its own to
-        a legacy roaster).
-
-        Parameters
-        ----------
-        command : str
-        args : Args
-
-        Returns
-        -------
-        set[str]
-        """
-        spec = self.keys_for(command) or KeySpec()
-        keys, exclude = spec.effective(args.keys.keys, args.keys.exclude_keys)
-        keys = spec.expand(keys or spec.all_choices() or ())
-        # excluded keys, and the groups that hold an excluded leaf, go
-        excluded = spec.leaves(exclude)
-        return {k for k in keys
-                if k not in exclude and not spec.leaves([k]) & excluded}
-
-    def numbers(self, values: Iterable[str]) -> list:
-        """
-        Subject numbers of a legacy roaster (`--subs 1 002 3:5 subs.txt`).
-
-        Values are expanded as for the other commands (`labels`: files
-        and `start:stop` ranges), then converted to numbers.
-
-        Parameters
-        ----------
-        values : list[str]
-
-        Returns
-        -------
-        list[int]
-
-        Raises
-        ------
-        UsageError
-            If a value is not a number
-        """
-        out = []
-        for value in sorted(subject_labels(values, self.subject_width or 0)):
-            if not value.isdigit():
-                raise UsageError(f"Subjects are numbers here: {value!r}")
-            out.append(int(value))
-        return sorted(out)
-
     def select_roaster(self, ctx, override=None) -> tuple:
         """
         Choose the roaster of `sourcedata/`.
@@ -1026,10 +1057,8 @@ class Dataset:
             args.roast.sidecar_policy      # sidecar flags that conflict
         args.lock_wait                      # `--wait` and `--lock-wait`
         self.chosen_sites(args)
-        subjects = self.numbers if command == "roast" and \
-            self.legacy_subjects else self.labels
-        subjects(args.select.subs)
-        subjects(args.select.exclude_subs)
+        self.labels(args.select.subs)
+        self.labels(args.select.exclude_subs)
 
     @staticmethod
     def lock_states(layout) -> tuple[list, list]:
@@ -1179,7 +1208,7 @@ class Dataset:
         ctx = make_context(
             layout, spec.resolve(), select_keys=keys, exclude_keys=exclude,
             json=args.roast.sidecar_policy, ifexists=args.roast.if_exists,
-            templates=self.template_dir,
+            templates=self.template_dir, options=self.roast_options(args),
             subs=sorted(self.labels(args.select.subs)),
             exclude_subs=sorted(self.labels(args.select.exclude_subs)),
             **filters,
@@ -1188,6 +1217,22 @@ class Dataset:
         if source is not None:
             ctx.source = Path(source.destination(layout))
         return run_roast(roaster, ctx, jobs=args.roast.jobs)
+
+    def roast_options(self, args: Args) -> dict:
+        """
+        Return the dataset options of the roaster (`RoastContext.options`).
+
+        Parameters
+        ----------
+        args : Args
+
+        Returns
+        -------
+        dict
+            Picklable values read by the roaster (default: none; OASIS-I:
+            `--discs`)
+        """
+        return {}
 
     def compost(self, layout, args: Args):
         """
@@ -1333,7 +1378,9 @@ class Dataset:
                 json=args.roast.sidecar_policy if args else "yes",
                 repair=args.extra("hosted_roast", "repair", True)
                 if args else None,
-                ifexists=args.roast.if_exists if args else "skip",
+                # (the roast of a compost re-trims and repairs what is
+                # left: `update`, not a user's pure `skip`)
+                ifexists=args.roast.if_exists if args else "update",
                 jobs=args.roast.jobs if args else 1,
                 info={"trigger": "compost" if existing_only else "roast"},
             ))
@@ -1350,6 +1397,8 @@ class Dataset:
         args : Args, optional
         """
         print(self.title or self.summary)
+        if self.indi_category:
+            print(f"  INDI category: {self.indi_category}")
         for command in ("harvest", "roast"):
             spec = self.keys_for(command)
             if spec is None or (command == "roast" and not self.has_roast()):

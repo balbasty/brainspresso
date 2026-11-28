@@ -7,6 +7,7 @@ The command line built from `Dataset` classes (step 4).
 * The root help lists the catalog without importing datasets; a dataset
   help is the full help; `python -m brainspresso[.cli]` works.
 """
+import importlib
 import json
 import subprocess
 import sys
@@ -27,29 +28,23 @@ from brainspresso.bids.layout import (
 )
 from brainspresso.cli import app, main
 from brainspresso.datasets import catalog
-from brainspresso.datasets.ABIDE.I.bidsifier_nitrc import (
-    Bidsifier as BidsifierI,
-)
-from brainspresso.datasets.ABIDE.I.dataset import ABIDE1
-from brainspresso.datasets.ABIDE.II.bidsifier import Bidsifier as BidsifierII
-from brainspresso.datasets.ABIDE.II.dataset import ABIDE2
-from brainspresso.datasets.ADHD200.dataset import ADHD200
 from brainspresso.datasets.base import Args, Dataset, KeySpec
-from brainspresso.datasets.Bullitt.dataset import Bullitt
+from brainspresso.datasets.bullitt.dataset import Bullitt
 from brainspresso.datasets.catalog import CATALOG, load
-from brainspresso.datasets.COBRE.dataset import COBRE
-from brainspresso.datasets.IXI.dataset import IXI, KEYS
-from brainspresso.datasets.OASIS.III.dataset import OASIS3
-from brainspresso.datasets.OpenNeuro.dataset import OpenNeuroDataset
+from brainspresso.datasets.indi.abide.i.dataset import ABIDE1
+from brainspresso.datasets.indi.abide.ii.dataset import ABIDE2
+from brainspresso.datasets.indi.adhd200.dataset import ADHD200
+from brainspresso.datasets.indi.cobre.dataset import COBRE
+from brainspresso.datasets.ixi.dataset import IXI, KEYS
+from brainspresso.datasets.oasis.iii.dataset import OASIS3
+from brainspresso.datasets.openneuro.dataset import OpenNeuroDataset
 from brainspresso.datasets.options import (
     HarvestOptions,
-    KeyOptions,
     OptionGroup,
-    SelectionOptions,
     option_group,
 )
-from brainspresso.datasets.register import register
-from brainspresso.datasets.UNCWisconsin.dataset import UNCWisconsin
+from brainspresso.datasets.register import command_names, register
+from brainspresso.datasets.unc_wisconsin.dataset import UNCWisconsin
 from brainspresso.errors import UsageError
 from brainspresso.sources.base import LocalSource, StaticURLs
 from brainspresso.utils.deps import UNAVAILABLE
@@ -69,6 +64,10 @@ EXCEPTIONS = {
     ("abide1", "harvest", "--sites"): "choices, default",
     ("abide2", "harvest", "--sites"): "choices, default",
     ("corr", "harvest", "--sites"): "choices, default",
+    # default () = all discs (was the list of discs), so that a roast
+    # tells named discs (a missing one is an error) from the default
+    ("oasis1", "*", "--discs"): "default",
+    ("oasis2", "*", "--parts"): "default",
     # ABIDE-I download-nitrc/xnat: removed (`harvest --source`)
     ("abide1", "download-nitrc", "*"): "removed",
     ("abide1", "download-xnat", "*"): "removed",
@@ -181,6 +180,44 @@ def test_catalog_up_to_date():
 def test_catalog_summaries():
     for name, (_, summary) in CATALOG.items():
         assert load(name).summary == summary
+
+
+@pytest.mark.parametrize("name", sorted(CATALOG))
+def test_catalog_name_resolves_and_has_help(name, capsys):
+    """Every catalog import path resolves; `bx <name> --help` works."""
+    module, _, attr = CATALOG[name][0].partition(":")
+    assert module.startswith("brainspresso.datasets.")
+    assert module == module.lower()             # PEP 8 package names
+    assert hasattr(importlib.import_module(module), attr)
+    dataset = load(name)
+    assert dataset.name == name
+    try:
+        main([name, "--help"])
+    except SystemExit as e:     # (cyclopts >= 4 exits after the help)
+        assert not e.code, e.code
+    out = capsys.readouterr()
+    assert "unavailable" not in out.err, out.err
+    for command in command_names(dataset):
+        assert command in out.out
+
+
+# INDI sharing category (`fcon_1000.projects.nitrc.org/indi/<category>/`)
+INDI_CATEGORIES = {
+    "abide1": "retro", "abide2": "retro", "adhd200": "retro",
+    "cobre": "retro", "corr": "retro", "mpi-lemon": "retro",
+    "natview": "retro", "sald": "retro", "simon": "retro", "slim": "retro",
+    "hbn": "pro", "nki-rs": "enhanced", "fcon1000": "fcp",
+}
+
+
+def test_indi_category(capsys):
+    for name in CATALOG:
+        assert load(name).indi_category == INDI_CATEGORIES.get(name), name
+    try:
+        main(["abide1", "info"])
+    except SystemExit as e:
+        assert not e.code, e.code
+    assert "  INDI category: retro\n" in capsys.readouterr().out
 
 
 def test_broken_dataset(monkeypatch, capsys):
@@ -399,25 +436,14 @@ def test_ignore_runs_is_not_force(tmp_path, capsys):
     assert not (root / "sub-0005").exists()
 
 
-def test_legacy_subjects_files_and_ranges(tmp_path):
-    subs = tmp_path / "subs.txt"
-    subs.write_text("40000\nsub-40001\n")
-    cobre = COBRE()
-    assert cobre.numbers([str(subs), "3:5", "sub-7"]) == [3, 4, 7, 40000,
-                                                          40001]
-    cobre.check("roast", Args.of(cobre, "roast", select=SelectionOptions(
-        subs=(str(subs), "1:3"))))
-    with pytest.raises(UsageError):
-        cobre.numbers(["abc"])
-
-
-def test_legacy_roast_bad_options_create_nothing(tmp_path, capsys):
-    # an invalid subject
-    (tmp_path / "COBRE").mkdir()
+def test_roast_bad_options_create_nothing(tmp_path, capsys):
+    # an invalid subject range (no dataset takes subject numbers any
+    # more: `legacy_subjects` went with the ABIDE-II port)
+    (tmp_path / "ABIDE-2").mkdir()
     with pytest.raises(SystemExit):
-        main(["cobre", "roast", str(tmp_path), "--subs", "abc"])
-    assert "Subjects are numbers" in capsys.readouterr().err
-    assert not any((tmp_path / "COBRE").iterdir())
+        main(["abide2", "roast", str(tmp_path), "--subs", "a:b"])
+    assert "not numbers" in capsys.readouterr().err
+    assert not any((tmp_path / "ABIDE-2").iterdir())
     # a missing dataset
     with pytest.raises(SystemExit):
         main(["oasis2", "roast", str(tmp_path)])
@@ -484,7 +510,8 @@ def test_adhd200_bids_flag(tmp_path, monkeypatch, caplog, flags, value):
 def test_group_defaults_cover_all():
     # ("all",) and groups that cover every key count as "no --keys"
     abide = ABIDE1().keys_for("harvest")
-    assert abide.effective(("all",), ["fs"]) == ((), ("fs",))
+    # (excluding `fs` excludes its add-on `fs-all`)
+    assert abide.effective(("all",), ["fs"]) == ((), ("fs", "fs-all"))
     adhd = ADHD200().keys_for("harvest")
     assert adhd.effective(("all",), ["mriqc"]) == ((), ("mriqc",))
     # Bullitt's default leaves `phantoms` out: it stays a selection
@@ -492,28 +519,22 @@ def test_group_defaults_cover_all():
     assert bullitt.effective(bullitt.default) == (bullitt.default, ())
     assert bullitt.leaves(["raw"]) == {"flash", "mprage", "T2w", "angio",
                                        "dwi"}
-    # legacy roasts get leaves, exclusions removed
-    args = Args.of(ABIDE2(), "roast", keys=KeyOptions(
-        exclude_keys=("dti", "rest")))
-    assert ABIDE2().legacy_keys("roast", args) == {
-        "T1w", "anat", "pheno", "meta"}
 
 
-def test_legacy_keys_keep_groups():
-    # `fs` (one leaf, `fs-all`) reaches the legacy roaster as `fs`: it
-    # only converts the files that BIDS describes, `fs-all` converts all
-    abide = ABIDE1()
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        keys=("fs",))))
-    assert "fs" in keys and keys == {"fs", "fs-all"}
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        keys=("meta", "anat"))))
-    assert {"meta", "pheno", "anat", "T1w"} == keys
-    # an excluded leaf removes the groups above it
-    keys = abide.legacy_keys("roast", Args.of(abide, "roast", keys=KeyOptions(
-        exclude_keys=("fs-all",))))
-    assert not {"fs", "fs-all", "derivatives", "all"} & keys
-    assert {"T1w", "rest", "meta"} <= keys
+def test_abide1_fs_keys_are_siblings():
+    # `fs` converts the files that BIDS describes, `fs-all` every file:
+    # siblings in the roast keys (`KeyAliases` expands a group to its
+    # leaves, so `fs` could not be told from `fs-all` as their group)
+    keys = ABIDE1().keys_for("roast").resolve()
+    fs = keys.selection(["fs"])
+    assert fs.wants("fs") and not fs.wants("fs-all")
+    assert keys.selection(["fs-all"]).wants("fs-all")
+    meta = keys.selection(["meta", "anat"])
+    assert {meta.wants(k) for k in ("meta", "pheno", "T1w")} == {True}
+    assert not meta.wants("rest") and not meta.wants("fs")
+    assert not keys.selection(["pheno"]).wants("meta")
+    derivatives = keys.selection(exclude_keys=["fs-all"])
+    assert derivatives.wants("fs") and not derivatives.wants("fs-all")
 
 
 def test_unnamed_key_group():
@@ -534,19 +555,34 @@ def test_bad_subject_range(tmp_path, capsys):
 
 
 def test_abide_two_exclude_keys(tmp_path):
-    assert BidsifierII(tmp_path / "A2", exclude_keys={"dti", "rest"}
-                       ).exclude_keys == {"dti", "rest"}
-    assert {"T1w", "rest"} <= BidsifierI(
-        tmp_path / "A1", exclude_keys={"T1w", "rest"}).exclude_keys
+    # (engine) two excluded keys select the rest
+    for dataset, excluded, kept in ((ABIDE1, ["T1w", "rest"], "meta"),
+                                    (ABIDE2, ["dti", "rest"], "T1w")):
+        selection = dataset().keys_for("roast").resolve().selection(
+            exclude_keys=excluded)
+        assert not any(selection.wants(k) for k in excluded)
+        assert selection.wants(kept) and selection.wants("pheno")
 
 
 def test_abide_roast_help_notes(capsys):
-    for ds in ("abide1", "abide2"):
+    for ds, note in (("abide1", "--source xnat"),
+                     ("abide2", "is not roasted")):
         try:
             main([ds, "roast", "--help"])
         except SystemExit:
             pass
-        assert "step 5" in capsys.readouterr().out
+        assert note in capsys.readouterr().out
+
+
+def test_roast_help_has_the_engine_key_texts(capsys):
+    # every roast is on the engine: `--keys`/`--exclude-keys` carry the
+    # engine help texts (`KeyOptions.helps`)
+    try:
+        main(["cobre", "roast", "--help"])
+    except SystemExit:
+        pass
+    out = capsys.readouterr().out
+    assert "Only these keys" in out and "Not these keys." in out
 
 
 def test_lock_states_parent_first(tmp_path):

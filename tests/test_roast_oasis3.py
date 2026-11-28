@@ -3,8 +3,10 @@ import json
 
 import nibabel as nib
 import pytest
+from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    check_keys_rerun,
     init_layout,
     layout_of,
     make_tar,
@@ -12,10 +14,11 @@ from roast_utils import (
     raw_file,
     raw_tree,
     read_tsv,
+    scoped_records,
 )
 
-from brainspresso.datasets.OASIS.III import roaster
-from brainspresso.datasets.OASIS.III.roaster import roast
+from brainspresso.datasets.oasis.iii import roaster
+from brainspresso.datasets.oasis.iii.roaster import roast
 
 DEMO = (
     "OASISID,GENDER,HAND,AgeatEntry,AgeatDeath,EDUC,SES,racecode,AIAN,NHPI,"
@@ -39,10 +42,8 @@ META = {"README", "dataset_description.json", "participants.json",
 PHENO = {"phenotype/UDS_b4_cdr.tsv", "phenotype/UDS_b4_cdr.json"}
 
 
-@pytest.fixture(params=LAYOUTS)
-def root(tmp_path, request):
-    root = tmp_path / "OASIS-3"
-    init_layout(root, request.param)
+def make_source(root):
+    """Write the harvested files of OASIS-III."""
     src = root / "sourcedata"
     d = src / "OASIS3_data_files"
     make_tar(d / "demo.tar.gz", {"demo/demo.csv": DEMO.encode()})
@@ -54,6 +55,13 @@ def root(tmp_path, request):
             f"{b}_{mod}.nii.gz": nii_bytes(),
         })
     return root
+
+
+@pytest.fixture(params=LAYOUTS)
+def root(tmp_path, request):
+    root = tmp_path / "OASIS-3"
+    init_layout(root, request.param)
+    return make_source(root)
 
 
 def test_roast_all(root):
@@ -86,6 +94,17 @@ def test_roast_all(root):
     assert read_tsv(raw_file(root, "sub-0001/sub-0001_sessions.tsv")) == [
         ["session_id", "pathology", "age"], ["ses-d0129", "1", "65.4532"],
     ]
+
+
+def test_keys_all(root):
+    """`--keys all` (accepted by the command line) selects every key"""
+    assert roaster.KEYS.expand(["all"]) == roaster.KEYS.leaves
+    add_freesurfer(root)
+    report = roast(root, keys={"all"})
+    assert not report.errors, report.errors
+    every = raw_tree(root)
+    assert f"{T1}.nii.gz" in every and PHENO <= every
+    bx("oasis3", "roast", "--out", root, "--keys", "all")
 
 
 def test_meta_only(root):
@@ -224,6 +243,37 @@ def test_category_keys_open_no_image_tarball(root, monkeypatch, keys):
         assert [p.name for p in opened] == ["anat1.tar.gz"] * 2
     else:
         assert opened == []
+
+
+def test_scope_of_subject_shards(root, monkeypatch):
+    """Toggling `meta`, fewer subjects: no subject is roasted again; a
+    key that its shard had not written: it is (`roast.scope`)"""
+    calls = []
+    real = roaster.roast_subject
+
+    def spy(ctx, sub):
+        calls.append(sub)
+        return real(ctx, sub)
+
+    monkeypatch.setattr(roaster, "roast_subject", spy)
+    assert not roast(root, keys={"T1w", "T2w"}, display=False).errors
+    assert sorted(calls) == ["0001", "0002"]
+    scope = scoped_records(root)["roast/subjects/sub-0001"]["scopes"][0]
+    assert scope["fixed"]["declared"]["subs"] == ["0001"]
+    assert "meta" not in scope["fixed"]["declared"]["keys"]
+    del calls[:]
+    for options in ({"keys": {"T1w", "T2w", "meta", "pheno"}},
+                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "subs": [2]}):
+        assert not roast(root, display=False, **options).errors
+    assert calls == []
+    roast(root, keys={"T1w", "FLAIR"}, subs=[1], display=False)
+    assert calls == ["0001"]
+
+
+def test_keys_of_subject_shards(root):
+    """Adding a key that a subject shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"T1w", "T2w"}, {"roast/subjects/": ("T1w", "T2w")})
 
 
 def test_key_classification():

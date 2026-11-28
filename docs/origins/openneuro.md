@@ -74,3 +74,17 @@ OpenNeuro itself, also cite the paper describing the archive.
        *The OpenNeuro resource for sharing of neuroscience data.*
        eLife **10**:e71774, 2021.
        [doi:10.7554/eLife.71774](https://doi.org/10.7554/eLife.71774)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{markiewicz2021openneuro,
+          author  = {Markiewicz, Christopher J. and Gorgolewski, Krzysztof J. and Feingold, Franklin and Blair, Ross and Halchenko, Yaroslav O. and Miller, Eric and Hardcastle, Nell and Wexler, Joe and Esteban, Oscar and Goncalves, Mathias and Jwa, Anita and Poldrack, Russell},
+          title   = {The {OpenNeuro} resource for sharing of neuroscience data},
+          journal = {eLife},
+          volume  = {10},
+          pages   = {e71774},
+          year    = {2021},
+          doi     = {10.7554/eLife.71774},
+        }
+        ```

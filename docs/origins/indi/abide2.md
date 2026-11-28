@@ -73,3 +73,17 @@ the ABIDE-II website. The dataset is described in:
        imaging data exchange II.*
        Sci Data **4**:170010, 2017.
        [doi:10.1038/sdata.2017.10](https://doi.org/10.1038/sdata.2017.10)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{dimartino2017enhancing,
+          author  = {Di Martino, Adriana and O'Connor, David and Chen, Bosi and Alaerts, Kaat and Anderson, Jeffrey S and Assaf, Michal and Balsters, Joshua H and Baxter, Leslie and Beggiato, Anita and Bernaerts, Sylvie and Blanken, Laura M E and Bookheimer, Susan Y and Braden, B Blair and Byrge, Lisa and Castellanos, F Xavier and Dapretto, Mirella and Delorme, Richard and Fair, Damien A and Fishman, Inna and Fitzgerald, Jacqueline and Gallagher, Louise and Keehn, R Joanne Jao and Kennedy, Daniel P and Lainhart, Janet E and Luna, Beatriz and Mostofsky, Stewart H and M{\"u}ller, Ralph-Axel and Nebel, Mary Beth and Nigg, Joel T and O'Hearn, Kirsten and others},
+          title   = {Enhancing studies of the connectome in autism using the autism brain imaging data exchange {II}},
+          journal = {Scientific Data},
+          volume  = {4},
+          pages   = {170010},
+          year    = {2017},
+          doi     = {10.1038/sdata.2017.10},
+        }
+        ```

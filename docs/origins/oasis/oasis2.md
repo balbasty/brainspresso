@@ -53,3 +53,18 @@ AG021910, P20 MH071616, U24 RR021382.
        nondemented and demented older adults.*
        J Cogn Neurosci **22**(12):2677-2684, 2010.
        [doi:10.1162/jocn.2009.21407](https://doi.org/10.1162/jocn.2009.21407)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{marcus2010open,
+          author  = {Marcus, Daniel S. and Fotenos, Anthony F. and Csernansky, John G. and Morris, John C. and Buckner, Randy L.},
+          title   = {Open Access Series of Imaging Studies ({OASIS}): longitudinal {MRI} data in nondemented and demented older adults},
+          journal = {Journal of Cognitive Neuroscience},
+          volume  = {22},
+          number  = {12},
+          pages   = {2677--2684},
+          year    = {2010},
+          doi     = {10.1162/jocn.2009.21407},
+        }
+        ```

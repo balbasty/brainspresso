@@ -56,3 +56,17 @@ DATAVERSE_TOKEN=... bx gsp harvest /data
        functional, and behavioral measures.*
        Sci Data **2**:150031, 2015.
        [doi:10.1038/sdata.2015.31](https://doi.org/10.1038/sdata.2015.31)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{holmes2015brain,
+          author  = {Holmes, A. J. and Hollinshead, M. O. and O'Keefe, T. M. and Petrov, V. I. and Fariello, G. R. and Wald, L. L. and others},
+          title   = {Brain {Genomics} {Superstruct} {Project} initial data release with structural, functional, and behavioral measures},
+          journal = {Scientific Data},
+          volume  = {2},
+          pages   = {150031},
+          year    = {2015},
+          doi     = {10.1038/sdata.2015.31},
+        }
+        ```

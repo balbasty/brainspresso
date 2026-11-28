@@ -61,3 +61,17 @@ bx nki-rs harvest /data --tasks rest --sessions BAS1 --where "age>=60"
        science in psychiatry.*
        Front Neurosci **6**:152, 2012.
        [doi:10.3389/fnins.2012.00152](https://doi.org/10.3389/fnins.2012.00152)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{nooner2012nki,
+          author  = {Nooner, Kate Brody and Colcombe, Stanley J and Tobe, Russell H and Mennes, Maarten and Benedict, Melissa M and Moreno, Alexis L and Panek, Laura J and Brown, Shaquanna and Zavitz, Stephen T and Li, Qingyang and Sikka, Sharad and Gutman, David and Bangaru, Saroja and Schlachter, Rochelle Tziona and Kamiel, Stephanie M and Anwar, Ayesha R and Hinz, Caitlin M and Kaplan, Michelle S and Rachlin, Anna B and Adelsberg, Samantha and Cheung, Brian and Khanuja, Ranjit and Yan, Chaogan and Craddock, Cameron C and Calhoun, Vincent and Courtney, William and King, Margaret and Wood, Dylan and Cox, Christine L and Kelly, A M Clare and others},
+          title   = {The {NKI}-{Rockland} sample: a model for accelerating the pace of discovery science in psychiatry},
+          journal = {Frontiers in Neuroscience},
+          volume  = {6},
+          pages   = {152},
+          year    = {2012},
+          doi     = {10.3389/fnins.2012.00152},
+        }
+        ```

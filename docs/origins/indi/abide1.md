@@ -92,3 +92,18 @@ papers of the individual sites.
        of the intrinsic brain architecture in autism.*
        Mol Psychiatry **19**(6):659-667, 2014.
        [doi:10.1038/mp.2013.78](https://doi.org/10.1038/mp.2013.78)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{dimartino2014autism,
+          author  = {Di Martino, Adriana and Yan, Chao-Gan and Li, Qingyang and Denio, Erin and Castellanos, Francisco X and Alaerts, Kaat and Anderson, Jeffrey S and Assaf, Michal and Bookheimer, Susan Y and Dapretto, Mirella and Deen, Ben and Delmonte, Sonja and Dinstein, Ilan and Ertl-Wagner, Birgit and Fair, Damien A and Gallagher, Louise and Kennedy, Daniel P and Keown, Christopher L and Keysers, Christian and Lainhart, Janet E and Lord, Catherine and Luna, Beatriz and Menon, Vinod and Minshew, Nancy and Monk, Christopher S and Mueller, Sophia and M{\"u}ller, Ralph-Axel and Nebel, Mary Beth and Nigg, Joel T and O'Hearn, Kirsten and others},
+          title   = {The autism brain imaging data exchange: towards a large-scale evaluation of the intrinsic brain architecture in autism},
+          journal = {Molecular Psychiatry},
+          volume  = {19},
+          number  = {6},
+          pages   = {659--667},
+          year    = {2014},
+          doi     = {10.1038/mp.2013.78},
+        }
+        ```

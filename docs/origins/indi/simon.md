@@ -45,3 +45,17 @@ bx simon harvest /data --folders derivatives
        volunteer over more than fifteen years.*
        Sci Data **6**:245, 2019.
        [doi:10.1038/s41597-019-0262-8](https://doi.org/10.1038/s41597-019-0262-8)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{duchesne2019structural,
+          author  = {Duchesne, Simon and Dieumegarde, Louis and Chouinard, Isabelle and Farokhian, Farnaz and Badhwar, Amanpreet and Bellec, Pierre and T{\'e}trault, Pascal and Descoteaux, Maxime and Bor{\'e}, Arnaud and Houde, Jean-Christophe and Beaulieu, Christian and Potvin, Olivier},
+          title   = {Structural and functional multi-platform {MRI} series of a single human volunteer over more than fifteen years},
+          journal = {Scientific Data},
+          volume  = {6},
+          pages   = {245},
+          year    = {2019},
+          doi     = {10.1038/s41597-019-0262-8},
+        }
+        ```

@@ -84,3 +84,16 @@ Radiopharmaceuticals, a wholly owned subsidiary of Eli Lilly.
        normal aging and Alzheimer disease.*
        medRxiv (preprint), 2019.
        [doi:10.1101/2019.12.13.19014902](https://doi.org/10.1101/2019.12.13.19014902)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @misc{lamontagne2019oasis3,
+          author  = {LaMontagne, P. J. and Benzinger, T. L. S. and Morris, J. C. and Keefe, S. and Hornbeck, R. and Xiong, C. and others},
+          title   = {{OASIS}-3: longitudinal neuroimaging, clinical, and cognitive dataset for normal aging and {Alzheimer} disease},
+          howpublished = {medRxiv},
+          note    = {Preprint},
+          year    = {2019},
+          doi     = {10.1101/2019.12.13.19014902},
+        }
+        ```

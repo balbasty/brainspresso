@@ -60,3 +60,17 @@ bx adhd200 harvest /data --keys pheno fs
        of neuroimaging in clinical neuroscience.*
        Front Syst Neurosci **6**:62, 2012.
        [doi:10.3389/fnsys.2012.00062](https://doi.org/10.3389/fnsys.2012.00062)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{adhd2012adhd200,
+          author  = {{ADHD-200 Consortium}},
+          title   = {The {ADHD}-200 {Consortium}: a model to advance the translational potential of neuroimaging in clinical neuroscience},
+          journal = {Frontiers in Systems Neuroscience},
+          volume  = {6},
+          pages   = {62},
+          year    = {2012},
+          doi     = {10.3389/fnsys.2012.00062},
+        }
+        ```

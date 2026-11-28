@@ -56,3 +56,17 @@ bx mpi-lemon harvest /data --datatypes func dwi fmap
        physiology in young and old adults.*
        Sci Data **6**:180308, 2019.
        [doi:10.1038/sdata.2018.308](https://doi.org/10.1038/sdata.2018.308)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{babayan2019mind,
+          author  = {Babayan, Anahit and Erbey, Miray and Kumral, Deniz and Reinelt, Janis D and Reiter, Andrea M F and R{\"o}bbig, Josefin and Schaare, H Lina and Uhlig, Marie and Anwander, Alfred and Bazin, Pierre-Louis and Horstmann, Annette and Lampe, Leonie and Nikulin, Vadim V and Okon-Singer, Hadas and Preusser, Sven and Pampel, Andr{\'e} and Rohr, Christiane S and Sacher, Julia and Th{\"o}ne-Otto, Angelika and Trapp, Sabrina and Nierhaus, Till and Altmann, Denise and Arelin, Katrin and Bl{\"o}chl, Maria and Bongartz, Edith and Breig, Patric and Cesnaite, Elena and Chen, Sufang and Cozatl, Roberto and Czerwonatis, Saskia and others},
+          title   = {A mind-brain-body dataset of {MRI}, {EEG}, cognition, emotion, and peripheral physiology in young and old adults},
+          journal = {Scientific Data},
+          volume  = {6},
+          pages   = {180308},
+          year    = {2019},
+          doi     = {10.1038/sdata.2018.308},
+        }
+        ```

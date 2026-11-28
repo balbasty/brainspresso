@@ -72,3 +72,18 @@ AG021910, P20 MH071616, U24 RR021382.
        in young, middle aged, nondemented, and demented older adults.*
        J Cogn Neurosci **19**(9):1498-1507, 2007.
        [doi:10.1162/jocn.2007.19.9.1498](https://doi.org/10.1162/jocn.2007.19.9.1498)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{marcus2007open,
+          author  = {Marcus, D. S. and Wang, T. H. and Parker, J. and Csernansky, J. G. and Morris, J. C. and Buckner, R. L.},
+          title   = {Open Access Series of Imaging Studies ({OASIS}): cross-sectional {MRI} data in young, middle aged, nondemented, and demented older adults},
+          journal = {Journal of Cognitive Neuroscience},
+          volume  = {19},
+          number  = {9},
+          pages   = {1498--1507},
+          year    = {2007},
+          doi     = {10.1162/jocn.2007.19.9.1498},
+        }
+        ```

@@ -78,3 +78,17 @@ bx unc-wisconsin roast /data
        MRI and DTI database of early postnatal development.*
        Front Neurosci **11**:29, 2017.
        [doi:10.3389/fnins.2017.00029](https://doi.org/10.3389/fnins.2017.00029)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{young2017unc,
+          author  = {Young, Jeffrey T and Shi, Yundi and Niethammer, Marc and Grauer, Michael and Coe, Christopher L and Lubach, Gabriele R and Davis, Bradley and Budin, Francois and Knickmeyer, Rebecca C and Alexander, Andrew L and Styner, Martin A},
+          title   = {The {UNC}-{Wisconsin} rhesus macaque neurodevelopment database: a structural {MRI} and {DTI} database of early postnatal development},
+          journal = {Frontiers in Neuroscience},
+          volume  = {11},
+          pages   = {29},
+          year    = {2017},
+          doi     = {10.3389/fnins.2017.00029},
+        }
+        ```

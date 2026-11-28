@@ -54,3 +54,17 @@ bx slim harvest /data --tasks rest --where "sex==F"
        southwest China.*
        Sci Data **4**:170017, 2017.
        [doi:10.1038/sdata.2017.17](https://doi.org/10.1038/sdata.2017.17)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{liu2017longitudinal,
+          author  = {Liu, Wei and Wei, Dongtao and Chen, Qunlin and Yang, Wenjing and Meng, Jie and Wu, Guorong and Bi, Taiyong and Zhang, Qinglin and Zuo, Xi-Nian and Qiu, Jiang},
+          title   = {Longitudinal test-retest neuroimaging data from healthy young adults in southwest China},
+          journal = {Scientific Data},
+          volume  = {4},
+          pages   = {170017},
+          year    = {2017},
+          doi     = {10.1038/sdata.2017.17},
+        }
+        ```

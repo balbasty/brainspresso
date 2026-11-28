@@ -68,3 +68,27 @@ its own paper.
        cognitive and physiological measures.*
        Sci Data **2**:140054, 2015.
        [doi:10.1038/sdata.2014.54](https://doi.org/10.1038/sdata.2014.54)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{zuo2014open,
+          author  = {Zuo, X. N. and Anderson, J. S. and Bellec, P. and Birn, R. M. and Biswal, B. B. and Blautzik, J. and others},
+          title   = {An open science resource for establishing reliability and reproducibility in functional connectomics},
+          journal = {Scientific Data},
+          volume  = {1},
+          pages   = {140049},
+          year    = {2014},
+          doi     = {10.1038/sdata.2014.49},
+        }
+
+        @article{gorgolewski2015high,
+          author  = {Gorgolewski, K. J. and Mendes, N. and Wilfling, D. and Wladimirow, E. and Gauthier, C. J. and Bonnen, T. and others},
+          title   = {A high resolution 7-{Tesla} resting-state {fMRI} test-retest dataset with cognitive and physiological measures},
+          journal = {Scientific Data},
+          volume  = {2},
+          pages   = {140054},
+          year    = {2015},
+          doi     = {10.1038/sdata.2014.54},
+        }
+        ```

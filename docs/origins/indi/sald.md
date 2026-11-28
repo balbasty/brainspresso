@@ -50,3 +50,17 @@ bx sald harvest /data --suffixes T1w --dry-run
        University adult lifespan dataset.*
        Sci Data **5**:180134, 2018.
        [doi:10.1038/sdata.2018.134](https://doi.org/10.1038/sdata.2018.134)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{wei2018structural,
+          author  = {Wei, Dongtao and Zhuang, Kaixiang and Ai, Lei and Chen, Qunlin and Yang, Wenjing and Liu, Wei and Wang, Kangcheng and Sun, Jiangzhou and Qiu, Jiang},
+          title   = {Structural and functional brain scans from the cross-sectional {Southwest University} adult lifespan dataset},
+          journal = {Scientific Data},
+          volume  = {5},
+          pages   = {180134},
+          year    = {2018},
+          doi     = {10.1038/sdata.2018.134},
+        }
+        ```

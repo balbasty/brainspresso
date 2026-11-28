@@ -70,3 +70,17 @@ bx hbn harvest /data --layout sites --sites Site-CBIC --datatypes anat --dry-run
        and learning disorders.*
        Sci Data **4**:170181, 2017.
        [doi:10.1038/sdata.2017.181](https://doi.org/10.1038/sdata.2017.181)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{alexander2017open,
+          author  = {Alexander, L. M. and Escalera, J. and Ai, L. and Andreotti, C. and Febre, K. and Mangone, A. and others},
+          title   = {An open resource for transdiagnostic research in pediatric mental health and learning disorders},
+          journal = {Scientific Data},
+          volume  = {4},
+          pages   = {170181},
+          year    = {2017},
+          doi     = {10.1038/sdata.2017.181},
+        }
+        ```

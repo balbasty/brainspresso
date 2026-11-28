@@ -46,3 +46,17 @@ bx natview harvest /data --datatypes eeg
        *An open-access dataset of naturalistic viewing using simultaneous EEG-fMRI.*
        Sci Data **10**:554, 2023.
        [doi:10.1038/s41597-023-02458-8](https://doi.org/10.1038/s41597-023-02458-8)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{telesford2023open,
+          author  = {Telesford, Qawi K and Gonzalez-Moreira, Eduardo and Xu, Ting and Tian, Yiwen and Colcombe, Stanley J and Cloud, Jessica and Russ, Brian E and Falchier, Arnaud and Nentwich, Maximilian and Madsen, Jens and Parra, Lucas C and Schroeder, Charles E and Milham, Michael P and Franco, Alexandre R},
+          title   = {An open-access dataset of naturalistic viewing using simultaneous {EEG}-{fMRI}},
+          journal = {Scientific Data},
+          volume  = {10},
+          pages   = {554},
+          year    = {2023},
+          doi     = {10.1038/s41597-023-02458-8},
+        }
+        ```

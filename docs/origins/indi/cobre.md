@@ -70,3 +70,18 @@ The dataset is described in:
        *Multimodal neuroimaging in schizophrenia: description and dissemination.*
        Neuroinformatics **15**(4):343-364, 2017.
        [doi:10.1007/s12021-017-9338-9](https://doi.org/10.1007/s12021-017-9338-9)
+
+    ??? quote "BibTeX"
+
+        ```bibtex
+        @article{aine2017multimodal,
+          author  = {Aine, C. J. and Bockholt, H. J. and Bustillo, J. R. and Ca{\~n}ive, J. M. and Caprihan, A. and Gasparovic, C. and Hanlon, F. M. and Houck, J. M. and Jung, R. E. and Lauriello, J. and Liu, J. and Mayer, A. R. and Perrone-Bizzozero, N. I. and Posse, S. and Stephen, J. M. and Turner, J. A. and Clark, V. P. and Calhoun, Vince D.},
+          title   = {Multimodal neuroimaging in schizophrenia: description and dissemination},
+          journal = {Neuroinformatics},
+          volume  = {15},
+          number  = {4},
+          pages   = {343--364},
+          year    = {2017},
+          doi     = {10.1007/s12021-017-9338-9},
+        }
+        ```

@@ -354,6 +354,50 @@ def test_pure_skip_then_update(root, monkeypatch, caplog):
     assert "WARNING" not in caplog.text
 
 
+def test_scoped_skip_then_update(root, monkeypatch, caplog):
+    """A shard skipped by its scope under `skip`; after a template change,
+    `update` rewrites its unedited sidecar and keeps an edited one, with
+    a warning"""
+    opened = open_spy(monkeypatch, roaster)
+    roast(root, display=False)
+    roast(root, subs=[40000], display=False)
+    assert len(opened) == 1                 # (skipped by its scope)
+    t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+           for s in ("0040000", "0040001")]
+    t1w[1].write_text('{"Mine": true}')
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    caplog.clear()
+    report = roast(root, ifexists="update", display=False)
+    assert not report.errors and len(opened) == 2
+    assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
+    assert json.loads(t1w[1].read_text()) == {"Mine": True}
+    assert "was edited" in caplog.text and t1w[1].name in caplog.text
+    # (then skipped by its scope again, under `skip`)
+    roast(root, subs=[40001], display=False)
+    assert len(opened) == 2
+
+
+def test_update_never_skips_by_scope(root, monkeypatch):
+    """Under `update`, a narrower `--subs` covered by the record still runs
+    the shard (shards are skipped under `skip` only): the sidecars of the
+    selected subjects follow their template"""
+    opened = open_spy(monkeypatch, roaster)
+    roast(root, display=False)
+    t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+           for s in ("0040000", "0040001")]
+    old = t1w[1].read_bytes()
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    roast(root, display=False)              # (pure skip: re-signed only)
+    assert len(opened) == 2
+    assert json.loads(t1w[0].read_text()) != {"EchoTime": 1}
+    roast(root, subs=[40000], display=False)
+    assert len(opened) == 2                 # (covered, under `skip`)
+    roast(root, subs=[40000], ifexists="update", display=False)
+    assert len(opened) == 3
+    assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
+    assert t1w[1].read_bytes() == old       # (not selected)
+
+
 def test_exclude_keys(root):
     roast(root, exclude_keys={"func", "meta"}, display=False)
     assert raw_tree(root) == {p for p in RAW if "/func/" not in p}

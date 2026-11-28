@@ -996,7 +996,10 @@ layer in 2b-iv):
   record is done with the same signature and all its outputs (only
   coverage failed) extends its record (scopes and outputs carried, the
   new scope appended): `--subs A`, `--subs B`, `--subs A` skips the
-  third time. So: removing subjects or keys, or toggling `meta`, skips;
+  third time. Only under `skip` (as every shard skip): under `update`
+  and the other modes a covered shard runs, so the sidecars of the
+  selected subjects follow their templates. So: removing subjects or
+  keys, or toggling `meta`, skips;
   adding a subject re-runs only the shards that hold it; after a
   compost of a subject, `--exclude-subs` it skips and a plain roast
   writes it again; `--sidecars`, `--sessions`, include/exclude globs,

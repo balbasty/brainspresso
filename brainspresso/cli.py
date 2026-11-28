@@ -31,7 +31,7 @@ HELP = """
 Brainspresso : Harvest, Roast and Grind public neuroimaging datasets
 ====================================================================
 
-* Plantation : A public neuroimaging dataset supported by brainspresso
+* Origin     : A public neuroimaging dataset supported by brainspresso
 * Harvest    : Download raw data
 * Roast      : Convert source data to BIDS
 * Grind      : Preprocess data with standard pipelines
@@ -65,7 +65,7 @@ def root_app(loader: Loader | None = None) -> cyclopts.App:
         "brainspresso",
         help=HELP,
         help_format="markdown",
-        group_commands="Plantations",
+        group_commands="Origins",
         group_parameters="Options",
         config=loader,
     )

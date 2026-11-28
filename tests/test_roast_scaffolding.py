@@ -142,14 +142,33 @@ def test_python_api_subjects(calls, tmp_path):
     roast = run.python_api(roast_a, KEYS, folder="X", width=3)
     listed = tmp_path / "subs.txt"
     listed.write_text("sub-009\n10\n")
-    assert roast("root", subs=[1, "sub-2", "003", "5:7", str(listed)],
-                 exclude_subs="12") == "report"
+    assert roast("root", sub=[1, "sub-2", "003", "5:7", str(listed)],
+                 exclude_sub="12") == "report"
     call, = calls
     assert call["subs"] == ["001", "002", "003", "005", "006", "009", "010"]
     assert call["exclude_subs"] == ["012"]
     # labels verbatim without a width
-    run.python_api(roast_a, KEYS, folder="X")("root", subs=["sub-a1", "07"])
+    run.python_api(roast_a, KEYS, folder="X")("root", sub=["sub-a1", "07"])
     assert calls[-1]["subs"] == ["07", "a1"]
+
+
+@pytest.mark.parametrize("old", ["subs", "exclude_subs", "sessions",
+                                 "datatypes", "suffixes", "tasks"])
+def test_python_api_refuses_old_names(calls, old):
+    """The selection arguments are named after the BIDS entities (`sub`,
+    `exclude_sub`, `ses`): the old plural names are unknown keywords"""
+    roast = run.python_api(roast_a, KEYS, folder="X", width=3)
+    with pytest.raises(TypeError, match=f"unexpected keyword argument "
+                                        f"'{old}'"):
+        roast("root", **{old: ["1"]})
+    assert not calls
+
+
+def test_python_api_ses(calls):
+    """`ses=`: the `sessions` of the selection (`--ses`)"""
+    run.python_api(roast_a, KEYS, folder="X", width=3)("root", ses=["1"])
+    call, = calls
+    assert call["sessions"] == ["1"] and "ses" not in call
 
 
 def test_python_api_subject_paths(calls, tmp_path):
@@ -157,10 +176,10 @@ def test_python_api_subject_paths(calls, tmp_path):
     listed = tmp_path / "subs.txt"
     listed.write_text("sub-009\n")
     roast = run.python_api(roast_a, KEYS, folder="X", width=3)
-    roast("root", subs=listed, exclude_subs=[listed])
+    roast("root", sub=listed, exclude_sub=[listed])
     assert (calls[-1]["subs"], calls[-1]["exclude_subs"]) == (["009"],
                                                               ["009"])
-    run.python_api(roast_a, KEYS, folder="X")("root", subs=[listed])
+    run.python_api(roast_a, KEYS, folder="X")("root", sub=[listed])
     assert calls[-1]["subs"] == ["009"]
     assert as_list(listed) == [str(listed)]
     assert subject_labels(listed, 3) == subject_labels([listed], 3) == {
@@ -226,8 +245,8 @@ def test_python_api_signature_and_doc():
         options_doc=run.doc_entry("discs : list[int]", "Only these discs"),
         keys_doc="more about keys")
     params = inspect.signature(roast).parameters
-    assert list(params) == ["root", "keys", "exclude_keys", "subs",
-                            "exclude_subs", "discs", "level", "options"]
+    assert list(params) == ["root", "keys", "exclude_keys", "sub",
+                            "exclude_sub", "discs", "level", "options"]
     assert params["discs"].kind is inspect.Parameter.KEYWORD_ONLY
     assert params["discs"].default is None
     assert params["options"].kind is inspect.Parameter.VAR_KEYWORD
@@ -248,7 +267,7 @@ def test_ported_roast_is_python_api(name):
     roast = module.roast
     assert roast.__module__ == module.__name__
     params = inspect.signature(roast).parameters
-    assert {"root", "keys", "exclude_keys", "subs", "exclude_subs",
+    assert {"root", "keys", "exclude_keys", "sub", "exclude_sub",
             "options"} <= set(params)
     for param in params:
         if param != "options":

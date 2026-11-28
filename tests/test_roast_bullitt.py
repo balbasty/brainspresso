@@ -220,13 +220,13 @@ def test_exclude_keys(root):
 
 @pytest.mark.parametrize("subs", [["2"], ["002"], ["sub-002"]])
 def test_subjects(root, subs):
-    roast(root, "--keys", "flash", "angio", "--subs", *subs)
+    roast(root, "--keys", "flash", "angio", "--sub", *subs)
     assert raw_tree(root) == anat("002", "acq-flash_T1w") | \
         anat("002", "angio")
 
 
 def test_exclude_subjects(root):
-    roast(root, "--keys", "mprage", "--exclude-subs", "1")
+    roast(root, "--keys", "mprage", "--exclude-sub", "1")
     assert raw_tree(root) == anat("003", "acq-mprage_T1w")
 
 
@@ -270,12 +270,12 @@ def test_scope_of_subject_shards(root, monkeypatch):
     assert calls
     scoped_records(root)
     del calls[:]
-    for options in ({"exclude_keys": "meta"}, {"subs": [1]},
-                    {"exclude_keys": "meta", "subs": [2]}):
+    for options in ({"exclude_keys": "meta"}, {"sub": [1]},
+                    {"exclude_keys": "meta", "sub": [2]}):
         assert not roast_api(root, display=False, **options).errors
     assert calls == []
-    roast_api(root, json="no", subs=[1], display=False)
-    roast_api(root, exclude_keys="vessels", subs=[2], display=False)
+    roast_api(root, json="no", sub=[1], display=False)
+    roast_api(root, exclude_keys="vessels", sub=[2], display=False)
     assert calls == ["001", "002"]
 
 
@@ -330,8 +330,8 @@ def test_derivatives_without_meta(root):
 # ----------------------------------------------------------------------
 
 def test_api_keys_and_subjects(root):
-    """`roast(keys=)` takes a bare string; subjects as `--subs`"""
-    report = roast_api(root, keys="T2w", subs=[2], json="no", display=False)
+    """`roast(keys=)` takes a bare string; subjects as `--sub`"""
+    report = roast_api(root, keys="T2w", sub=[2], json="no", display=False)
     assert not report.errors
     assert raw_tree(root) == {"sub-002/anat/sub-002_T2w.nii.gz"}
 
@@ -339,13 +339,13 @@ def test_api_keys_and_subjects(root):
 @pytest.mark.parametrize("subs", [["sub-001"], ["001"], ["1"], [1],
                                   ["1:2"]])
 def test_api_subject_values(root, subs):
-    roast_api(root, keys=["angio"], subs=subs, display=False)
+    roast_api(root, keys=["angio"], sub=subs, display=False)
     assert raw_tree(root) == anat("001", "angio")
 
 
 def test_api_subject_file(root, tmp_path):
     (tmp_path / "subs.txt").write_text("sub-001\nsub-002\n")
-    roast_api(root, keys="mprage", exclude_subs=[str(tmp_path / "subs.txt")],
+    roast_api(root, keys="mprage", exclude_sub=[str(tmp_path / "subs.txt")],
               display=False)
     assert raw_tree(root) == anat("003", "acq-mprage_T1w")
 
@@ -495,12 +495,12 @@ def test_missing_sidecar_template(root, monkeypatch, tmp_path):
         if path.name != "T2w.json":
             (templates / path.name).write_bytes(path.read_bytes())
     monkeypatch.setattr(roaster, "TEMPLATES", templates)
-    report = roast_api(root, keys="T2w", subs="1:3", display=False)
+    report = roast_api(root, keys="T2w", sub="1:3", display=False)
     assert sorted(name for _, name, _ in report.errors) == [
         "sub-001_T2w.json", "sub-002_T2w.json"]
     assert raw_tree(root) == {"sub-001/anat/sub-001_T2w.nii.gz",
                               "sub-002/anat/sub-002_T2w.nii.gz"}
-    report = roast_api(root, keys="T2w", subs="1:3", json="no",
+    report = roast_api(root, keys="T2w", sub="1:3", json="no",
                        display=False)
     assert not report.errors
 
@@ -552,7 +552,7 @@ def test_participants_rows(root, caplog):
 def test_participants_unreadable(root, content):
     """An empty, headless or non-UTF-8 participants table is an error"""
     (root / "sourcedata" / "participants.tsv").write_bytes(content)
-    report = roast_api(root, keys=["meta", "T2w"], subs=[1],
+    report = roast_api(root, keys=["meta", "T2w"], sub=[1],
                        display=False)
     assert [name for _, name, _ in report.errors] == ["participants.tsv"]
     assert raw_tree(root) == META - {"participants.tsv"} | \

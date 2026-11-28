@@ -16,7 +16,7 @@ schema: 1
 stage: grind                    # or roast
 created: '2026-11-27T10:15:00+00:00'
 brainspresso: '0.4.0'
-command: [bx, ixi, grind, fs-long, --subs, '01']   # as typed
+command: [bx, ixi, grind, fs-long, --sub, '01']   # as typed
 pipeline: {name: fs-long, version: '7.4.1', variant: null}
 variants: {}                    # variant of each required pipeline
 if_stale: error

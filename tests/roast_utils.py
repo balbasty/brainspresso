@@ -163,26 +163,26 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
     Parameters
     ----------
     scenario : {"narrow", "widen", "back", "seen", "compost"}
-        - narrow: a full roast, then `--subs a`, then `--exclude-keys
+        - narrow: a full roast, then `--sub a`, then `--exclude-keys
           meta`: no archive is opened again;
-        - widen: `--subs a` then `--subs a b`: only the archives that
+        - widen: `--sub a` then `--sub a b`: only the archives that
           hold `b` are opened again, and `b` is written; a subject held
           by no archive (`absent`) opens nothing;
-        - back: `--subs a`, `--subs b`, `--subs a`: the third opens
+        - back: `--sub a`, `--sub b`, `--sub a`: the third opens
           nothing;
         - seen: after a roast of `a` and `key` only, every scoped record
           has seen every subject of its archive;
-        - compost: compost `b`, then `--exclude-subs b` opens nothing,
+        - compost: compost `b`, then `--exclude-sub b` opens nothing,
           then a full roast opens the archives of `b` and writes it
           again
     ds_root : Path
         Dataset folder
     roast : callable(**options) -> report
-        Roast of the dataset (`subs=`, `exclude_subs=`, `keys=`,
+        Roast of the dataset (`sub=`, `exclude_sub=`, `keys=`,
         `exclude_keys=`)
     opened : list[str]
         Names of the archives opened (`open_spy`)
-    a, b : subject values of `subs=`
+    a, b : subject values of `sub=`
         In different archives, if the dataset has several
     label_a, label_b : str
         Their labels
@@ -193,7 +193,7 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
         Keys of a full roast (meta and the image keys)
     key : str
         One image key that `a` has
-    absent : subject value of `subs=`, optional
+    absent : subject value of `sub=`, optional
         A subject that no archive holds
     """
     def holding(label):
@@ -211,30 +211,30 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
         check(roast(keys=keys))
         assert sorted(opened) == sorted(archives)
         before = raw_tree(ds_root)
-        check(roast(keys=keys, subs=[a]))
+        check(roast(keys=keys, sub=[a]))
         check(roast(keys=keys, exclude_keys={"meta"}))
-        check(roast(keys={key}, subs=[a, b]))
+        check(roast(keys={key}, sub=[a, b]))
         assert sorted(opened) == sorted(archives)
         assert raw_tree(ds_root) == before
     elif scenario == "widen":
-        check(roast(keys=keys, subs=[a]))
+        check(roast(keys=keys, sub=[a]))
         assert written(label_a) and not written(label_b)
         del opened[:]
-        check(roast(keys=keys, subs=[a, b]))
+        check(roast(keys=keys, sub=[a, b]))
         assert sorted(opened) == holding(label_b)
         assert written(label_b)
         if absent is not None:
             del opened[:]
-            check(roast(keys=keys, subs=[a, b, absent]))
+            check(roast(keys=keys, sub=[a, b, absent]))
             assert opened == []
     elif scenario == "back":
-        check(roast(keys=keys, subs=[a]))
-        check(roast(keys=keys, subs=[b]))
+        check(roast(keys=keys, sub=[a]))
+        check(roast(keys=keys, sub=[b]))
         del opened[:]
-        check(roast(keys=keys, subs=[a]))
+        check(roast(keys=keys, sub=[a]))
         assert opened == []
     elif scenario == "seen":
-        check(roast(keys={key}, subs=[a]))
+        check(roast(keys={key}, sub=[a]))
         records = scoped_records(ds_root)
         for name, (labels, task) in archives.items():
             if label_a in labels:
@@ -248,7 +248,7 @@ def check_scope(scenario: str, ds_root: Path, roast, opened: list, *,
                 yes=True)
         assert not written(label_b)
         del opened[:]
-        check(roast(keys=keys, exclude_subs=[b]))
+        check(roast(keys=keys, exclude_sub=[b]))
         assert opened == [] and not written(label_b)
         check(roast(keys=keys))
         assert sorted(opened) == holding(label_b)

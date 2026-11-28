@@ -161,20 +161,20 @@ def test_roast_raw(root):
 
 @pytest.mark.parametrize("subs", [["sub-0002"], ["2"], [2], ["2:3"]])
 def test_subject_values(root, subs, tmp_path):
-    """`roast(subs=)` takes the values of `--subs`"""
-    roast(root, keys={"raw"}, discs=[1], subs=subs)
+    """`roast(subs=)` takes the values of `--sub`"""
+    roast(root, keys={"raw"}, discs=[1], sub=subs)
     assert raw_tree(root) == raw_runs(2)
 
 
 def test_subject_file(root, tmp_path):
     (tmp_path / "subs.txt").write_text("sub-0001\n")
     roast(root, keys={"raw"}, discs=[1],
-          exclude_subs=[str(tmp_path / "subs.txt")])
+          exclude_sub=[str(tmp_path / "subs.txt")])
     assert raw_tree(root) == raw_runs(2)
 
 
 def test_roast_raw_filters(root):
-    roast(root, keys={"raw"}, discs=[1], exclude_subs=[1], json="only")
+    roast(root, keys={"raw"}, discs=[1], exclude_sub=[1], json="only")
     assert raw_tree(root) == {p for p in raw_runs(2) if p.endswith("json")}
 
 
@@ -231,7 +231,7 @@ def test_meta_trimmed(root):
     original = layout_of(root).original(table)
     assert [r[0] for r in read_tsv(original)] == [
         "participant_id", "sub-0001", "sub-0002"]
-    roast(root, keys={"raw"}, subs=[2])
+    roast(root, keys={"raw"}, sub=[2])
     assert [r[0] for r in read_tsv(table)] == ["participant_id", "sub-0002"]
 
 
@@ -288,7 +288,7 @@ def test_missing_spreadsheet(root):
 
 
 def test_avg(root):
-    roast(root, keys={"avg"}, discs=[1], subs=[1])
+    roast(root, keys={"avg"}, discs=[1], sub=[1])
     assert raw_tree(root) == set()
     folder = drv(root)
     assert drv_tree(root) == {"sub-0001/anat/sub-0001_res-1mm_T1w.nii.gz",
@@ -303,7 +303,7 @@ def test_avg(root):
 
 
 def test_avg_sources(root):
-    roast(root, keys={"avg"}, discs=[1], subs=[1], json="only")
+    roast(root, keys={"avg"}, discs=[1], sub=[1], json="only")
     meta = json.loads((drv(root) / "sub-0001/anat/"
                        "sub-0001_res-1mm_T1w.json").read_text())
     assert meta["Sources"] == [
@@ -312,7 +312,7 @@ def test_avg_sources(root):
 
 
 def test_tal(root):
-    roast(root, keys={"tal"}, discs=[1], subs=[1])
+    roast(root, keys={"tal"}, discs=[1], sub=[1])
     anat = drv(root) / "sub-0001/anat"
     assert (anat / "sub-0001_space-Talairach_res-1mm_T1w.nii.gz").exists()
     assert (anat / "sub-0001_space-Talairach_res-1mm_desc-skullstripped"
@@ -327,7 +327,7 @@ def test_tal(root):
 
 
 def test_fsl_relabel(root):
-    roast(root, keys={"fsl"}, discs=[1], subs=[1])
+    roast(root, keys={"fsl"}, discs=[1], sub=[1])
     f = (drv(root) / "sub-0001/anat"
          / "sub-0001_space-Talairach_res-1mm_dseg.nii.gz")
     dat = np.asarray(nib.load(f).dataobj).ravel()
@@ -468,12 +468,12 @@ def test_processed_derivative_only_with_images(root):
     """No avg/tal/fsl image converted (no subject of the disc kept, no
     disc): no description nor lookup table of `oasis-processed`"""
     proc = layout_of(root).derivative(DRV)
-    roast(root, keys={"avg", "tal", "fsl"}, discs=[1], subs=[99],
+    roast(root, keys={"avg", "tal", "fsl"}, discs=[1], sub=[99],
           display=False)
     roast(root, keys={"avg", "tal", "fsl"}, discs=[2], display=False)
     assert not proc.description.exists()
     assert not (proc.root / roaster.DSEG_NAME).exists()
-    roast(root, keys={"fsl"}, discs=[1], subs=[1], display=False)
+    roast(root, keys={"fsl"}, discs=[1], sub=[1], display=False)
     assert proc.description.exists()
     assert (proc.root / roaster.DSEG_NAME).exists()
 
@@ -552,12 +552,12 @@ def cli(root, *args):
 
 
 def test_cli_keys_and_subjects(root):
-    cli(root, "--keys", "raw", "tal", "--subs", "1")
+    cli(root, "--keys", "raw", "tal", "--sub", "1")
     assert raw_tree(root) == raw_runs(1)
     assert drv_tree(root) == tal_files()
     # --exclude-keys alone: all but these
     cli(root, "--exclude-keys", "fs", "fs-all", "tal", "fsl", "avg",
-        "--exclude-subs", "sub-0001")
+        "--exclude-sub", "sub-0001")
     assert raw_tree(root) == META | raw_runs(1) | raw_runs(2)
     assert drv_tree(root) == tal_files()
     rows = read_tsv(raw_file(root, "participants.tsv"))
@@ -615,7 +615,7 @@ def test_cli_layout(tmp_path, layout):
 
 @pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
 def test_scope_of_image_discs(root, monkeypatch, scenario):
-    """`--subs` narrowing and `meta` skip the discs, a new subject
+    """`--sub` narrowing and `meta` skip the discs, a new subject
     re-reads the disc that holds it only (`roast.scope`)"""
     image_disc(root / "sourcedata", disc=2, ids=(3,))
     opened = open_spy(monkeypatch, roaster)
@@ -651,13 +651,13 @@ def test_scope_of_freesurfer_discs(root, monkeypatch):
         "disc1/OAS1_0004_MR2/mri/aseg.mgz": mgz_bytes(),
     })
     opened = open_spy(monkeypatch, roaster)
-    roast(root, keys={"fs"}, subs=[1], discs=[1], display=False)
+    roast(root, keys={"fs"}, sub=[1], discs=[1], display=False)
     record = scoped_records(root)["roast/discs/fs-disc01"]
     assert record["seen"] == {"sub": ["0001", "0003"]}
     del opened[:]
-    roast(root, keys={"fs", "meta"}, subs=[1, 4], discs=[1], display=False)
+    roast(root, keys={"fs", "meta"}, sub=[1, 4], discs=[1], display=False)
     assert opened == []
-    roast(root, keys={"fs-all"}, subs=[1, 3], discs=[1], display=False)
+    roast(root, keys={"fs-all"}, sub=[1, 3], discs=[1], display=False)
     assert opened
     fsdrv = layout_of(root).derivative(FS)
     assert (fsdrv.source / "sub-0003" / "stats" / "aseg.stats").exists()

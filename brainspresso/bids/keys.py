@@ -408,8 +408,8 @@ class KeyAliases:
         exclude_keys : list[str]
             Keys not to convert
         **filters
-            `Selection` filters of the command line (`subs`,
-            `exclude_subs`, `sessions`...)
+            `Selection` filters (`subs`, `exclude_subs`, `sessions`...:
+            the fields of `--sub`, `--exclude-sub`, `--ses`...)
         """
         filters.setdefault("folders", OPTIONAL_FOLDERS)
         base = Selection(**filters)

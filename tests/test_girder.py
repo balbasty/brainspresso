@@ -299,7 +299,7 @@ def uncwisc(server, monkeypatch):
 
 
 def test_uncwisc_harvest(uncwisc, tmp_path):
-    uncwisc.download(tmp_path, subs=["001"], sessions=["12months"])
+    uncwisc.download(tmp_path, sub=["001"], ses=["12months"])
     src = tmp_path / "UNC-Wisconsin" / "sourcedata"
     assert files(src) == {
         "folders.json",
@@ -313,7 +313,7 @@ def test_uncwisc_harvest(uncwisc, tmp_path):
 
 
 def test_uncwisc_harvest_keys(uncwisc, tmp_path):
-    uncwisc.download(tmp_path, keys=["T1w", "dti-qc"], subs=["002"])
+    uncwisc.download(tmp_path, keys=["T1w", "dti-qc"], sub=["002"])
     src = tmp_path / "UNC-Wisconsin" / "sourcedata" / "scan_data"
     assert files(src) == {
         "002/12months/sMRI/ORIG/002_12months_T1_ORIG.nrrd",
@@ -405,7 +405,7 @@ def test_uncwisc_roast_derivatives(uncwisc, tmp_path, layout):
         _age_months,
         roast,
     )
-    uncwisc.download(tmp_path, keys=["derivatives", "meta"], subs=["001"],
+    uncwisc.download(tmp_path, keys=["derivatives", "meta"], sub=["001"],
                      layout=layout)
     root = tmp_path / "UNC-Wisconsin"
     roast(root)
@@ -514,7 +514,7 @@ def test_bullitt_subject_labels():
 
 
 def test_bullitt_harvest(bullitt, tmp_path):
-    bullitt.download(tmp_path, subs=["1", "2"])
+    bullitt.download(tmp_path, sub=["1", "2"])
     src = tmp_path / "Bullitt" / "sourcedata"
     assert files(src) == {
         "Administration/NormalDatabase2.pdf",
@@ -553,7 +553,7 @@ def test_bullitt_roast(bullitt, tmp_path, layout):
     import nibabel as nib
 
     from brainspresso.datasets.bullitt.roaster import roast
-    bullitt.download(tmp_path, exclude_subs=["003"], layout=layout)
+    bullitt.download(tmp_path, exclude_sub=["003"], layout=layout)
     root = tmp_path / "Bullitt"
     roast(root, display=False)
     found = Layout.detect(root)
@@ -597,7 +597,7 @@ def test_bullitt_roast(bullitt, tmp_path, layout):
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_bullitt_roast_keys(bullitt, tmp_path, layout):
     from brainspresso.datasets.bullitt.roaster import roast
-    bullitt.download(tmp_path, subs=["001"], layout=layout)
+    bullitt.download(tmp_path, sub=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     roast(root, keys=["T2w"], json="no", display=False)
     raw = Layout.detect(root).raw
@@ -618,7 +618,7 @@ def test_compost_commands():
 def test_bullitt_compost_sourcedata(bullitt, tmp_path, layout):
     from brainspresso.bids.compost import compost
     from brainspresso.datasets.bullitt.roaster import roast
-    bullitt.download(tmp_path, subs=["001"], layout=layout)
+    bullitt.download(tmp_path, sub=["001"], layout=layout)
     root = tmp_path / "Bullitt"
     roast(root, display=False)
     compost(root, yes=True)

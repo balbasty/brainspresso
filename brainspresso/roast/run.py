@@ -214,8 +214,8 @@ def roast_dataset(
     jobs, display, info
         See `run_roast`
     **options
-        `make_context` options (`layout`, `json`, `ifexists`, `subs`,
-        `exclude_subs`, `sessions`...)
+        `make_context` options (`layout`, `json`, `ifexists`, and the
+        `Selection` filters: `subs`, `exclude_subs`, `sessions`...)
 
     Returns
     -------
@@ -235,16 +235,27 @@ def roast_dataset(
 SELECTION_ARGS = {
     "keys": "keys",
     "exclude_keys": "exclude_keys",
-    "subs": "subs",
-    "exclude_subs": "exclude_subs",
+    "subs": "sub",
+    "exclude_subs": "exclude_sub",
 }
+
+#: Keyword names of the `Selection` filters that every `roast()` takes
+#: among its `**options` (named after the BIDS entities, as on the
+#: command line), by `Selection` field
+FILTER_ARGS = {"sessions": "ses"}
+
+#: `Selection` fields that `roast()` refuses as keywords: the filters are
+#: named after their command-line options (`SELECTION_ARGS`,
+#: `FILTER_ARGS`)
+_SELECTION_FIELDS = ("subs", "exclude_subs", "sessions", "datatypes",
+                     "suffixes", "tasks")
 
 #: Options of `roast_dataset` (and `make_context`) that every `roast()`
 #: takes, in the docstrings that `python_api` writes
 COMMON_OPTIONS = (
     "Those of the command line: `json` (`--sidecars`: \"yes\", \"no\", "
     "\"only\"), `ifexists` (`--if-exists`), `layout` (`--layout`), "
-    "`sessions` (`--sessions`, for a dataset with sessions); `jobs` "
+    "`ses` (`--ses`, for a dataset with sessions); `jobs` "
     "(processes for the shards), `display` (the progress table) and "
     "`info` (extra fields of the run, in the manifest)")
 
@@ -291,7 +302,7 @@ def python_api(
     Every ported dataset roasts through it, so that its arguments mean
     what they mean on the command line, in every dataset:
 
-    * `subs`, `exclude_subs`: `sources.base.subject_labels` with the
+    * `sub`, `exclude_sub`: `sources.base.subject_labels` with the
       width of the dataset (numbers, labels with or without `sub-`,
       ranges `start:stop[:step]`, files that list one subject per line);
     * `keys`, `exclude_keys`: a name or a list (`as_list`); with a
@@ -343,8 +354,8 @@ def python_api(
     Returns
     -------
     callable
-        `roast(root, *, keys=(), exclude_keys=(), subs=(),
-        exclude_subs=(), <options>, **options) -> RoastReport` (the
+        `roast(root, *, keys=(), exclude_keys=(), sub=(),
+        exclude_sub=(), <options>, **options) -> RoastReport` (the
         names of the selection arguments: `SELECTION_ARGS`)
     """
     sources = roasters if isinstance(roasters, Mapping) else None
@@ -357,9 +368,16 @@ def python_api(
 
     def roast(root, **kwargs) -> RoastReport:
         # (keyword-only, by `SELECTION_ARGS`: see `__signature__`)
+        for field in _SELECTION_FIELDS:
+            if field in kwargs and field not in names.values():
+                raise TypeError(f"roast() got an unexpected keyword "
+                                f"argument {field!r}")
         keys, exclude_keys, subs, exclude_subs = (
             as_list(kwargs.pop(names[role], ())) for role in
             ("keys", "exclude_keys", "subs", "exclude_subs"))
+        for field, name in FILTER_ARGS.items():
+            if name in kwargs:
+                kwargs[field] = kwargs.pop(name)
         if sources is not None:
             source = kwargs.pop("source", default_source)
             if source not in sources:
@@ -417,12 +435,12 @@ def _roast_doc(names: dict, folder: str, width: int | None, example: int,
     """Return the docstring of a `roast()` (`python_api`)."""
     if width is None:
         subjects = ("Subjects: labels with or without `sub-`, files that "
-                    "list one per line (as `--subs`)")
+                    "list one per line (as `--sub`)")
     else:
         subjects = (f"Subjects: numbers (`{example}` is "
                     f"`sub-{example:0{width}d}`), labels with or without "
                     f"`sub-`, ranges `start:stop[:step]`, files (as "
-                    f"`--subs`)")
+                    f"`--sub`)")
     entries = [doc_entry("root : path", "Dataset folder")]
     if sources is not None:
         choices = ", ".join(f'"{s}"' for s in sources)

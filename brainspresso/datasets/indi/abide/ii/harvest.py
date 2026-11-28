@@ -60,7 +60,7 @@ NOT_ON_S3 = frozenset({'SU', 'U_MIA'})
 
 
 class SitesOption:
-    """Per-run option `sites` (names of `--sites`; empty: all)."""
+    """Per-run option `sites` (names of `--site`; empty: all)."""
 
     sites: frozenset = frozenset()
 

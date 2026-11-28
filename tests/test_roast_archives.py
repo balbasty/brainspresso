@@ -696,7 +696,7 @@ def test_bullitt_signs_the_templates_it_copies(tmp_path, monkeypatch):
 
     def again(**options):
         del calls[:]
-        report = bullitt.roast(root, exclude_keys=others, subs=[1],
+        report = bullitt.roast(root, exclude_keys=others, sub=[1],
                                display=False, **options)
         assert not report.errors, report.errors
         return sorted(calls)

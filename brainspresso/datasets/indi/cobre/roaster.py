@@ -404,6 +404,6 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
 #   Python API
 # ----------------------------------------------------------------------
 
-#: Roast `<root>` (the `COBRE` folder): `roast(root, keys=..., subs=...)`
+#: Roast `<root>` (the `COBRE` folder): `roast(root, keys=..., sub=...)`
 roast = python_api(roast_cobre, KEYS, folder="COBRE",
                    width=WIDTH, example=40000)

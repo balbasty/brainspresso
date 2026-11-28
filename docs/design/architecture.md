@@ -199,6 +199,18 @@ shortcuts. Not yet: links outside inheritance (`IntendedFor` field maps,
 ASL `m0scan`), a CLI flag for `entities`, filters on derivative datasets
 beyond subject/session.
 
+Names (r52): the command line, the config keys, the
+`BRAINSPRESSO_OPT_*` variables and the Python APIs (`roast()`,
+`run_compost`, `Dataset.selection`) name the filters after the BIDS
+entities, as brainfilter does (`BidsPath.filter(sub=, ses=, datatype=,
+suffix=, task=)`): `--sub`, `--exclude-sub`, `--ses`, `--site`,
+`--exclude-site`, `--datatype`, `--suffix`, `--task`. The fields of
+`Selection` keep their plural names (`subs`, `exclude_subs`,
+`sessions`, `datatypes`, `suffixes`, `tasks`): they are the internal
+vocabulary of the key specs (`KeyAliases(bids=)`) and of the roast scope
+records (`.brainspresso/tasks/`, whose `fixed.base` holds them), which
+a rename would re-sign on every existing dataset.
+
 Dataset-specific **keys** (`raw`, `meta`, `fs`, ...) remain as per-dataset
 aliases expanding to selection predicates and/or non-BIDS categories
 (metadata, phenotypes, a derivative pipeline, source-only files). The global
@@ -400,7 +412,7 @@ project ported, since they share `Project.entries`):
   files still there, never re-created). INDI and OpenNeuro gain a
   `roast` command (`Dataset.roast` of a `hosted` dataset:
   `Dataset.roast_hosted` over `hosted_datasets`, each site of a sites
-  layout with `--sites`; INDI site datasets accept merged labels).
+  layout with `--site`; INDI site datasets accept merged labels).
 
 Interactions (decided):
 
@@ -424,8 +436,8 @@ Interactions (decided):
 * Selection: a harvest roasts what it selected (keys, subs, sessions,
   sites, datatypes, globs, `--where`) and every roasted file of the
   subjects it touched (new images re-trim `IntendedFor` and scans
-  tables of files placed earlier); a roast takes `--subs`,
-  `--exclude-subs`, `--sessions` (and `--sites` for sites layouts).
+  tables of files placed earlier); a roast takes `--sub`,
+  `--exclude-sub`, `--ses` (and `--site` for sites layouts).
   Tables are trimmed to what is on disk, so successive partial harvests
   add up (`participants.tsv` lists every subject harvested so far).
 * Layouts: study and flat place pristine copies in `<DS>/sourcedata/`;
@@ -871,8 +883,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   package templates).
 * **Roaster scaffolding** (step 6 PR D):
   * `roast.python_api(roasters, aliases, folder=, width=, spec=,
-    options=, ...)` builds the `roast(root, *, keys, exclude_keys, subs,
-    exclude_subs, <dataset options>, **options)` of every ported
+    options=, ...)` builds the `roast(root, *, keys, exclude_keys, sub,
+    exclude_sub, <dataset options>, **options)` of every ported
     dataset, with the meaning of the command line: subjects through
     `subject_labels(values, width)` (numbers, labels with or without
     `sub-`, ranges, files; a path is a file), keys through `as_list`
@@ -1249,14 +1261,14 @@ layer in 2b-iv):
   group). A scoped shard that runs although its
   record is done with the same signature and all its outputs (only
   coverage failed) extends its record (scopes and outputs carried, the
-  new scope appended): `--subs A`, `--subs B`, `--subs A` skips the
+  new scope appended): `--sub A`, `--sub B`, `--sub A` skips the
   third time. Only under `skip` (as every shard skip): under `update`
   and the other modes a covered shard runs, so the sidecars of the
   selected subjects follow their templates. So: removing subjects or
   keys, or toggling `meta`, skips;
   adding a subject re-runs only the shards that hold it; after a
-  compost of a subject, `--exclude-subs` it skips and a plain roast
-  writes it again; `--sidecars`, `--sessions`, include/exclude globs,
+  compost of a subject, `--exclude-sub` it skips and a plain roast
+  writes it again; `--sidecars`, `--ses`, include/exclude globs,
   templates (`config`) and inputs match exactly, as before. It rests on
   two promises of the roaster: the selection decides which outputs
   exist, never their content (what else does is in `config`, as
@@ -1355,8 +1367,8 @@ class Dataset:
     roaster: Roaster | None = None   # when no source has one (staticmethod)
     credentials: Literal["login", "token"] | None = None
     harvest_jobs: int | None = None  # default of harvest --jobs
-    harvest_subjects: bool = True    # harvest takes --subs (sources prune)
-    has_sites: bool = False          # --sites without a list of names
+    harvest_subjects: bool = True    # harvest takes --sub (sources prune)
+    has_sites: bool = False          # --site without a list of names
     hosted: bool = False             # hosted as BIDS: filter groups
     folder_choices: tuple[str, ...] = ()   # --folders (hosted)
     download: Mapping[str, Any] = {} # fixed DownloadOptions (on_error...)
@@ -1397,14 +1409,14 @@ def describe(self, command: str) -> str      # summary of a command
 def root(self, path=None, out=None) -> Path  # --out, else tree path/folder
 def layout(self, root, layout=None) -> Layout
 def labels(self, values) -> set[str]         # subject_labels(width)
-def selection(self, subs=(), exclude_subs=(), sessions=(), **filters
+def selection(self, sub=(), exclude_sub=(), ses=(), **filters
               ) -> Selection
 def wants(self, command, keys=(), exclude_keys=()) -> Wants
 def select_roaster(self, ctx, override=None) -> tuple[Source | None, Roaster]
 def roast_options(self, args) -> dict       # RoastContext.options
                                   #   (OASIS-I: --discs); default {}
 def check(self, command, args) -> None      # keys, sites, subjects
-def chosen_sites(self, args) -> tuple       # --sites minus --exclude-sites
+def chosen_sites(self, args) -> tuple       # --site minus --exclude-site
 def run(self, command, layout, args)         # check, lock, then the body
 def execute(self, command, *arguments, path=None, out=None, **groups)
 # Bodies of the default commands
@@ -1448,7 +1460,7 @@ a selection. Choices come from `choices`, else from a nested-dict tree
 (flattened); keys are checked (`KeySpec.check`: choices, else
 `KeyAliases.expand`) before anything is written, and the hierarchy is
 listed in the help of the command and in `info`. Every roast is on the
-engine: roast `--subs` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
+engine: roast `--sub` are labels (`labels`), as for the other commands. A roast of a missing dataset folder is refused before
 anything is created. The command functions return nothing (cyclopts >=
 4 prints a return value; the cyclopts 3 console script would print it
 and exit 1); `execute` returns it.
@@ -1468,10 +1480,10 @@ break under `from __future__ import annotations`.
 | Group | Flags | Used by |
 |-------|-------|---------|
 | `KeyOptions` | `--keys`, `--exclude-keys` (`keys_for(command)`) | harvest, roast |
-| `SelectionOptions` | `--subs`, `--exclude-subs` | harvest, roast, compost |
-| `SessionOptions` | `--sessions` | compost; harvest/roast if `sessions` |
-| `SiteOptions` | `--sites`, `--exclude-sites` (str, `select_sites`) | harvest if `site_names`/`has_sites`; compost if `sites` layouts |
-| `FilterOptions` | `--datatypes`, `--suffixes`, `--tasks`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
+| `SelectionOptions` | `--sub`, `--exclude-sub` | harvest, roast, compost |
+| `SessionOptions` | `--ses` | compost; harvest/roast if `sessions` |
+| `SiteOptions` | `--site`, `--exclude-site` (str, `select_sites`) | harvest if `site_names`/`has_sites`; compost if `sites` layouts |
+| `FilterOptions` | `--datatype`, `--suffix`, `--task`, `--include`, `--exclude`, `--where` | compost; hosted harvests |
 | `HostedOptions` | `--folders`, `--trim`, `--list` | hosted harvests |
 | `SourceOptions` | `--source` (names of `sources()`, several = ordered) | harvest; roast (several roasters) |
 | `LoginOptions` / `TokenOptions` | `--user`, `--password` / `--token` | `credentials` |
@@ -1484,8 +1496,8 @@ break under `from __future__ import annotations`.
 **Help panels** (r38). The flags of a command are shown in panels
 (cyclopts `Group`s, one per title, `options.panel`), in one order
 (`options.Panel`): the options of every dataset first, "Dataset"
-(`path`, `--out`, the arguments, `--layout`), "Selection" (`--subs`,
-`--sessions`, `--sites`), "Filters" (BIDS filters, `--folders`),
+(`path`, `--out`, the arguments, `--layout`), "Selection" (`--sub`,
+`--ses`, `--site`), "Filters" (BIDS filters, `--folders`),
 "Keys"; then the panel of the command ("Harvest", "Roast", "Compost":
 the hosted `--trim`, `--list`, `--sidecars`, `--repair` too);
 "Sources" (`--source`, and the options of harvest that every source
@@ -1519,7 +1531,7 @@ of the help: `tree_keys` lists the keys of `tree_lines` once, leaves of
 sets and lists sorted) when they are its keys.
 
 Every command but `info` also takes `path` (root of all datasets,
-`BDP_PATH`) and `--out` (dataset folder). A `--subs` value that names an
+`BDP_PATH`) and `--out` (dataset folder). A `--sub` value that names an
 existing file is read as a list of subjects (one per line). Labels that
 match nothing are warned about by the hosted harvests (INDI, OpenNeuro;
 an error if none matches); their format is not validated. `subject_width`
@@ -1771,11 +1783,11 @@ absence of the key.
   sites, else `DEFAULT_LAYOUT` (`study`, final, §9). Manifest unchanged.
 * `--site-layout X`: hidden, deprecated (warning) until the end of step
   5; with `--layout sites` it means `sites:X`, alone it is an error.
-* Every INDI project keeps `--sites` and the `sites*` layouts (single-site
+* Every INDI project keeps `--site` and the `sites*` layouts (single-site
   ones use the child kind, as before). Compost runs site by site;
-  compost `--sites`/`--exclude-sites` only apply to a sites layout
+  compost `--site`/`--exclude-site` only apply to a sites layout
   (error otherwise); the default `roast` refuses a sites layout. A
-  `--subs` selection that matches no site is refused before anything is
+  `--sub` selection that matches no site is refused before anything is
   downloaded (every site is listed first).
 
 ### Run lock (`actions/runlock.py`)
@@ -1860,10 +1872,15 @@ units take the run lock (§7, "What the ports must and must not assume").
 Every flag of the step-3 snapshot (`tests/data/cli_flags_step3.json`)
 keeps its names, default and choices, except (listed in `test_cli.py`):
 
+* the selection options, renamed after the BIDS entities (r52; no
+  alias): the snapshot holds the new names (`--sub`, `--ses`, `--site`,
+  `--datatype`... and their `--empty-*` negations), and
+  `test_selection_flags_renamed` checks that no old name is left.
+
 * `--layout sites:study|sites:flat` (new); `--site-layout` deprecated.
-* `--sites`: free text validated by `select_sites` (was a choice list
+* `--site`: free text validated by `select_sites` (was a choice list
   for ABIDE-I/II and CoRR); default `()` = all (was the list of sites).
-* `--subs` and `--exclude-subs` parse as strings (same inputs accepted;
+* `--sub` and `--exclude-sub` parse as strings (same inputs accepted;
   numbers are formatted with `subject_width`); harvest takes them only
   where it did (`harvest_subjects`).
 * `--exclude-keys` alone keeps files that match no key (they were
@@ -1874,8 +1891,8 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
 * Added (additive): compost `--ignore-runs`, `info` everywhere, `--out`, `--level`, `--lock-wait`,
   `--exclude-keys` (harvests),
   `--dry-run`, `--insecure`, `--jobs` and `--source` on harvests,
-  `--packet` on hosted harvests, `--exclude-sites`, `--sidecars` on
-  UNC-Wisconsin roast, compost `--sites` (sites layouts).
+  `--packet` on hosted harvests, `--exclude-site`, `--sidecars` on
+  UNC-Wisconsin roast, compost `--site` (sites layouts).
 * `python -m brainspresso[.cli]` lists datasets; `--help` panels regrouped.
 * Roast `--json [yes|no|only]` / `--no-json` became `--sidecars
   yes|no|only` (r25, r26); `--json VALUE` and `--no-json` (`--sidecars
@@ -1890,7 +1907,7 @@ keeps its names, default and choices, except (listed in `test_cli.py`):
   files and `BRAINSPRESSO_OPT_*` variables as option defaults (Config file).
 * Added (2b-iii): `--sidecars yes|no|only` on hosted harvests
   (OpenNeuro, INDI); a `roast` command for OpenNeuro and every INDI
-  project (`--sites` where sites layouts exist). Changed: compost keeps
+  project (`--site` where sites layouts exist). Changed: compost keeps
   the pristine metadata of hosted datasets unless `--sourcedata`.
 
 ### Tests
@@ -2003,7 +2020,7 @@ what this contract replaces.
 * `enumerate_units(layout, level, selection, overrides)` walks the
   `sub-*/[ses-*]` folders of `layout.raw` (what is on disk, not
   `participants.tsv`), filtered by the `Selection` of the command line
-  (`--subs`, `--exclude-subs`, `--sessions`, later `entities`) and by
+  (`--sub`, `--exclude-sub`, `--ses`, later `entities`) and by
   the dataset's exclusions. Tables are only read for `--where` (below).
 * A unit of a stage is planned if each raw requirement finds between
   `min` and `max` files; otherwise it is **blocked**, with the reason.
@@ -2715,7 +2732,7 @@ Each step lands as commits on the refactor branch with its tests green.
   source (`Source(roaster=)`); sources whose files share one layout
   share one roaster (ABIDE-I s3 and nitrc), so that `roast --source`
   exists only where the layouts differ. The module has a `roast(root,
-  *, subs=, exclude_subs=, **options)` Python API whose subjects go
+  *, sub=, exclude_sub=, **options)` Python API whose subjects go
   through `subject_labels(values, width)`, as on the command line. Keys a roaster must
   tell apart are sibling leaves of a `KeyAliases`, never a group and its
   only leaf (a group expands to its leaves: ABIDE-I `fs`/`fs-all`). A
@@ -3885,3 +3902,24 @@ up as an XPASS failure once fixed (then drop the marker).
   an error, or nothing selected); `options=` given to a `roast()` whose
   dataset has its own options is a `TypeError` (was silently dropped);
   OASIS-I `roast(discs=)` de-duplicated as on the command line.
+* r52: selection options named after the BIDS entities, as
+  brainfilter's keywords (owner decision, no deprecated alias):
+  `--subs`, `--exclude-subs`, `--sessions`, `--sites`,
+  `--exclude-sites`, `--datatypes`, `--suffixes`, `--tasks` become
+  `--sub`, `--exclude-sub`, `--ses`, `--site`, `--exclude-site`,
+  `--datatype`, `--suffix`, `--task` (and the `--empty-*` negations,
+  which cyclopts derives); there was no `--exclude-sessions` and no
+  other plural entity filter. The config keys and `BRAINSPRESSO_OPT_*`
+  variables follow (an old key is an unknown key, as any other, with
+  "did you mean"); `roast(sub=, exclude_sub=, ses=)` (`SELECTION_ARGS`,
+  `FILTER_ARGS`; the old keywords are a `TypeError`), `run_compost(sub=,
+  ..., site=, exclude_site=)`, `Dataset.selection(sub=, exclude_sub=,
+  ses=)` and the fields of `SelectionOptions`, `SessionOptions`,
+  `SiteOptions` and `FilterOptions`. Kept: the `Selection` fields (§3),
+  `roast.scope(subs=)` and the scope records, the per-run source
+  options `sites`/`exclude_sites`, the `Args` group names (`select`,
+  `sessions`, `sites`, `filters`), `Dataset.sessions`,
+  `subject_selection`, `GrindOverrides.exclude_subs` and the grind
+  `Query` fields (contract of §7, not options yet). The step-3 flag
+  snapshot holds the new names. Golden: no change (the cases use none
+  of these options).

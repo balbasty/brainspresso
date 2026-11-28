@@ -817,7 +817,7 @@ def disc_options(keys, discs=None) -> dict | None:
     return {"discs": sorted(set(discs))}
 
 
-#: Roast `<root>` (the `OASIS-1` folder): `roast(root, keys=..., subs=...,
+#: Roast `<root>` (the `OASIS-1` folder): `roast(root, keys=..., sub=...,
 #: discs=...)`
 roast = python_api(
     roast_oasis1, KEYS, folder="OASIS-1", width=WIDTH,

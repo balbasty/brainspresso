@@ -155,40 +155,40 @@ def test_part_without_scans(root):
                              **readme_counts(root, "done")}
     # (no scan of the selected subjects: not an error)
     part(root / "sourcedata")
-    report = roast(root, keys={"raw"}, subs=[9], display=False)
+    report = roast(root, keys={"raw"}, sub=[9], display=False)
     assert not report.errors and raw_tree(root) == set()
 
 
 def test_sessions(root):
-    roast(root, keys={"raw", "meta"}, sessions=["1"])
+    roast(root, keys={"raw", "meta"}, ses=["1"])
     assert raw_tree(root) == META | SESSIONS | (RAW - scans(1, 2, 1))
     rows = read_tsv(raw_file(root, "sub-0001/sub-0001_sessions.tsv"))
     assert [r[0] for r in rows] == ["session_id", "ses-1"]
 
 
 def test_json_only_and_exclude(root):
-    roast(root, keys={"raw"}, parts=[1], json="only", exclude_subs=[1])
+    roast(root, keys={"raw"}, parts=[1], json="only", exclude_sub=[1])
     assert raw_tree(root) == {p for p in RAW2 if p.endswith(".json")}
 
 
 def test_subject_filter(root):
     """Known bug of the legacy roaster (`_raw_skip_path` lacked a
     `return`: subject filters were ignored)"""
-    roast(root, keys={"raw"}, parts=[1], subs=[2])
+    roast(root, keys={"raw"}, parts=[1], sub=[2])
     assert raw_tree(root) == RAW2
 
 
 @pytest.mark.parametrize("subs", [["sub-0002"], ["0002"], ["2"], [2],
                                   ["2:3"]])
 def test_subject_values(root, subs):
-    """`roast(subs=)` takes the values of `--subs`"""
-    roast(root, keys={"raw"}, subs=subs)
+    """`roast(subs=)` takes the values of `--sub`"""
+    roast(root, keys={"raw"}, sub=subs)
     assert raw_tree(root) == RAW2
 
 
 def test_subject_file(root, tmp_path):
     (tmp_path / "subs.txt").write_text("sub-0001\n")
-    roast(root, keys={"raw"}, exclude_subs=[str(tmp_path / "subs.txt")])
+    roast(root, keys={"raw"}, exclude_sub=[str(tmp_path / "subs.txt")])
     assert raw_tree(root) == RAW2
 
 
@@ -232,7 +232,7 @@ def test_meta_trimmed(root):
     assert len(read_tsv(sessions)) == 3
 
     part(root / "sourcedata", scans=[(1, 2, 1), (2, 1, 1)])
-    roast(root, keys={"raw"}, subs=[1])
+    roast(root, keys={"raw"}, sub=[1])
     assert raw_tree(root) == META | scans(1, 2, 1) | {
         "sub-0001/sub-0001_sessions.tsv"}
     assert [r[0] for r in read_tsv(table)] == ["participant_id", "sub-0001"]
@@ -548,7 +548,7 @@ def test_meta_opens_no_part(root, monkeypatch):
 
 @pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
 def test_scope_of_parts(root, monkeypatch, scenario):
-    """`--subs` narrowing and `meta` skip the parts, a new subject
+    """`--sub` narrowing and `meta` skip the parts, a new subject
     re-reads the part that holds it only (`roast.scope`)"""
     part(root / "sourcedata", number=2, scans=[(3, 1, 1)])
     opened = open_spy(monkeypatch, roaster)
@@ -616,12 +616,12 @@ def cli(root, *args):
 
 
 def test_cli_keys_and_subjects(root):
-    cli(root, "--keys", "raw", "--subs", "1")
+    cli(root, "--keys", "raw", "--sub", "1")
     assert raw_tree(root) == RAW1
     # (the sessions tables of excluded subjects are not written)
-    cli(root, "--exclude-keys", "raw", "--exclude-subs", "sub-0001")
+    cli(root, "--exclude-keys", "raw", "--exclude-sub", "sub-0001")
     assert raw_tree(root) == META | RAW1
-    cli(root, "--subs", "2:3")
+    cli(root, "--sub", "2:3")
     assert raw_tree(root) == META | RAW | {"sub-0002/sub-0002_sessions.tsv"}
     rows = read_tsv(raw_file(root, "participants.tsv"))
     assert [r[0] for r in rows] == ["participant_id", "sub-0001", "sub-0002"]
@@ -629,7 +629,7 @@ def test_cli_keys_and_subjects(root):
 
 def test_cli_subject_file(root, tmp_path):
     (tmp_path / "subs.txt").write_text("0002\n")
-    cli(root, "--keys", "raw", "--subs", str(tmp_path / "subs.txt"))
+    cli(root, "--keys", "raw", "--sub", str(tmp_path / "subs.txt"))
     assert raw_tree(root) == RAW2
 
 
@@ -641,7 +641,7 @@ def test_cli_sidecars(root):
 
 
 def test_cli_sessions(root):
-    cli(root, "--keys", "raw", "--sessions", "ses-2")
+    cli(root, "--keys", "raw", "--ses", "ses-2")
     assert raw_tree(root) == scans(1, 2, 1)
 
 

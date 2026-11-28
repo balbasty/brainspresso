@@ -116,10 +116,10 @@ class OpenNeuroDataset(Dataset):
               f"{snapshot.tag or '(unknown tag)'} "
               f"[listed from {snapshot.source}]")
         sessions = {s[4:] if s.startswith("ses-") else s
-                    for s in args.sessions.sessions}
+                    for s in args.sessions.ses}
         selection = Selection(
-            subs=self.labels(args.select.subs),
-            exclude_subs=self.labels(args.select.exclude_subs),
+            subs=self.labels(args.select.sub),
+            exclude_subs=self.labels(args.select.exclude_sub),
             sessions=sessions, folders=list(args.hosted.folders),
             **f.filters(),
         )

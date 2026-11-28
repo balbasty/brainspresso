@@ -791,6 +791,6 @@ def expand_template(form: str, obj: dict) -> dict:
 #   Python API
 # ----------------------------------------------------------------------
 
-#: Roast `<root>` (the `OASIS-3` folder): `roast(root, keys=..., subs=...)`
+#: Roast `<root>` (the `OASIS-3` folder): `roast(root, keys=..., sub=...)`
 roast = python_api(roast_oasis3, KEYS, folder="OASIS-3",
                    width=WIDTH)

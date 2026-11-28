@@ -328,10 +328,10 @@ def test_json_no(root):
 
 
 def test_subject_filters(root):
-    roast(root, keys={"meta", "pheno", "T1w", "T2w"}, exclude_subs={2})
+    roast(root, keys={"meta", "pheno", "T1w", "T2w"}, exclude_sub={2})
     assert raw_tree(root) - META - PHENO == {
         f"{T1}.json", f"{T1}.nii.gz", "sub-0001/sub-0001_sessions.tsv"}
-    roast(root, keys={"T2w"}, subs={2}, json="no")
+    roast(root, keys={"T2w"}, sub={2}, json="no")
     assert f"{T2}.nii.gz" in raw_tree(root)
 
 
@@ -478,10 +478,10 @@ def test_scope_of_subject_shards(root, monkeypatch):
     assert "meta" not in scope["fixed"]["declared"]["keys"]
     del calls[:]
     for options in ({"keys": {"T1w", "T2w", "meta", "pheno"}},
-                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "subs": [2]}):
+                    {"keys": {"T1w"}}, {"keys": {"T2w"}, "sub": [2]}):
         assert not roast(root, display=False, **options).errors
     assert calls == []
-    roast(root, keys={"T1w", "FLAIR"}, subs=[1], display=False)
+    roast(root, keys={"T1w", "FLAIR"}, sub=[1], display=False)
     assert calls == ["0001"]
 
 
@@ -523,15 +523,15 @@ def test_key_classification():
 @pytest.mark.parametrize("subs", [
     ["sub-0002"], ["0002"], [2], "2", "2:3", "file"])
 def test_python_subs_labels_ranges_files(root, tmp_path, subs):
-    """`roast(subs=)` takes what `--subs` takes: numbers, labels with or
+    """`roast(subs=)` takes what `--sub` takes: numbers, labels with or
     without `sub-`, ranges, files (`roast.run.python_api`)"""
     if subs == "file":
         subs = tmp_path / "subs.txt"
         subs.write_text("sub-0002\n")
         subs = [str(subs)]
-    roast(root, keys={"T1w", "T2w"}, subs=subs, json="no")
+    roast(root, keys={"T1w", "T2w"}, sub=subs, json="no")
     assert raw_tree(root) == {f"{T2}.nii.gz"}
-    roast(root, keys={"T1w", "T2w"}, exclude_subs="2:3", json="no")
+    roast(root, keys={"T1w", "T2w"}, exclude_sub="2:3", json="no")
     assert raw_tree(root) == {f"{T1}.nii.gz", f"{T2}.nii.gz"}
 
 

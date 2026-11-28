@@ -311,7 +311,7 @@ def test_participants_not_utf8(root, caplog):
 
 
 def test_keys_and_subject_filters(root):
-    roast(root, keys={"T1w"}, exclude_subs=[40001], display=False)
+    roast(root, keys={"T1w"}, exclude_sub=[40001], display=False)
     assert raw_tree(root) == {
         "sub-0040000/anat/sub-0040000_T1w.nii.gz",
         "sub-0040000/anat/sub-0040000_T1w.json",
@@ -319,11 +319,11 @@ def test_keys_and_subject_filters(root):
 
 
 def test_json_only_and_no(root):
-    roast(root, keys={"T1w", "func"}, json="only", subs=[40000],
+    roast(root, keys={"T1w", "func"}, json="only", sub=[40000],
           display=False)
     assert raw_tree(root) == {p for p in RAW
                               if p.endswith(".json") and "0040000" in p}
-    roast(root, keys={"T1w"}, json="no", subs=[40001], display=False)
+    roast(root, keys={"T1w"}, json="no", sub=[40001], display=False)
     assert "sub-0040001/anat/sub-0040001_T1w.nii.gz" in raw_tree(root)
     assert "sub-0040001/anat/sub-0040001_T1w.json" not in raw_tree(root)
 
@@ -407,9 +407,9 @@ def test_dataset_files_compared(root, caplog):
 
 
 def test_subject_labels_in_python_api(root):
-    roast(root, keys={"T1w"}, subs=["sub-0040001"], display=False)
+    roast(root, keys={"T1w"}, sub=["sub-0040001"], display=False)
     assert raw_tree(root) == {p for p in RAW if "0040001" in p}
-    roast(root, keys={"T1w"}, subs=["0040000:0040001"], json="no",
+    roast(root, keys={"T1w"}, sub=["0040000:0040001"], json="no",
           display=False)
     assert "sub-0040000/anat/sub-0040000_T1w.nii.gz" in raw_tree(root)
 
@@ -511,7 +511,7 @@ def test_scoped_skip_then_update(root, monkeypatch, caplog):
     a warning"""
     opened = open_spy(monkeypatch, roaster)
     roast(root, display=False)
-    roast(root, subs=[40000], display=False)
+    roast(root, sub=[40000], display=False)
     assert len(opened) == 1                 # (skipped by its scope)
     t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
            for s in ("0040000", "0040001")]
@@ -524,12 +524,12 @@ def test_scoped_skip_then_update(root, monkeypatch, caplog):
     assert json.loads(t1w[1].read_text()) == {"Mine": True}
     assert "was edited" in caplog.text and t1w[1].name in caplog.text
     # (then skipped by its scope again, under `skip`)
-    roast(root, subs=[40001], display=False)
+    roast(root, sub=[40001], display=False)
     assert len(opened) == 2
 
 
 def test_update_never_skips_by_scope(root, monkeypatch):
-    """Under `update`, a narrower `--subs` covered by the record still runs
+    """Under `update`, a narrower `--sub` covered by the record still runs
     the shard (shards are skipped under `skip` only): the sidecars of the
     selected subjects follow their template"""
     opened = open_spy(monkeypatch, roaster)
@@ -541,9 +541,9 @@ def test_update_never_skips_by_scope(root, monkeypatch):
     roast(root, display=False)              # (pure skip: re-signed only)
     assert len(opened) == 2
     assert json.loads(t1w[0].read_text()) != {"EchoTime": 1}
-    roast(root, subs=[40000], display=False)
+    roast(root, sub=[40000], display=False)
     assert len(opened) == 2                 # (covered, under `skip`)
-    roast(root, subs=[40000], ifexists="update", display=False)
+    roast(root, sub=[40000], ifexists="update", display=False)
     assert len(opened) == 3
     assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
     assert t1w[1].read_bytes() == old       # (not selected)
@@ -563,7 +563,7 @@ def test_subjects_pruned_before_extraction(root, monkeypatch):
         return real(archive, member, dst, **kwargs)
 
     monkeypatch.setattr(roaster, "ExtractMember", spy)
-    roast(root, keys={"T1w", "func"}, subs=[40001], display=False)
+    roast(root, keys={"T1w", "func"}, sub=[40001], display=False)
     assert extracted == ["COBRE/0040001/session_1/anat_1/mprage.nii.gz"]
 
 
@@ -585,7 +585,7 @@ def test_rerun_skips_by_signature(root, monkeypatch):
     assert not report.errors
     assert len(opened) == 1
     assert raw_tree(root) == RAW | META
-    roast(root, subs=[40000], display=False)
+    roast(root, sub=[40000], display=False)
     assert len(opened) == 1
     roast(root, json="no", display=False)
     assert len(opened) == 2
@@ -593,7 +593,7 @@ def test_rerun_skips_by_signature(root, monkeypatch):
 
 @pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
 def test_scope_of_the_image_shard(root, monkeypatch, scenario):
-    """`--subs` narrowing and `meta` skip the tarball, a new subject of
+    """`--sub` narrowing and `meta` skip the tarball, a new subject of
     it re-reads it (`roast.scope`)"""
     opened = open_spy(monkeypatch, roaster)
     check_scope(
@@ -613,9 +613,9 @@ def test_keys_of_the_image_shard(root):
 def test_skipped_shard_counts_what_is_expected(root):
     """A skipped shard counts the actions of the outputs that the roast
     selects, not those of its last run"""
-    roast(root, subs=[40000], display=False)
-    roast(root, subs=[40001], display=False)
-    report = roast(root, keys={"T1w", "func"}, subs=[40000], display=False)
+    roast(root, sub=[40000], display=False)
+    roast(root, sub=[40001], display=False)
+    report = roast(root, keys={"T1w", "func"}, sub=[40000], display=False)
     assert report.summary() == {"T1w": {"skipped": 2},
                                 "func": {"skipped": 2},
                                 **readme_counts(root, "skipped")}
@@ -647,11 +647,11 @@ def test_cli_layout(tmp_path, layout):
 def test_cli_keys_subjects_sidecars(tmp_path):
     root = make_source(tmp_path / "COBRE")
     bx("cobre", "roast", "--out", root, "--keys", "T1w", "func",
-       "--subs", "40000", "--sidecars", "no")
+       "--sub", "40000", "--sidecars", "no")
     assert raw_tree(root) == {p for p in RAW
                               if p.endswith(".nii.gz") and "0040000" in p}
     bx("cobre", "roast", "--out", root, "--exclude-keys", "func", "meta",
-       "--exclude-subs", "sub-0040000", "--sidecars", "only")
+       "--exclude-sub", "sub-0040000", "--sidecars", "only")
     assert "sub-0040001/anat/sub-0040001_T1w.json" in raw_tree(root)
     assert "sub-0040001/anat/sub-0040001_T1w.nii.gz" not in raw_tree(root)
     assert "participants.tsv" not in raw_tree(root)

@@ -53,8 +53,8 @@ Rules (`docs/design/architecture.md`, §4):
   what a harvest with `--no-repair` placed, under `--if-exists
   update`).
 * Selection: a harvest roasts what it selected and the files of the
-  subjects it touched; a roast takes `--subs`, `--exclude-subs`,
-  `--sessions` (files that describe no selected data are left alone).
+  subjects it touched; a roast takes `--sub`, `--exclude-sub`,
+  `--ses` (files that describe no selected data are left alone).
 * `--if-exists`: governs the visible files only. "skip" (default) is
   pure: an existing file is left alone (not rendered, no log line, no
   orphan removed), but for the trimmed tables and the field maps whose

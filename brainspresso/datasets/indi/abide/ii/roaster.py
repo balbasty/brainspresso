@@ -905,6 +905,6 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
 #   Python API
 # ----------------------------------------------------------------------
 
-#: Roast `<root>` (the `ABIDE-2` folder): `roast(root, keys=..., subs=...)`
+#: Roast `<root>` (the `ABIDE-2` folder): `roast(root, keys=..., sub=...)`
 roast = python_api(roast_nitrc, KEYS, folder="ABIDE-2",
                    width=WIDTH, example=29001, spec=ROAST_SPEC)

@@ -26,8 +26,9 @@ Bullitt/
 With `--layout flat`, the content of `rawbids/` is in `Bullitt/` itself.
 
 Each subject is a folder of small files: one shard per subject (task id
-`roast/subjects/sub-<NNN>`; inputs: its files and the sidecar
-templates, so that an unchanged subject is skipped on a re-run). The
+`roast/subjects/sub-<NNN>`; inputs: its files; config: the keys named
+by `--keys` and the sidecar templates, paths and hashes; so that an
+unchanged subject is skipped on a re-run). The
 source distributes scans incompletely (no MPRAGE for many subjects, see
 `participants.tsv`): a missing scan is an error only when `--keys`
 names its key (or a group above it). The participants table (a
@@ -57,6 +58,7 @@ from brainspresso.roast import (
     roast_dataset,
     subject_shards,
 )
+from brainspresso.roast.helpers import template_config
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.metaimage import metaimage_to_nifti
 from brainspresso.utils.path import sorted_paths
@@ -260,11 +262,14 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
                    "harvest first", name="sourcedata", tag="subjects")
         return
     # (`named` decides which missing scans are errors: a later run that
-    # names more keys must not skip the shards)
+    # names more keys must not skip the shards; a changed template
+    # re-runs them)
     yield from subject_shards(
         ctx, folders, roast_subject,
         inputs=lambda label: shard_inputs(ctx, folders[label]),
-        config={"named": sorted(ctx.options.get("named", ()))},
+        config={"named": sorted(ctx.options.get("named", ())),
+                "templates": template_config(
+                    ctx, [f"{suffix}.json" for suffix in RAW.values()])},
         scope_keys=(*RAW, *DERIVATIVES),
     )
 
@@ -309,20 +314,16 @@ def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
     Returns
     -------
     list[Path]
-        The files its actions read, for the wanted keys: images, the
-        sidecar templates (when sidecars are written), auxiliary files
+        The source files its actions read, for the wanted keys: images,
+        auxiliary files (the sidecar templates are in its `config`)
     """
     out = []
-    for key, suffix in RAW.items():
+    for key in RAW:
         if not ctx.wants(key):
             continue
         image = raw_image(folder, key)
-        if image is None:
-            continue
-        out.append(image)
-        template = ctx.resource(f"{suffix}.json")
-        if template is not None and ctx.accepts("sidecar"):
-            out.append(template)
+        if image is not None:
+            out.append(image)
     for key, (name, _) in DERIVATIVES.items():
         src = folder / "AuxillaryData" / name
         if ctx.wants(key) and src.is_file():

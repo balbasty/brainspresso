@@ -39,7 +39,6 @@ found in `sourcedata/`) and trimmed to what is on disk.
 """  # noqa: E501
 import csv
 import re
-import tarfile
 from functools import partial
 from io import TextIOWrapper
 from logging import getLogger
@@ -54,6 +53,7 @@ from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
     RoastContext,
     Shard,
+    archives,
     as_list,
     copy_templates,
     roast_dataset,
@@ -322,10 +322,13 @@ PARTICIPANTS_ROW_MAP = {
 
 
 def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
-    """Header and rows of the (first) CSV file of a tarball"""
-    with tarfile.open(tarball, "r:gz") as tar:
-        member = next(m for m in tar if m.isfile())
-        with TextIOWrapper(tar.extractfile(member), newline="") as f:
+    """Header and rows of the (first) CSV file of a tarball (none: no
+    rows); `roast.archives.ArchiveError` if it cannot be read"""
+    with archives.reading(tarball, opener=TarArchive) as tar:
+        member = next(iter(tar), None)
+        if member is None:
+            return [], []
+        with TextIOWrapper(member.open(), newline="") as f:
             rows = list(csv.reader(f, **kwargs))
     return (rows[0], rows[1:]) if rows else ([], [])
 

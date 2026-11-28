@@ -31,10 +31,11 @@ once, member by member (subjects that the selection drops are skipped
 before anything is extracted), not by one shard per subject, each of
 which would decompress the tarball up to its own members. Its scope
 (`roast.scope`) is the image keys and the subjects it sees: a later
-roast that keeps no more (fewer subjects, `meta` toggled) skips it.
+roast that keeps no more (fewer subjects, `meta` toggled) skips it; its
+sidecar templates (paths, hashes) are its `Shard.config`. A corrupt
+tarball is one `Fail` of that shard, named after the tarball.
 """  # noqa: E501
 import csv
-import hashlib
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -48,10 +49,12 @@ from brainspresso.roast import (
     RoastContext,
     RoastReport,
     Shard,
+    archives,
     copy_templates,
     roast_dataset,
     scope,
 )
+from brainspresso.roast.helpers import template_config
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import write_tsv
@@ -151,16 +154,11 @@ def sidecar_config(ctx: RoastContext) -> dict:
     Returns
     -------
     dict
-        `{name: [path, sha256] | None}`: a changed template re-runs the
-        shard
+        `{name: [path, sha256] | None}` (`roast.helpers.template_config`):
+        a changed template re-runs the shard
     """
-    out = {}
-    for _, _, _, suffix in SCANS.values():
-        path = ctx.resource(f"{suffix}.json")
-        out[f"{suffix}.json"] = None if path is None else [
-            Path(path).as_posix(),
-            hashlib.sha256(Path(path).read_bytes()).hexdigest()]
-    return out
+    return template_config(ctx, [f"{suffix}.json"
+                                 for _, _, _, suffix in SCANS.values()])
 
 
 # ----------------------------------------------------------------------
@@ -313,7 +311,8 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     Yields
     ------
     Action
-        Per image: its sidecar (a template), then the image
+        Per image: its sidecar (a template), then the image; a `Fail` if
+        the tarball cannot be read
 
     Notes
     -----
@@ -322,22 +321,26 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
     the tarball is decompressed once. Its size is unknown until then,
     so the progress group has no total.
     """
-    with TarArchive(ctx.source / TARBALL) as tar:
-        for member in tar:
-            parsed = parse_member(member.name)
-            if parsed is None or not member.isfile():
-                continue
-            sub, (key, datatype, entities, suffix) = parsed
-            # (every subject is reported, before the key prunes it)
-            if not (ctx.keeps_subject(sub) and ctx.wants(key)):
-                continue
-            stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
-                    f"sub-{sub}_{entities}{suffix}")
-            sidecar = ctx.resource(f"{suffix}.json")
-            if sidecar is not None:
-                yield CopyJSON(sidecar, f"{stem}.json", tag=key)
-            elif ctx.accepts("sidecar"):
-                yield Fail(f"{suffix}.json not found",
-                           name=f"{stem.name}.json", tag=key)
-            yield ExtractMember(tar, member, f"{stem}.nii.gz", tag=key)
-            ctx.progress(advance=1)
+    try:
+        with archives.reading(ctx.source / TARBALL, opener=TarArchive) as tar:
+            for member in tar:
+                parsed = parse_member(member.path)
+                if parsed is None:
+                    continue
+                sub, (key, datatype, entities, suffix) = parsed
+                # (every subject is reported, before the key prunes it)
+                if not (ctx.keeps_subject(sub) and ctx.wants(key)):
+                    continue
+                stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
+                        f"sub-{sub}_{entities}{suffix}")
+                sidecar = ctx.resource(f"{suffix}.json")
+                if sidecar is not None:
+                    yield CopyJSON(sidecar, f"{stem}.json", tag=key)
+                elif ctx.accepts("sidecar"):
+                    yield Fail(f"{suffix}.json not found",
+                               name=f"{stem.name}.json", tag=key)
+                yield ExtractMember(tar.archive, member.info,
+                                    f"{stem}.nii.gz", tag=key)
+                ctx.progress(advance=1)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="scans")

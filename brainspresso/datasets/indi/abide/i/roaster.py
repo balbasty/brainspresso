@@ -77,21 +77,21 @@ from brainspresso.datasets.indi.abide.i.tables import (
     participant_label,
 )
 from brainspresso.datasets.indi.abide.scans import (  # noqa: F401
-    ARCHIVE_ERRORS,
     HeaderSidecar,  # (re-exported: shared with ABIDE-II)
     header_tr,
     image_ext,
 )
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
-    SEEN,
     RoastContext,
     RoastReport,
     Shard,
+    archives,
     as_list,
     roast_dataset,
     scope,
 )
+from brainspresso.roast.helpers import archive_shards
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.path import sorted_paths
@@ -363,18 +363,17 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
     yield from roast_meta(ctx, csvs, "phenotypic_<SITE>.csv")
     if not wants_raw(ctx):
         return
-    archives = nitrc_archives(ctx)
-    if not archives:
+    found = {path: (name, inputs)
+             for name, path, inputs in nitrc_archives(ctx)}
+    if not found:
         yield Fail("no NITRC tarball (<Site>.tgz) nor RawData/<Site>/ "
                    "folder found", name="raw", tag="raw")
         return
-    ctx.progress(total=len(archives), tag="raw")
-    for name, path, inputs in archives:
-        site = name.split("/")[-1].split(".")[0]
-        yield Shard(roast_archive, path, tag="raw", advance="raw",
-                    id=f"roast/raw/{name}", inputs=inputs,
-                    config=template_config(ctx, site),
-                    scope=scope(keys=RAW_KEYS, subs=SEEN))
+    yield from archive_shards(
+        ctx, found, roast_archive, tag="raw", keys=RAW_KEYS,
+        id=lambda path: f"roast/raw/{found[path][0]}",
+        inputs=lambda path: found[path][1],
+        config=lambda path: template_config(ctx, path.name.split(".")[0]))
 
 
 def nitrc_archives(ctx: RoastContext) -> list[tuple[str, Path, list]]:
@@ -440,11 +439,13 @@ def parse_member(name: str) -> tuple[str, str, str, int, str] | None:
 
 
 def open_source(path: Path):
-    """Open a tarball (`TarArchive`), or None for a folder."""
-    return TarArchive(path) if path.is_file() else None
+    """Open a tarball (`roast.archives.reading`), or nothing for a folder."""
+    if path.is_file():
+        return archives.reading(path, opener=TarArchive)
+    return nullcontext()
 
 
-def iter_members(path: Path, archive) -> Iterator[tuple]:
+def iter_members(path: Path, tar: archives.Reader | None) -> Iterator[tuple]:
     """
     Members of a tarball (lazily, in archive order) or files of a folder.
 
@@ -452,26 +453,29 @@ def iter_members(path: Path, archive) -> Iterator[tuple]:
     ----------
     path : Path
         Tarball, or site folder of `RawData/`
-    archive : TarArchive | None
+    tar : roast.archives.Reader | None
         The open tarball (None: a folder)
 
     Yields
     ------
     (name, extract, open_image)
-        `name` relative to the archive; `extract(dst, tag)` the action
-        that writes it, `open_image()` opens it
+        `name` relative to the archive (normalised); `extract(dst, tag)`
+        the action that writes it, `open_image()` opens it
+
+    Raises
+    ------
+    roast.archives.ArchiveError
+        If the tarball cannot be read
     """
-    if archive is None:
+    if tar is None:
         for file in sorted_paths(p for p in path.rglob("*") if p.is_file()):
             name = file.relative_to(path.parent).as_posix()
             yield (name, partial(CopyBytes, file),
                    partial(open, file, "rb"))
         return
-    for member in archive:
-        if not member.isfile():
-            continue
-        yield (member.name, partial(ExtractMember, archive, member),
-               partial(archive.extractfile, member))
+    for member in tar:
+        yield (member.path, partial(ExtractMember, tar.archive, member.info),
+               member.open)
 
 
 def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
@@ -499,9 +503,8 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     """
     seen = set()
     try:
-        archive = open_source(path)
-        with archive if archive is not None else nullcontext():
-            for name, extract, open_image in iter_members(path, archive):
+        with open_source(path) as tar:
+            for name, extract, open_image in iter_members(path, tar):
                 parsed = parse_member(name)
                 if parsed is None:
                     continue
@@ -526,9 +529,8 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
                     lambda dst, extract=extract, key=key:
                         extract(dst, tag=key),
                     open_image, PurePosixPath(name).name)
-    except ARCHIVE_ERRORS as e:
-        yield Fail(f"{path.name}: cannot be read ({type(e).__name__}: "
-                   f"{e})", name=path.name, tag="raw")
+    except archives.ArchiveError as e:
+        yield e.fail(tag="raw")
 
 
 # ----------------------------------------------------------------------
@@ -812,10 +814,12 @@ def roast_xnat_scan(ctx: RoastContext, sub: str, site: str, archive: Path,
     """
     found = None
     try:
-        with TarArchive(archive) as tar:
+        with archives.reading(
+                archive, opener=TarArchive,
+                label=f"{archive.parent.name}/{archive.name}") as tar:
             for member in tar:
                 ext = image_ext(member.name)
-                if not member.isfile() or ext is None:
+                if ext is None:
                     continue
                 if found is not None:
                     lg.warning(f"{archive}: {member.name}: more than one "
@@ -825,13 +829,10 @@ def roast_xnat_scan(ctx: RoastContext, sub: str, site: str, archive: Path,
                 yield from scan_actions(
                     ctx, sub, site, scan, ext,
                     lambda dst, member=member: ExtractMember(
-                        tar, member, dst, tag=scan[0]),
-                    partial(tar.extractfile, member),
-                    PurePosixPath(member.name).name)
-    except ARCHIVE_ERRORS as e:
-        yield Fail(f"{archive.parent.name}/{archive.name}: cannot be read "
-                   f"({type(e).__name__}: {e})", name=archive.name,
-                   tag=scan[0])
+                        tar.archive, member.info, dst, tag=scan[0]),
+                    member.open, PurePosixPath(member.name).name)
+    except archives.ArchiveError as e:
+        yield e.fail(tag=scan[0])
         return
     if found is None:
         yield Fail(f"{archive.parent.name}/{archive.name}: no NIfTI image",
@@ -1020,12 +1021,11 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
     if ctx.json == "only":
         # sidecars only: the names of the members are enough
         try:
-            with TarArchive(archive) as tar:
-                names = tar.getnames()
-        except ARCHIVE_ERRORS as e:
-            yield Fail(f"{archive.parent.name}/{archive.name}: cannot be "
-                       f"read ({type(e).__name__}: {e})", name=archive.name,
-                       tag="fs")
+            names = archives.names(
+                archive, opener=TarArchive,
+                label=f"{archive.parent.name}/{archive.name}")
+        except archives.ArchiveError as e:
+            yield e.fail(tag="fs")
             return
         members = {src.joinpath(*rel.parts) for rel in
                    map(tree.relpath, names) if rel is not None}

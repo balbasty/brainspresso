@@ -9,12 +9,15 @@ ExtractMembers(path, claim, rename)       # members only known once opened
 from __future__ import annotations
 
 import os
+from logging import getLogger
 from pathlib import Path
 from typing import Callable, Iterator
 
 from brainspresso.actions.action import Action, Claim, Kind
-from brainspresso.utils.archive import TarArchive
+from brainspresso.utils.archive import TarArchive, is_unsafe
 from brainspresso.utils.io import copy_from_buffer
+
+lg = getLogger(__name__)
 
 
 class ExtractMember(Action):
@@ -69,7 +72,10 @@ class ExtractMembers(Action):
 
     A claim on one folder or a list of folders. Each member is extracted
     by an `ExtractMember` sub-action, which the engine accepts (and to
-    which it applies `IfExists`) like any other action.
+    which it applies `IfExists`) like any other action. Members whose
+    name is unsafe (a `..` part, or absolute: `utils.archive.is_unsafe`)
+    are dropped before `rename` sees them, with one warning per archive;
+    `rename` gets the other names as they are stored.
 
     Parameters
     ----------
@@ -78,7 +84,8 @@ class ExtractMembers(Action):
     claim : Claim | str | PathLike
         Claimed outputs (a folder, a list of folders, or a `Claim`)
     rename : callable(member_name) -> Path | None
-        Output path of a member (None: ignore it)
+        Output path of a member (None: ignore it); never called for an
+        unsafe name
     opener : callable(path) -> archive
         Opens the archive (default: `TarArchive`)
     tag : str
@@ -113,13 +120,23 @@ class ExtractMembers(Action):
 
     def extract(self) -> Iterator[Action]:
         """Open the archive and yield one `ExtractMember` per member."""
-        with self.opener(self.archive) as archive:
-            for member in archive:
-                if getattr(member, "isfile", lambda: True)() is False:
-                    continue
-                dst = self.rename(member.name)
-                if dst is not None:
-                    yield ExtractMember(
-                        archive, member, dst, tag=self.tag,
-                        staging=self.staging, **self.kwargs
-                    )
+        unsafe = []
+        try:
+            with self.opener(self.archive) as archive:
+                for member in archive:
+                    if getattr(member, "isfile", lambda: True)() is False:
+                        continue
+                    if is_unsafe(member.name):
+                        unsafe.append(member.name)
+                        continue
+                    dst = self.rename(member.name)
+                    if dst is not None:
+                        yield ExtractMember(
+                            archive, member, dst, tag=self.tag,
+                            staging=self.staging, **self.kwargs
+                        )
+        finally:
+            if unsafe:
+                lg.warning(f"{self.archive.name}: {len(unsafe)} member(s) "
+                           f"outside the archive (`..` or an absolute "
+                           f"path) skipped, e.g. {unsafe[0]}")

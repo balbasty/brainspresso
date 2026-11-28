@@ -10,8 +10,11 @@ The roast layer of the action engine (`actions.engine`):
   tables and tracked files: pure `skip`, the edit test of `update`);
 * `run`: `run_roast` (engine, then trim and `finish_roast`) and
   `roast_dataset` (the `roast()` of a dataset);
-* `helpers`: `copy_templates`, `subject_shards`, `scope` (with `SEEN`:
-  what of a roast can change the outputs of a shard).
+* `helpers`: `copy_templates`, `subject_shards`, `archive_shards`,
+  `template_config` (sidecar templates in a shard's `config`), `scope`
+  (with `SEEN`: what of a roast can change the outputs of a shard);
+* `archives`: reading source archives (`reading`, `ArchiveError`, the
+  spools of ABIDE-II).
 
 ```python
 def roast_ixi(ctx):

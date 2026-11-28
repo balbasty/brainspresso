@@ -5,12 +5,58 @@ Datasets that used to be distributed as tarballs (e.g. `IXI-T1.tar`) are
 now often served file by file. Harvesting them into a folder named like
 the tarball (e.g. `IXI-T1/`) and reading it through `FolderArchive`
 lets the same conversion code handle both.
+
+`member_parts` normalises a member name (`roast.archives` and
+`actions.archive.ExtractMembers` use it to drop members outside the
+archive).
 """
 from __future__ import annotations
 
 import tarfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import IO
+
+
+def member_parts(name: str) -> tuple[str, ...] | None:
+    r"""
+    Normalised parts of an archive member name.
+
+    Parameters
+    ----------
+    name : str
+        Member name (`./ABIDEII-NYU_1/...`, `/ABIDEII-NYU_1/...`,
+        `a\b`)
+
+    Returns
+    -------
+    tuple[str] | None
+        Its parts, `\` read as `/`, without `.`, empty parts or a
+        leading `/` (a member never names an absolute path); None if a
+        part is `..` (a member outside the archive)
+    """
+    parts = tuple(p for p in PurePosixPath(name.replace("\\", "/")).parts
+                  if p not in ("/", "."))
+    if ".." in parts:
+        return None
+    return parts
+
+
+def is_unsafe(name: str) -> bool:
+    r"""
+    Whether a member name points outside the folder it is unpacked to.
+
+    Parameters
+    ----------
+    name : str
+        Member name
+
+    Returns
+    -------
+    bool
+        True if a part is `..` or the name is absolute (`/a`, `\a`)
+    """
+    return member_parts(name) is None or \
+        name.replace("\\", "/").startswith("/")
 
 
 class FolderArchive:

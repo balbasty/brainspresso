@@ -34,8 +34,9 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-1/` itself.
 A disc is a gz tarball that holds the images (or FreeSurfer trees) of
 about 40 subjects, and reading a member of a gz tarball decompresses
 everything before it. Each disc is therefore read by one shard (task id
-`roast/discs/<kind>-disc<NN>`, inputs: the disc and the templates it
-uses, so that an unchanged disc is skipped on a re-run): an image disc
+`roast/discs/<kind>-disc<NN>`, inputs: the disc; config: the sidecar
+template of an image disc, path and hash; so that an unchanged disc is
+skipped on a re-run): an image disc
 is listed once, then its members are extracted in archive order (one
 forward pass); a FreeSurfer disc is unpacked in one pass. Discs that
 are not in `sourcedata/` are skipped with a warning, unless named with
@@ -47,8 +48,6 @@ written complete to `.brainspresso/orig/` and trimmed to the subjects
 on disk.
 """  # noqa: E501
 import re
-import tarfile
-import zlib
 from functools import partial
 from logging import getLogger
 from pathlib import Path, PurePosixPath
@@ -75,10 +74,12 @@ from brainspresso.roast import (
     SEEN,
     RoastContext,
     Shard,
+    archives,
     copy_templates,
     roast_dataset,
     scope,
 )
+from brainspresso.roast.helpers import template_config
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import (
@@ -106,8 +107,6 @@ ROAST_KEYS = ("raw", "fs", "fs-all", "fsl", "avg", "tal", "meta")
 DISCS = {"raw": range(1, 13), "fs": range(1, 12)}
 #: Keys read from each kind of disc
 DISC_KEYS = {"raw": ("raw", "avg", "tal", "fsl"), "fs": ("fs", "fs-all")}
-#: Errors of a disc that cannot be read (truncated, corrupt)
-READ_ERRORS = (tarfile.TarError, EOFError, OSError, zlib.error)
 
 # "raw" is the only key of the raw dataset; the others are categories
 # (folders of the derivatives, or metadata)
@@ -242,12 +241,11 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
                 else:
                     lg.warning(f"{message} (skipped)")
                 continue
-            inputs = [path]
-            if kind == "raw":
-                inputs += [p for p in [ctx.resource(SIDECAR)] if p]
             shards.append(Shard(
                 roaster, path, tag="discs", advance="discs",
-                id=f"roast/discs/{kind}-disc{disc:02d}", inputs=inputs,
+                id=f"roast/discs/{kind}-disc{disc:02d}", inputs=[path],
+                config=template_config(ctx, [SIDECAR]) if kind == "raw"
+                else None,
                 scope=scope(keys=DISC_KEYS[kind], subs=SEEN),
             ))
     ctx.progress(total=len(shards), tag="discs")
@@ -312,26 +310,6 @@ def disc_path(ctx: RoastContext, kind: str, disc: int) -> Path:
     """
     name = "cross-sectional" if kind == "raw" else "cs_freesurfer"
     return ctx.source / f"oasis_{name}_disc{disc}.tar.gz"
-
-
-def unreadable(path: Path, error: Exception) -> Fail:
-    """
-    Report a disc that cannot be read.
-
-    Parameters
-    ----------
-    path : Path
-        The disc
-    error : Exception
-        Why
-
-    Returns
-    -------
-    Fail
-        An error of the "discs" group
-    """
-    return Fail(f"{path.name} cannot be read ({type(error).__name__}: "
-                f"{error})", name=path.name, tag="discs")
 
 
 def raw_scan(name: str) -> tuple[str, str, int] | None:
@@ -405,44 +383,32 @@ def roast_image_disc(ctx: RoastContext, path: Path) -> Iterator[Action]:
     Yields
     ------
     Action
-        Conversions (Analyze -> NIfTI), sidecars, missing members
+        Conversions (Analyze -> NIfTI), sidecars, missing members; a
+        `Fail` if the disc cannot be read
     """
     try:
-        archive = TarArchive(path)
-    except READ_ERRORS as e:
-        yield unreadable(path, e)
-        return
-    with archive:               # (closed on errors: Windows locks files)
-        try:
-            infos = archive.getmembers()
-        except READ_ERRORS as e:
-            yield unreadable(path, e)
-            return
-        offsets = {info.name: info.offset for info in infos}
-        subjects = {}       # {sub: (folder, [runs])}, in archive order
-        for info in infos:
-            scan = raw_scan(info.name)
-            if scan is not None:
-                sub, folder, run = scan
-                subjects.setdefault(sub, (folder, []))[1].append(run)
-        actions = []        # [(members, action)]
-        for sub, (folder, runs) in subjects.items():
-            if ctx.keeps_subject(sub):
-                actions += subject_actions(ctx, archive, path, sub, folder,
-                                           runs, offsets)
-
-        def position(item) -> int:
-            """Offset of the first member of an action (-1: none)."""
-            members, _ = item
-            return min((offsets[m] for m in members), default=-1)
-
-        for _, action in sorted(actions, key=position):
-            yield action
+        # (closed on every path: Windows locks open files)
+        with archives.reading(path, opener=TarArchive) as tar:
+            index = tar.index()
+            subjects = {}       # {sub: (folder, [runs])}, in archive order
+            for name in index:
+                scan = raw_scan(name)
+                if scan is not None:
+                    sub, folder, run = scan
+                    subjects.setdefault(sub, (folder, []))[1].append(run)
+            actions = []        # [(members, action)]
+            for sub, (folder, runs) in subjects.items():
+                if ctx.keeps_subject(sub):
+                    actions += subject_actions(ctx, tar.archive, path, sub,
+                                               folder, runs, index)
+            yield from archives.in_order(actions)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="discs")
 
 
 def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
                     sub: str, folder: str, runs: list[int],
-                    offsets: dict[str, int]) -> list:
+                    index: dict[str, archives.Member]) -> list:
     """
     Return the actions of a subject of an image disc.
 
@@ -460,13 +426,14 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         Folder of its first session in the disc
     runs : list[int]
         Its raw runs
-    offsets : dict[str, int]
-        `{member: offset}` of the disc
+    index : dict[str, roast.archives.Member]
+        The regular files of the disc, by normalised name
 
     Returns
     -------
-    list[tuple[list[str], Action]]
+    list[tuple[list[roast.archives.Member], Action]]
         `(members it reads, action)`, in no particular order
+        (`roast.archives.in_order`)
     """
     sidecar = ctx.resource(SIDECAR)
     base = read_json(sidecar)
@@ -476,8 +443,8 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
 
     def convert(stem: str, dst: str, affine, tag: str, **kwargs) -> None:
         """Conversion of `<stem>.{hdr,img}`, or a `Fail` if missing."""
-        members = [f"{stem}{ext}" for ext in (".hdr", ".img")]
-        missing = [m for m in members if m not in offsets]
+        names = [f"{stem}{ext}" for ext in (".hdr", ".img")]
+        missing = [m for m in names if m not in index]
         if missing and ctx.json == "only":
             return              # (no data written: nothing is missing)
         if missing:
@@ -485,14 +452,15 @@ def subject_actions(ctx: RoastContext, archive: TarArchive, path: Path,
                                  f"{path.name}", name=Path(dst).name,
                                  tag=tag)))
             return
-        members.sort(key=offsets.__getitem__)
-        out.append((members, analyze_action(archive, path, members, dst,
-                                            affine, tag=tag, **kwargs)))
+        members = sorted((index[m] for m in names), key=lambda m: m.offset)
+        out.append((members, analyze_action(
+            archive, path, [m.name for m in members], dst, affine, tag=tag,
+            **kwargs)))
 
     def find_bias(stem: str, tag: str) -> tuple[str | None, str | None]:
         """Bias correction (N4, else N3) found in the disc."""
         for bias in ("n4", "n3"):
-            if f"{stem.format(bias=bias)}.img" in offsets:
+            if f"{stem.format(bias=bias)}.img" in index:
                 return bias, stem.format(bias=bias)
         if ctx.json == "only":
             return None, None   # (no data written: nothing is missing)
@@ -675,10 +643,10 @@ def roast_freesurfer_disc(ctx: RoastContext,
     exists = None
     if ctx.json == "only" and not everything:
         try:
-            with TarArchive(path) as archive:
-                members = set(map(rename, archive.getnames()))
-        except READ_ERRORS as e:
-            yield unreadable(path, e)
+            members = set(map(rename, archives.names(path,
+                                                     opener=TarArchive)))
+        except archives.ArchiveError as e:
+            yield e.fail(tag="discs")
             return
         exists = members.__contains__
     else:
@@ -725,9 +693,8 @@ def image_runs(ctx: RoastContext, fs_disc: Path) -> dict[str, list[int]]:
     path = disc_path(ctx, "raw", disc)
     out = {}
     try:
-        with TarArchive(path) as archive:
-            names = archive.getnames()
-    except (FileNotFoundError, *READ_ERRORS):
+        names = archives.names(path, opener=TarArchive)
+    except archives.ArchiveError:       # (missing, or unreadable)
         return out
     for scan in map(raw_scan, names):
         if scan is not None:

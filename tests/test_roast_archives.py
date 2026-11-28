@@ -14,7 +14,7 @@ import nibabel as nib
 import numpy as np
 import pytest
 import test_roast_bullitt
-from roast_utils import init_layout, layout_of, make_tar
+from roast_utils import init_layout, layout_of, make_tar, nii_bytes
 
 from brainspresso.actions.action import Claim, Fail
 from brainspresso.actions.archive import ExtractMember, ExtractMembers
@@ -381,6 +381,42 @@ def test_extract_members_keeps_outputs_in_the_claim(tmp_path, caplog):
     action = ExtractMembers(path, Claim([out, tmp_path / "elsewhere"]),
                             targets.get)
     assert len(list(action.extract())) == 2
+
+
+def test_extract_members_bounded_by_root(tmp_path, caplog):
+    """With `root` (the dataset), outputs outside the claim but inside
+    the root are written; an escape outside the root is still dropped"""
+    root = tmp_path / "DS"
+    path = make_tar(tmp_path / "t.tar.gz", {"a": b"", "b": b"", "c": b""})
+    claim = root / "rawbids" / "sub-01" / "ses-1"
+    targets = {"a": claim / "func" / "a",
+               "b": root / "rawbids" / "sub-01" / "ses-2" / "func" / "b",
+               "c": root / ".." / "c"}
+    action = ExtractMembers(path, Claim(claim), targets.get, root=root)
+    with caplog.at_level(logging.WARNING):
+        dsts = [Path(a.dst) for a in action.extract()]
+    assert dsts == [targets["a"], targets["b"]]
+    assert "t.tar.gz: 1 member(s) renamed outside" in caplog.text
+
+
+def test_oasis3_session_of_the_member_name(tmp_path):
+    """OASIS-III: a member named after another session than its folder
+    is written to that session (outside the claim of its tarball, inside
+    the dataset)"""
+    root = tmp_path / "OASIS-3"
+    init_layout(root, "study")
+    folder = root / "sourcedata" / "OAS30001_MR_d0000"
+    b = "OAS30001_MR_d0000/func1/NIFTI/sub-OAS30001_sess-d0003"
+    make_tar(folder / "func1.tar.gz", {
+        f"{b}_task-rest_bold.json": b"{}",
+        f"{b}_task-rest_bold.nii.gz": nii_bytes((2, 2, 2, 3)),
+    })
+    report = roast_oasis3(root, keys={"bold"}, display=False)
+    assert not report.errors, report.errors
+    func = layout_of(root).raw / "sub-0001" / "ses-d0003" / "func"
+    assert {p.name for p in func.iterdir()} == {
+        "sub-0001_ses-d0003_task-rest_bold.json",
+        "sub-0001_ses-d0003_task-rest_bold.nii.gz"}
 
 
 def test_oasis1_freesurfer_unsafe_member(tmp_path, caplog):

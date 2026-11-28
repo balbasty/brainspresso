@@ -760,9 +760,13 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     dots and spaces (`..`, `...`), holding a `\` or anchored for
     `PureWindowsPath` (`C:`). `rename` gets the others normalised
     (`utils.archive.member_path`: `./a/b` is `a/b`, the `Member.path`
-    of the listing). Second line of defence: an output that `rename`
-    puts outside the claimed folders (resolved, `os.path.realpath`) is
-    dropped too. One warning per archive for each.
+    of the listing). Second line of defence against a path escape: an
+    output that `rename` puts outside `ExtractMembers(root=)` (the
+    roasters pass the dataset, `ctx.layout.root`; resolved,
+    `os.path.realpath`) is dropped too. It does not enforce the claim:
+    OASIS-III writes a member named after another session than its
+    folder to that session, as before. One warning per archive for
+    each.
   * Spools (ABIDE-II): `spool_folder(ctx)`, `spool_prefix(name)`,
     `sweep_spools(ctx, name)`, `spool(src, path)` (member read errors
     raised, write errors returned), `place(spool, path)`; folders
@@ -3572,7 +3576,8 @@ up as an XPASS failure once fixed (then drop the marker).
   blank and dots-only parts, any `\` and Windows-anchored parts (`C:`),
   on every platform; `ExtractMembers` gives `rename` the normalised name
   (`member_path`) and drops an output that `rename` puts outside the
-  claimed folders; the sidecars-only FreeSurfer listings of OASIS-I and
+  dataset (`root=ctx.layout.root`: not the claim, OASIS-III takes the
+  session of a member from its name); the sidecars-only FreeSurfer listings of OASIS-I and
   ABIDE-I list the same names (`archives.names(extractable=True)`), so
   `--sidecars only` writes the sidecars of a full roast (also for `./`
   and `/` names); OASIS-I reads the `mri/orig` runs of `./`-prefixed

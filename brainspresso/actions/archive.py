@@ -78,9 +78,11 @@ class ExtractMembers(Action):
     Windows reads as anchored: `utils.archive.is_unsafe`) are dropped
     before `rename` sees them; `rename` gets the others normalised
     (`utils.archive.member_path`: `./a/b` is `a/b`), the names that
-    `roast.archives.Member.path` lists. A second line of defence: an
-    output that `rename` puts outside the claimed folders (resolved) is
-    dropped too. One warning per archive for each.
+    `roast.archives.Member.path` lists. A second line of defence against
+    a path escape: an output that `rename` puts outside `root`
+    (resolved) is dropped too; outputs inside `root` but outside the
+    claimed folders are written (OASIS-III takes the session of a member
+    from its name). One warning per archive for each.
 
     Parameters
     ----------
@@ -93,6 +95,9 @@ class ExtractMembers(Action):
         it); never called for an unsafe name
     opener : callable(path) -> archive
         Opens the archive (default: `TarArchive`)
+    root : str | PathLike | None
+        Folder that every output must stay inside (roast: the dataset,
+        `ctx.layout.root`); default: the claimed folders
     tag : str
         Progress group
     staging : bool
@@ -108,6 +113,7 @@ class ExtractMembers(Action):
         rename: Callable[[str], Path | None],
         *,
         opener: Callable = TarArchive,
+        root: str | os.PathLike | None = None,
         tag: str | None = None,
         staging: bool = False,
         **kwargs,
@@ -117,6 +123,7 @@ class ExtractMembers(Action):
         self.archive = Path(archive)
         self.rename = rename
         self.opener = opener
+        self.root = None if root is None else Path(root)
         self.kwargs = kwargs
         super().__init__(
             self.archive, None, self.extract, claim=claim, tag=tag,
@@ -126,8 +133,8 @@ class ExtractMembers(Action):
     def extract(self) -> Iterator[Action]:
         """Open the archive and yield one `ExtractMember` per member."""
         unsafe, outside = [], []
-        roots = [os.path.normcase(os.path.realpath(f))
-                 for f in self.claim.folders]
+        bounds = self.claim.folders if self.root is None else [self.root]
+        roots = [os.path.normcase(os.path.realpath(f)) for f in bounds]
         try:
             with self.opener(self.archive) as archive:
                 for member in archive:
@@ -155,7 +162,8 @@ class ExtractMembers(Action):
                            f"{unsafe[0]}")
             if outside:
                 lg.warning(f"{self.archive.name}: {len(outside)} member(s) "
-                           f"renamed outside {self.claim.folders[0]} "
+                           f"renamed outside "
+                           f"{self.root or self.claim.folders[0]} "
                            f"skipped, e.g. {outside[0]}")
 
 

@@ -1066,7 +1066,7 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
     # unpacked files are inputs of the conversion (`staging`: the JSON
     # policy does not apply to them)
     yield ExtractMembers(archive, Claim(src), rename, tag="fs",
-                         staging=True)
+                         root=ctx.layout.root, staging=True)
     # (converted once the tree is unpacked: the engine runs each action
     # before asking for the next one)
     yield from fs.bidsify(src, dst, [t1], json=ctx.json)

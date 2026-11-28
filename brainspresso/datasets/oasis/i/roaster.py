@@ -719,7 +719,7 @@ def roast_freesurfer_disc(ctx: RoastContext,
         # unpacked files are inputs of the conversion (`staging`: the
         # JSON policy does not apply to them)
         yield ExtractMembers(path, Claim(drv.source), rename, tag="fs",
-                             staging=True)
+                             root=ctx.layout.root, staging=True)
     # (converted once unpacked: the engine runs each action before
     # asking for the next one)
     if any(sub not in runs for sub in subjects):

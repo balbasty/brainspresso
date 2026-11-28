@@ -413,16 +413,18 @@ def test_older_dataset_under_update(tmp_path, caplog, monkeypatch, rule):
     caplog.clear()
     roast(root, ifexists="update")
     backup = layout_of(root).replaced(readme)
-    if rule == "keep":
-        # (as edited: kept without a comparison, with a warning)
-        assert readme.read_text() == "old README\n"
-        # (and the derivative description)
-        assert caplog.text.count("has no recorded hash") == len(TRACKED) + 1
-        assert not entry(root, "README") and not backup.exists()
-        return
     # identical: adopted (hash recorded), without a warning
     assert entry(root, SIDECAR)["sha256"] == digest(sidecar)
     assert not warned(caplog, sidecar.name)
+    if rule == "keep":
+        # (compared, then kept with a warning: the README and the
+        # derivative description, rewritten by `finish_roast`)
+        assert readme.read_text() == "old README\n"
+        assert warned(caplog, "has no recorded hash")
+        assert len([r for r in caplog.records
+                    if "has no recorded hash" in r.getMessage()]) == 2
+        assert not entry(root, "README") and not backup.exists()
+        return
     assert readme.read_text() == "new\n"
     assert backup.read_text() == "old README\n"
     assert "replaced, the old file is in" in caplog.text
@@ -446,3 +448,120 @@ def test_compost_drops_entries_then_roast_writes_again(tmp_path):
     assert entry(root, "README")
     roast(root)
     assert entry(root, SIDECAR)["sha256"] == digest(raw(root, SIDECAR))
+
+
+# ----------------------------------------------------------------------
+#   Review round 1
+# ----------------------------------------------------------------------
+
+def test_edited_derivative_description_survives_updates(tmp_path, caplog):
+    root = make_root(tmp_path)
+    roast(root)
+    lay = layout_of(root)
+    path = lay.derivatives / "toy" / DESCRIPTION_NAME
+    key = path.relative_to(lay.root).as_posix()
+    recorded = read_manifest(lay.state)["files"][key]["sha256"]
+    for drop in (False, True):
+        mine = {**json.loads(path.read_text()), "Name": "MY EDIT"}
+        if drop:
+            mine.pop("SourceDatasets")
+        path.write_text(json.dumps(mine))
+        for _ in range(2):
+            caplog.clear()
+            roast(root, ifexists="update")
+            desc = json.loads(path.read_text())
+            # the user's keys stay; `SourceDatasets` is the layout's
+            assert desc["Name"] == "MY EDIT" and "SourceDatasets" in desc
+            assert warned(caplog, "was edited")
+            # (still an edit: the hash of what roast wrote is kept)
+            assert read_manifest(lay.state)["files"][key]["sha256"] == \
+                recorded
+    assert not lay.replaced(path).exists()
+
+
+def test_stale_hash_is_no_edit(tmp_path, caplog):
+    """A roast killed after it wrote a file, before it recorded its hash:
+    the file holds the render, so `update` adopts it"""
+    root = make_root(tmp_path)
+    roast(root)
+    sidecar = raw(root, SIDECAR)
+    set_template(root, SIDECAR, "v2\n", later=10)
+    sidecar.write_bytes(b"v2\n")            # (written; hash not recorded)
+    caplog.clear()
+    roast(root, ifexists="update")
+    assert not warned(caplog, sidecar.name)
+    assert entry(root, SIDECAR)["sha256"] == digest(sidecar)
+    set_template(root, SIDECAR, "v3\n", later=20)
+    roast(root, ifexists="update")
+    assert sidecar.read_text() == "v3\n"
+    # a real edit is still kept, with a warning
+    sidecar.write_bytes(b"mine\n")
+    set_template(root, SIDECAR, "v4\n", later=30)
+    caplog.clear()
+    roast(root, ifexists="update")
+    assert sidecar.read_text() == "mine\n" and warned(caplog, "was edited")
+
+
+def test_backups_are_never_replaced(tmp_path):
+    root = make_root(tmp_path)
+    roast(root)
+    readme = raw(root, "README")
+    backup = layout_of(root).replaced(readme)
+    for n, text in enumerate(("one\n", "two\n", "three\n")):
+        readme.write_bytes(f"before {text}".encode())
+        forget_hash(root, "README")
+        set_template(root, "README", text, later=10 * (n + 1))
+        roast(root, ifexists="update")
+        assert readme.read_text() == text
+    assert backup.read_text() == "before one\n"
+    assert backup.with_name("README.1").read_text() == "before two\n"
+    assert backup.with_name("README.2").read_text() == "before three\n"
+
+
+def test_hashes_are_read_once_per_manifest_version(tmp_path, monkeypatch):
+    from brainspresso.roast import context as context_mod  # noqa: PLC0415
+
+    root = make_root(tmp_path)
+    roast(root)
+    reads = []
+    real = context_mod.manifest_files
+
+    def spy(layout):
+        reads.append(layout)
+        return real(layout)
+
+    monkeypatch.setattr(context_mod, "manifest_files", spy)
+    lay = layout_of(root)
+    first = context_mod._recorded_hashes(lay)
+    assert context_mod._recorded_hashes(lay) is first and len(reads) == 1
+    forget_hash(root, "README")                 # (a new manifest)
+    assert "rawbids/README" not in context_mod._recorded_hashes(lay)
+    assert len(reads) == 2
+
+
+def _shards(ctx):
+    for rel in TRACKED.values():
+        yield Shard(_copy_one, rel, tag="shard", id=f"roast/toy/{rel}",
+                    inputs=[template(ctx.layout.root, rel)])
+
+
+def _copy_one(ctx, rel):
+    yield CopyBytes(template(ctx.layout.root, rel), ctx.layout.raw / rel)
+
+
+def test_update_with_jobs_over_several_shards(tmp_path, caplog):
+    root = make_root(tmp_path)
+    roast(root, jobs=2, roaster=_shards)
+    raw(root, SIDECAR).write_bytes(b"mine\n")
+    for rel in TRACKED.values():
+        set_template(root, rel, f"new {rel}\n", later=10)
+    caplog.clear()
+    report = roast(root, ifexists="update", jobs=2, roaster=_shards)
+    assert not report.errors
+    for rel in TRACKED.values():
+        path = raw(root, rel)
+        if rel == SIDECAR:
+            assert path.read_text() == "mine\n"
+        else:
+            assert path.read_text() == f"new {rel}\n"
+            assert entry(root, rel)["sha256"] == digest(path)

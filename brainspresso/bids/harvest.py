@@ -21,7 +21,7 @@ import time
 from collections import Counter
 from dataclasses import asdict, dataclass
 from logging import getLogger
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable, Literal
 
 from humanize import naturalsize
@@ -29,6 +29,7 @@ from humanize import naturalsize
 from brainspresso.actions.locks import FileLock
 from brainspresso.actions.state import now
 from brainspresso.bids.layout import (
+    DESCRIPTION,
     MANIFEST,
     ORIG_DIR,
     STATE_DIR,
@@ -813,32 +814,42 @@ def finish_roast(layout: Layout, files: dict[str, dict] | None = None,
         Entries to merge into the manifest (`"converted"` files and
         their `sha256`), by path relative to `layout.root`. A file that
         `write_descriptions` rewrites (a derivative description) gets
-        the hash of the file as left on disk, also if it was recorded
-        by an earlier roast, so that it is not taken for an edit.
+        the hash of the file as left on disk if it held what roast wrote:
+        rendered by this roast (in `files`), or unedited before the
+        rewrite (its hash was the recorded one). An edited description
+        keeps its recorded hash, so that it is still an edit (the
+        `SourceDatasets` that `write_descriptions` adds to it are part of
+        keeping it: layout bookkeeping, the user's keys stay).
     **info
         Fields of the run
     """
-    written = layout.write_descriptions()
     files = dict(files or {})
-    if written:
-        known = None
-        for path in written:
-            try:
-                key = Path(path).relative_to(layout.root).as_posix()
-            except ValueError:
-                continue
-            if key not in files:
-                if known is None:
-                    known = manifest_files(layout)
-                entry = known.get(key) or {}
-                if entry.get("origin") != "converted":
-                    continue
-            try:
-                digest = sha256(Path(path).read_bytes())
-            except OSError:
-                continue
-            files[key] = {**files.get(key, {"origin": "converted"}),
-                          "sha256": digest}
+    known = manifest_files(layout)
+    # hashes of recorded descriptions before they are rewritten
+    before = {}
+    for key, entry in known.items():
+        if entry.get("origin") != "converted" or key in files or \
+                PurePosixPath(key).name != DESCRIPTION:
+            continue
+        try:
+            before[key] = sha256((Path(layout.root) / key).read_bytes())
+        except OSError:
+            pass
+    for path in layout.write_descriptions():
+        try:
+            key = Path(path).relative_to(layout.root).as_posix()
+        except ValueError:
+            continue
+        if key not in files and (
+                key not in before
+                or before[key] != known[key].get("sha256")):
+            continue                # (not ours, or edited: left as is)
+        try:
+            digest = sha256(Path(path).read_bytes())
+        except OSError:
+            continue
+        files[key] = {**files.get(key, {"origin": "converted"}),
+                      "sha256": digest}
     info = {k: sorted(v) if isinstance(v, (set, frozenset)) else v
             for k, v in info.items()}
     record_run(layout, "roast", info, files=files or None, merge=True)

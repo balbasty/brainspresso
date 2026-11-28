@@ -838,8 +838,13 @@ def _actions(ctx: RoastContext, item: dict) -> Iterator[Action]:
             yield RoastMetadata(item, ifexists=ifexists, tag=ctx.tag,
                                 keep=True)
             return
-        lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
-                   f"(--if-exists different or overwrite replaces it)")
+        # compared first: a file that holds the render is adopted (a
+        # stale hash is no edit), any other kept with the warning
+        action = RoastMetadata(item, ifexists=ifexists, tag=ctx.tag)
+        action.keep_edit = (
+            f"{dst} was edited since brainspresso wrote it: kept "
+            f"(--if-exists different or overwrite replaces it)")
+        yield action
         return
     backup = None
     if state == "unknown":

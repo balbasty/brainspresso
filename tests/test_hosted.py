@@ -1806,3 +1806,38 @@ def test_harvest_under_skip_refreshes_bases_only(tmp_path, templates,
                 and "README" in r.getMessage()]
     bx("sald", "roast", out, "--if-exists", "update")
     assert readme.read_text() == "A new README\n"
+
+
+def test_frozen_file_under_skip(tmp_path, openneuro, caplog):
+    """A missing base: the visible file is left alone silently under
+    skip; a missing visible file too is still an error"""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    t1w = lay.raw / "sub-01/anat/sub-01_T1w.json"
+    content = t1w.read_bytes()
+    (lay.source / "openneuro/sub-01/anat/sub-01_T1w.json").unlink()
+    caplog.clear()
+    report = roast_hosted(lay, display=False)
+    assert not report.errors and t1w.read_bytes() == content
+    assert "left as it is" not in caplog.text
+    t1w.unlink()
+    report = roast_hosted(lay, display=False)
+    assert len(report.errors) == 1 and "harvest again" in \
+        report.errors[0][2]
+
+
+def test_hosted_update_adopts_an_edit_that_holds_the_render(
+        tmp_path, openneuro, caplog):
+    """Compare before keep: a stale hash (a killed roast) is no edit"""
+    lay = on("harvest", tmp_path, "--subs", "01")
+    readme = lay.raw / "README"
+    pristine = lay.source / "openneuro/README"
+    pristine.write_text("New README\n")
+    readme.write_bytes(pristine.read_bytes())       # (hash not recorded)
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert "was edited" not in caplog.text
+    assert manifest_entry(lay, readme)["sha256"] == \
+        sha256(readme.read_bytes())
+    pristine.write_text("Newer README\n")
+    on("roast", tmp_path, "--if-exists", "update")
+    assert readme.read_text() == "Newer README\n"

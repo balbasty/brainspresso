@@ -256,7 +256,13 @@ class Action:
       before the action replaces it, with a warning naming the copy;
       nothing is copied if the action does not write (an identical
       compare, a failure). Roast sets it for a file it cannot tell from
-      an edit (no recorded hash, `bids.harvest.MIGRATION_RULE`).
+      an edit (no recorded hash, `bids.harvest.MIGRATION_RULE`). A
+      backup that exists is never replaced: the copy goes to
+      `<backup>.1`, `<backup>.2`... (the first free name);
+    * `keep_edit`: a warning; under a compare, outputs that differ from
+      what the action renders are kept (not replaced) and the warning is
+      logged; identical ones count as rendered (roast: a file the user
+      edited, kept under `update` unless it holds the render).
 
     Set by the action as it runs: `rendered`, whether its outputs hold
     what it renders (outcome "done", or an identical compare).
@@ -364,6 +370,7 @@ class Action:
         self.ifexists = IfExists.from_any(ifexists)
         self.track = False
         self.backup: Path | None = None
+        self.keep_edit: str | None = None
         self.rendered = False
 
     @property
@@ -593,6 +600,7 @@ class Action:
         if not overwrite:
             return
         compare = overwrite is _COMPARE
+        keep = False
 
         # --------------------------------------------------------------
         # Perform action
@@ -636,10 +644,15 @@ class Action:
                 ):
                     for tmp_file in tmp_files:
                         tmp_file.discard = True
+                elif compare and self.keep_edit is not None:
+                    # (differs: the existing outputs are kept)
+                    for tmp_file in tmp_files:
+                        tmp_file.discard = True
+                    keep = True
                 elif self.backup is not None and len(dst) == 1 and \
                         dst[0].is_file():
                     # (a copy, before the temporary file replaces it)
-                    backup = Path(self.backup)
+                    backup = _free_name(Path(self.backup))
                     backup.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(dst[0], backup)
                     lg.warning(f'{dst[0]!s} differs from what brainspresso '
@@ -647,6 +660,10 @@ class Action:
                                f'dataset): replaced, the old file is in '
                                f'{backup!s}')
 
+            if keep:
+                lg.warning(self.keep_edit)
+                yield {'status': 'skipped', 'message': 'kept'}
+                return
             if compare and all(f.discard for f in tmp_files.files):
                 lg.info(f'File {dst[0]!s} is identical: skip')
                 self.rendered = True
@@ -709,6 +726,15 @@ class Action:
 
 def _keep_all(path) -> bool:
     return True
+
+
+def _free_name(path: Path) -> Path:
+    """`path`, else `<path>.1`, `<path>.2`...: the first that is free."""
+    candidate, n = path, 0
+    while lexists(candidate):
+        n += 1
+        candidate = path.with_name(f"{path.name}.{n}")
+    return candidate
 
 
 def _same_file_key(path: FilenameLike) -> str:

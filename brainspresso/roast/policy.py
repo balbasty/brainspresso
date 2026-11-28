@@ -33,8 +33,10 @@ engine:
     warning); `different` compares it with what roast writes and
     replaces it if it differs (edits included); `update` does the same,
     but keeps a file the user edited (its SHA-256 differs from the one
-    recorded in the manifest), with a warning, and backs up a file
-    without a recorded hash that differs to `<state>/replaced/<path>`
+    recorded in the manifest) if it differs from the render, with a
+    warning (one that holds the render is adopted: a stale hash, e.g.
+    of a killed roast, is no edit), and backs up a file without a
+    recorded hash that differs to `<state>/replaced/<path>`
     (`bids.harvest.MIGRATION_RULE`) before it replaces it; a tracked
     file that holds what roast writes gets its hash recorded (manifest
     origin "converted", `Report.digests`), whatever the mode;
@@ -178,14 +180,16 @@ class RoastPolicy(Policy):
             # replaced (if it differs) with a backup: `Action.backup`
             action.backup = ctx.layout.replaced(dst)
         elif state == "edited":
-            action.ifexists, action.track = IfExists.SKIP, False
-            lg.warning(f"{dst} was edited since brainspresso wrote it: kept "
-                       f"(--if-exists different or overwrite replaces it)")
+            # compared first: a file that holds the render (its hash was
+            # not recorded, e.g. a killed roast) is adopted, not kept
+            action.keep_edit = (
+                f"{dst} was edited since brainspresso wrote it: kept "
+                f"(--if-exists different or overwrite replaces it)")
         elif state == "unknown":            # MIGRATION_RULE "keep"
-            action.ifexists, action.track = IfExists.SKIP, False
-            lg.warning(f"{dst} has no recorded hash (an older roast, or "
-                       f"edited): kept (--if-exists different or "
-                       f"overwrite replaces it)")
+            action.keep_edit = (
+                f"{dst} has no recorded hash (an older roast, or edited) "
+                f"and differs from what brainspresso writes: kept "
+                f"(--if-exists different or overwrite replaces it)")
 
     def fingerprint(self, ctx: RoastContext) -> dict:
         """

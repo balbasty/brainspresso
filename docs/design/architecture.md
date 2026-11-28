@@ -454,7 +454,7 @@ Interactions (decided):
   |---|---|---|---|---|
   | `skip` (default) | write | left alone | left alone | left alone |
   | `skip`, trimmed table or field map with `IntendedFor` | write | as `update` | as `update` | as `update` |
-  | `update` | write | rewritten iff the render differs | kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else `MIGRATION_RULE` "replace": backup in `<state>/replaced/`, then replaced |
+  | `update` | write | rewritten iff the render differs | identical to the render: adopted; else kept, warning (field map: the user's keys kept, `IntendedFor` from the render) | identical: adopted; else `MIGRATION_RULE` "replace": backup in `<state>/replaced/`, then replaced |
   | `different` | write | rewritten iff the render differs | same (edit lost) | same |
   | `overwrite` | write | rewritten | rewritten | rewritten |
   | `refresh` | write | by the mtime of the base | same | same |
@@ -903,18 +903,22 @@ layer in 2b-iv):
   iff its SHA-256 differs from the one recorded in the manifest (origin
   `converted`); the roast policy reads the state of each tracked file
   (`RoastContext.recorded`, the manifest read once per run and
-  process). A tracked action that leaves its output holding what it
+  process, keyed by the manifest's inode, size and mtime, so that the
+  shards of a worker share one read). A tracked action that leaves its output holding what it
   renders (`Action.rendered`: written, or an identical compare) reports
   its hash (`Action.track`, `Report.digests`, also from workers);
   `run_roast` merges them into the manifest (`finish_roast(files=)`),
   also when the roast is partial; a derivative description that
   `write_descriptions` rewrites gets the hash of the file as left on
-  disk. Tracked files:
+  disk if it held what roast wrote (rendered by this roast, or
+  unedited before the rewrite); an edited one keeps its recorded hash
+  (the `SourceDatasets` that `write_descriptions` adds are layout
+  bookkeeping, part of keeping it), so it stays an edit. Tracked files:
 
   | `--if-exists` | absent | recorded, unedited | recorded, edited | no recorded hash |
   |---|---|---|---|---|
   | `skip` (default) | write | left alone | left alone | left alone |
-  | `update` | write | rewritten iff the content differs | kept, warning | identical: adopted (hash recorded); else backup in `<state>/replaced/<path>` (`Layout.replaced`, `Action.backup`), then replaced (`bids.harvest.MIGRATION_RULE` "replace"; "keep": as edited) |
+  | `update` | write | rewritten iff the content differs | compared: identical (a stale hash, e.g. of a killed roast): adopted; else kept, warning (`Action.keep_edit`) | identical: adopted (hash recorded); else backup in `<state>/replaced/<path>` (`Layout.replaced`, `Action.backup`; an existing backup is kept, the copy goes to `<path>.1`, `.2`...), then replaced (`bids.harvest.MIGRATION_RULE` "replace"; "keep": as edited) |
   | `different` | write | rewritten iff the content differs | rewritten iff the content differs (edit lost) | rewritten iff the content differs |
   | `overwrite` | write | rewritten | rewritten | rewritten |
   | `refresh` | write | rewritten iff its mtime differs from its sources' | same | same |
@@ -3129,3 +3133,12 @@ up as an XPASS failure once fixed (then drop the marker).
   Harvest gets no `update`: the edit-aware refresh of #26 is now
   `roast --if-exists update` for roasted files only; `harvest
   --if-exists different` replaces generated files, edits included.
+  Review round 1 of #39: under `update` an edited tracked file is
+  compared first (`Action.keep_edit`): one that holds the render (a
+  hash not recorded because the roast was killed) is adopted, any other
+  kept with a warning, in engine and hosted roasts alike (the "keep"
+  migration rule likewise); `finish_roast` re-hashes a rewritten
+  derivative description only if it held what roast wrote, so an
+  edited one survives every `update`; a backup never replaces an
+  earlier one (`<path>.1`, `.2`...); the recorded hashes are cached per
+  process and manifest version (`roast.context._recorded_hashes`).

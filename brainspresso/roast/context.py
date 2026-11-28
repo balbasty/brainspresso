@@ -21,7 +21,12 @@ from brainspresso.actions.engine import Context
 from brainspresso.bids.harvest import manifest_files
 from brainspresso.bids.keys import KeyAliases, KeySelection
 from brainspresso.bids.kinds import accepts
-from brainspresso.bids.layout import ORIG_DIR, Layout, resolve_layout
+from brainspresso.bids.layout import (
+    MANIFEST,
+    ORIG_DIR,
+    Layout,
+    resolve_layout,
+)
 
 __all__ = ["JsonPolicy", "RoastContext", "as_list", "make_context"]
 
@@ -102,8 +107,10 @@ class RoastContext(Context):
         """
         SHA-256 recorded in the manifest for an output.
 
-        The manifest is read once (per run and process): it changes at
-        the end of a roast only.
+        The hashes are read once per process and version of the manifest
+        (`_recorded_hashes`: keyed by its path, inode, size and mtime),
+        so that the shards a worker runs share one read; the manifest
+        changes at the end of a roast only.
 
         Parameters
         ----------
@@ -116,14 +123,7 @@ class RoastContext(Context):
             Its `sha256` (None: no entry, or no hash)
         """
         if self._recorded is None:
-            try:
-                files = manifest_files(self.layout)
-            except OSError:
-                files = {}
-            self._recorded = {
-                key: entry["sha256"] for key, entry in files.items()
-                if isinstance(entry.get("sha256"), str)
-            }
+            self._recorded = _recorded_hashes(self.layout)
         try:
             key = Path(path).relative_to(self.layout.root).as_posix()
         except ValueError:
@@ -265,6 +265,32 @@ class RoastContext(Context):
         if dataset == Path(self.layout.raw):
             return self.selection.keeps(rel, partial)
         return self.selection.base.keeps(rel, partial)
+
+
+#: `_recorded_hashes`: (manifest path, version) and its hashes, per process
+_HASHES: dict[str, tuple[tuple, dict[str, str]]] = {}
+
+
+def _recorded_hashes(layout: Layout) -> dict[str, str]:
+    """SHA-256 of the files of the manifest, cached per manifest version."""
+    path = Path(layout.state) / MANIFEST
+    try:
+        stat = path.stat()
+        version = (stat.st_ino, stat.st_size, stat.st_mtime_ns)
+    except OSError:
+        version = None
+    cached = _HASHES.get(str(path))
+    if version is not None and cached is not None and cached[0] == version:
+        return cached[1]
+    try:
+        files = manifest_files(layout)
+    except OSError:
+        files = {}
+    hashes = {key: entry["sha256"] for key, entry in files.items()
+              if isinstance(entry.get("sha256"), str)}
+    if version is not None:
+        _HASHES[str(path)] = (version, hashes)
+    return hashes
 
 
 def make_context(

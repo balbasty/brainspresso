@@ -1,7 +1,22 @@
-# Brainspresso
+<h1 align="center">
+  <img src="docs/images/brainspresso-wordmark.svg" alt="brainspresso" width="560">
+</h1>
 
 A single application to **harvest** (download), **roast** (convert to BIDS),
 **grind** (preprocess) and **compost** (clean up) public datasets.
+
+![brainspresso workflow: harvest, roast, grind and percolate](docs/images/brainspresso-workflow.svg)
+
+* **Harvest** downloads the source data of a dataset from its hosts into
+  `<DS>/sourcedata/`.
+* **Roast** converts the source data into a raw BIDS dataset
+  (`<DS>/rawbids/` in the study layout, `<DS>/` itself with `--layout flat`).
+* **Grind** (planned, not available yet) preprocesses the raw BIDS dataset
+  with standard pipelines into `<DS>/derivatives/<pipeline>/`.
+* **Percolate** (planned, not available yet) runs a saved plan:
+  `bx <ds> roast|grind --plan PLAN` writes the tasks (one per subject, or per
+  stage and unit) without running them, and `bx percolate PLAN` runs those not
+  done yet, locally or as Slurm, SGE or PBS jobs (`--status` follows them).
 
 This is a very early work in progress.
 

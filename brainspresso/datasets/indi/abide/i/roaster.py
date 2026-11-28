@@ -84,11 +84,13 @@ from brainspresso.datasets.indi.abide.scans import (  # noqa: F401
 )
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
+    SEEN,
     RoastContext,
     RoastReport,
     Shard,
     as_list,
     roast_dataset,
+    scope,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -130,6 +132,10 @@ ROAST_SPEC = KeySpec(KEYS, off=("fs-all",), implies=FS_ADD_ON)
 
 #: Sidecar templates of a site (`templates/<Site>[_<sample>]/`)
 TEMPLATE_NAMES = ("T1w.json", "acq-hires_T2w.json", "bold.json")
+
+#: Keys of the raw scans, and of the FreeSurfer outputs (`roast.scope`)
+RAW_KEYS = ("T1w", "T2w", "rest")
+FS_KEYS = ("fs", "fs-all")
 
 #: Sites with a high-resolution anatomical (`anat_2`): a 2D spin-echo EPI
 #: ("Matched Bandwidth HiRes"), so `acq-hires_T2w` (owner decision)
@@ -327,7 +333,7 @@ def scan_actions(
 
 def wants_raw(ctx: RoastContext) -> bool:
     """Whether any raw scan is wanted."""
-    return ctx.wants("T1w") or ctx.wants("T2w") or ctx.wants("rest")
+    return any(map(ctx.wants, RAW_KEYS))
 
 
 # ----------------------------------------------------------------------
@@ -366,7 +372,8 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
         site = name.split("/")[-1].split(".")[0]
         yield Shard(roast_archive, path, tag="raw", advance="raw",
                     id=f"roast/raw/{name}", inputs=inputs,
-                    config=template_config(ctx, site))
+                    config=template_config(ctx, site),
+                    scope=scope(keys=RAW_KEYS, subs=SEEN))
 
 
 def nitrc_archives(ctx: RoastContext) -> list[tuple[str, Path, list]]:
@@ -497,14 +504,15 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
                 if parsed is None:
                     continue
                 site, sub, mod, number, ext = parsed
+                # (every subject is reported, before anything prunes it)
+                kept = ctx.keeps_subject(sub)
                 scan = scan_name(site, mod, number)
                 if scan is None:
                     lg.warning(f"{path.name}: {name}: no BIDS name for "
                                f"{mod}_{number}: skipped")
                     continue
                 key = scan[0]
-                if not (ctx.selection.keeps_subject(sub)
-                        and ctx.wants(key)):
+                if not (kept and ctx.wants(key)):
                     continue
                 if (sub, scan[2]) in seen:
                     lg.warning(f"{path.name}: {name}: a second image of "
@@ -606,6 +614,7 @@ def roast_xnat(ctx: RoastContext) -> Iterator:
                 inputs=[a for f in folders for a in scan_archives(f)],
                 config=[template_config(ctx, folder_site(f))
                         for f in folders],
+                scope=scope(keys=RAW_KEYS, subs=[label]),
             )
     if freesurfer:
         yield from freesurfer_shards(ctx, subjects)
@@ -653,12 +662,13 @@ def freesurfer_shards(ctx: RoastContext,
     for label, archive in archives.items():
         yield Shard(roast_freesurfer, label, archive, tag="fs",
                     advance="fs", id=f"roast/fs/sub-{label}",
-                    unit={"sub": label}, inputs=[archive])
+                    unit={"sub": label}, inputs=[archive],
+                    scope=scope(keys=FS_KEYS, subs=[label]))
 
 
 def wants_fs(ctx: RoastContext) -> bool:
     """Whether FreeSurfer outputs are wanted (`fs`, or `fs-all`)."""
-    return ctx.wants("fs") or ctx.wants("fs-all")
+    return any(map(ctx.wants, FS_KEYS))
 
 
 def xnat_subjects(ctx: RoastContext) -> dict[str, list[Path]]:

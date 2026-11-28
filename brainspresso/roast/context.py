@@ -6,6 +6,7 @@ ctx = make_context(root, KEYS, select_keys=["T1w"], json="no")
 ctx.wants("meta")               # is a category wanted?
 ctx.resource("README")          # ctx.source, then the dataset templates
 ctx.keeps(path)                 # is an output selected?
+ctx.keeps_subject("01")         # is a subject kept? (and report it)
 ```
 """
 from __future__ import annotations
@@ -157,6 +158,30 @@ class RoastContext(Context):
         """
         return self.selection.wants(key)
 
+    def keeps_subject(self, label: str) -> bool:
+        """
+        Whether a subject is kept, and report it as seen.
+
+        A shard that declares `scope(subs=SEEN)` asks this for every
+        subject its inputs hold, before any other pruning: the subjects
+        seen by a complete run tell a later run whether it adds one that
+        this shard holds (`RoastPolicy.covers`).
+
+        Parameters
+        ----------
+        label : str
+            Subject label (with or without `sub-`)
+
+        Returns
+        -------
+        bool
+            `selection.keeps_subject(label)`
+        """
+        label = str(label)
+        label = label[4:] if label.startswith("sub-") else label
+        self.seen("sub", label)
+        return self.selection.keeps_subject(label)
+
     def resource(self, name: str | os.PathLike) -> Path | None:
         """
         Find a metadata file.
@@ -214,8 +239,8 @@ class RoastContext(Context):
             return None
         return Path(dataset), "" if rel == "." else rel
 
-    def _blocked(self, path) -> bool:
-        """In the folder of categories that are all unwanted."""
+    def _categories(self, path) -> list[frozenset]:
+        """Categories of each category folder that holds a path."""
         if self._folders is None:
             folders = defaultdict(set)
             for category, prefixes in getattr(
@@ -224,13 +249,15 @@ class RoastContext(Context):
                     folders[self.layout.resolve(prefix)].add(category)
             self._folders = [(p, frozenset(c)) for p, c in folders.items()]
         if not self._folders:
-            return False
+            return []
         path = self._unorig(path)
-        for prefix, categories in self._folders:
-            if path == prefix or prefix in path.parents:
-                if not any(map(self.selection.wants, categories)):
-                    return True
-        return False
+        return [categories for prefix, categories in self._folders
+                if path == prefix or prefix in path.parents]
+
+    def _blocked(self, path) -> bool:
+        """In the folder of categories that are all unwanted."""
+        return any(not any(map(self.selection.wants, categories))
+                   for categories in self._categories(path))
 
     def keeps(
         self, path: str | os.PathLike, partial: bool = False

@@ -92,11 +92,13 @@ from brainspresso.datasets.indi.abide.scans import (
 )
 from brainspresso.datasets.indi.abide.tables import WIDTH, participant_label
 from brainspresso.roast import (
+    SEEN,
     RoastContext,
     RoastReport,
     Shard,
     as_list,
     roast_dataset,
+    scope,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -180,6 +182,9 @@ KINDS = {
     "dti": Kind("dti", "dwi", "", "dwi", "dwi.json"),
     "dwi": Kind("dti", "dwi", "", "dwi", "dwi.json"),
 }
+
+#: Keys of the raw scans (`roast.scope` of the tarball shards)
+RAW_KEYS = tuple(sorted({kind.key for kind in KINDS.values()}))
 
 SCAN_FOLDER = re.compile(r"(?P<kind>[A-Za-z]+)_(?P<n>\d+)")
 SESSION_FOLDER = re.compile(r"session_(?P<n>\d+)", re.IGNORECASE)
@@ -350,7 +355,8 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
     for path in archives:
         yield Shard(roast_archive, path, tag="raw", advance="raw",
                     id=f"roast/raw/{path.name}", inputs=[path],
-                    config=template_config(ctx, path))
+                    config=template_config(ctx, path),
+                    scope=scope(keys=RAW_KEYS, subs=SEEN))
 
 
 class Member(NamedTuple):
@@ -585,7 +591,10 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     are spooled as they are reached (their names depend on the other
     scans of the session); its actions are yielded, and run, when the
     next session starts (the engine runs an action before asking for
-    the next), then its spooled files are removed.
+    the next), then its spooled files are removed. Sessions start and
+    end on the members of every subject and key, selected or not, so
+    that the selection decides which outputs exist, never their names
+    (`roast.scope`); every subject is reported (`ctx.keeps_subject`).
     """
     default = tarball_site(path)
     unknown = Counter()
@@ -593,6 +602,7 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
     with tempfile.TemporaryDirectory(prefix=spool_prefix(),
                                      dir=spool_folder(ctx)) as tmp:
         session = None
+        current = None          # (sub, ses) of the member being read
         done = set()
         try:
             with TarArchive(path) as archive:
@@ -606,15 +616,17 @@ def roast_archive(ctx: RoastContext, path: Path) -> Iterator[Action]:
                     if kind is None:
                         unknown[f"{parsed.folder}_<n>"] += 1
                         continue
-                    if not (ctx.selection.keeps_subject(parsed.sub)
-                            and ctx.wants(kind.key)):
-                        continue
+                    kept = ctx.keeps_subject(parsed.sub)
                     key = (parsed.sub, parsed.ses)
-                    if session is not None and session.key != key:
-                        yield from session.actions(ctx, path, notes)
-                        session.close()
-                        done.add(session.key)
-                        session = None
+                    if current is not None and current != key:
+                        if session is not None:
+                            yield from session.actions(ctx, path, notes)
+                            session.close()
+                            session = None
+                        done.add(current)
+                    current = key
+                    if not (kept and ctx.wants(kind.key)):
+                        continue
                     if key in done:
                         if key not in notes:
                             notes.add(key)

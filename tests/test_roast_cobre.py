@@ -8,10 +8,14 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    SCOPE_SCENARIOS,
+    check_keys_rerun,
+    check_scope,
     init_layout,
     layout_of,
     make_tar,
     nii_bytes,
+    open_spy,
     raw_file,
     raw_tree,
     read_tsv,
@@ -350,6 +354,50 @@ def test_pure_skip_then_update(root, monkeypatch, caplog):
     assert "WARNING" not in caplog.text
 
 
+def test_scoped_skip_then_update(root, monkeypatch, caplog):
+    """A shard skipped by its scope under `skip`; after a template change,
+    `update` rewrites its unedited sidecar and keeps an edited one, with
+    a warning"""
+    opened = open_spy(monkeypatch, roaster)
+    roast(root, display=False)
+    roast(root, subs=[40000], display=False)
+    assert len(opened) == 1                 # (skipped by its scope)
+    t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+           for s in ("0040000", "0040001")]
+    t1w[1].write_text('{"Mine": true}')
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    caplog.clear()
+    report = roast(root, ifexists="update", display=False)
+    assert not report.errors and len(opened) == 2
+    assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
+    assert json.loads(t1w[1].read_text()) == {"Mine": True}
+    assert "was edited" in caplog.text and t1w[1].name in caplog.text
+    # (then skipped by its scope again, under `skip`)
+    roast(root, subs=[40001], display=False)
+    assert len(opened) == 2
+
+
+def test_update_never_skips_by_scope(root, monkeypatch):
+    """Under `update`, a narrower `--subs` covered by the record still runs
+    the shard (shards are skipped under `skip` only): the sidecars of the
+    selected subjects follow their template"""
+    opened = open_spy(monkeypatch, roaster)
+    roast(root, display=False)
+    t1w = [raw_file(root, f"sub-{s}/anat/sub-{s}_T1w.json")
+           for s in ("0040000", "0040001")]
+    old = t1w[1].read_bytes()
+    (root / "sourcedata" / "T1w.json").write_text('{"EchoTime": 1}')
+    roast(root, display=False)              # (pure skip: re-signed only)
+    assert len(opened) == 2
+    assert json.loads(t1w[0].read_text()) != {"EchoTime": 1}
+    roast(root, subs=[40000], display=False)
+    assert len(opened) == 2                 # (covered, under `skip`)
+    roast(root, subs=[40000], ifexists="update", display=False)
+    assert len(opened) == 3
+    assert json.loads(t1w[0].read_text()) == {"EchoTime": 1}
+    assert t1w[1].read_bytes() == old       # (not selected)
+
+
 def test_exclude_keys(root):
     roast(root, exclude_keys={"func", "meta"}, display=False)
     assert raw_tree(root) == {p for p in RAW if "/func/" not in p}
@@ -369,8 +417,9 @@ def test_subjects_pruned_before_extraction(root, monkeypatch):
 
 
 def test_rerun_skips_by_signature(root, monkeypatch):
-    """A re-run with the same inputs and options does not open the tarball;
-    new options (subjects) do"""
+    """A re-run with the same inputs and options does not open the tarball,
+    nor one that keeps fewer subjects (its scope); a new sidecar policy
+    does"""
     opened = []
     real = roaster.TarArchive
 
@@ -386,7 +435,41 @@ def test_rerun_skips_by_signature(root, monkeypatch):
     assert len(opened) == 1
     assert raw_tree(root) == RAW | META
     roast(root, subs=[40000], display=False)
+    assert len(opened) == 1
+    roast(root, json="no", display=False)
     assert len(opened) == 2
+
+
+@pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
+def test_scope_of_the_image_shard(root, monkeypatch, scenario):
+    """`--subs` narrowing and `meta` skip the tarball, a new subject of
+    it re-reads it (`roast.scope`)"""
+    opened = open_spy(monkeypatch, roaster)
+    check_scope(
+        scenario, root, lambda **kw: roast(root, display=False, **kw),
+        opened, a=40000, b=40001, label_a="0040000", label_b="0040001",
+        archives={"COBRE_scan_data.tgz": ({"0040000", "0040001"},
+                                          "roast/scans")},
+        keys={"meta", "T1w", "func"}, key="func", absent=49999)
+
+
+def test_keys_of_the_image_shard(root):
+    """Adding a key that the shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "T1w", "func"}, {"roast/scans": ("T1w", "func")})
+
+
+def test_skipped_shard_counts_what_is_expected(root):
+    """A skipped shard counts the actions of the outputs that the roast
+    selects, not those of its last run"""
+    roast(root, subs=[40000], display=False)
+    roast(root, subs=[40001], display=False)
+    report = roast(root, keys={"T1w", "func"}, subs=[40000], display=False)
+    assert report.summary() == {"T1w": {"skipped": 2},
+                                "func": {"skipped": 2}}
+    report = roast(root, keys={"T1w", "func"}, display=False)
+    assert report.summary() == {"T1w": {"skipped": 4},
+                                "func": {"skipped": 2}}
 
 
 def test_jobs(root):

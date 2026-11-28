@@ -39,7 +39,9 @@ uses, so that an unchanged disc is skipped on a re-run): an image disc
 is listed once, then its members are extracted in archive order (one
 forward pass); a FreeSurfer disc is unpacked in one pass. Discs that
 are not in `sourcedata/` are skipped with a warning, unless named with
-`--discs` (then an error). Only the first session (`MR1`) of each
+`--discs` (then an error). A disc shard declares its keys and the
+subjects it sees (`roast.scope`): a later roast that keeps no more skips
+it. Only the first session (`MR1`) of each
 subject is converted (`MR2` are repeats). The participants table is
 written complete to `.brainspresso/orig/` and trimmed to the subjects
 on disk.
@@ -70,10 +72,12 @@ from brainspresso.bids.keys import KeyAliases
 from brainspresso.errors import UsageError
 from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
+    SEEN,
     RoastContext,
     Shard,
     copy_templates,
     roast_dataset,
+    scope,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -244,6 +248,7 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
             shards.append(Shard(
                 roaster, path, tag="discs", advance="discs",
                 id=f"roast/discs/{kind}-disc{disc:02d}", inputs=inputs,
+                scope=scope(keys=DISC_KEYS[kind], subs=SEEN),
             ))
     ctx.progress(total=len(shards), tag="discs")
     yield from shards
@@ -422,7 +427,7 @@ def roast_image_disc(ctx: RoastContext, path: Path) -> Iterator[Action]:
                 subjects.setdefault(sub, (folder, []))[1].append(run)
         actions = []        # [(members, action)]
         for sub, (folder, runs) in subjects.items():
-            if ctx.selection.keeps_subject(sub):
+            if ctx.keeps_subject(sub):
                 actions += subject_actions(ctx, archive, path, sub, folder,
                                            runs, offsets)
 
@@ -657,8 +662,11 @@ def roast_freesurfer_disc(ctx: RoastContext,
         if match:
             runs.setdefault(f"{int(match[1]):04d}", set()).add(
                 int(match[2]))
-        sub = fs_subject(member, everything)
-        if sub is None or not ctx.selection.keeps_subject(sub):
+        # (every subject is reported, before `everything` prunes it)
+        sub = fs_subject(member, True)
+        if sub is None or not ctx.keeps_subject(sub):
+            return None
+        if not everything and fs_subject(member) is None:
             return None
         subjects.add(sub)
         return drv.source.joinpath(f"sub-{sub}",

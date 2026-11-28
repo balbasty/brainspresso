@@ -13,10 +13,14 @@ import pytest
 from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
+    SCOPE_SCENARIOS,
+    check_keys_rerun,
+    check_scope,
     init_layout,
     layout_of,
     make_tar,
     nii_bytes,
+    open_spy,
     raw_file,
     raw_tree,
     read_tsv,
@@ -409,6 +413,47 @@ def test_sessions_not_together(root):
         for i in (29220, 29221)}
     assert len(report.errors) == 1 and report.status == "partial"
     assert "sub-29220 ses-01 are not together" in str(report.errors[0])
+
+
+def test_sessions_not_together_whatever_the_selection(root):
+    """Sessions end on the members of every subject: a narrower
+    selection writes no more, and the same names (`roast.scope`)"""
+    b = "ABIDEII-IP_1/29220/session_1"
+    make_tar(root / "sourcedata" / "ABIDEII-IP_1.tar.gz", {
+        f"{b}/rest_1/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+        "ABIDEII-IP_1/29221/session_1/anat_1/anat.nii.gz": nii_bytes(),
+        f"{b}/rest_2/rest.nii.gz": nii_bytes((2, 2, 2, 3)),
+    })
+    report = roast(root, keys="rest", subs=["29220"], json="no",
+                   display=False)
+    assert raw_tree(root) == {
+        "sub-29220/ses-01/func/sub-29220_ses-01_task-rest_bold.nii.gz"}
+    assert len(report.errors) == 1
+    assert "sub-29220 ses-01 are not together" in str(report.errors[0])
+
+
+@pytest.mark.parametrize("scenario", SCOPE_SCENARIOS)
+def test_scope_of_tarballs(root, monkeypatch, scenario):
+    """`--subs` narrowing and `meta` skip the tarballs, a new subject
+    re-reads the tarball of its site only (`roast.scope`)"""
+    opened = open_spy(monkeypatch, roaster)
+    check_scope(
+        scenario, root, lambda **kw: roast(root, display=False, **kw),
+        opened, a=29001, b=29100, label_a="29001", label_b="29100",
+        archives={
+            "ABIDEII-NYU_1.tar.gz": ({"29001", "29002"},
+                                     "roast/raw/ABIDEII-NYU_1.tar.gz"),
+            "ABIDEII-KUL_3.tar.gz": ({"29100"},
+                                     "roast/raw/ABIDEII-KUL_3.tar.gz")},
+        keys={"meta", "pheno", "T1w", "rest", "dti"}, key="dti",
+        absent=29999)
+
+
+def test_keys_of_tarballs(root):
+    """Adding a key that a tarball shard reads re-runs it"""
+    check_keys_rerun(root, lambda **kw: roast(root, display=False, **kw),
+                     {"meta", "pheno", "T1w", "rest", "dti"},
+                     {"roast/raw/": roaster.RAW_KEYS})
 
 
 def test_hires_not_a_run(root, caplog):

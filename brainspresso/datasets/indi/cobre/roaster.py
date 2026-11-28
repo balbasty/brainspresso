@@ -29,7 +29,9 @@ All images are members of one gzip-compressed tarball, whose listing is
 a full decompression: they are extracted by one shard that reads it
 once, member by member (subjects that the selection drops are skipped
 before anything is extracted), not by one shard per subject, each of
-which would decompress the tarball up to its own members.
+which would decompress the tarball up to its own members. Its scope
+(`roast.scope`) is the image keys and the subjects it sees: a later
+roast that keeps no more (fewer subjects, `meta` toggled) skips it.
 """  # noqa: E501
 import csv
 import hashlib
@@ -42,11 +44,13 @@ from brainspresso.actions import Action, CopyJSON, Fail
 from brainspresso.actions.archive import ExtractMember
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.roast import (
+    SEEN,
     RoastContext,
     RoastReport,
     Shard,
     copy_templates,
     roast_dataset,
+    scope,
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
@@ -131,7 +135,8 @@ def roast_cobre(ctx: RoastContext) -> Iterator:
             yield Fail(f"{TARBALL} not found", name=TARBALL, tag="scans")
             return
         yield Shard(roast_scans, tag="scans", id="roast/scans",
-                    inputs=[tarball], config=sidecar_config(ctx))
+                    inputs=[tarball], config=sidecar_config(ctx),
+                    scope=scope(keys=("T1w", "func"), subs=SEEN))
 
 
 def sidecar_config(ctx: RoastContext) -> dict:
@@ -323,7 +328,8 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
             if parsed is None or not member.isfile():
                 continue
             sub, (key, datatype, entities, suffix) = parsed
-            if not (ctx.selection.keeps_subject(sub) and ctx.wants(key)):
+            # (every subject is reported, before the key prunes it)
+            if not (ctx.keeps_subject(sub) and ctx.wants(key)):
                 continue
             stem = (ctx.layout.raw / f"sub-{sub}" / datatype /
                     f"sub-{sub}_{entities}{suffix}")

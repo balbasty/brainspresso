@@ -1,5 +1,6 @@
 """Stage-agnostic engine (`actions.engine`): context, policy, shards."""
 import ast
+import hashlib
 import json
 import os
 import subprocess
@@ -521,3 +522,300 @@ def test_children_of_a_finalize_run_in_a_worker_are_counted(tmp_path):
     assert not report.errors
     assert (tmp_path / "out" / "z.txt").exists()
     assert read_task_states(tmp_path / "state")["demo/fp"]["children"] == 1
+
+
+# ----------------------------------------------------------------------
+#   Scope of shards (`Shard(scope=)`, `Policy.scope/covers/expects/audit`)
+# ----------------------------------------------------------------------
+
+class ToyContext(Context):
+    """A run that wants some units (`wanted`)."""
+
+    def __init__(self, root, wanted, **kwargs):
+        super().__init__(root, state=Path(root) / "state", **kwargs)
+        self.wanted = set(wanted)
+
+
+class ToyPolicy(Policy):
+    """
+    A scope: the wanted units. Covered if every unit that the shard saw
+    and the new run wants was wanted (or, without `seen`, by inclusion);
+    outputs `out/<unit>.txt` are expected if their unit is wanted.
+    """
+
+    def fingerprint(self, ctx):
+        return {"wanted": sorted(ctx.wanted)}
+
+    def scope(self, ctx, shard):
+        if getattr(shard, "scope", None) is None:
+            return None
+        return {"wanted": sorted(ctx.wanted)}
+
+    def covers(self, old, new, seen):
+        if "u" in seen:
+            return all(u in old["wanted"] for u in seen["u"]
+                       if u in new["wanted"])
+        return set(new["wanted"]) <= set(old["wanted"])
+
+    def expects(self, path, ctx):
+        return Path(path).stem in ctx.wanted
+
+    def audit(self, ctx, scope, outputs, seen):
+        for output in outputs:
+            if Path(output).stem not in seen.get("u", ()):
+                return f"{output}: unit not seen"
+        return None
+
+
+def toy_shard(ctx, units, unseen=(), fail=None, error=False):
+    for unit in units:
+        if unit not in unseen:
+            ctx.seen("u", unit)
+        if unit in ctx.wanted:
+            yield WriteText(unit, ctx.root / "out" / f"{unit}.txt")
+        if unit == fail:
+            yield Fail("missing input")
+        if error and unit == units[-1]:
+            raise ValueError("boom")
+
+
+calls = []
+
+
+def counted_shard(ctx, *args, **kwargs):
+    calls.append(args[0])
+    yield from toy_shard(ctx, *args, **kwargs)
+
+
+def toy_producer(units=("a", "b"), scoped=True, **kwargs):
+    def producer(ctx):
+        yield Shard(counted_shard, list(units), id="demo/toy",
+                    inputs=[ctx.root / "src.txt"],
+                    scope={"toy": True} if scoped else None, **kwargs)
+    return producer
+
+
+def toy_run(tmp_path, wanted, *, jobs=1, **kwargs):
+    if not (tmp_path / "src.txt").exists():
+        (tmp_path / "src.txt").write_text("input")
+    ctx = ToyContext(tmp_path, wanted)
+    return run(toy_producer(**kwargs), ctx, policy=ToyPolicy(), jobs=jobs,
+               display=False)
+
+
+def toy_record(tmp_path):
+    return read_task_states(tmp_path / "state")["demo/toy"]
+
+
+@pytest.fixture
+def counted():
+    calls.clear()
+    return calls
+
+
+def test_undeclared_shard_signature_is_unchanged(tmp_path, counted):
+    """Without a scope: the fingerprint is in the signature, equality"""
+    toy_run(tmp_path, {"a", "b"}, scoped=False)
+    record = toy_record(tmp_path)
+    src = tmp_path / "src.txt"
+    stat = src.stat()
+    blob = json.dumps({          # (the formula of before scopes)
+        "version": 1, "inputs": [[str(src), stat.st_size,
+                                  stat.st_mtime_ns]],
+        "wanted": ["a", "b"]}, sort_keys=True, default=str)
+    assert record["config_hash"] == hashlib.sha256(blob.encode()).hexdigest()
+    assert "scopes" not in record and "seen" not in record
+    toy_run(tmp_path, {"a", "b"}, scoped=False)
+    assert len(counted) == 1
+    toy_run(tmp_path, {"a"}, scoped=False)              # narrower: runs
+    assert len(counted) == 2
+
+
+def test_scoped_shard_signature_has_no_fingerprint(tmp_path):
+    (tmp_path / "src.txt").write_text("input")
+    shard = Shard(toy_shard, id="demo/toy", inputs=[tmp_path / "src.txt"],
+                  scope={"toy": True})
+    sign = engine_module._signature
+    one, two = ToyContext(tmp_path, {"a"}), ToyContext(tmp_path, {"b"})
+    scope = {"wanted": ["a"]}
+    assert sign(one, ToyPolicy(), shard, scope) == \
+        sign(two, ToyPolicy(), shard, scope)
+    assert sign(one, ToyPolicy(), shard) != sign(two, ToyPolicy(), shard)
+    assert sign(one, ToyPolicy(), shard, scope) != \
+        sign(one, ToyPolicy(), shard)
+
+
+@pytest.mark.parametrize("jobs", [1, 2])
+def test_scoped_shard_skipped_when_covered(tmp_path, counted, jobs):
+    units = ("a", "b", "c")
+    toy_run(tmp_path, {"a", "b"}, units=units, jobs=jobs)
+    record = toy_record(tmp_path)
+    assert record["scopes"] == [{"wanted": ["a", "b"]}]
+    assert record["seen"] == {"u": ["a", "b", "c"]}
+    # narrower, or a unit that the shard does not hold: skipped
+    report = toy_run(tmp_path, {"a"}, units=units, jobs=jobs)
+    # (the actions of its expected outputs are counted and reported)
+    assert report.counts["run"] == {"skipped": 1}
+    assert report.outputs == [tmp_path / "out" / "a.txt"]
+    report = toy_run(tmp_path, {"a", "b", "z"}, units=units, jobs=jobs)
+    assert report.counts["run"] == {"skipped": 2}
+    assert toy_record(tmp_path)["scopes"] == [{"wanted": ["a", "b"]}]
+    # a unit that it holds: runs (and extends its record)
+    report = toy_run(tmp_path, {"a", "c"}, units=units, jobs=jobs)
+    assert report.counts["run"] == {"done": 1, "skipped": 1}
+    assert (tmp_path / "out" / "c.txt").exists()
+    record = toy_record(tmp_path)
+    assert record["scopes"] == [{"wanted": ["a", "b"]}, {"wanted": ["a", "c"]}]
+    assert record["outputs"] == ["out/a.txt", "out/b.txt", "out/c.txt"]
+    assert record["groups"] == [["run", [f"out/{u}.txt"]] for u in units]
+    report = toy_run(tmp_path, {"c"}, units=units, jobs=jobs)
+    assert report.counts["run"] == {"skipped": 1}
+    assert record["seen"] == {"u": ["a", "b", "c"]}
+    if jobs == 1:
+        assert len(counted) == 2
+
+
+def test_scoped_shard_expects_some_outputs(tmp_path, counted):
+    toy_run(tmp_path, {"a", "b"})
+    # an output that the run does not expect is gone: skipped
+    (tmp_path / "out" / "b.txt").unlink()
+    toy_run(tmp_path, {"a"})
+    assert len(counted) == 1
+    # an expected one is gone: runs, writes it again
+    toy_run(tmp_path, {"a", "b"})
+    assert len(counted) == 2 and (tmp_path / "out" / "b.txt").exists()
+    (tmp_path / "out" / "a.txt").unlink()
+    toy_run(tmp_path, {"a"})
+    assert len(counted) == 3 and (tmp_path / "out" / "a.txt").exists()
+
+
+def test_scopes_are_carried(tmp_path, counted):
+    """`a`, then `b`, then `a` again: the third run skips"""
+    toy_run(tmp_path, {"a"})
+    toy_run(tmp_path, {"b"})
+    record = toy_record(tmp_path)
+    assert record["scopes"] == [{"wanted": ["a"]}, {"wanted": ["b"]}]
+    assert record["outputs"] == ["out/a.txt", "out/b.txt"]
+    toy_run(tmp_path, {"a"})
+    assert len(counted) == 2
+    # the same scope again moves last
+    toy_run(tmp_path, {"a", "b"})
+    toy_run(tmp_path, {"a"}, config=1)                  # (re-signed)
+    assert toy_record(tmp_path)["scopes"] == [{"wanted": ["a"]}]
+
+
+def test_scopes_are_carried_only_if_all_outputs_exist(tmp_path):
+    toy_run(tmp_path, {"a"})
+    (tmp_path / "out" / "a.txt").unlink()
+    toy_run(tmp_path, {"b"})
+    record = toy_record(tmp_path)
+    assert record["scopes"] == [{"wanted": ["b"]}]
+    assert record["outputs"] == ["out/b.txt"]
+
+
+def test_at_most_eight_scopes(tmp_path):
+    units = [str(i) for i in range(10)]
+    for unit in units:
+        toy_run(tmp_path, {unit}, units=units)
+    scopes = toy_record(tmp_path)["scopes"]
+    assert scopes == [{"wanted": [u]} for u in units[2:]]
+    assert len(toy_record(tmp_path)["outputs"]) == 10
+
+
+@pytest.mark.parametrize("how", ["fail", "error"])
+def test_no_scope_after_an_error(tmp_path, counted, how):
+    kwargs = {"fail": "a"} if how == "fail" else {"error": True}
+    report = toy_run(tmp_path, {"a", "b"}, **kwargs)
+    assert report.errors
+    record = toy_record(tmp_path)
+    assert record["status"] == "failed"
+    assert "scopes" not in record and "seen" not in record
+    toy_run(tmp_path, {"a"}, **kwargs)
+    assert len(counted) == 2
+
+
+def test_a_failed_audit_is_never_skipped(tmp_path, counted, caplog):
+    with caplog.at_level("WARNING"):
+        toy_run(tmp_path, {"a", "b"}, unseen=("b",))
+    assert "out/b.txt: unit not seen" in caplog.text
+    record = toy_record(tmp_path)
+    assert record["status"] == "done" and record["scopes"] == []
+    toy_run(tmp_path, {"a", "b"}, unseen=("b",))
+    toy_run(tmp_path, {"a"}, unseen=("b",))
+    assert len(counted) == 3
+
+
+def test_seen_without_a_task_does_nothing(tmp_path):
+    ctx = Context(tmp_path)
+    ctx.seen("sub", "01")               # (no reporter)
+
+    def producer(ctx):
+        ctx.seen("sub", "01")           # (no task)
+        yield WriteText("x", ctx.root / "x.txt")
+
+    assert not run(producer, ctx, display=False).errors
+
+
+def test_legacy_record_is_upgraded(tmp_path, counted):
+    """A record of before scopes: covered if made with this selection"""
+    toy_run(tmp_path, {"a", "b"}, scoped=False)
+    legacy = toy_record(tmp_path)
+    report = toy_run(tmp_path, {"a", "b"})
+    assert report.counts["run"] == {"skipped": 2} and len(counted) == 1
+    record = toy_record(tmp_path)
+    assert record["config_hash"] != legacy["config_hash"]
+    assert record["scopes"] == [{"wanted": ["a", "b"]}]
+    assert "seen" not in record
+    assert record["outputs"] == legacy["outputs"]
+    # (then by coverage, without `seen`: by inclusion)
+    toy_run(tmp_path, {"a"})
+    assert len(counted) == 1
+    toy_run(tmp_path, {"a", "z"})
+    assert len(counted) == 2
+
+
+def test_legacy_record_of_another_selection_runs(tmp_path, counted):
+    toy_run(tmp_path, {"a", "b"}, scoped=False)
+    toy_run(tmp_path, {"a"})
+    assert len(counted) == 2
+    record = toy_record(tmp_path)
+    assert record["scopes"] == [{"wanted": ["a"]}]
+
+
+def interrupted(ctx):
+    yield WriteText("x", ctx.root / "out" / "x.txt")
+    raise KeyboardInterrupt
+
+
+def test_interrupted_shard_is_not_done(tmp_path):
+    (tmp_path / "src.txt").write_text("input")
+
+    def producer(ctx):
+        yield Shard(interrupted, id="demo/stop", inputs=[ctx.root / "src.txt"])
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    with pytest.raises(KeyboardInterrupt):
+        run(producer, ctx, display=False)
+    assert read_task_states(tmp_path / "state")["demo/stop"]["status"] == \
+        "failed"
+
+
+@pytest.mark.parametrize("stop", [KeyboardInterrupt, SystemExit])
+def test_interrupted_shard_in_a_worker_is_not_done(tmp_path, stop):
+    (tmp_path / "src.txt").write_text("input")
+
+    def producer(ctx):
+        yield Shard(interrupted_by, stop, id="demo/stop",
+                    inputs=[ctx.root / "src.txt"])
+
+    ctx = Context(tmp_path, state=tmp_path / "state")
+    with pytest.raises(stop):
+        run(producer, ctx, jobs=2, display=False)
+    record = read_task_states(tmp_path / "state")["demo/stop"]
+    assert record["status"] == "failed"
+    assert record["outputs"] == ["out/x.txt"]
+
+
+def interrupted_by(ctx, stop):
+    yield WriteText("x", ctx.root / "out" / "x.txt")
+    raise stop

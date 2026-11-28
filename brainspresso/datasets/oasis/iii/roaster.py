@@ -110,6 +110,9 @@ TARBALLS = {"anat": "anat", "swi": "anat", "func": None, "fmap": "fmap",
             "dwi": "dwi", "pet": "pet", "CT": "ct"}
 PERF_SUFFIXES = ("asl", "pasl", "m0scan", "aslcontext")
 EXTENSIONS = (".nii.gz", ".json", ".bval", ".bvec")
+#: Keys that a subject shard can write (`roast.scope`): all but the
+#: metadata, which the top-level roaster writes
+SCOPE_KEYS = tuple(sorted(KEYS.leaves - {"meta", "pheno"}))
 
 
 def roast(root, *, subs=(), exclude_subs=(), **options):
@@ -132,7 +135,8 @@ def roast_oasis3(ctx: RoastContext) -> Iterator:
     if ctx.wants("fs") or ctx.wants("fs-all"):
         yield Shard(roast_freesurfer_tables, tag="fs")
     yield from subject_shards(ctx, sorted(sessions), roast_subject,
-                              inputs=partial(subject_tarballs, ctx))
+                              inputs=partial(subject_tarballs, ctx),
+                              scope_keys=SCOPE_KEYS)
 
 
 def source_sessions(ctx: RoastContext) -> dict[str, dict[str, Path]]:

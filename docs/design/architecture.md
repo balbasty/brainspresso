@@ -657,7 +657,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   hosted datasets, repair is part of their metadata roast
   (`roast.hosted`, §4), not a common step.
 * For gz tarballs, listing members is a full decompression: early pruning by
-  selection (`selection.keeps_subject(label)`) is expected there. A gz
+  selection (`ctx.keeps_subject(label)`, which also reports the subject
+  to a `SEEN` scope) is expected there. A gz
   tarball that holds every subject (COBRE) is read by one shard (id and
   `inputs`: skipped by signature), not by one shard per subject, each
   of which would decompress it up to its own members (step 5).
@@ -730,7 +731,14 @@ layer in 2b-iv):
   running it), then `policy.prepare(action, ctx)` (defaults: the base
   `Policy` sets `IfExists` from `ctx.ifexists`), and includes
   `policy.fingerprint(ctx)` (a JSON-able dict) in the input signature of
-  shards. `staging` is inherited by the sub-actions of a staging claim.
+  shards that declare no scope. Four hooks serve the shards that do
+  (all with defaults that keep the behaviour of undeclared shards):
+  `policy.scope(ctx, shard) -> dict | None` (None: no scope),
+  `policy.covers(old, new, seen) -> bool` (default `old == new`),
+  `policy.expects(path, ctx) -> bool` (default True) and
+  `policy.audit(ctx, scope, outputs, seen) -> str | None` (default
+  None); see "Task state" below. `staging` is inherited by the
+  sub-actions of a staging claim.
   The policy is pickled to workers with the context. `RoastPolicy`
   implements the roast rules below (selection, kinds, JSON policy,
   tables).
@@ -872,7 +880,7 @@ layer in 2b-iv):
   `ctx.tag` is the tag of the running roaster. Roaster exceptions are
   counted as errors of its tag; the rest of the roast goes on.
 * Shards: any callable yielded; `Shard(fn, *args, tag=, id=, inputs=,
-  advance=, unit=, source=)` is a picklable one. With `jobs > 1` every
+  advance=, unit=, source=, config=, scope=)` is a picklable one. With `jobs > 1` every
   shard runs in the pool, through `submit(task, resources=None) ->
   Future` (`LocalExecutor`, "spawn" process pool; `resources` ignored
   locally): shards yielded in the main process are submitted, shards
@@ -899,9 +907,10 @@ layer in 2b-iv):
   worker, writes `<state>/tasks/<id>.json` as it runs; the main process
   reads the progress of running shards from these files. A shard with
   `id` and `inputs` (its source archives) that is "done" with the same
-  input signature (paths, sizes, mtimes; selection; JSON policy) and
-  whose outputs exist is skipped under `skip` without reopening its
-  archives (a shard that yielded shards never is).
+  input signature (paths, sizes, mtimes; `config`; selection; JSON
+  policy) and whose outputs exist is skipped under `skip` without
+  reopening its archives (a shard that yielded shards never is; one
+  that stopped, an exception or an interrupt, is "failed").
 * `--if-exists` (r43). `skip` (default) is pure: an existing file is
   never touched and nothing is said about it; the exceptions are the
   pristine tables (regenerated and compared) and the visible tables
@@ -956,6 +965,71 @@ layer in 2b-iv):
   After a template change under `skip` the shard re-runs, every
   sidecar action is skipped and the new signature is recorded: by
   design (`roast --if-exists update` renders them).
+* **Scope of a shard** (problem 1 of the engine follow-ups). A shard
+  may declare what of the roast can change its outputs:
+  `Shard(scope=roast.scope(keys=[...], subs=[labels] | SEEN | None))`.
+  `keys`: every key whose being wanted can change what it writes (the
+  BIDS keys of its raw outputs, the categories it reads with
+  `ctx.wants`; None: all); `subs`: the subjects it writes for (a list),
+  `SEEN` (it asks `ctx.keeps_subject(label)` for every subject its
+  inputs hold, before any other pruning, on every run; that call
+  reports the subject, `Context.seen`, then prunes), or None (unknown).
+  `subject_shards(..., scope_keys=)` declares `subs=[label]`. A scoped
+  shard's signature holds only its inputs and `config` (`"scoped":
+  true`, no fingerprint); `RoastPolicy.scope` describes the roast for
+  it: `fixed` (JSON policy, the base selection without its subject
+  filters, the declaration: must be equal), `keys` (wanted keys among
+  the declared ones), `mode` (`all` > `exclude` > `keys`, rules 2, 6,
+  3-5 of `bids/keys.py`; ignored when the declared keys hold no BIDS
+  key) and `subs` (the declared subjects kept, or the subject
+  filters). The record keeps the scopes (`scopes`, most recent last, at
+  most 8) and, on a complete run, the subjects seen (`seen: {"sub":
+  [...]}`). Under `skip` the shard is skipped if one recorded scope
+  **covers** the new one (`RoastPolicy.covers`: keys and mode no wider,
+  subjects: declared lists by inclusion; with `SEEN` and `seen`, every
+  seen subject that the new filter keeps was kept; else by the filters
+  themselves) and every recorded output that the roast still selects
+  (`expects`: `ctx.keeps(path) is not False`) exists; a skipped shard
+  reports those outputs only, and counts the actions that wrote them
+  (`groups` in the record: the outputs of each action and its progress
+  group). A scoped shard that runs although its
+  record is done with the same signature and all its outputs (only
+  coverage failed) extends its record (scopes and outputs carried, the
+  new scope appended): `--subs A`, `--subs B`, `--subs A` skips the
+  third time. Only under `skip` (as every shard skip): under `update`
+  and the other modes a covered shard runs, so the sidecars of the
+  selected subjects follow their templates. So: removing subjects or
+  keys, or toggling `meta`, skips;
+  adding a subject re-runs only the shards that hold it; after a
+  compost of a subject, `--exclude-subs` it skips and a plain roast
+  writes it again; `--sidecars`, `--sessions`, include/exclude globs,
+  templates (`config`) and inputs match exactly, as before. It rests on
+  two promises of the roaster: the selection decides which outputs
+  exist, never their content (what else does is in `config`, as
+  Bullitt's `named`), and a selection that keeps no more writes no more.
+  `RoastPolicy.audit` checks the outputs of each run against the
+  declaration (a raw file of an undeclared key, a file in the folder of
+  undeclared categories, a subject neither declared nor seen): a wrong
+  declaration is logged and recorded as `scopes: []`, never skipped by
+  its scope. The audit cannot see a category without a folder of its
+  own, nor tell apart the categories of a shared folder (OASIS-I `avg`,
+  `tal`, `fsl`): per-roaster tests check that `seen` is complete, that
+  adding each key a shard reads re-runs it, and a differential test
+  (`tests/test_roast_scope_fuzz.py`) compares incremental roasts with
+  fresh ones. A record
+  of before scopes whose signature equals the old formula for this
+  roast is upgraded in place (scoped signature, `scopes: [scope]`):
+  no re-run after the upgrade, no `_SIGNATURE_VERSION` bump. Declared:
+  COBRE (`roast/scans`: `T1w`, `func`, `SEEN`), OASIS-I
+  (`roast/discs/raw-*`: `raw`, `avg`, `tal`, `fsl`; `fs-*`: `fs`,
+  `fs-all`; `SEEN`), OASIS-II (`roast/parts/*`: `raw`, `SEEN`),
+  OASIS-III (subject shards: every key but `meta`, `pheno`), ABIDE-I
+  (`roast/raw/*`: `T1w`, `T2w`, `rest`, `SEEN`; XNAT subjects: the same
+  keys; `roast/fs/*`: `fs`, `fs-all`), ABIDE-II (`roast/raw/*`: `T1w`,
+  `rest`, `dti`, `SEEN`), Bullitt (subject shards: its raw and
+  derivative keys; its `inputs` follow the wanted keys, so a key change
+  still re-runs them). IXI, UNC-Wisconsin and hosted roasts declare
+  nothing: their shards behave as before.
 * Keys: `bids/keys.py`. `KeyAliases(tree, bids={leaf: Selection
   filters}, folders={category: [folders]})`; other leaves are
   categories; groups expand to their leaves; lookup is exact, then
@@ -978,9 +1052,12 @@ layer in 2b-iv):
   leaves).
 * Helpers for ports (`roast/helpers.py`): `copy_templates(ctx,
   names | {name: dst})` (a missing resource is a `Fail`) and
-  `subject_shards(ctx, labels, fn, *args, inputs=)` (pruning, progress
-  total, one `Shard` per subject with id `roast/subjects/sub-<label>`,
-  advanced when done). Missing inputs are `Fail`s, never warnings only.
+  `subject_shards(ctx, labels, fn, *args, inputs=, scope_keys=)`
+  (pruning, progress total, one `Shard` per subject with id
+  `roast/subjects/sub-<label>`, advanced when done; `scope_keys`: each
+  declares `scope(keys=..., subs=[label])`), `scope(keys=, subs=)` and
+  `SEEN` (the scope of a shard, above). Missing inputs are `Fail`s,
+  never warnings only.
 
 ## 6. Dataset registration
 
@@ -1714,8 +1791,9 @@ schema of `actions/state.py` (schema 1, fields added, none changed):
 ```
 
 (Roast shards write `stage: "roast"`, `pipeline: null` and the fields
-up to `outputs`, plus `run`, `counts`, `progress` and `children`; see
-`actions.engine`. Grind adds the fields from `pipeline_stage` on.)
+up to `outputs`, plus `run`, `counts`, `progress` and `children`, and,
+when done, `scopes` and `seen` for a shard that declares a scope (§5);
+see `actions.engine`. Grind adds the fields from `pipeline_stage` on.)
 
 * `config_hash` is the task **signature** (`signature`): SHA-256 of the
   pipeline name and version, `stage.fingerprint(effective config)`, the
@@ -3167,3 +3245,33 @@ up as an XPASS failure once fixed (then drop the marker).
   the merge is not warned about.
   Round 3: nested derivative descriptions too (`roast.hosted.
   _derivative_url`).
+* r44: engine follow-ups (PR 2), problem 1: per-shard scope (§5 "Scope of a
+  shard"). A shard may declare `Shard(scope=roast.scope(keys=,
+  subs=))`; its signature then holds only its inputs and `config`, and
+  its record keeps the scopes it ran with (`scopes`) and the subjects
+  its inputs hold (`seen`, reported by `ctx.keeps_subject` on a
+  complete run). Under `skip` it is skipped when a recorded scope
+  covers the new one and the outputs that the roast still selects
+  exist: narrowing `--subs`/`--keys` or toggling `meta` no longer
+  re-reads every archive, adding a subject re-reads only the archives
+  that hold it, a roast after a compost of a subject writes it again.
+  New `Policy` hooks `scope`, `covers`, `expects`, `audit` and
+  `Context.seen` (defaults: undeclared shards, grind and hosted roasts
+  unchanged; `Policy.fingerprint` keeps its signature); `_signature`
+  takes the scope (`"scoped": true`), records of declared shards made
+  with the same selection are upgraded in place (no
+  `_SIGNATURE_VERSION` bump), a re-run extends a record whose outputs
+  are all there (`--subs A`, `B`, `A` skips the third time; at most 8
+  scopes); `Engine.dispatch` signs each shard once (`Engine.plan`),
+  for `skip`, `run_shard` and `submit`. A shard that an exception or an
+  interrupt stops is recorded "failed", in the main process (it was
+  "done", and skipped by the next roast) and in a worker (it stayed
+  "running"). A skipped scoped shard counts the actions of the outputs
+  that the roast selects (`groups`), not those of its last run. Declared by COBRE, OASIS-I,
+  OASIS-II, OASIS-III, ABIDE-I (NITRC/bucket, XNAT, FreeSurfer),
+  ABIDE-II and Bullitt (the table in §5). Roasters report every
+  subject before pruning (OASIS-I FreeSurfer discs: before the
+  `fs-all` filter; ABIDE-I: before the BIDS-name test); ABIDE-II
+  sessions start and end on the members of every subject and key, so
+  that the names (and the "folders not together" `Fail`) no longer
+  depend on the selection, which the scope requires.

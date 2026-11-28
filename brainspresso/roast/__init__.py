@@ -10,7 +10,8 @@ The roast layer of the action engine (`actions.engine`):
   tables and tracked files: pure `skip`, the edit test of `update`);
 * `run`: `run_roast` (engine, then trim and `finish_roast`) and
   `roast_dataset` (the `roast()` of a dataset);
-* `helpers`: `copy_templates`, `subject_shards`.
+* `helpers`: `copy_templates`, `subject_shards`, `scope` (with `SEEN`:
+  what of a roast can change the outputs of a shard).
 
 ```python
 def roast_ixi(ctx):
@@ -27,8 +28,8 @@ from brainspresso.roast.context import (
     as_list,
     make_context,
 )
-from brainspresso.roast.helpers import copy_templates, subject_shards
-from brainspresso.roast.policy import RoastPolicy
+from brainspresso.roast.helpers import copy_templates, scope, subject_shards
+from brainspresso.roast.policy import SEEN, RoastPolicy
 from brainspresso.roast.run import (
     Roaster,
     RoastReport,
@@ -38,6 +39,6 @@ from brainspresso.roast.run import (
 
 __all__ = [
     "JsonPolicy", "LocalExecutor", "RoastContext", "RoastPolicy",
-    "RoastReport", "Roaster", "Shard", "as_list", "copy_templates",
-    "make_context", "roast_dataset", "run_roast", "subject_shards",
+    "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "copy_templates",
+    "make_context", "roast_dataset", "run_roast", "scope", "subject_shards",
 ]

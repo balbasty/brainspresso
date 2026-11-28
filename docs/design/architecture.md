@@ -465,7 +465,9 @@ Interactions (decided):
   hosted derivative description is completed in its render
   (`SourceDatasets`, `bids.layout.complete_description`, as
   `write_descriptions` would), so the file equals the render, its hash
-  is recorded and its edits are told like any other's. An edited field
+  is recorded and its edits are told like any other's (at any depth:
+  `derivatives/<a>/derivatives/<b>/` takes the URL of the layout that
+  owns it). An edited field
   map is merged and compared first: the warning only when the merge
   differs from the file (a stale hash is no edit).
   Hosted roasts run with `RoastPolicy(track=False)`: `_record` stays
@@ -3163,3 +3165,5 @@ up as an XPASS failure once fixed (then drop the marker).
   `update`, an unedited one not rewritten, no backups piling up; an
   interrupted roast leaves it complete); an edited field map that holds
   the merge is not warned about.
+  Round 3: nested derivative descriptions too (`roast.hosted.
+  _derivative_url`).

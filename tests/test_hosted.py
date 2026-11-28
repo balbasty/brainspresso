@@ -1936,3 +1936,36 @@ def test_stale_field_map_hash_is_not_warned_about(tmp_path, openneuro,
 
 def _key(lay, path):
     return Path(path).relative_to(lay.root).as_posix()
+
+
+NESTED_DESC = "derivatives/fs/derivatives/qc/dataset_description.json"
+
+
+def test_nested_hosted_derivative_description(tmp_path, openneuro, caplog):
+    """Round 3 of #39: a derivative of a derivative is completed in its
+    render too (the URL of the layout that owns it, at any depth)"""
+    openneuro[f"{DS}/derivatives/fs/dataset_description.json"] = \
+        b'{"Name": "fs", "BIDSVersion": "1.9.0"}'
+    openneuro[f"{DS}/{NESTED_DESC}"] = \
+        b'{"Name": "qc", "BIDSVersion": "1.9.0"}'
+    lay = on("harvest", tmp_path, "--subs", "01", "--folders",
+             "derivatives")
+    desc = lay.root / NESTED_DESC
+    meta = read_json(desc)
+    owner = lay.derivative("fs").derivative("qc")
+    assert meta["SourceDatasets"][0] == {"URL": owner.source_url}
+    assert manifest_entry(lay, desc)["sha256"] == sha256(desc.read_bytes())
+    content = desc.read_bytes()
+    for _ in range(2):
+        caplog.clear()
+        on("roast", tmp_path, "--if-exists", "update")
+        assert desc.read_bytes() == content
+        assert not [r for r in caplog.records if r.levelname == "WARNING"
+                    and "dataset_description" in r.getMessage()]
+    assert not (lay.state / "replaced").exists()
+    desc.write_bytes(b'{"Name": "mine"}')
+    caplog.clear()
+    on("roast", tmp_path, "--if-exists", "update")
+    assert desc.read_bytes() == b'{"Name": "mine"}'
+    assert "was edited" in caplog.text
+    assert not (lay.state / "replaced").exists()

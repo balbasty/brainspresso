@@ -104,6 +104,7 @@ from brainspresso.bids.hosted import (
 from brainspresso.bids.keys import KeySelection
 from brainspresso.bids.kinds import accepts, default_kind
 from brainspresso.bids.layout import (
+    DERIVATIVES_DIR,
     DESCRIPTION,
     Layout,
     SitesLayout,
@@ -635,9 +636,7 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
                            PurePosixPath(rel).parent.as_posix()]
     # the description of a derivative dataset: completed in the render
     # (`SourceDatasets`), so that the file equals it (edits by hash)
-    source_url = None
-    if rel == DESCRIPTION and Path(dataset).parent == Path(layout.derivatives):
-        source_url = layout.derivative(Path(dataset).name).source_url
+    source_url = _derivative_url(layout, target)
     # files that count as present without being on disk (unfetched)
     if trimmable and rel == "participants.tsv":
         present = context["unfetched"].get((dataset, "*"), [])
@@ -667,6 +666,31 @@ def _item(layout, key, target, dataset, rel, entry, plan, context) -> dict:
         "relabel": relabel,
         "source_url": source_url,
     }
+
+
+def _derivative_url(layout: Layout, target: Path) -> str | None:
+    """
+    `SourceDatasets` URL of a derivative description, at any depth.
+
+    `derivatives/<a>/dataset_description.json`,
+    `derivatives/<a>/derivatives/<b>/dataset_description.json`...: the
+    `source_url` of the `DerivativeLayout` that owns it (it need not be
+    on disk yet). None for any other file.
+    """
+    target = Path(target)
+    if target.name != DESCRIPTION:
+        return None
+    try:
+        parts = target.parent.relative_to(layout.derivatives).parts
+    except ValueError:
+        return None
+    if not parts or len(parts) % 2 == 0 or any(
+            p != DERIVATIVES_DIR for p in parts[1::2]):
+        return None
+    owner = layout
+    for name in parts[::2]:
+        owner = owner.derivative(name)
+    return owner.source_url
 
 
 def _here(folder: Path, dataset: Path, present: Iterable[str]):

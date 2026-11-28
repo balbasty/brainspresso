@@ -45,10 +45,10 @@ from brainspresso.roast import (
     RoastContext,
     Shard,
     archives,
-    as_list,
     copy_templates,
-    roast_dataset,
 )
+from brainspresso.roast.helpers import missing_input, named_keys
+from brainspresso.roast.run import python_api
 from brainspresso.roast.sidecars import copy_sidecar
 from brainspresso.roast.tables import read_xls, table_action, xls_date
 from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
@@ -56,6 +56,7 @@ from brainspresso.utils.archive import FolderArchive, TarArchive, open_archive
 lg = getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent / "templates"
+WIDTH = 3               # subject labels: `sub-002`
 
 # IXI modality -> BIDS suffix (= dataset key)
 IXI2BIDS = {"T1": "T1w", "T2": "T2w", "PD": "PDw", "MRA": "angio",
@@ -68,19 +69,6 @@ KEYS = KeyAliases(
 #: `--keys` of the roast (`IXI.keys_for("roast")`)
 ROAST_SPEC = KeySpec(KEYS, (*DATASET_KEYS, "trace"), DATASET_KEYS,
                      ("trace",))
-
-
-def roast(root, *, subs=(), exclude_subs=(), keys=(), **options):
-    """Roast `<root>` (the `IXI` folder). Subjects are numbers. Other
-    options: those of the command line (`keys`, `json`, `ifexists`,
-    `layout`), `jobs` and `display`. A missing tarball (or folder) is an
-    error only for the keys that `keys` names (`roast_options`)."""
-    return roast_dataset(
-        roast_ixi, root, KEYS, templates=TEMPLATES, keys=keys,
-        subs=as_list(subs, "{:03d}"),
-        exclude_subs=as_list(exclude_subs, "{:03d}"),
-        options=roast_options(keys), **options,
-    )
 
 
 def roast_options(keys) -> dict:
@@ -102,12 +90,7 @@ def roast_options(keys) -> dict:
         passes them when the flag is absent, so they cannot be told
         apart)
     """
-    keys = as_list(keys)
-    if not keys or {str(k).lower() for k in keys} == \
-            {k.lower() for k in ROAST_SPEC.default}:
-        return {"named": []}
-    return {"named": sorted(leaf for leaf in KEYS.leaves - {"meta"}
-                            if ROAST_SPEC.selects(keys, leaf))}
+    return {"named": named_keys(ROAST_SPEC, keys, KEYS.leaves - {"meta"})}
 
 
 def roast_ixi(ctx: RoastContext) -> Iterator:
@@ -136,11 +119,10 @@ def missing_images(ctx: RoastContext, ixi: str, *keys: str
     A missing tarball (and folder): a `Fail` if `--keys` names one of
     its keys, else an info line (`roast_options`).
     """
-    message = f"IXI-{ixi}.tar (or IXI-{ixi}/) not found"
-    if set(keys) & set(ctx.options.get("named", ())):
-        yield Fail(message, name=f"IXI-{ixi}")
-    else:
-        lg.info(f"{message} (skipped)")
+    yield from missing_input(
+        f"IXI-{ixi}.tar (or IXI-{ixi}/) not found", name=f"IXI-{ixi}",
+        required=bool(set(keys) & set(ctx.options.get("named", ()))),
+        logger=lg)
 
 
 def parse_name(name: str) -> tuple[str, str]:
@@ -613,3 +595,17 @@ def participant_rows(path_xls, sites: dict[str, str]) -> list[list]:
             parse_date(row["STUDY_DATE"]) or "n/a",
         ])
     return rows
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `IXI` folder): `roast(root, keys=..., subs=...)`
+roast = python_api(
+    roast_ixi, KEYS, folder="IXI", width=WIDTH,
+    example=2, spec=ROAST_SPEC, options=roast_options,
+    keys_doc="as on the command line (`ROAST_SPEC`: `trace` only when "
+             "named); a missing tarball (or folder) is an error only for "
+             "the keys named here (`roast_options`)",
+)

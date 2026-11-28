@@ -1399,13 +1399,13 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
 
     Values are numbers (formatted with `width` digits), labels (with or
     without `sub-`), ranges `start:stop[:step]` and files that list one
-    subject per line. With `width=None`, labels are kept verbatim
-    (`0005` stays `0005`, no ranges): only `sub-` is stripped, and files
-    are still read.
+    subject per line (a `str` or an `os.PathLike`). With `width=None`,
+    labels are kept verbatim (`0005` stays `0005`, no ranges): only
+    `sub-` is stripped, and files are still read.
     """
     if values is None:
         return set()
-    if isinstance(values, (str, int)):
+    if isinstance(values, (str, int, os.PathLike)):
         values = [values]
     out = set()
 
@@ -1421,6 +1421,8 @@ def subject_labels(values, width: int | None = 0, prefix: str = "sub-"
 
     for value in values:
         value = getattr(value, "value", value)
+        if isinstance(value, os.PathLike):
+            value = os.fsdecode(value)     # (a file of subjects)
         if width is not None and isinstance(value, str) and ":" in value \
                 and not Path(value).is_file():     # (`C:\\subs.txt`)
             start, stop, *step = value.split(":")

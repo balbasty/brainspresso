@@ -34,7 +34,7 @@ convention = "numpy"
 # (generators of the SVG artwork: long lines are SVG markup)
 "docs/images/src/*.py" = ["E501"]
 "tests/test_{compost,download,fcp,girder,ixi,locks,roast_cobre,roast_oasis3,runner,sources}.py" = ["PLC0415"]
-"!brainspresso/{actions/**,bids/**,convert/**,freesurfer/actions.py,download/**,grind/**,percolate/**,roast/**,sources/**,datasets/indi/cobre/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,datasets/oasis/i/**,datasets/indi/abide/**,datasets/oasis/ii/**,datasets/bullitt/**,cli.py,config.py,errors.py,__main__.py}" = ["D"]
+"!brainspresso/{actions/**,bids/**,convert/**,freesurfer/actions.py,freesurfer/archive.py,download/**,grind/**,percolate/**,roast/**,sources/**,datasets/indi/cobre/**,datasets/base.py,datasets/options.py,datasets/catalog.py,datasets/register.py,datasets/compost.py,datasets/oasis/i/**,datasets/indi/abide/**,datasets/oasis/ii/**,datasets/bullitt/**,cli.py,config.py,errors.py,__main__.py}" = ["D"]
 
 [tool.codespell]
 skip = "*.git,*.pdf,*.lock,*/templates/*,*/lut/*,./build,*.egg-info"

@@ -869,6 +869,36 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   PR B: `roast/tables.py`, below; the unused `TableMapper` was removed
   in step 6 PR 0), `ctx.resource(name)` (`sourcedata/` first, then
   package templates).
+* **Roaster scaffolding** (step 6 PR D):
+  * `roast.python_api(roasters, aliases, folder=, width=, spec=,
+    options=, ...)` builds the `roast(root, *, keys, exclude_keys, subs,
+    exclude_subs, <dataset options>, **options)` of every ported
+    dataset, with the meaning of the command line: subjects through
+    `subject_labels(values, width)` (numbers, labels with or without
+    `sub-`, ranges, files; a path is a file), keys through `as_list`
+    (and `KeySpec.effective` when the dataset has a roast `spec`: ABIDE-I/II,
+    Bullitt, IXI), the dataset's
+    own options (`--discs`, `--parts`, `fs_named`, `named`) from
+    `options(keys, **extra)` into `RoastContext.options`, `source` among
+    several roasters (ABIDE-I; `options=` itself is then a `TypeError`),
+    the keyword names in one table (`SELECTION_ARGS`). Its signature and
+    docstring are built
+    from the same parameters; the templates are the module's
+    `TEMPLATES`, read at each call.
+  * A missing optional input: `named_keys(spec, keys, leaves)` (the
+    leaves that `--keys` names, itself or through a group, in any case;
+    nothing without `--keys` or with its CLI default spelled out) and
+    `missing_input(message, name=, required=, ...)` (a `Fail` when
+    required, else one log line under the roaster's logger). ABIDE-I
+    FreeSurfer, Bullitt scans, IXI tarballs, OASIS-I discs and OASIS-II
+    parts; the named keys stay in the shard `config` where they were.
+  * `freesurfer/archive.py`: FreeSurfer subjects in archives (OASIS-I,
+    OASIS-III, ABIDE-I): where a member sits in its tree
+    (`FreeSurferTree.relpath`, the anchor rule of ABIDE-I;
+    `fixed_root(depth)`, OASIS), `tree_rename` (only what BIDS
+    describes unless `fs-all`), `tree_exists` (the listing of
+    `--sidecars only`, `archives.names`) and `tree_actions` (list, or
+    unpack with `staging` then `freesurfer.bidsify`).
 * **Table conventions** (step 6 PR B, `roast/tables.py`; every roaster's
   participants, sessions and phenotype tables):
   * Reading: `read_csv` (a path or a binary file object, such as a tar
@@ -2625,7 +2655,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 4p | Dataset packages: PEP 8 lower-case names grouped by collection (`datasets/indi/`, `oasis/`, `adni/`, ...), one subpackage per INDI project; no behaviour change (CLI names, config sections and dataset folders kept); INDI sharing category as `Dataset.indi_category` | Low-Effort Opus | done (Conventions, §8) |
 | 4g | Grind contract written down (pipelines, stages, state, submit protocol), doc + interfaces only, so that ports do not bake in assumptions | Fable plan |done (§7 rewritten as the contract; stubs in `brainspresso/grind/` and `brainspresso/percolate/`, nothing implemented; `tests/test_grind_contract.py`; 1051 passed, 2 skipped, 28 xfailed) |
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2082 passed, 2 skipped, no xfail left) |
-| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`); PR B (shared table helpers `roast/tables.py` and `roast.attempt`; every roaster's tables migrated: ABIDE-I/II, COBRE, OASIS-I/II/III, Bullitt, IXI, UNC-Wisconsin) |
+| 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | done: PR 0 [#42](https://github.com/balbasty/brainspresso/pull/42) (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed); PR A [#44](https://github.com/balbasty/brainspresso/pull/44) (archive helpers `roast/archives.py`, `archive_shards`, `ExtractMembers` drops unsafe members); PR B [#45](https://github.com/balbasty/brainspresso/pull/45) (table helpers `roast/tables.py` and `roast.attempt`; every roaster's tables migrated); PR C [#47](https://github.com/balbasty/brainspresso/pull/47) (converter package `convert/`, sidecar helpers `roast/sidecars.py`); PR D [#48](https://github.com/balbasty/brainspresso/pull/48) (scaffolding: `roast.python_api` for every ported `roast()`, `named_keys`, `missing_input`, `RoastContext.wants_any`, `freesurfer/archive.py`); golden outputs unchanged by A to D except where the PRs list it |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
 | CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | done (`.github/workflows/bids-validator.yaml`, `tests/validate_bids.py`: bids-validator 3.0.2 with the BIDS 1.11.2 schema; 11 fixtures × 2 layouts, raw, study and derivative datasets; 116 known errors in `tests/bids_validator_known.json`, to fix in separate PRs; a new error fails the job) |
 
@@ -2648,7 +2678,8 @@ Each step lands as commits on the refactor branch with its tests green.
   and the ported modules and datasets, `datasets/indi/cobre/**`,
   `datasets/oasis/i/**`, `datasets/oasis/ii/**`, `datasets/bullitt/**`
   and `datasets/indi/abide/**` (ABIDE-I, ABIDE-II and their shared
-  helpers) in step 5, `convert/**` and `freesurfer/actions.py` in step 6;
+  helpers) in step 5, `convert/**`, `freesurfer/actions.py` and
+  `freesurfer/archive.py` in step 6;
   two negated patterns would exempt every file).
   Extend it as datasets and
   modules are ported (step 5), one package at a time.
@@ -3827,3 +3858,30 @@ up as an XPASS failure once fixed (then drop the marker).
   archive member of `analyze_action` is a `ConvertError` naming it
   (was a bare `ReadError`/`EOFError`); `header_tr` decompresses a
   `.NII.GZ` too.
+* r51: step 6, PR D. Roaster scaffolding (§5 "Roaster scaffolding"):
+  `roast.python_api` builds the `roast()` of ABIDE-I/II, COBRE,
+  OASIS-I/II/III, IXI, Bullitt and UNC-Wisconsin (one rule for
+  subjects, keys and dataset options; listed signature and docstring);
+  `roast.named_keys` and `roast.missing_input` replace the five copies of
+  "a missing input is an error only when it is named" (ABIDE-I
+  `fs_named`, Bullitt `named`, IXI tarballs, OASIS-I discs, OASIS-II
+  parts; log levels and texts kept); `RoastContext.wants_any`;
+  `freesurfer/archive.py` (ABIDE-I's `FreeSurferTree`, the OASIS-I and
+  OASIS-III relative paths, the listing and unpacking of a tree; ABIDE-I's
+  unused `fs_relpath` and OASIS-III's `bidsify_freesurfer` removed).
+  Owner decision: IXI and OASIS-III `roast(subs=)` take labels, ranges
+  and files as everywhere else (were numbers only; `sub-0002` raised
+  `ValueError`); UNC-Wisconsin's go through `subject_labels` without a
+  width (`sub-` stripped, files read). OASIS-III FreeSurfer with
+  `--sidecars only`: the listing goes through `archives.names` (PR A
+  had left it out), so an unreadable tarball is a `Fail` named after it
+  (was an exception of its sub-shard) and unsafe members are not
+  listed. ABIDE-I's FreeSurfer tree warnings come from the logger
+  `brainspresso.freesurfer.archive`. Golden: no change. Step 6 done
+  (§8). Review round 1: IXI's `roast()` goes through `ROAST_SPEC` as
+  `bx ixi roast` does, so the off key `trace` is no longer roasted by
+  default from Python (`keys=["dwi", "trace"]` does); a `Path` (alone
+  or in a list) is a file of subjects (`as_list`, `subject_labels`; was
+  an error, or nothing selected); `options=` given to a `roast()` whose
+  dataset has its own options is a `TypeError` (was silently dropped);
+  OASIS-I `roast(discs=)` de-duplicated as on the command line.

@@ -49,7 +49,7 @@ on disk.
 """  # noqa: E501
 import re
 from functools import partial
-from logging import getLogger
+from logging import WARNING, getLogger
 from pathlib import Path, PurePosixPath
 from typing import Iterator
 
@@ -68,18 +68,19 @@ from brainspresso.convert.analyze import analyze_action
 from brainspresso.convert.volume import make_affine
 from brainspresso.errors import UsageError
 from brainspresso.freesurfer import bidsify as fs
+from brainspresso.freesurfer.archive import fixed_root
 from brainspresso.roast import (
     SEEN,
     RoastContext,
     Shard,
     archives,
     copy_templates,
-    roast_dataset,
     scope,
 )
+from brainspresso.roast.helpers import missing_input
+from brainspresso.roast.run import doc_entry, python_api
 from brainspresso.roast.sidecars import read_template, template_config
 from brainspresso.roast.tables import clean, read_xlsx, table_action
-from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive, member_parts
 
 lg = getLogger(__name__)
@@ -88,6 +89,9 @@ TEMPLATES = Path(__file__).parent / "templates"
 PROC_NAME = "oasis-processed"
 FS_NAME = "oasis-freesurfer"
 FS_VERSION = (4, 0)
+#: Path of a member of a FreeSurfer disc in its tree
+#: (`<disc>/OAS1_<sub>_MR1/mri/...`)
+FS_RELPATH = fixed_root(2)
 XLSX = "oasis_cross-sectional.xlsx"
 SIDECAR = "T1w.json"
 WIDTH = 4               # subject labels: `sub-0001`
@@ -130,45 +134,6 @@ FSL_RELABEL = {1: 2, 2: 3, 3: 1}
 #: Lookup table of the relabelled segmentation (dataset level, inherited)
 DSEG_NAME = "space-Talairach_res-1mm_dseg.tsv"
 DSEG_TABLE = [["index", "name"], [1, "GM"], [2, "WM"], [3, "CSF"]]
-
-
-def roast(root, *, subs=(), exclude_subs=(), discs=None, **options):
-    """
-    Roast `<root>` (the `OASIS-1` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`1` is `sub-0001`), labels with or without
-        `sub-`, ranges, files (as `--subs`)
-    discs : list[int]
-        Only these discs, 1 to 12 (default: all; a disc named here that
-        is not in `sourcedata/` is an error, other missing discs are
-        skipped)
-    **options
-        Those of the command line (`keys`, `exclude_keys`, `json`,
-        `ifexists`, `layout`), `jobs` and `display`
-
-    Returns
-    -------
-    RoastReport
-        See `roast.run_roast`
-
-    Raises
-    ------
-    UsageError
-        If a disc is not one of 1 to 12
-    """
-    if discs:
-        check_discs(discs)
-    return roast_dataset(
-        roast_oasis1, root, KEYS, templates=TEMPLATES,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        options={"discs": sorted(discs)} if discs else None, **options,
-    )
 
 
 #: `GeneratedBy` entry of the conversion
@@ -243,7 +208,7 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
     """
     if ctx.wants("meta"):
         yield from roast_meta(ctx)
-    if ctx.wants("fs") or ctx.wants("fs-all"):
+    if ctx.wants_any(("fs", "fs-all")):
         drv = ctx.layout.derivative(FS_NAME)
         yield WriteJSON(freesurfer_description(drv), drv.description,
                         tag="derivatives")
@@ -255,18 +220,17 @@ def roast_oasis1(ctx: RoastContext) -> Iterator:
     shards = []
     for kind, roaster in (("raw", roast_image_disc),
                           ("fs", roast_freesurfer_disc)):
-        if not any(map(ctx.wants, DISC_KEYS[kind])):
+        if not ctx.wants_any(DISC_KEYS[kind]):
             continue
         for disc in DISCS[kind]:
             if named is not None and disc not in named:
                 continue
             path = disc_path(ctx, kind, disc)
             if not path.exists():
-                message = f"{path.name} not found"
-                if named is not None:
-                    yield Fail(message, name=path.name, tag="discs")
-                else:
-                    lg.warning(f"{message} (skipped)")
+                yield from missing_input(
+                    f"{path.name} not found", name=path.name, tag="discs",
+                    required=named is not None, level=WARNING,
+                    logger=lg)
                 continue
             shards.append(Shard(
                 roaster, path, tag="discs", advance="discs",
@@ -321,7 +285,7 @@ def processed_toplevel(ctx: RoastContext) -> Iterator[Action]:
     images (`sub-*/`): a roast that converts none of them (no disc, no
     subject) leaves no derivative dataset behind.
     """
-    if not any(map(ctx.wants, PROC_KEYS)):
+    if not ctx.wants_any(PROC_KEYS):
         return
     drv = ctx.layout.derivative(PROC_NAME)
     if not any(p.is_dir() for p in drv.root.glob("sub-*")):
@@ -659,8 +623,7 @@ def roast_freesurfer_disc(ctx: RoastContext,
         if not everything and fs_subject(member) is None:
             return None
         subjects.add(sub)
-        return drv.source.joinpath(f"sub-{sub}",
-                                   *PurePosixPath(member).parts[2:])
+        return drv.source.joinpath(f"sub-{sub}", *FS_RELPATH(member).parts)
 
     exists = None
     if ctx.json == "only" and not everything:
@@ -821,3 +784,46 @@ def participant_rows(path_xlsx: Path) -> list[list]:
                      *(clean(sheet.cell(row, i, None), nans=NANS)
                        for i in index)])
     return rows
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+def disc_options(keys, discs=None) -> dict | None:
+    """
+    Return the options of the roaster (`RoastContext.options`).
+
+    Parameters
+    ----------
+    keys : list[str]
+        `--keys` as given (unused)
+    discs : list[int] | None
+        `--discs`
+
+    Returns
+    -------
+    dict | None
+        `{"discs": [...]}` when discs are given
+
+    Raises
+    ------
+    UsageError
+        If a disc is not one of 1 to 12
+    """
+    if not discs:
+        return None
+    check_discs(discs)
+    return {"discs": sorted(set(discs))}
+
+
+#: Roast `<root>` (the `OASIS-1` folder): `roast(root, keys=..., subs=...,
+#: discs=...)`
+roast = python_api(
+    roast_oasis1, KEYS, folder="OASIS-1", width=WIDTH,
+    options=disc_options, options_doc=doc_entry(
+        "discs : list[int]",
+        "Only these discs, 1 to 12 (default: all; a disc named here that "
+        "is not in `sourcedata/` is an error, other missing discs are "
+        "skipped). A disc that is not one of 1 to 12 raises `UsageError`"),
+)

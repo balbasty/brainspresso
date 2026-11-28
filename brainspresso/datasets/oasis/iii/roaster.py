@@ -50,17 +50,17 @@ from brainspresso.actions.archive import ExtractMembers
 from brainspresso.bids.keys import KeyAliases
 from brainspresso.datasets.oasis.iii.keys import allkeys
 from brainspresso.freesurfer import bidsify as fs
+from brainspresso.freesurfer.archive import fixed_root, tree_actions
 from brainspresso.roast import (
     RoastContext,
     Shard,
     archives,
-    as_list,
     attempt,
     copy_templates,
-    roast_dataset,
     subject_shards,
     tables,
 )
+from brainspresso.roast.run import python_api
 from brainspresso.roast.tables import (
     NANS,
     Sheet,
@@ -79,7 +79,11 @@ lg = getLogger(__name__)
 TEMPLATES = Path(__file__).parent / "templates"
 FS_NAME = "oasis-freesurfer"
 FS_VERSION = (5, 3)             # FreeSurfer of the OASIS-3 outputs
+#: Path of a member of a FreeSurfer tarball in its tree
+#: (`<6 folders>/mri/...`)
+FS_RELPATH = fixed_root(6)
 DATA_FILES = "OASIS3_data_files"
+WIDTH = 4               # subject labels: `sub-0001`
 
 
 def _anat(*suffixes, **entities):
@@ -128,24 +132,13 @@ EXTENSIONS = (".nii.gz", ".json", ".bval", ".bvec")
 SCOPE_KEYS = tuple(sorted(KEYS.leaves - {"meta", "pheno"}))
 
 
-def roast(root, *, subs=(), exclude_subs=(), **options):
-    """Roast `<root>` (the `OASIS-3` folder). Subjects are numbers.
-    Other options: those of the command line (`keys`, `exclude_keys`,
-    `json`, `ifexists`, `layout`), `jobs` and `display`."""
-    return roast_dataset(
-        roast_oasis3, root, KEYS, templates=TEMPLATES,
-        subs=as_list(subs, "{:04d}"),
-        exclude_subs=as_list(exclude_subs, "{:04d}"), **options,
-    )
-
-
 def roast_oasis3(ctx: RoastContext) -> Iterator:
     sessions = source_sessions(ctx)
     if ctx.wants("meta"):
         yield from roast_meta(ctx, sessions)
     if ctx.wants("pheno"):
         yield from roast_phenotypes(ctx)
-    if ctx.wants("fs") or ctx.wants("fs-all"):
+    if ctx.wants_any(("fs", "fs-all")):
         yield Shard(roast_freesurfer_tables, tag="fs")
     yield from subject_shards(ctx, sorted(sessions), roast_subject,
                               inputs=partial(subject_tarballs, ctx),
@@ -198,7 +191,7 @@ def roast_subject(ctx: RoastContext, sub: str):
     for folder in subject_folders(ctx, sub):
         for tarball in sorted_paths(folder.glob("*.tar.gz")):
             if "Freesurfer" in tarball.name:
-                if ctx.wants("fs") or ctx.wants("fs-all"):
+                if ctx.wants_any(("fs", "fs-all")):
                     yield from roast_freesurfer(ctx, sub, tarball)
                 continue
             prefix = re.match(r"[A-Za-z]*", tarball.name)[0]
@@ -254,47 +247,42 @@ def freesurfer_description(drv) -> dict:
     return desc
 
 
-def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
-    """Unpack a FreeSurfer tree in `derivatives/<fs>/sourcedata/`
-    (only its files that BIDS describes, unless `fs-all`), then roast it"""
+def roast_freesurfer(ctx: RoastContext, sub: str,
+                     tarball: Path) -> Iterator[Shard]:
+    """
+    Unpack a FreeSurfer tree, then convert it (in a shard).
+
+    The tree (members `<6 folders>/mri/...`) is unpacked in
+    `derivatives/<fs>/sourcedata/sub-<sub>/ses-<ses>/`: only its files
+    that BIDS describes, unless `fs-all`. With `--sidecars only` (and not
+    `fs-all`), nothing is unpacked: the sidecars are written from the
+    names of the members.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    sub : str
+        Subject label
+    tarball : Path
+        FreeSurfer tarball of a session (`..._<ses>.tar.gz`)
+
+    Yields
+    ------
+    Shard
+        `freesurfer.archive.tree_actions`: the unpacking (`staging`),
+        then the converted files
+    """
     drv = ctx.layout.derivative(FS_NAME)
     ses = tarball.name.split(".")[0].split("_")[-1]
-    src = drv.source / f"sub-{sub}" / f"ses-{ses}"
     everything = ctx.wants("fs-all")
-
-    def rename(member: str) -> Path | None:
-        if not everything and not member.endswith(fs.bidsifiable_outputs):
-            return None
-        return src.joinpath(*PurePosixPath(member).parts[6:])
-
-    if ctx.json == "only" and not everything:
-        # sidecars only: the names of the members are enough
-        yield Shard(bidsify_freesurfer, sub, ses, tarball, tag="fs")
-        return
-    # unpacked files are inputs of the roast (`staging`: the
-    # JSON policy does not apply to them)
-    yield ExtractMembers(tarball, Claim(src), rename, tag="fs",
-                         root=ctx.layout.root, staging=True)
-    # (the shard runs after the tree is unpacked: the engine runs each
-    # action before asking for the next item)
-    yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
-
-
-def bidsify_freesurfer(ctx: RoastContext, sub: str, ses: str,
-                       tarball: Path | None = None) -> Iterator[Action]:
-    """BIDS derivatives of an unpacked FreeSurfer tree (or, from the
-    member names of its `tarball`, their sidecars only)"""
-    drv = ctx.layout.derivative(FS_NAME)
-    src = drv.source / f"sub-{sub}" / f"ses-{ses}"
-    exists = None
-    if tarball is not None:
-        with TarArchive(tarball) as archive:
-            members = {src.joinpath(*PurePosixPath(name).parts[6:])
-                       for name in archive.getnames()}
-        exists = members.__contains__
     t1 = f"bids:raw:sub-{sub}/ses-{ses}/anat/sub-{sub}_ses-{ses}_T1w.nii.gz"
-    yield from fs.bidsify(src, drv.root / f"sub-{sub}" / f"ses-{ses}",
-                          [t1], json=ctx.json, exists=exists)
+    session = PurePosixPath(f"sub-{sub}", f"ses-{ses}")
+    # (a shard of its own, in the progress group `fs`)
+    yield Shard(tree_actions, tarball, drv.source / session,
+                drv.root / session, [t1],
+                relpath=FS_RELPATH, everything=everything,
+                list_only=ctx.json == "only" and not everything, tag="fs")
 
 
 # ----------------------------------------------------------------------
@@ -797,3 +785,12 @@ def expand_template(form: str, obj: dict) -> dict:
         for d in range(nb):
             obj[key.format(d=d)] = {'Description': desc.format(d=d), **val}
     return obj
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `OASIS-3` folder): `roast(root, keys=..., subs=...)`
+roast = python_api(roast_oasis3, KEYS, folder="OASIS-3",
+                   width=WIDTH)

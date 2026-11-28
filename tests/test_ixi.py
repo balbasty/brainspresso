@@ -565,8 +565,11 @@ def test_dwi_exclude_trace(tmp_path, layout):
     found, raw, drv = outputs(root)
     assert "sub-002/dwi/sub-002_dwi.nii.gz" in raw
     assert not drv
-    # included by default
+    # not by default (an `off` key, as on the command line: `ROAST_SPEC`)
     roaster.roast(root, layout=layout, display=False)
+    assert not outputs(root)[2]
+    # included when named
+    roaster.roast(root, keys=["dwi", "trace"], layout=layout, display=False)
     assert any(p.endswith("_desc-trace_dwimap.nii.gz")
                for p in outputs(root)[2])
 
@@ -708,3 +711,33 @@ def test_missing_dti_named_by_trace(tmp_path):
     assert [e[1] for e in report.errors] == ["IXI-DTI"]
     report = roaster.roast(root, display=False)
     assert not report.errors
+
+
+@pytest.mark.parametrize("subs", [
+    ["sub-012"], ["012"], [12], "12", "10:13", "file"])
+def test_python_subs_labels_ranges_files(tmp_path, subs):
+    """`roast(subs=)` takes what `--subs` takes: numbers, labels with or
+    without `sub-`, ranges, files (`roast.run.python_api`)"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    if subs == "file":
+        subs = tmp_path / "subs.txt"
+        subs.write_text("012\n")
+        subs = [str(subs)]
+    roaster.roast(root, keys={"T1w"}, subs=subs, json="no", display=False)
+    assert outputs(root)[1] == {"sub-012/anat/sub-012_T1w.nii.gz"}
+    roaster.roast(root, keys={"T1w"}, exclude_subs="10:13", json="no",
+                  display=False)
+    assert "sub-002/anat/sub-002_T1w.nii.gz" in outputs(root)[1]
+
+
+def test_python_subs_paths(tmp_path):
+    """A file of subjects as a `Path`, alone or in a list"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    listed = tmp_path / "subs.txt"
+    listed.write_text("012\n")
+    for subs in (listed, [listed]):
+        roaster.roast(root, keys={"T1w"}, subs=subs, json="no",
+                      display=False)
+        assert outputs(root)[1] == {"sub-012/anat/sub-012_T1w.nii.gz"}

@@ -383,6 +383,7 @@ def roast_scans(ctx: RoastContext) -> Iterator[Action]:
                    f"{DOCUMENTED_TR} s, the TR of the COBRE fact sheet "
                    f"(templates/README), e.g. {defaults[0]}")
 
+
 def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
                     image: Path, open_image, image_name: str,
                     on_default=None) -> Iterator[Action]:

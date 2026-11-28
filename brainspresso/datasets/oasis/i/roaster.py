@@ -81,7 +81,7 @@ from brainspresso.roast import (
 )
 from brainspresso.roast.helpers import template_config
 from brainspresso.sources.base import subject_labels
-from brainspresso.utils.archive import TarArchive
+from brainspresso.utils.archive import TarArchive, member_parts
 from brainspresso.utils.io import (
     nibabel_convert,
     read_json,
@@ -685,7 +685,11 @@ def roast_freesurfer_disc(ctx: RoastContext,
     runs = {}               # {sub: {run}} from `mri/orig/<NNN>.mgz`
 
     def rename(member: str) -> Path | None:
-        """Path of an unpacked member (None: not unpacked)."""
+        """Path of a member (None: not unpacked), by normalised name."""
+        parts = member_parts(member)
+        if parts is None:
+            return None
+        member = "/".join(parts)        # (`./disc1/...` is `disc1/...`)
         match = re.fullmatch(r"[^/]+/OAS1_(\d+)_MR1/mri/orig/(\d{3})\.mgz",
                              member)
         if match:
@@ -704,8 +708,9 @@ def roast_freesurfer_disc(ctx: RoastContext,
     exists = None
     if ctx.json == "only" and not everything:
         try:
-            members = set(map(rename, archives.names(path,
-                                                     opener=TarArchive)))
+            # (the names that `ExtractMembers` would give to `rename`)
+            members = set(map(rename, archives.names(
+                path, opener=TarArchive, extractable=True)))
         except archives.ArchiveError as e:
             yield e.fail(tag="discs")
             return

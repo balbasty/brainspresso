@@ -63,7 +63,7 @@ from typing import IO, Callable, Iterable, Iterator
 from brainspresso.actions.action import Action, Fail
 from brainspresso.actions.runlock import pid_alive
 from brainspresso.roast.context import RoastContext
-from brainspresso.utils.archive import member_parts
+from brainspresso.utils.archive import is_unsafe, member_parts
 from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
@@ -346,9 +346,11 @@ class Reader:
         ArchiveError
             If the next member cannot be read
         """
-        members = iter(self.archive)
+        members = None
         while True:
             try:
+                if members is None:     # (a folder is listed here)
+                    members = iter(self.archive)
                 info = next(members)
             except StopIteration:
                 return
@@ -461,7 +463,8 @@ class reading:  # (lower case: used as a function, `with reading(...)`)
                            f"{outside[0]}")
 
 
-def names(path, *, opener: Callable, label: str | None = None) -> list[str]:
+def names(path, *, opener: Callable, label: str | None = None,
+          extractable: bool = False) -> list[str]:
     """
     List the normalised names of the regular files of an archive.
 
@@ -473,6 +476,11 @@ def names(path, *, opener: Callable, label: str | None = None) -> list[str]:
         Opens it (see `reading`)
     label : str
         How messages name it
+    extractable : bool
+        Only the members that `actions.archive.ExtractMembers` extracts
+        (`utils.archive.is_unsafe`: not absolute, no Windows anchor): the
+        names that its `rename` gets, for a listing that stands for the
+        extraction (`--sidecars only`)
 
     Returns
     -------
@@ -486,7 +494,8 @@ def names(path, *, opener: Callable, label: str | None = None) -> list[str]:
         If it cannot be opened or listed
     """
     with reading(path, opener=opener, label=label) as reader:
-        return [member.path for member in reader.listing()]
+        return [member.path for member in reader.listing()
+                if not (extractable and is_unsafe(member.name))]
 
 
 def in_order(items: Iterable[tuple[Iterable[Member], Action]]

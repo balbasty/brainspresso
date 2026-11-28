@@ -6,14 +6,14 @@ now often served file by file. Harvesting them into a folder named like
 the tarball (e.g. `IXI-T1/`) and reading it through `FolderArchive`
 lets the same conversion code handle both.
 
-`member_parts` normalises a member name (`roast.archives` and
-`actions.archive.ExtractMembers` use it to drop members outside the
-archive).
+`member_parts` normalises a member name (`roast.archives` reads members
+by it); `is_unsafe` tells the names that `actions.archive.ExtractMembers`
+drops, and `member_path` the name it gives to `rename`.
 """
 from __future__ import annotations
 
 import tarfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import IO
 
 
@@ -43,20 +43,58 @@ def member_parts(name: str) -> tuple[str, ...] | None:
 
 def is_unsafe(name: str) -> bool:
     r"""
-    Whether a member name points outside the folder it is unpacked to.
+    Whether a member name may point outside the folder it is unpacked to.
+
+    The name is split on `/` (as `tarfile` stores it) and judged on every
+    platform as Windows would read it too, since the parts are joined to
+    an output folder.
 
     Parameters
     ----------
     name : str
-        Member name
+        Member name, as stored
 
     Returns
     -------
     bool
-        True if a part is `..` or the name is absolute (`/a`, `\a`)
+        True if it is absolute (`/a`), or if a part is `..`, empty or
+        blank (`a//b`; `.` is allowed), made only of dots and spaces
+        (`...`, `.. `: Windows strips trailing dots and spaces), holds a
+        `\` (`a\..`, `\Windows`) or is anchored for Windows (a drive:
+        `C:`, `C:x`)
     """
-    return member_parts(name) is None or \
-        name.replace("\\", "/").startswith("/")
+    if name.startswith("/"):
+        return True
+    for part in name.split("/"):
+        if part == ".":
+            continue
+        if not part.strip(" ."):
+            return True
+        if "\\" in part:
+            return True
+        windows = PureWindowsPath(part)
+        if windows.drive or windows.root:
+            return True
+    return False
+
+
+def member_path(name: str) -> str | None:
+    """
+    Normalised name of a member that may be extracted.
+
+    Parameters
+    ----------
+    name : str
+        Member name, as stored
+
+    Returns
+    -------
+    str | None
+        Its parts joined by `/` (no `.` part: `./a/b` is `a/b`); None if
+        it is unsafe (`is_unsafe`) or has no part (`.`)
+    """
+    parts = None if is_unsafe(name) else member_parts(name)
+    return "/".join(parts) if parts else None
 
 
 class FolderArchive:

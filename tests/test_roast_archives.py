@@ -1,5 +1,7 @@
 """Shared archive helpers (`roast.archives`, `ExtractMembers` names)."""
+import gzip
 import io
+import json
 import logging
 import os
 import subprocess
@@ -8,11 +10,16 @@ import tarfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import nibabel as nib
+import numpy as np
 import pytest
+import test_roast_bullitt
 from roast_utils import init_layout, layout_of, make_tar
 
 from brainspresso.actions.action import Claim, Fail
 from brainspresso.actions.archive import ExtractMember, ExtractMembers
+from brainspresso.datasets.bullitt import roaster as bullitt
+from brainspresso.datasets.indi.abide.i.roaster import roast as roast_abide1
 from brainspresso.datasets.indi.abide.ii import roaster as abide2
 from brainspresso.datasets.indi.cobre.roaster import roast as roast_cobre
 from brainspresso.datasets.oasis.i.roaster import roast as roast_oasis1
@@ -29,7 +36,12 @@ from brainspresso.roast.archives import (
 )
 from brainspresso.roast.helpers import archive_shards, template_config
 from brainspresso.roast.policy import SEEN
-from brainspresso.utils.archive import FolderArchive, TarArchive, is_unsafe
+from brainspresso.utils.archive import (
+    FolderArchive,
+    TarArchive,
+    is_unsafe,
+    member_path,
+)
 
 
 def payload(n=1 << 18) -> bytes:
@@ -79,11 +91,25 @@ def test_member_parts(name, parts):
 
 
 @pytest.mark.parametrize("name, unsafe", [
-    ("a/b", False), ("./a", False), ("a/../b", True), ("../a", True),
-    ("/a/b", True), ("\\a", True), ("a\\..\\b", True),
+    # POSIX
+    ("a/b", False), ("./a/b", False), ("a/./b", False), ("a/b.c", False),
+    ("a/../b", True), ("../a", True), ("..", True), ("/a/b", True),
+    ("a//b", True), ("a/ /b", True), ("a/...", True), ("a/.. ", True),
+    # Windows, judged as such on every platform
+    ("\\a", True), ("a\\..\\b", True), ("a\\b", True),
+    ("\\Windows\\evil.mgz", True), ("C:", True), ("C:evil", True),
+    ("sub/C:/evil.mgz", True), ("sub/D:x/evil.mgz", True),
+    ("\\\\server\\share\\x", True),
 ])
 def test_is_unsafe(name, unsafe):
     assert is_unsafe(name) is unsafe
+    assert (member_path(name) is None) is unsafe
+
+
+def test_member_path():
+    assert member_path("./a//b") is None
+    assert member_path("./a/./b") == "a/b"
+    assert member_path(".") is None
 
 
 # ----------------------------------------------------------------------
@@ -144,6 +170,26 @@ def test_folder_archive(tmp_path):
         assert member.read() == b"x" and member.offset == 0
     assert names(folder, opener=FolderArchive) == [
         "IXI002-Guys-0828-T1.nii.gz"]
+
+
+def test_folder_listing_error(tmp_path):
+    """A folder that cannot be listed: `ArchiveError`, not a raw
+    `OSError`"""
+    with pytest.raises(ArchiveError, match="IXI-T1: cannot be read "
+                                           r"\(FileNotFoundError"):
+        with reading(tmp_path / "IXI-T1", opener=FolderArchive) as tar:
+            list(tar)
+    with pytest.raises(ArchiveError):
+        names(tmp_path / "IXI-T1", opener=FolderArchive)
+
+
+def test_names_extractable(tmp_path):
+    path = make_tar(tmp_path / "t.tar.gz", {
+        "./a/x": b"", "/a/y": b"", "a/C:z": b"", "a\\w": b"", "a/v": b""})
+    assert names(path, opener=TarArchive) == ["a/x", "a/y", "a/C:z",
+                                              "a/w", "a/v"]
+    assert names(path, opener=TarArchive, extractable=True) == ["a/x",
+                                                                "a/v"]
 
 
 def test_outside_members_skipped(tmp_path, caplog):
@@ -300,21 +346,41 @@ def test_extract_members_drops_unsafe_names(tmp_path, caplog):
         "s/mri/../../../../EVIL.txt": b"evil",
         "/etc/evil": b"evil",
         "s\\..\\..\\evil": b"evil",
+        "s/C:/Windows/evil.mgz": b"evil",
+        "s/\\Windows\\evil.mgz": b"evil",
         "s/surf/lh.white": b"2",
     })
     seen = []
 
     def rename(name):
         seen.append(name)
-        return tmp_path / "out" / name.lstrip("./")
+        return tmp_path.joinpath("out", *name.split("/"))
 
     action = ExtractMembers(path, Claim(tmp_path / "out"), rename)
     with caplog.at_level(logging.WARNING):
         dsts = [Path(a.dst).relative_to(tmp_path / "out").as_posix()
                 for a in action.extract()]
-    assert seen == ["./s/mri/aseg.mgz", "s/surf/lh.white"]     # as stored
+    assert seen == ["s/mri/aseg.mgz", "s/surf/lh.white"]    # normalised
     assert dsts == ["s/mri/aseg.mgz", "s/surf/lh.white"]
-    assert "fs.tar.gz: 3 member(s) outside the archive" in caplog.text
+    assert "fs.tar.gz: 5 member(s) outside the archive" in caplog.text
+
+
+def test_extract_members_keeps_outputs_in_the_claim(tmp_path, caplog):
+    """Second line of defence: a `rename` that leaves the claimed folder
+    (whatever the name) is not obeyed"""
+    path = make_tar(tmp_path / "t.tar.gz", {"a": b"", "b": b"", "c": b""})
+    out = tmp_path / "out"
+    targets = {"a": out / "x" / "a", "b": out / ".." / "b",
+               "c": tmp_path / "elsewhere" / "c"}
+    action = ExtractMembers(path, Claim(out), targets.get)
+    with caplog.at_level(logging.WARNING):
+        dsts = [Path(a.dst) for a in action.extract()]
+    assert dsts == [out / "x" / "a"]
+    assert "t.tar.gz: 2 member(s) renamed outside" in caplog.text
+    # (several claimed folders: inside any of them)
+    action = ExtractMembers(path, Claim([out, tmp_path / "elsewhere"]),
+                            targets.get)
+    assert len(list(action.extract())) == 2
 
 
 def test_oasis1_freesurfer_unsafe_member(tmp_path, caplog):
@@ -487,3 +553,126 @@ def test_output_folder_error_is_not_an_archive_error(tmp_path, monkeypatch):
     messages = " ".join(map(str, report.errors))
     assert "PermissionError" in messages and "output folder" in messages
     assert "cannot be read" not in messages
+
+
+# ----------------------------------------------------------------------
+#   FreeSurfer: `--sidecars only` sees what the extraction sees
+# ----------------------------------------------------------------------
+
+def mgz_bytes(value=1) -> bytes:
+    img = nib.MGHImage(np.full((2, 2, 2), value, np.float32), np.eye(4))
+    return gzip.compress(img.to_bytes())
+
+
+def sidecars(root: Path, name: str) -> dict:
+    """The sidecars (and descriptions) of a derivative, with content."""
+    drv = layout_of(root).derivative(name)
+    return {p.relative_to(drv.root).as_posix(): json.loads(p.read_text())
+            for p in sorted(drv.root.rglob("*.json"))
+            if drv.source not in p.parents}
+
+
+def same_sidecars(tmp_path, build, roast, name, prefix):
+    """Sidecars of a full roast and of `--sidecars only` (fresh datasets
+    of the same tarball)"""
+    out = []
+    for json_ in ("yes", "only"):
+        root = tmp_path / json_ / "DS"
+        init_layout(root, "study")
+        build(root, prefix)
+        report = roast(root, json_)
+        assert not report.errors, report.errors
+        out.append({k: v for k, v in sidecars(root, name).items()
+                    if not k.endswith("dataset_description.json")})
+    return out
+
+
+@pytest.mark.parametrize("prefix", ["", "./", "/"])
+def test_oasis1_freesurfer_sidecars_only_names(tmp_path, prefix):
+    """OASIS-I: the same names in the listing (`--sidecars only`) and in
+    the extraction; `./disc1/...` is read (`mri/orig` runs too), a
+    leading `/` is dropped by both"""
+    def build(root, prefix):
+        s = f"{prefix}disc1/OAS1_0001_MR1"
+        make_tar(root / "sourcedata" / "oasis_cs_freesurfer_disc1.tar.gz", {
+            f"{s}/mri/aseg.mgz": mgz_bytes(),
+            f"{s}/mri/rawavg.mgz": mgz_bytes(),
+            f"{s}/mri/orig/001.mgz": mgz_bytes(),       # (raw runs 1, 2)
+            f"{s}/mri/orig/002.mgz": mgz_bytes(),
+        })
+
+    full, only = same_sidecars(
+        tmp_path, build, lambda root, json_: roast_oasis1(
+            root, keys={"fs"}, json=json_, discs=[1], display=False),
+        "oasis-freesurfer", prefix)
+    assert full == only
+    orig = "sub-0001/anat/sub-0001_desc-orig_T1w.json"
+    if prefix == "/":
+        assert not any(k.startswith("sub-") for k in full)
+        return
+    assert full[orig]["Sources"] == [
+        f"bids:raw:sub-0001/anat/sub-0001_run-{run}_T1w.nii.gz"
+        for run in (1, 2)]
+
+
+@pytest.mark.parametrize("prefix", ["", "./", "/"])
+def test_abide1_freesurfer_sidecars_only_names(tmp_path, prefix):
+    """ABIDE-I: the same names in the listing (`--sidecars only`) and in
+    the extraction"""
+    label = "Pitt_0050003"
+
+    def build(root, prefix):
+        lead = f"{prefix}{label}/assessors/fs/files/{label}"
+        make_tar(root / "sourcedata" / label / f"{label}-fs.tar.gz", {
+            f"{lead}/mri/aseg.mgz": mgz_bytes(),
+            f"{lead}/mri/orig/001.mgz": mgz_bytes(),
+        })
+
+    full, only = same_sidecars(
+        tmp_path, build, lambda root, json_: roast_abide1(
+            root, source="xnat", keys={"fs"}, json=json_, display=False),
+        "abide-freesurfer", prefix)
+    assert full == only
+    assert any(k.startswith("sub-50003/") for k in full) is (prefix != "/")
+
+
+# ----------------------------------------------------------------------
+#   Bullitt: the templates that a subject shard copies are signed
+# ----------------------------------------------------------------------
+
+def test_bullitt_signs_the_templates_it_copies(tmp_path, monkeypatch):
+    root = tmp_path / "Bullitt"
+    init_layout(root, "study")
+    test_roast_bullitt.make_source(root)
+    calls = []
+    real = bullitt.roast_subject
+
+    def spy(ctx, sub):
+        calls.append(sub)
+        return real(ctx, sub)
+
+    monkeypatch.setattr(bullitt, "roast_subject", spy)
+
+    # (keys as exclusions: named keys make missing scans errors)
+    others = sorted({"meta", *bullitt.RAW, *bullitt.DERIVATIVES} - {"T2w"})
+
+    def again(**options):
+        del calls[:]
+        report = bullitt.roast(root, exclude_keys=others, subs=[1],
+                               display=False, **options)
+        assert not report.errors, report.errors
+        return sorted(calls)
+
+    assert again() == ["001"]
+    assert again() == []
+    src = root / "sourcedata"
+    # a template of a key that is not wanted: not signed
+    (src / "angio.json").write_text('{"Changed": 1}')
+    assert again() == []
+    # the template of a wanted key: signed
+    (src / "T2w.json").write_text('{"Changed": 1}')
+    assert again() == ["001"]
+    # no sidecars written: no template signed
+    assert again(json="no") == ["001"]
+    (src / "T2w.json").write_text('{"Changed": 2}')
+    assert again(json="no") == []

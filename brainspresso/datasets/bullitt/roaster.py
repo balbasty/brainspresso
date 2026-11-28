@@ -264,12 +264,22 @@ def roast_bullitt(ctx: RoastContext) -> Iterator:
     # (`named` decides which missing scans are errors: a later run that
     # names more keys must not skip the shards; a changed template
     # re-runs them)
+    named = sorted(ctx.options.get("named", ()))
+    found = {}
+
+    def images(label: str) -> dict:
+        """Images of the wanted raw keys of a subject (looked up once)."""
+        if label not in found:
+            found[label] = wanted_images(ctx, folders[label])
+        return found[label]
+
     yield from subject_shards(
         ctx, folders, roast_subject,
-        inputs=lambda label: shard_inputs(ctx, folders[label]),
-        config={"named": sorted(ctx.options.get("named", ())),
-                "templates": template_config(
-                    ctx, [f"{suffix}.json" for suffix in RAW.values()])},
+        inputs=lambda label: shard_inputs(ctx, folders[label],
+                                          images(label)),
+        config=lambda label: {
+            "named": named, "templates": sidecar_templates(ctx,
+                                                           images(label))},
         scope_keys=(*RAW, *DERIVATIVES),
     )
 
@@ -300,9 +310,9 @@ def raw_image(folder: Path, key: str) -> Path | None:
     return images[0] if images else None
 
 
-def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
+def wanted_images(ctx: RoastContext, folder: Path) -> dict[str, Path]:
     """
-    Return the inputs of a subject shard (its input signature).
+    Find the images of the wanted raw keys of a subject.
 
     Parameters
     ----------
@@ -313,17 +323,65 @@ def shard_inputs(ctx: RoastContext, folder: Path) -> list[Path]:
 
     Returns
     -------
+    dict[str, Path]
+        `{key: image}` (`raw_image`), for the wanted keys that have one
+    """
+    out = {}
+    for key in RAW:
+        if ctx.wants(key):
+            image = raw_image(folder, key)
+            if image is not None:
+                out[key] = image
+    return out
+
+
+def sidecar_templates(ctx: RoastContext, images: dict[str, Path]) -> dict:
+    """
+    Describe the sidecar templates that a subject shard copies.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    images : dict[str, Path]
+        Its images (`wanted_images`)
+
+    Returns
+    -------
+    dict
+        `{name: [path, sha256] | None}` (`roast.helpers.template_config`)
+        of the templates of its images when sidecars are written, else
+        empty (part of its `config`: a template of a key that is not
+        wanted, or that the subject lacks, does not re-run it)
+    """
+    if not ctx.accepts("sidecar"):
+        return {}
+    return template_config(ctx, [f"{RAW[key]}.json" for key in images])
+
+
+def shard_inputs(ctx: RoastContext, folder: Path,
+                 images: dict[str, Path] | None = None) -> list[Path]:
+    """
+    Return the inputs of a subject shard (its input signature).
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    folder : Path
+        Folder of the subject
+    images : dict[str, Path]
+        Its images (`wanted_images`; default: looked up)
+
+    Returns
+    -------
     list[Path]
         The source files its actions read, for the wanted keys: images,
         auxiliary files (the sidecar templates are in its `config`)
     """
-    out = []
-    for key in RAW:
-        if not ctx.wants(key):
-            continue
-        image = raw_image(folder, key)
-        if image is not None:
-            out.append(image)
+    if images is None:
+        images = wanted_images(ctx, folder)
+    out = list(images.values())
     for key, (name, _) in DERIVATIVES.items():
         src = folder / "AuxillaryData" / name
         if ctx.wants(key) and src.is_file():

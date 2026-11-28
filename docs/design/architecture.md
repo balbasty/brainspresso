@@ -681,7 +681,8 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
   are read by one shard per subject (`subject_shards`, task id
   `roast/subjects/sub-<label>`; Bullitt `inputs`: the files of the
   subject that its actions read for the wanted keys; `config`: the keys
-  named by `--keys` and the sidecar templates, path and sha256).
+  named by `--keys` and, when sidecars are written, the templates of the
+  images it converts, path and sha256).
 * Several gz archives (ABIDE-I and ABIDE-II, step 5): one shard per gz
   archive (NITRC `<Site>.tgz`, `ABIDEII-<SITE>_<n>.tar.gz`, id
   `roast/raw/<name>`), or per folder that stands for
@@ -722,7 +723,10 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     pass of the roasters that must know every member first (OASIS-I/II,
     then `archives.in_order(pairs)` sorts their actions by the offset of
     their first member); `archives.names(path, opener=)` lists and
-    closes (sidecars-only FreeSurfer listings, IXI sites). A `Member`
+    closes (IXI sites; with `extractable=True`, only the names that
+    `ExtractMembers` gives to `rename`: the sidecars-only FreeSurfer
+    listings, so that `--sidecars only` sees the members that a full
+    roast unpacks). A `Member`
     has `name` (as stored), `parts`/`path` (normalised by
     `member_parts`: `\` read as `/`, no `.`, empty parts or leading
     `/`), `info` (for `ExtractMember(tar.archive, member.info, dst)`),
@@ -748,11 +752,17 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     `BRAINSPRESSO_STRICT_ARCHIVES=1`, raises `BackwardRead` on a member
     opened (or extracted) before the last one; the roast suites pass
     with it.
-  * `ExtractMembers` (`actions/archive.py`) drops members whose name has
-    a `..` part or is absolute (`utils.archive.is_unsafe`), with one
-    warning per archive, before `rename` sees them (OASIS-I and
-    OASIS-III join member parts to the output folder); `rename` gets the
-    other names as stored, so outputs do not move.
+  * `ExtractMembers` (`actions/archive.py`) drops the members whose name
+    is unsafe before `rename` sees them (OASIS-I and OASIS-III join
+    member parts to the output folder). `utils.archive.is_unsafe` splits
+    the stored name on `/` and judges it on every platform as Windows
+    would too: absolute, a part that is empty or blank, made only of
+    dots and spaces (`..`, `...`), holding a `\` or anchored for
+    `PureWindowsPath` (`C:`). `rename` gets the others normalised
+    (`utils.archive.member_path`: `./a/b` is `a/b`, the `Member.path`
+    of the listing). Second line of defence: an output that `rename`
+    puts outside the claimed folders (resolved, `os.path.realpath`) is
+    dropped too. One warning per archive for each.
   * Spools (ABIDE-II): `spool_folder(ctx)`, `spool_prefix(name)`,
     `sweep_spools(ctx, name)`, `spool(src, path)` (member read errors
     raised, write errors returned), `place(spool, path)`; folders
@@ -765,7 +775,11 @@ templates as fill-in templates (`templates/<site>/<sample>/`, a
     sha256: `roast.helpers.template_config(ctx, names)`, `{name: [path,
     sha256] | None}`, or ABIDE's `{"site", "templates"}`), never in its
     `inputs` (owner decision, step 6: OASIS-I/II and Bullitt listed them
-    in `inputs`, signed by size and mtime).
+    in `inputs`, signed by size and mtime). Bullitt signs those of the
+    images a subject shard converts, when sidecars are written (as its
+    `inputs` did): a template of another key does not re-run it, and
+    a narrower selection still skips it (`subject_shards(config=)` takes
+    a function of the label).
   * **Upgrade note (step 6 PR A).** The OASIS-I image discs, the
     OASIS-II parts and the Bullitt subject shards get a new signature
     (their templates moved from `inputs` to `config`): the first roast
@@ -3554,3 +3568,15 @@ up as an XPASS failure once fixed (then drop the marker).
   (PR D); a corrupt OASIS-III `demo.tar.gz` still stops its top-level
   roaster (now as an `ArchiveError`; PR B makes it a `Fail` of
   `participants.tsv`).
+  Review round 1: `is_unsafe` splits on `/` and also rejects empty,
+  blank and dots-only parts, any `\` and Windows-anchored parts (`C:`),
+  on every platform; `ExtractMembers` gives `rename` the normalised name
+  (`member_path`) and drops an output that `rename` puts outside the
+  claimed folders; the sidecars-only FreeSurfer listings of OASIS-I and
+  ABIDE-I list the same names (`archives.names(extractable=True)`), so
+  `--sidecars only` writes the sidecars of a full roast (also for `./`
+  and `/` names); OASIS-I reads the `mri/orig` runs of `./`-prefixed
+  members; Bullitt signs only the templates of the images a subject
+  shard converts, when sidecars are written (a narrower selection
+  skips again: the scope fuzz); `Reader` converts a folder that cannot
+  be listed (`FolderArchive`) to an `ArchiveError`.

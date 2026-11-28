@@ -644,7 +644,7 @@ def freesurfer_shards(ctx: RoastContext,
         the lookup tables; if there is no archive, a `Fail` when `--keys`
         names `fs` or `fs-all`, else an info line only
     """
-    archives = {}
+    fs_archives = {}
     for label, folders in subjects.items():
         found = [a for f in folders for a in sorted_paths(f.glob("*.tar.gz"))
                  if is_freesurfer(a)]
@@ -652,8 +652,8 @@ def freesurfer_shards(ctx: RoastContext,
             lg.warning(f"sub-{label}: {len(found)} FreeSurfer archives: "
                        f"{found[0].name} converted, the others skipped")
         if found:
-            archives[label] = found[0]
-    if not archives:
+            fs_archives[label] = found[0]
+    if not fs_archives:
         message = ("no FreeSurfer archive found in the folders of the "
                    "selected subjects")
         if ctx.options.get("fs_named"):
@@ -662,8 +662,8 @@ def freesurfer_shards(ctx: RoastContext,
             lg.info(f"{message}: FreeSurfer not converted")
         return
     yield Shard(roast_freesurfer_tables, tag="fs")
-    ctx.progress(total=len(archives), tag="fs")
-    for label, archive in archives.items():
+    ctx.progress(total=len(fs_archives), tag="fs")
+    for label, archive in fs_archives.items():
         yield Shard(roast_freesurfer, label, archive, tag="fs",
                     advance="fs", id=f"roast/fs/sub-{label}",
                     unit={"sub": label}, inputs=[archive],
@@ -1038,10 +1038,11 @@ def roast_freesurfer(ctx: RoastContext, sub: str,
     t1 = f"bids:raw:sub-{sub}/anat/sub-{sub}_T1w.nii.gz"
     dst = drv.root / f"sub-{sub}"
     if ctx.json == "only":
-        # sidecars only: the names of the members are enough
+        # sidecars only: the names of the members are enough (those that
+        # `ExtractMembers` would give to `rename`)
         try:
             names = archives.names(
-                archive, opener=TarArchive,
+                archive, opener=TarArchive, extractable=True,
                 label=f"{archive.parent.name}/{archive.name}")
         except archives.ArchiveError as e:
             yield e.fail(tag="fs")

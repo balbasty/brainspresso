@@ -123,6 +123,7 @@ def subject_shards(
     *args,
     tag: str = "subjects",
     inputs: Callable[[str], list] | None = None,
+    config=None,
     scope_keys: Iterable[str] | str | None = None,
     **kwargs,
 ) -> Iterator[Shard]:
@@ -148,12 +149,15 @@ def subject_shards(
         Progress group
     inputs : callable(label) -> list[path] | None
         Source files of a subject (see `Shard(inputs=)`)
+    config : JSON-able | callable(label) -> JSON-able
+        What else decides the outputs of a shard (`Shard(config=)`): the
+        same for every subject, or a function of its label
     scope_keys : list[str] | "all" | None
         Keys that a subject shard can write (`scope`: each shard gets
         `scope(keys=scope_keys, subs=[label])`, "all": every key);
         None: no scope declared
     **kwargs
-        Keyword arguments of `fn` (and `config` of the shards)
+        Keyword arguments of `fn`
 
     Yields
     ------
@@ -169,8 +173,9 @@ def subject_shards(
         yield Shard(
             fn, label, *args, tag=tag, advance=tag,
             id=f"roast/{tag}/sub-{label}", unit={"sub": label},
-            inputs=inputs(label) if inputs else None, scope=declared,
-            **kwargs,
+            inputs=inputs(label) if inputs else None,
+            config=config(label) if callable(config) else config,
+            scope=declared, **kwargs,
         )
 
 

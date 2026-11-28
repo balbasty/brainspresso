@@ -104,6 +104,7 @@ import test_roast_cobre  # noqa: E402
 import test_roast_oasis1  # noqa: E402
 import test_roast_oasis2  # noqa: E402
 import test_roast_oasis3  # noqa: E402
+from validate_bids import patched  # noqa: E402
 
 import brainspresso  # noqa: E402
 from brainspresso.actions import engine  # noqa: E402
@@ -243,19 +244,6 @@ class _FixedTime:
     @staticmethod
     def time():
         return 0.0
-
-
-@contextlib.contextmanager
-def patched(module, **values):
-    """Set module attributes for the duration of a block"""
-    old = {k: getattr(module, k) for k in values}
-    for k, v in values.items():
-        setattr(module, k, v)
-    try:
-        yield
-    finally:
-        for k, v in old.items():
-            setattr(module, k, v)
 
 
 @contextlib.contextmanager

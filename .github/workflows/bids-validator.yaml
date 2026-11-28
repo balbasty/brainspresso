@@ -1,0 +1,98 @@
+name: BIDS validator
+
+# Roast the synthetic fixtures of the roast tests in both layouts and run
+# the BIDS validator on every dataset they make (tests/validate_bids.py).
+# A separate workflow, so that the test matrix does not wait for it.
+# Known findings (tests/bids_validator_known.json) are reported without
+# failing the job; a new error fails it; warnings never do.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Commit / Branch / Tag / SHA to checkout
+        required: false
+        default: ""
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - brainspresso/**
+      - tests/**
+      - scripts/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/bids-validator.yaml
+  pull_request:
+    paths:
+      - brainspresso/**
+      - tests/**
+      - scripts/**
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+      - .github/workflows/bids-validator.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bids-validator:
+    runs-on: ubuntu-24.04
+    # (each validator call is limited to 10 minutes by the script)
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: setup.cfg
+      - name: Install package and test dependencies
+        # Regular install, as in test.yaml: the fixtures are roasted
+        # with the installed package and its templates
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+      - name: Cache folders
+        run: |
+          echo "DENO_DIR=$HOME/.cache/deno" >> "$GITHUB_ENV"
+          echo "BIDS_SCHEMA_CACHE=$HOME/.cache/bids-schema" >> "$GITHUB_ENV"
+      # The validator (JSR @bids/validator) and the BIDS schema
+      # (JSR @bids/schema, with its sha256) are pinned in
+      # tests/validate_bids.py, the validator's dependencies locked in
+      # tests/deno.lock (run with --frozen)
+      - name: Cache the validator and the schema
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            ~/.cache/bids-schema
+          key: bids-validator-${{ runner.os }}-deno-2.9.6-${{ hashFiles('tests/validate_bids.py', 'tests/deno.lock') }}
+          restore-keys: |
+            bids-validator-${{ runner.os }}-deno-2.9.6-
+      - name: Validate the roasted fixtures
+        run: |
+          python tests/validate_bids.py \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --json "${{ runner.temp }}/bids-validator-findings.json"
+      - name: Upload the findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bids-validator-findings
+          path: ${{ runner.temp }}/bids-validator-findings.json
+          if-no-files-found: ignore

@@ -2404,7 +2404,7 @@ Each step lands as commits on the refactor branch with its tests green.
 | 5 | Port remaining datasets one by one; fix known bugs | Low-Effort Opus each | in progress: COBRE done (`participant_id` fixed; 1532 passed, 2 skipped, 26 xfailed); OASIS-I ported (one shard per disc, `Dataset.roast_options` for `--discs`, its 5 known bugs fixed; with COBRE: 1580 passed, 2 skipped, 16 xfailed); ABIDE-I done (nitrc/s3 and xnat roasters; `participant_id`, MaxMun phenotypes, UCLA `acq-hires_T2w`, the XNAT bugs fixed; with OASIS-I and #35: 1773 passed, 2 skipped, 12 xfailed); OASIS-II ported (one shard per part, `--parts` through `roast_options`, its known bug and the legacy bugs found while porting fixed; with ABIDE-I: 1859 passed, 2 skipped, 10 xfailed); Bullitt ported (characterization tests first, one shard per subject folder, the legacy bugs found while porting fixed; 1954 passed, 2 skipped, 10 xfailed); ABIDE-II ported (one shard per NITRC tarball, a session's images spooled until its runs are known, ABIDE helpers shared with ABIDE-I, phenotype tables trimmed, its 5 known bugs and the suspected one fixed; with Bullitt: 2082 passed, 2 skipped, no xfail left) |
 | 6 | Tabular helpers, converter registry, archive helpers | Low-Effort Opus | in progress: PR 0 (golden-output harness `scripts/golden.py`, baseline in `tests/golden/`, checked by `tests/test_golden.py`; dead helpers removed: `utils/tsv.py`, `utils/dl.py`, `download/test.py`, unused functions of `utils/tabular.py`, `utils/keys.py`, `utils/path.py`, `utils/ui.py`) |
 | 7 | Grind implementation: local backend, plans and `percolate`, one BIDS-App pipeline, scheduler scripts; then SPM Segment from `wiip-grind` | High-Effort Opus | |
-| CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | |
+| CI | BIDS-validator check of roasted fixtures in both layouts | Low-Effort Opus | done (`.github/workflows/bids-validator.yaml`, `tests/validate_bids.py`: bids-validator 3.0.2 with the BIDS 1.11.2 schema; 11 fixtures × 2 layouts, raw, study and derivative datasets; 116 known errors in `tests/bids_validator_known.json`, to fix in separate PRs; a new error fails the job) |
 
 ### Conventions
 
@@ -2694,8 +2694,19 @@ up as an XPASS failure once fixed (then drop the marker).
 
 * ~~Default layout: `study` or `flat`.~~ Decided: `study`
   (`DEFAULT_LAYOUT`, one constant in `bids/layout.py`).
-* Validator/tooling support for `DatasetType: "study"` and `rawbids/` (new
-  in BIDS 1.11.2): to check; `rawbids/` itself is a plain raw dataset.
+* ~~Validator/tooling support for `DatasetType: "study"` and `rawbids/`
+  (new in BIDS 1.11.2).~~ Checked (CI step): the BIDS validator
+  (`jsr:@bids/validator` 3.0.2) accepts `DatasetType: "study"`
+  (`--datasetTypes study`), but its bundled schema is BIDS 1.11.1, which
+  has no `rawbids/`: a study root then fails (`NOT_INCLUDED`,
+  `INVALID_LOCATION` "expected location: /sub-*/" for every file of
+  `rawbids/`). With the BIDS 1.11.2 schema (`--schema`, JSR
+  `@bids/schema` 2.0.1) `rawbids/`, `derivatives/` and `sourcedata/` are
+  opaque and a study root validates (warnings only). `rawbids/` and
+  each derivative validate as plain raw and derivative datasets, in
+  both layouts; the hosted pristine copies in `sourcedata/` are never
+  read (opaque, also at the root of a flat dataset). The CI check pins
+  both versions.
 * ~~Grind runtime for SPM.~~ Decided: compiled standalone SPM in a
   container (§7).
 * ABIDE-II from S3 (planned default for raw data): roast the bucket's
@@ -3297,16 +3308,41 @@ up as an XPASS failure once fixed (then drop the marker).
   sessions start and end on the members of every subject and key, so
   that the names (and the "folders not together" `Fail`) no longer
   depend on the selection, which the scope requires.
-* r45: step 6, PR 0. Golden-output harness (`scripts/golden.py`,
+* r45: CI step (§8). `bids-validator.yaml`, a workflow of its own (one
+  Linux job, Python 3.12, Deno 2.9.6, the validator and schema cached,
+  the validator's dependencies locked in `tests/deno.lock`, the schema
+  checked against its sha256):
+  `tests/validate_bids.py` harvests or roasts the fixtures of the roast
+  tests (IXI, OASIS-I/II/III, COBRE, ABIDE-I NITRC and XNAT, ABIDE-II,
+  Bullitt, UNC-Wisconsin, SALD from a fake `fcp-indi` bucket) with
+  `--layout study` and `flat`, and runs bids-validator 3.0.2 (BIDS
+  1.11.2 schema) on the raw dataset, the study root and each
+  derivative. Errors listed in `tests/bids_validator_known.json` are
+  reported, a new one fails the job, warnings never do; codes that only
+  the synthetic images raise are ignored for the fixtures and files that
+  raise them (`tests/bids_validator_ignore.json`:
+  `REPETITION_TIME_MISMATCH` and `SLICETIMING_ELEMENTS` on the ABIDE
+  bold images, `GZIP_HEADER_MTIME` on images copied from the fixture
+  archives; SALD's images agree with its templates). The fixtures of Bullitt and OASIS-I/II/III are
+  now `make_source` functions (as for the other roasts), the IXI
+  tarballs `write_tarballs`. §9: the study/`rawbids/` question is
+  answered. The 116 known errors (derivatives without
+  `dataset_description.json`, top-level `atlas-*_dseg.tsv` not
+  included, bold sidecars without `TaskName`, COBRE without
+  `RepetitionTime`, `participants.json` types, OASIS-III phenotype
+  index, an ABIDE-II phenotype name) are left to separate PRs.
+* r46: step 6, PR 0. Golden-output harness (`scripts/golden.py`,
   baseline `tests/golden/`, check of a reduced matrix in
   `tests/test_golden.py`; Conventions), recorded on
   `claude/refactor/datasets-core` at 4014c2a (48b3400 plus #41, help
-  text only): every ported roaster (ABIDE-I NITRC and XNAT, ABIDE-II,
+  text only) and checked again after merging #40 (tests and CI only):
+  every ported roaster (ABIDE-I NITRC and XNAT, ABIDE-II,
   Bullitt, COBRE, IXI tarballs, OASIS-I/II/III, UNC-Wisconsin) in
-  both layouts; hosted roasts are not covered. The OASIS-I/II/III,
-  Bullitt and IXI fixtures are `make_source`/`write_tarballs`
-  functions, as in #40. Dead code removed (no importer, checked by
-  grep over code, tests, scripts and docs): `utils/tsv.py`
+  both layouts; hosted roasts are not covered. The fixtures are
+  built by the `make_source`/`write_tarballs` functions of the roast
+  tests (#40), as `tests/validate_bids.py` builds them. Dead code
+  removed (no importer, checked by grep over code, tests, scripts and
+  docs): `utils/tsv.py`
   (`TableMapper`), `utils/dl.py` (and `utils/ui.round_bytes`, its
   only user, with the byte-unit constants), `download/test.py` (and
   its `.vscode/launch.json` entry), `utils/tabular.get_style_bidsify`

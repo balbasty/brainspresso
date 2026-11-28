@@ -2529,7 +2529,9 @@ Each step lands as commits on the refactor branch with its tests green.
   modes, `+`, translate no line ending either way; TSV rows end with
   "\n", not the "\r\n" of `csv`, and a field with a line break is
   refused), so outputs are
-  byte-identical on every platform. A test is skipped on
+  byte-identical on every platform; `.gitattributes` checks text files
+  out with LF everywhere (`* text=auto eol=lf`), since templates are
+  copied byte for byte. A test is skipped on
   Windows (`skipif(sys.platform == "win32", reason=...)`) only for a
   feature the platform lacks (POSIX permissions, symbolic links
   without privileges), never to hide a bug.
@@ -3347,5 +3349,9 @@ up as an XPASS failure once fixed (then drop the marker).
   only user, with the byte-unit constants), `download/test.py` (and
   its `.vscode/launch.json` entry), `utils/tabular.get_style_bidsify`
   and `memory_tab`, `utils/keys.lower_equal_key`, `lower_key`,
-  `upper_equal_key`, `upper_key`, `utils/path.with_bids_suffix`. No
-  roaster output changes.
+  `upper_equal_key`, `upper_key`, `utils/path.with_bids_suffix`.
+  `.gitattributes`: text files are checked out with LF on every
+  platform (the Windows runner's `core.autocrlf` turned the templates,
+  copied byte for byte, into CRLF outputs: the golden check found it);
+  the printouts keep their published bytes, binaries stay binary; the
+  wheel and sdist are unchanged. No roaster output changes.

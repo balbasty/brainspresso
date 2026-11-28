@@ -3,6 +3,7 @@ import json
 
 import nibabel as nib
 import pytest
+from cli_utils import bx
 from roast_utils import (
     LAYOUTS,
     check_keys_rerun,
@@ -164,6 +165,17 @@ def test_phenotype_truncated_rows(root, caplog):
     assert rows[-1] == ["sub-0002", "n/a", "400", "n/a", "n/a", "n/a",
                         "n/a"]
     assert "UDS_b4_cdr.tsv: 1 row(s) skipped" in caplog.text
+
+
+def test_keys_all(root):
+    """`--keys all` (accepted by the command line) selects every key"""
+    assert roaster.KEYS.expand(["all"]) == roaster.KEYS.leaves
+    add_freesurfer(root)
+    report = roast(root, keys={"all"})
+    assert not report.errors, report.errors
+    every = raw_tree(root)
+    assert f"{T1}.nii.gz" in every and PHENO <= every
+    bx("oasis3", "roast", "--out", root, "--keys", "all")
 
 
 def test_meta_only(root):

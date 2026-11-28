@@ -1,16 +1,6 @@
 import os
-from pathlib import Path
-
-
-def with_bids_suffix(path: str | Path, suffix) -> str | Path:
-    """
-    Change the file suffix of a BIDS file.
-    Contrary to `Path.with_suffix`, all suffixes are removed and replaced.
-    """
-    T = type(path)
-    path = Path(path)
-    path = path.with_name(path.name.split('.')[0] + suffix)
-    return T(path)
+from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
 
 
 def get_tree_path(path: str | Path | None = None) -> Path:
@@ -50,3 +40,25 @@ def fileparts(fname):
         basename, ext = os.path.splitext(basename)
         ext += compression
     return dirname, basename, ext
+
+
+def posix_key(path: str | os.PathLike) -> PurePosixPath:
+    """
+    Sort key that orders paths the same way on every platform.
+
+    `sorted(paths)` compares Windows paths case-insensitively (`anat1`
+    before `OAS3...`, the reverse of POSIX); this key compares their
+    POSIX parts case-sensitively, as `sorted` does on POSIX.
+    """
+    return PurePosixPath(Path(path).as_posix())
+
+
+def sorted_paths(paths: Iterable[str | os.PathLike]) -> list:
+    """
+    Sort paths in the same order on every platform (`posix_key`).
+
+    Listings (`glob`, `iterdir`) that a roaster turns into inputs,
+    actions or records go through this, so that shard signatures and
+    task records do not depend on the platform.
+    """
+    return sorted(paths, key=posix_key)

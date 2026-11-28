@@ -61,6 +61,7 @@ from brainspresso.roast import (
 )
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.io import read_json
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -83,8 +84,8 @@ def _pet(tracer):
 # Keys are matched against the output names (after `fix_name`), in
 # this order (first match: `TSE` before `T2w`). "meta" (README,
 # participants, sessions) is a category, and the group of all metadata
-# ("pheno" included).
-KEYS = KeyAliases({**allkeys, "meta": {"meta", "pheno"}}, bids={
+# ("pheno" included); "all" is the group of every key (`--keys all`).
+KEYS = KeyAliases({"all": {**allkeys, "meta": {"meta", "pheno"}}}, bids={
     "T1w": _anat("T1w"),
     "TSE": _anat("T2w", acq=["TSE"]),
     "T2w": _anat("T2w"),
@@ -165,7 +166,7 @@ def raw_sessions(ctx: RoastContext) -> dict[str, set[str]]:
 def source_sessions(ctx: RoastContext) -> dict[str, dict[str, Path]]:
     """{sub: {session: [folders]}} of `OAS3<sub>_<category>_<session>/`"""
     out = {}
-    for folder in sorted(ctx.source.glob("OAS3*_*_d*")):
+    for folder in sorted_paths(ctx.source.glob("OAS3*_*_d*")):
         match = re.fullmatch(r"OAS3(\d+)_\w+_(d\d+)", folder.name)
         if match and folder.is_dir():
             sub, ses = match.groups()
@@ -193,20 +194,20 @@ def fix_name(name: str, sub: str) -> str:
 
 def subject_folders(ctx: RoastContext, sub: str) -> list[Path]:
     """Folders `OAS3<sub>_<category>_<session>/` of a subject"""
-    return sorted(f for f in ctx.source.glob(f"OAS3{sub}_*_d*")
-                  if f.is_dir())
+    return sorted_paths(f for f in ctx.source.glob(f"OAS3{sub}_*_d*")
+                        if f.is_dir())
 
 
 def subject_tarballs(ctx: RoastContext, sub: str) -> list[Path]:
     """Tarballs of a subject (inputs of its shard)"""
     return [tarball for folder in subject_folders(ctx, sub)
-            for tarball in sorted(folder.glob("*.tar.gz"))]
+            for tarball in sorted_paths(folder.glob("*.tar.gz"))]
 
 
 def roast_subject(ctx: RoastContext, sub: str):
     """All tarballs of a subject (a shard)"""
     for folder in subject_folders(ctx, sub):
-        for tarball in sorted(folder.glob("*.tar.gz")):
+        for tarball in sorted_paths(folder.glob("*.tar.gz")):
             if "Freesurfer" in tarball.name:
                 if ctx.wants("fs") or ctx.wants("fs-all"):
                     yield from roast_freesurfer(ctx, sub, tarball)

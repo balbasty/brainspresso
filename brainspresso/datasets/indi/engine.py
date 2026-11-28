@@ -70,6 +70,7 @@ from brainspresso.download.session import new_session
 from brainspresso.sources import fcp
 from brainspresso.sources.base import LabelMap, RemoteEntry, prefix_labels
 from brainspresso.sources.s3 import S3Object
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -330,7 +331,7 @@ class Project:
                 not p.name.startswith((".", "_"))
 
         out = []
-        for p in sorted(root.rglob("*")):
+        for p in sorted_paths(root.rglob("*")):
             if not keep(p):
                 continue
             rel = p.relative_to(root).as_posix()

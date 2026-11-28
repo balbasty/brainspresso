@@ -1,0 +1,2168 @@
+{
+ "flat/default": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0040000/anat/sub-0040000_T1w.json",
+     "sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "sub-0040001/anat/sub-0040001_T1w.json",
+     "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-all": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "func",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0040000/anat/sub-0040000_T1w.json",
+     "sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "sub-0040001/anat/sub-0040001_T1w.json",
+     "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-images": {
+  "files": {
+   "sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0040000/anat/sub-0040000_T1w.json",
+     "sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "sub-0040001/anat/sub-0040001_T1w.json",
+     "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      2
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "flat/keys-meta": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "participants.tsv": "f7b23ef9e76c80b485129c1c7f43cc05600d0fc2c7838219145b839fbb750547"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "flat/rerun": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 4
+      },
+      "func": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 4
+      },
+      "func": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0040000/anat/sub-0040000_T1w.json",
+     "sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "sub-0040001/anat/sub-0040001_T1w.json",
+     "sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "flat/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+  },
+  "manifest": {
+   "files": {
+    "README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "flat",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 2
+      },
+      "func": {
+       "done": 1
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 2
+      },
+      "func": {
+       "done": 1
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "func": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "sub-0040000/anat/sub-0040000_T1w.json",
+     "sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "sub-0040001/anat/sub-0040001_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "study/default": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "dataset_description.json": "551ef26d62c3d3672462956e84c61ee27db0547a0f6de62595e8bf0cf7a05385",
+   "rawbids/README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "rawbids/dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "rawbids/participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "rawbids/participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "rawbids/sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "rawbids/sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.json",
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.json",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-all": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "dataset_description.json": "551ef26d62c3d3672462956e84c61ee27db0547a0f6de62595e8bf0cf7a05385",
+   "rawbids/README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "rawbids/dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "rawbids/participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "rawbids/participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "rawbids/sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "rawbids/sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w",
+     "func",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.json",
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.json",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-images": {
+  "files": {
+   "dataset_description.json": "36bdfb875b2b51e70c8e10bf724b663f0af17775b595b7a1484b1f1e57871dce",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "rawbids/sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "T1w"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.json",
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.json",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      2
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w"
+      ],
+      "mode": "keys",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "study/keys-meta": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "dataset_description.json": "551ef26d62c3d3672462956e84c61ee27db0547a0f6de62595e8bf0cf7a05385",
+   "rawbids/README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "rawbids/dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "rawbids/participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "rawbids/participants.tsv": "f7b23ef9e76c80b485129c1c7f43cc05600d0fc2c7838219145b839fbb750547"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--keys",
+     "meta"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {}
+ },
+ "study/rerun": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "dataset_description.json": "551ef26d62c3d3672462956e84c61ee27db0547a0f6de62595e8bf0cf7a05385",
+   "rawbids/README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "rawbids/dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "rawbids/participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "rawbids/participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz": "gz:3eff5344b9f99b606239b69f8a4977f29a7196a37e8a37ca63938f1a2c9ea61f",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz": "gz:625140a9d77df09029612363b1ec6f4e3825afd2c652a939cd7ee343d222aa3e"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "rawbids/sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "rawbids/sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    },
+    {
+     "counts": {
+      "T1w": {
+       "skipped": 4
+      },
+      "func": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 4
+      }
+     },
+     "json": "yes",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 4
+      },
+      "func": {
+       "done": 2
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   },
+   {
+    "args": [],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "skipped": 4
+      },
+      "func": {
+       "skipped": 2
+      },
+      "meta": {
+       "skipped": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 4
+     },
+     "func": {
+      "done": 2
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.json",
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.nii.gz",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.nii.gz",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.json",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.nii.gz"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "yes"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ },
+ "study/sidecars-only": {
+  "files": {
+   ".brainspresso/orig/rawbids/participants.tsv": "543c74c35294fbc43b51eb2aa5b696407e49eebe44e157d54d55e76d1c2809e5",
+   "dataset_description.json": "551ef26d62c3d3672462956e84c61ee27db0547a0f6de62595e8bf0cf7a05385",
+   "rawbids/README": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7",
+   "rawbids/dataset_description.json": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0",
+   "rawbids/participants.json": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272",
+   "rawbids/participants.tsv": "2ffdaaab16a5d3ce0896718e87d437023ab7fba15cd4b5ce10fa609f91abbf9f",
+   "rawbids/sub-0040000/anat/sub-0040000_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782",
+   "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d",
+   "rawbids/sub-0040001/anat/sub-0040001_T1w.json": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+  },
+  "manifest": {
+   "files": {
+    "rawbids/README": {
+     "origin": "converted",
+     "sha256": "6491c77f1cc01c4c05ef7eb8596b89ed4f540d40b3ef58950d52217dcc965aa7"
+    },
+    "rawbids/dataset_description.json": {
+     "origin": "converted",
+     "sha256": "381b5ae043759c95455a092a20bac21d88957416af27ea746939d5c19e4cd4a0"
+    },
+    "rawbids/participants.json": {
+     "origin": "converted",
+     "sha256": "6859e4a5abfc40d4bef21f68748711e23b90eb761a233a0e8317e8b862497272"
+    },
+    "rawbids/sub-0040000/anat/sub-0040000_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    },
+    "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json": {
+     "origin": "converted",
+     "sha256": "e772720dd377e513c05c1494794268aef1b87958bc606c5dffb3a2d264213d0d"
+    },
+    "rawbids/sub-0040001/anat/sub-0040001_T1w.json": {
+     "origin": "converted",
+     "sha256": "8ee5bee076e254069a8eede7a59f5b963db2b965b095c29b35e16dbd27814782"
+    }
+   },
+   "layout": "study",
+   "runs": [
+    {
+     "counts": {
+      "T1w": {
+       "done": 2
+      },
+      "func": {
+       "done": 1
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "json": "only",
+     "keys": [
+      "T1w",
+      "func",
+      "meta"
+     ],
+     "stage": "roast",
+     "status": "complete"
+    }
+   ],
+   "schema": 1
+  },
+  "runs": [
+   {
+    "args": [
+     "--sidecars",
+     "only"
+    ],
+    "exit": 0,
+    "report": {
+     "counts": {
+      "T1w": {
+       "done": 2
+      },
+      "func": {
+       "done": 1
+      },
+      "meta": {
+       "done": 4
+      }
+     },
+     "errors": [],
+     "status": "complete"
+    },
+    "warnings": []
+   }
+  ],
+  "tasks": {
+   "roast/scans": {
+    "children": 0,
+    "counts": {
+     "T1w": {
+      "done": 2
+     },
+     "func": {
+      "done": 1
+     }
+    },
+    "error": null,
+    "groups": [
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040000/anat/sub-0040000_T1w.json"
+      ]
+     ],
+     [
+      "func",
+      [
+       "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json"
+      ]
+     ],
+     [
+      "T1w",
+      [
+       "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+      ]
+     ]
+    ],
+    "outputs": [
+     "rawbids/sub-0040000/anat/sub-0040000_T1w.json",
+     "rawbids/sub-0040000/func/sub-0040000_task-rest_bold.json",
+     "rawbids/sub-0040001/anat/sub-0040001_T1w.json"
+    ],
+    "pipeline": null,
+    "progress": {
+     "scans": [
+      null,
+      3
+     ]
+    },
+    "schema": 1,
+    "scopes": [
+     {
+      "fixed": {
+       "base": {
+        "datatypes": [],
+        "entities": {},
+        "exclude": [],
+        "folders": [
+         "code",
+         "derivatives",
+         "docs",
+         "logs",
+         "sourcedata",
+         "stimuli"
+        ],
+        "include": [],
+        "sessions": [],
+        "suffixes": [],
+        "tasks": []
+       },
+       "declared": {
+        "keys": [
+         "T1w",
+         "func"
+        ],
+        "subs": "seen"
+       },
+       "json": "only"
+      },
+      "keys": [
+       "T1w",
+       "func"
+      ],
+      "mode": "all",
+      "subs": {
+       "exclude": [],
+       "subs": []
+      }
+     }
+    ],
+    "seen": {
+     "sub": [
+      "0040000",
+      "0040001"
+     ]
+    },
+    "signature": "47bd48af565a48f45100801d09e3a33f69273346d05bc1e4b6f6bb9c0ed9565c",
+    "stage": "roast",
+    "status": "done",
+    "task": "roast/scans",
+    "unit": {}
+   }
+  }
+ }
+}

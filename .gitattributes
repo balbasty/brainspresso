@@ -1,0 +1,18 @@
+# Text files are checked out with LF on every platform (whatever
+# `core.autocrlf` says): package templates are copied byte for byte into
+# roasted datasets, whose text files are UTF-8 with LF everywhere
+# (docs/design/architecture.md, Conventions, "Platforms").
+* text=auto eol=lf
+# Protocol printouts are kept as they were published (some have CRLF)
+printouts/** -text
+# Binary files
+*.nii binary
+*.gz binary
+*.tgz binary
+*.mgz binary
+*.pdf binary
+*.xls binary
+*.xlsx binary
+*.png binary
+*.gif binary
+*.jpg binary

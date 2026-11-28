@@ -94,6 +94,7 @@ from brainspresso.roast import (
 )
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
+from brainspresso.utils.path import sorted_paths
 
 lg = getLogger(__name__)
 
@@ -355,9 +356,9 @@ def roast_nitrc(ctx: RoastContext) -> Iterator:
         Metadata actions, then one shard per tarball (or site folder of
         `RawData/`)
     """
-    csvs = sorted(p for p in ctx.source.iterdir()
-                  if p.is_file() and p.name.startswith("phenotypic_")
-                  and p.name.endswith(".csv")) \
+    csvs = sorted_paths(p for p in ctx.source.iterdir()
+                        if p.is_file() and p.name.startswith("phenotypic_")
+                        and p.name.endswith(".csv")) \
         if ctx.source.is_dir() else []
     yield from roast_meta(ctx, csvs, "phenotypic_<SITE>.csv")
     if not wants_raw(ctx):
@@ -393,13 +394,14 @@ def nitrc_archives(ctx: RoastContext) -> list[tuple[str, Path, list]]:
     """
     if not ctx.source.is_dir():
         return []
-    out = [(p.name, p, [p]) for p in sorted(ctx.source.iterdir())
+    out = [(p.name, p, [p]) for p in sorted_paths(ctx.source.iterdir())
            if p.is_file() and p.name.endswith((".tgz", ".tar.gz"))]
     rawdata = ctx.source / RAWDATA
     if rawdata.is_dir():
-        for folder in sorted(rawdata.iterdir()):
+        for folder in sorted_paths(rawdata.iterdir()):
             if folder.is_dir():
-                files = sorted(p for p in folder.rglob("*") if p.is_file())
+                files = sorted_paths(p for p in folder.rglob("*")
+                                     if p.is_file())
                 out.append((f"{RAWDATA}/{folder.name}", folder, files))
     return out
 
@@ -460,7 +462,7 @@ def iter_members(path: Path, archive) -> Iterator[tuple]:
         that writes it, `open_image()` opens it
     """
     if archive is None:
-        for file in sorted(p for p in path.rglob("*") if p.is_file()):
+        for file in sorted_paths(p for p in path.rglob("*") if p.is_file()):
             name = file.relative_to(path.parent).as_posix()
             yield (name, partial(CopyBytes, file),
                    partial(open, file, "rb"))
@@ -642,7 +644,7 @@ def freesurfer_shards(ctx: RoastContext,
     """
     archives = {}
     for label, folders in subjects.items():
-        found = [a for f in folders for a in sorted(f.glob("*.tar.gz"))
+        found = [a for f in folders for a in sorted_paths(f.glob("*.tar.gz"))
                  if is_freesurfer(a)]
         if len(found) > 1:
             lg.warning(f"sub-{label}: {len(found)} FreeSurfer archives: "
@@ -691,7 +693,7 @@ def xnat_subjects(ctx: RoastContext) -> dict[str, list[Path]]:
     out = {}
     if not ctx.source.is_dir():
         return out
-    for folder in sorted(ctx.source.iterdir()):
+    for folder in sorted_paths(ctx.source.iterdir()):
         if not folder.is_dir() or not any(folder.glob("*.tar.gz")):
             continue
         match = SUBJECT_FOLDER.fullmatch(folder.name)
@@ -717,7 +719,7 @@ def folder_site(folder: Path) -> str:
 
 def scan_archives(folder: Path) -> list[Path]:
     """Return the archives of a subject folder but FreeSurfer outputs."""
-    return [a for a in sorted(folder.glob("*.tar.gz"))
+    return [a for a in sorted_paths(folder.glob("*.tar.gz"))
             if not is_freesurfer(a)]
 
 

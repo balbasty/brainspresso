@@ -39,7 +39,6 @@ found in `sourcedata/`) and trimmed to what is on disk.
 """  # noqa: E501
 import csv
 import re
-import tarfile
 from functools import partial
 from io import TextIOWrapper
 from logging import getLogger
@@ -54,6 +53,7 @@ from brainspresso.freesurfer import bidsify as fs
 from brainspresso.roast import (
     RoastContext,
     Shard,
+    archives,
     as_list,
     copy_templates,
     roast_dataset,
@@ -200,7 +200,7 @@ def roast_subject(ctx: RoastContext, sub: str):
             yield ExtractMembers(
                 tarball, Claim(claim / datatype if datatype else claim),
                 partial(raw_path, ctx.layout.raw, sub, ses, datatype),
-                tag=datatype or "func",
+                root=ctx.layout.root, tag=datatype or "func",
             )
 
 
@@ -262,7 +262,8 @@ def roast_freesurfer(ctx: RoastContext, sub: str, tarball: Path):
         return
     # unpacked files are inputs of the roast (`staging`: the
     # JSON policy does not apply to them)
-    yield ExtractMembers(tarball, Claim(src), rename, tag="fs", staging=True)
+    yield ExtractMembers(tarball, Claim(src), rename, tag="fs",
+                         root=ctx.layout.root, staging=True)
     # (the shard runs after the tree is unpacked: the engine runs each
     # action before asking for the next item)
     yield Shard(bidsify_freesurfer, sub, ses, tag="fs")
@@ -342,10 +343,13 @@ PARTICIPANTS_ROW_MAP = {
 
 def read_csv(tarball: Path, **kwargs) -> tuple[list[str], list[list[str]]]:
     """Header and rows of the (first) CSV file of a tarball (blank rows
-    dropped)"""
-    with tarfile.open(tarball, "r:gz") as tar:
-        member = next(m for m in tar if m.isfile())
-        with TextIOWrapper(tar.extractfile(member), newline="") as f:
+    dropped; none: no rows); `roast.archives.ArchiveError` if it cannot
+    be read"""
+    with archives.reading(tarball, opener=TarArchive) as tar:
+        member = next(iter(tar), None)
+        if member is None:
+            return [], []
+        with TextIOWrapper(member.open(), newline="") as f:
             rows = [r for r in csv.reader(f, **kwargs)
                     if any(c.strip() for c in r)]
     return (rows[0], rows[1:]) if rows else ([], [])

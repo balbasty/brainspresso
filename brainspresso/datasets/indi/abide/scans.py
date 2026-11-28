@@ -1,8 +1,9 @@
 """
 Roast helpers shared by ABIDE-I and ABIDE-II.
 
-* Archives: `ARCHIVE_ERRORS` (a corrupt or truncated gz tarball),
-  `member_parts` (normalised member names), `image_ext`.
+* Archives: `image_ext`; `ARCHIVE_ERRORS` and `member_parts` are
+  re-exported from `roast.archives` (their home since step 6; read
+  archives through `roast.archives.reading`).
 * Sidecars: `TemplateError`, `template_config` (the templates of a
   shard, in its signature), `scan_actions` (an image, then its sidecar),
   `bold_sidecar`, `HeaderSidecar` and `header_tr` (a bold template
@@ -15,11 +16,9 @@ from __future__ import annotations
 import gzip
 import hashlib
 import re
-import tarfile
-import zlib
 from functools import partial
 from logging import getLogger
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import IO, Callable, Iterator, Mapping
 
 import nibabel as nib
@@ -27,6 +26,7 @@ import nibabel as nib
 from brainspresso.actions import Action, CopyJSON, Fail, WriteJSON
 from brainspresso.datasets.indi.abide.tables import Table, write_table
 from brainspresso.roast import RoastContext, copy_templates
+from brainspresso.roast.archives import ARCHIVE_ERRORS, member_parts
 from brainspresso.utils.io import read_json, write_json
 
 lg = getLogger(__name__)
@@ -48,9 +48,6 @@ __all__ = [
 
 NIFTI = (".nii.gz", ".nii")
 
-#: What reading a corrupt or truncated (gz) tarball raises
-ARCHIVE_ERRORS = (tarfile.TarError, EOFError, zlib.error, OSError)
-
 #: plausible RepetitionTime (s) read from a NIfTI header
 TR_RANGE: tuple[float, float] = (0.1, 30.)
 
@@ -63,28 +60,6 @@ def image_ext(name: str) -> str | None:
     """`.nii.gz`/`.nii` of an image name, in any case (None: not one)."""
     lower = name.lower()
     return next((e for e in NIFTI if lower.endswith(e)), None)
-
-
-def member_parts(name: str) -> tuple[str, ...] | None:
-    """
-    Normalised parts of an archive member name.
-
-    Parameters
-    ----------
-    name : str
-        Member name (`./ABIDEII-NYU_1/...`, `/ABIDEII-NYU_1/...`)
-
-    Returns
-    -------
-    tuple[str] | None
-        Its parts without `.`, empty parts or a leading `/` (a member
-        never names an absolute path); None if a part is `..`
-    """
-    parts = tuple(p for p in PurePosixPath(name.replace("\\", "/")).parts
-                  if p not in ("/", "."))
-    if ".." in parts:
-        return None
-    return parts
 
 
 def template_config(find: Callable[[str], Path], names, site: str) -> dict:

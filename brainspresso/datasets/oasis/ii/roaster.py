@@ -23,8 +23,9 @@ With `--layout flat`, the content of `rawbids/` is in `OASIS-2/` itself.
 A part is a gz tarball that holds the scans of about 75 subjects (all
 their sessions), and reading a member of a gz tarball decompresses
 everything before it. Each part is therefore read by one shard (task id
-`roast/parts/part<N>`, inputs: the part and the sidecar template, so
-that an unchanged part is skipped on a re-run, also by a roast that
+`roast/parts/part<N>`, inputs: the part; config: the sidecar template,
+path and hash; so that an unchanged part is skipped on a re-run, also
+by a roast that
 keeps fewer subjects or toggles `meta`: its scope, `roast.scope`): it
 is listed once, then its members are extracted in archive order (one
 forward pass). Parts
@@ -36,21 +37,20 @@ trimmed to the subjects and sessions on disk.
 """
 import re
 from logging import getLogger
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Iterator
 
 from brainspresso.actions import Action, CopyJSON, Fail, WriteTSV
 from brainspresso.bids.keys import KeyAliases
-from brainspresso.datasets.oasis.i.roaster import READ_ERRORS, analyze_action
+from brainspresso.datasets.oasis.i.roaster import analyze_action
 from brainspresso.errors import UsageError
 from brainspresso.roast import (
-    SEEN,
     RoastContext,
-    Shard,
+    archives,
     copy_templates,
     roast_dataset,
-    scope,
 )
+from brainspresso.roast.helpers import archive_shards, template_config
 from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.vol import make_affine
@@ -179,7 +179,7 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
     if not ctx.wants("raw"):
         return
     named = ctx.options.get("parts")
-    shards = []
+    found = {}              # {path: part}
     for part in PARTS:
         if named is not None and part not in named:
             continue
@@ -191,52 +191,12 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
             else:
                 lg.warning(f"{message} (skipped)")
             continue
-        sidecar = ctx.resource(SIDECAR)
-        shards.append(Shard(
-            roast_part, path, tag="parts", advance="parts",
-            id=f"roast/parts/part{part}",
-            inputs=[path, *([sidecar] if sidecar else [])],
-            scope=scope(keys=("raw",), subs=SEEN),
-        ))
-    ctx.progress(total=len(shards), tag="parts")
-    yield from shards
-
-
-def unreadable(path: Path, error: Exception) -> Fail:
-    """
-    Report a part that cannot be read.
-
-    Parameters
-    ----------
-    path : Path
-        The part
-    error : Exception
-        Why
-
-    Returns
-    -------
-    Fail
-        An error of the "parts" group
-    """
-    return Fail(f"{path.name} cannot be read ({type(error).__name__}: "
-                f"{error})", name=path.name, tag="parts")
-
-
-def member_name(name: str) -> str:
-    """
-    Normalise the name of a member.
-
-    Parameters
-    ----------
-    name : str
-        As stored in the tarball (`./a/b`, `/a/b`, `a//b`)
-
-    Returns
-    -------
-    str
-        Relative POSIX path, without `.` parts (`a/b`)
-    """
-    return PurePosixPath(name).as_posix().lstrip("/")
+        found[path] = part
+    config = template_config(ctx, [SIDECAR])
+    yield from archive_shards(
+        ctx, found, roast_part, tag="parts", keys=("raw",),
+        id=lambda path: f"roast/parts/part{found[path]}",
+        config=lambda path: config)
 
 
 def raw_scan(name: str) -> tuple[str, int, int, str] | None:
@@ -246,7 +206,7 @@ def raw_scan(name: str) -> tuple[str, int, int, str] | None:
     Parameters
     ----------
     name : str
-        Member of a part (normalised, `member_name`):
+        Member of a part (normalised, `roast.archives.Member.path`):
         `[<prefix>/]OAS2_<sub>_MR<ses>/RAW/mpr-<run>.nifti.img`, with any
         prefix (the top folder `OAS2_RAW_PART<N>/` of the legacy roaster
         is not confirmed on the real tarballs)
@@ -287,36 +247,29 @@ def roast_part(ctx: RoastContext, path: Path) -> Iterator[Action]:
     Yields
     ------
     Action
-        Sidecars, conversions (Analyze -> NIfTI), missing members
+        Sidecars, conversions (Analyze -> NIfTI), missing members; a
+        `Fail` if the part cannot be read
     """
     try:
-        archive = TarArchive(path)
-    except READ_ERRORS as e:
-        yield unreadable(path, e)
-        return
-    with archive:               # (closed on errors: Windows locks files)
-        try:
-            infos = archive.getmembers()
-        except READ_ERRORS as e:
-            yield unreadable(path, e)
-            return
-        members = {member_name(info.name): info for info in infos
-                   if info.isfile()}
-        found = list(filter(None, map(raw_scan, members)))
-        if not found:
-            yield Fail(f"{path.name}: no scan found (members "
-                       f"`OAS2_<sub>_MR<n>/RAW/mpr-<run>.nifti.img`)",
-                       name=path.name, tag="parts")
-            return
-        actions = []            # [(position, action)]
-        sessions = ctx.selection.base.sessions
-        for scan in found:
-            if ctx.keeps_subject(scan[0]) and (
-                    not sessions or str(scan[1]) in sessions):
-                actions += scan_actions(ctx, archive, path, *scan,
-                                        members=members)
-        for _, action in sorted(actions, key=lambda item: item[0]):
-            yield action
+        # (closed on every path: Windows locks open files)
+        with archives.reading(path, opener=TarArchive) as tar:
+            members = tar.index()
+            found = list(filter(None, map(raw_scan, members)))
+            if not found:
+                yield Fail(f"{path.name}: no scan found (members "
+                           f"`OAS2_<sub>_MR<n>/RAW/mpr-<run>.nifti.img`)",
+                           name=path.name, tag="parts")
+                return
+            actions = []            # [(members, action)]
+            sessions = ctx.selection.base.sessions
+            for scan in found:
+                if ctx.keeps_subject(scan[0]) and (
+                        not sessions or str(scan[1]) in sessions):
+                    actions += scan_actions(ctx, tar.archive, path, *scan,
+                                            members=members)
+            yield from archives.in_order(actions)
+    except archives.ArchiveError as e:
+        yield e.fail(tag="parts")
 
 
 def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
@@ -339,33 +292,33 @@ def scan_actions(ctx: RoastContext, archive: TarArchive, path: Path,
         Session and run
     stem : str
         Member of the scan (normalised), without `.img`/`.hdr`
-    members : dict[str, TarInfo]
+    members : dict[str, roast.archives.Member]
         `{normalised name: member}` of the part
 
     Returns
     -------
-    list[tuple[int, Action]]
-        `(offset of the first member it reads, -1: none; action)`
+    list[tuple[list[roast.archives.Member], Action]]
+        `(members it reads, action)` (`roast.archives.in_order`)
     """
     anat = ctx.layout.raw / f"sub-{sub}" / f"ses-{ses}" / "anat"
     dst = anat / f"sub-{sub}_ses-{ses}_run-{run}_T1w"
     out = []
     sidecar = ctx.resource(SIDECAR)
     if sidecar is not None:
-        out.append((-1, CopyJSON(sidecar, f"{dst}.json", tag="raw")))
+        out.append(([], CopyJSON(sidecar, f"{dst}.json", tag="raw")))
     elif ctx.accepts("sidecar"):
-        out.append((-1, Fail(f"{SIDECAR} not found", name=f"{dst.name}.json",
+        out.append(([], Fail(f"{SIDECAR} not found", name=f"{dst.name}.json",
                              tag="raw")))
     names = [f"{stem}{ext}" for ext in (".hdr", ".img")]
     missing = [m for m in names if m not in members]
     if missing:
         if ctx.accepts("data"):
-            out.append((-1, Fail(f"{', '.join(missing)} not found in "
+            out.append(([], Fail(f"{', '.join(missing)} not found in "
                                  f"{path.name}", name=f"{dst.name}.nii.gz",
                                  tag="raw")))
         return out
     infos = sorted((members[m] for m in names), key=lambda m: m.offset)
-    out.append((infos[0].offset, analyze_action(
+    out.append((infos, analyze_action(
         archive, path, [m.name for m in infos], f"{dst}.nii.gz", AFFINE_RAW,
         tag="raw")))
     return out

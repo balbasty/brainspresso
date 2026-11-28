@@ -4,8 +4,9 @@ Helpers shared by roasters.
 ```python
 yield from copy_templates(ctx, ["README", "dataset_description.json"])
 yield from subject_shards(ctx, labels, roast_subject)
-yield Shard(roast_archive, path, id=..., inputs=[path],
-            scope=scope(keys=("T1w", "bold"), subs=SEEN))
+yield from archive_shards(ctx, tarballs, roast_archive, tag="raw",
+                          keys=("T1w", "bold"),
+                          config=lambda path: template_config(ctx, NAMES))
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -13,6 +14,7 @@ what a dataset converts stays in its roaster.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 from typing import Callable, Iterable, Iterator, Mapping
@@ -23,7 +25,8 @@ from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.roast.context import RoastContext
 from brainspresso.roast.policy import SEEN
 
-__all__ = ["copy_templates", "scope", "subject_shards"]
+__all__ = ["archive_shards", "copy_templates", "scope", "subject_shards",
+           "template_config"]
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -120,6 +123,7 @@ def subject_shards(
     *args,
     tag: str = "subjects",
     inputs: Callable[[str], list] | None = None,
+    config=None,
     scope_keys: Iterable[str] | str | None = None,
     **kwargs,
 ) -> Iterator[Shard]:
@@ -145,12 +149,15 @@ def subject_shards(
         Progress group
     inputs : callable(label) -> list[path] | None
         Source files of a subject (see `Shard(inputs=)`)
+    config : JSON-able | callable(label) -> JSON-able
+        What else decides the outputs of a shard (`Shard(config=)`): the
+        same for every subject, or a function of its label
     scope_keys : list[str] | "all" | None
         Keys that a subject shard can write (`scope`: each shard gets
         `scope(keys=scope_keys, subs=[label])`, "all": every key);
         None: no scope declared
     **kwargs
-        Keyword arguments of `fn` (and `config` of the shards)
+        Keyword arguments of `fn`
 
     Yields
     ------
@@ -166,6 +173,103 @@ def subject_shards(
         yield Shard(
             fn, label, *args, tag=tag, advance=tag,
             id=f"roast/{tag}/sub-{label}", unit={"sub": label},
-            inputs=inputs(label) if inputs else None, scope=declared,
-            **kwargs,
+            inputs=inputs(label) if inputs else None,
+            config=config(label) if callable(config) else config,
+            scope=declared, **kwargs,
         )
+
+
+def archive_shards(
+    ctx: RoastContext,
+    archives: Iterable[Path],
+    fn: Callable,
+    *,
+    tag: str,
+    keys: Iterable[str] | None,
+    id: Callable[[Path], str] | None = None,
+    inputs: Callable[[Path], list] | None = None,
+    config: Callable[[Path], object] | None = None,
+) -> Iterator[Shard]:
+    """
+    Yield one shard per archive, `fn(ctx, path)`.
+
+    The sibling of `subject_shards` for archives that hold many subjects
+    (a gz tarball is read by one shard, once): the number of archives is
+    the total of the progress group `tag`, each shard advances it when
+    done, and declares the keys it may write and the subjects it sees
+    (`scope(keys=keys, subs=SEEN)`: `fn` calls `ctx.keeps_subject` for
+    every subject of the archive, before any other pruning).
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast
+    archives : iterable of Path
+        The archives (or folders that stand for one)
+    fn : callable(ctx, path)
+        Roaster of an archive (picklable)
+    tag : str
+        Progress group
+    keys : list[str] | None
+        Keys that a shard may write (`scope`; None: all keys)
+    id : callable(path) -> str
+        Task id (default: `roast/<tag>/<file name>`)
+    inputs : callable(path) -> list[path]
+        Source files of a shard (default: `[path]`)
+    config : callable(path) -> JSON-able
+        What else decides its outputs, e.g. its sidecar templates
+        (`template_config`; default: None)
+
+    Yields
+    ------
+    Shard
+        One per archive
+    """
+    archives = list(archives)
+    ctx.progress(total=len(archives), tag=tag)
+    for path in archives:
+        yield Shard(
+            fn, path, tag=tag, advance=tag,
+            id=id(path) if id else f"roast/{tag}/{path.name}",
+            inputs=inputs(path) if inputs else [path],
+            config=config(path) if config else None,
+            scope=scope(keys=keys, subs=SEEN),
+        )
+
+
+def template_config(ctx: RoastContext, names: Iterable[str]) -> dict:
+    """
+    Describe sidecar templates, for the `config` of a shard.
+
+    Templates are signed by their content in the shard's `config`, never
+    listed in its `inputs`: a changed template re-runs the shards that
+    use it, and a template found elsewhere (`sourcedata/` instead of the
+    package) re-runs them too.
+
+    Parameters
+    ----------
+    ctx : RoastContext
+        Context of the roast (templates found with `ctx.resource`)
+    names : list[str]
+        Names of the templates that a shard may use
+
+    Returns
+    -------
+    dict
+        `{name: [path, sha256] | None}` (None: not found; a template
+        that cannot be read has the digest `"unreadable: <Type>"`, its
+        sidecars fail when written)
+    """
+    out = {}
+    for name in names:
+        path = ctx.resource(name)
+        if path is None:
+            out[name] = None
+            continue
+        path = Path(path)
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as e:
+            digest = f"unreadable: {type(e).__name__}"
+        out[name] = [path.as_posix(), digest]
+    return out

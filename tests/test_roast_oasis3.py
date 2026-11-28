@@ -518,3 +518,29 @@ def test_key_classification():
             assert sel.keeps(claim, partial=True) is False
     sel = keys.selection(["asl"])
     assert sel.keeps(m0) and sel.keeps(aslcontext) and not sel.keeps(events)
+
+
+@pytest.mark.parametrize("subs", [
+    ["sub-0002"], ["0002"], [2], "2", "2:3", "file"])
+def test_python_subs_labels_ranges_files(root, tmp_path, subs):
+    """`roast(subs=)` takes what `--subs` takes: numbers, labels with or
+    without `sub-`, ranges, files (`roast.run.python_api`)"""
+    if subs == "file":
+        subs = tmp_path / "subs.txt"
+        subs.write_text("sub-0002\n")
+        subs = [str(subs)]
+    roast(root, keys={"T1w", "T2w"}, subs=subs, json="no")
+    assert raw_tree(root) == {f"{T2}.nii.gz"}
+    roast(root, keys={"T1w", "T2w"}, exclude_subs="2:3", json="no")
+    assert raw_tree(root) == {f"{T1}.nii.gz", f"{T2}.nii.gz"}
+
+
+def test_freesurfer_listing_corrupt_tarball(root):
+    """`--sidecars only`: a FreeSurfer tarball that cannot be listed is a
+    `Fail` of the roast, not an exception of the subject shard"""
+    folder = root / "sourcedata" / "OAS30001_MR_d0129"
+    (folder / "OAS30001_Freesurfer53_d0129.tar.gz").write_bytes(
+        b"\x1f\x8b\x08\x00 not a tarball")
+    report = roast(root, keys={"fs"}, json="only", display=False)
+    assert [(e[1], "cannot be read" in e[2]) for e in report.errors] == [
+        ("OAS30001_Freesurfer53_d0129.tar.gz", True)]

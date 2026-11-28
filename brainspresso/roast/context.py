@@ -158,6 +158,22 @@ class RoastContext(Context):
         """
         return self.selection.wants(key)
 
+    def wants_any(self, keys: Iterable[str]) -> bool:
+        """
+        Whether any of some keys is wanted.
+
+        Parameters
+        ----------
+        keys : iterable of str
+            Categories or BIDS keys (`wants`)
+
+        Returns
+        -------
+        bool
+            True if `wants(key)` for one of them
+        """
+        return any(map(self.wants, keys))
+
     def keeps_subject(self, label: str) -> bool:
         """
         Whether a subject is kept, and report it as seen.

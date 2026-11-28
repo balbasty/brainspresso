@@ -46,16 +46,14 @@ from brainspresso.bids.keys import KeyAliases
 from brainspresso.roast import (
     SEEN,
     RoastContext,
-    RoastReport,
     Shard,
     archives,
     copy_templates,
-    roast_dataset,
     scope,
 )
+from brainspresso.roast.run import python_api
 from brainspresso.roast.sidecars import template_config, template_sidecar
 from brainspresso.roast.tables import read_csv, table_action
-from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 
 lg = getLogger(__name__)
@@ -96,32 +94,6 @@ PARTICIPANTS_HEADER = [
     "icd9",
     "icd9_subtype",
 ]
-
-
-def roast(root, *, subs=(), exclude_subs=(), **options) -> RoastReport:
-    """
-    Roast `<root>` (the `COBRE` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`40000` is `sub-0040000`), labels with or
-        without `sub-`, ranges, files (as `--subs`)
-    **options
-        Those of the command line (`keys`, `exclude_keys`, `json`,
-        `ifexists`, `layout`), `jobs` and `display`
-
-    Returns
-    -------
-    RoastReport
-    """
-    return roast_dataset(
-        roast_cobre, root, KEYS, templates=TEMPLATES,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)), **options,
-    )
 
 
 def roast_cobre(ctx: RoastContext) -> Iterator:
@@ -426,3 +398,12 @@ def sidecar_actions(ctx: RoastContext, stem: Path, suffix: str, key: str,
         Path(sidecar), stem, key, bold=suffix == "bold", image=image,
         open_image=open_image, image_name=image_name,
         default_tr=DOCUMENTED_TR, on_default=on_default)
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `COBRE` folder): `roast(root, keys=..., subs=...)`
+roast = python_api(roast_cobre, KEYS, folder="COBRE",
+                   width=WIDTH, example=40000)

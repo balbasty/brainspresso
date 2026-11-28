@@ -8,11 +8,13 @@ The roast layer of the action engine (`actions.engine`):
 * `policy`: `RoastPolicy`, the acceptance policy (selection, JSON
   policy, category folders, kinds from `bids.kinds`, `IfExists` of
   tables and tracked files: pure `skip`, the edit test of `update`);
-* `run`: `run_roast` (engine, then trim and `finish_roast`) and
-  `roast_dataset` (the `roast()` of a dataset);
+* `run`: `run_roast` (engine, then trim and `finish_roast`),
+  `roast_dataset` (context and run) and `python_api` (the `roast()` of
+  a dataset, with the arguments of the command line);
 * `helpers`: `copy_templates`, `subject_shards`, `archive_shards`,
   `scope` (with `SEEN`: what of a roast can change the outputs of a
-  shard), `attempt` (a reader's error as a `Fail`);
+  shard), `attempt` (a reader's error as a `Fail`), `named_keys` and
+  `missing_input` (a missing input is an error only when it is named);
 * `archives`: reading source archives (`reading`, `ArchiveError`, the
   spools of ABIDE-II);
 * `tables`: source tables read (`read_csv`, `read_xlsx`, `read_xls`),
@@ -42,6 +44,8 @@ from brainspresso.roast.context import (
 from brainspresso.roast.helpers import (
     attempt,
     copy_templates,
+    missing_input,
+    named_keys,
     scope,
     subject_shards,
 )
@@ -49,6 +53,7 @@ from brainspresso.roast.policy import SEEN, RoastPolicy
 from brainspresso.roast.run import (
     Roaster,
     RoastReport,
+    python_api,
     roast_dataset,
     run_roast,
 )
@@ -56,6 +61,7 @@ from brainspresso.roast.run import (
 __all__ = [
     "JsonPolicy", "LocalExecutor", "RoastContext", "RoastPolicy",
     "RoastReport", "Roaster", "SEEN", "Shard", "as_list", "attempt",
-    "copy_templates", "make_context", "roast_dataset", "run_roast", "scope",
-    "subject_shards", "tables",
+    "copy_templates", "make_context", "missing_input", "named_keys",
+    "python_api", "roast_dataset", "run_roast", "scope", "subject_shards",
+    "tables",
 ]

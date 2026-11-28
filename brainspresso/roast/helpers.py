@@ -10,6 +10,9 @@ yield from archive_shards(ctx, tarballs, roast_archive, tag="raw",
                                                               NAMES))
 header, error = attempt(read_header, path, fail_name="sub-01_T1w.nii.gz",
                         fail_tag="T1w")
+named = named_keys(ROAST_SPEC, keys, ("T1w", "T2w"))   # (`--keys` as given)
+yield from missing_input("IXI-T1.tar not found", name="IXI-T1",
+                         required="T1w" in named, logger=lg)
 ```
 
 They only factor the plumbing (resources, pruning, progress, task ids);
@@ -17,6 +20,7 @@ what a dataset converts stays in its roaster.
 """
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Callable, Iterable, Iterator, Mapping
@@ -25,12 +29,14 @@ from brainspresso.actions.action import Action, Fail
 from brainspresso.actions.engine import Shard
 from brainspresso.actions.writers import CopyBytes, CopyJSON
 from brainspresso.convert import ConvertError
-from brainspresso.roast.context import RoastContext
+from brainspresso.roast.context import RoastContext, as_list
 from brainspresso.roast.policy import SEEN
 from brainspresso.roast.tables import TableError
 
-__all__ = ["archive_shards", "attempt", "copy_templates", "scope",
-           "subject_shards"]
+__all__ = ["archive_shards", "attempt", "copy_templates", "missing_input",
+           "named_keys", "scope", "subject_shards"]
+
+lg = logging.getLogger(__name__)
 
 
 def scope(keys: Iterable[str] | None = None,
@@ -299,3 +305,93 @@ def attempt(fn: Callable, *args, fail_name: str, fail_tag: str,
             message = (f"{fail_what or fail_name}: cannot be read "
                        f"({type(e).__name__}: {e})")
         return None, Fail(message, name=fail_name, tag=fail_tag)
+
+
+def named_keys(spec, keys, leaves: Iterable[str]) -> list[str]:
+    """
+    Return the leaves that `--keys` names, itself or through a group.
+
+    The rule of the inputs that only some subjects or sources have (a
+    missing input is an error only when the user asked for its key):
+    a leaf is named when `--keys`, as given, selects it (any case, a
+    group selects the leaves below it: `KeySpec.selects`). Nothing is
+    named without `--keys`, or with its CLI default spelled out (the
+    command line passes the default when the flag is absent, so the two
+    cannot be told apart).
+
+    ```python
+    named_keys(ROAST_SPEC, ["raw"], ("T1w", "T2w", "vessels"))
+    # ["T1w", "T2w"]
+    ```
+
+    Parameters
+    ----------
+    spec : KeySpec
+        Keys of the roast (duck-typed: `selects(keys, leaf)` and
+        `default`)
+    keys : str | list[str] | None
+        `--keys` as given (not `KeySpec.effective`, which turns keys
+        that cover every choice into "all")
+    leaves : iterable of str
+        The leaves whose inputs may be missing
+
+    Returns
+    -------
+    list[str]
+        The named leaves, sorted (picklable: it goes in
+        `RoastContext.options` and in a shard's `config`)
+    """
+    keys = as_list(keys)
+    if not keys or {str(k).lower() for k in keys} == \
+            {str(k).lower() for k in spec.default}:
+        return []
+    return sorted(leaf for leaf in leaves if spec.selects(keys, leaf))
+
+
+def missing_input(message: str, *, name: str, required: bool,
+                  tag: str | None = None, info: str | None = None,
+                  level: int = logging.INFO,
+                  logger: logging.Logger | None = None) -> Iterator[Fail]:
+    """
+    Report an input that is not there: a `Fail` if required, else a line.
+
+    An input is required when the user named it (`--keys` names its key
+    or a group above it, `named_keys`; `--discs`, `--parts`): its
+    absence is then an error of the roast; otherwise it is skipped with
+    one log line, and the roast can be complete.
+
+    ```python
+    yield from missing_input(f"{path.name} not found", name=path.name,
+                             tag="discs", required=named is not None,
+                             level=logging.WARNING, logger=lg)
+    ```
+
+    Parameters
+    ----------
+    message : str
+        What is missing (the message of the `Fail`)
+    name : str
+        Output that the error is of (the name of the `Fail`)
+    required : bool
+        Whether the input was named (a `Fail`), else a log line
+    tag : str | None
+        Progress group of the `Fail` (None: that of the producer)
+    info : str | None
+        The log line (default: `"<message> (skipped)"`)
+    level : int
+        Its level (`logging.INFO`; OASIS-I/II discs and parts:
+        `logging.WARNING`)
+    logger : logging.Logger | None
+        Its logger: the roaster's, so that the record names its dataset
+        (default: that of this module)
+
+    Yields
+    ------
+    Fail
+        Only if `required`
+    """
+    if required:
+        yield Fail(message, name=name, tag=tag)
+        return
+    (logger or lg).log(level, f"{message} (skipped)" if info is None
+                       else info)

@@ -40,9 +40,9 @@ from brainspresso.datasets.unc_wisconsin.keys import allkeys
 from brainspresso.roast import (
     RoastContext,
     copy_templates,
-    roast_dataset,
     subject_shards,
 )
+from brainspresso.roast.run import python_api
 from brainspresso.roast.tables import table_action
 from brainspresso.utils.path import sorted_paths
 
@@ -103,19 +103,11 @@ DERIVATIVES = [
 ]
 
 
-def roast(root, **options):
-    """Roast `<root>` (the `UNC-Wisconsin` folder). Options: those of
-    the command line (`keys`, `subs`, `exclude_subs`, `sessions`,
-    `ifexists`, `layout`), `jobs` and `display`."""
-    return roast_dataset(roast_uncwisc, root, KEYS, templates=TEMPLATES,
-                         **options)
-
-
 def roast_uncwisc(ctx: RoastContext) -> Iterator:
     meta = folders(ctx)
     if ctx.wants("meta"):
         yield from roast_meta(ctx, meta)
-    if any(map(ctx.wants, DERIV_KEYS)):
+    if ctx.wants_any(DERIV_KEYS):
         drv = ctx.layout.derivative(DERIV_NAME)
         yield from copy_templates(ctx, {
             "derivatives_description.json": drv.description,
@@ -259,3 +251,12 @@ def _dirs(path: Path) -> list[Path]:
     return sorted_paths(p for p in path.iterdir() if p.is_dir()) \
         if path.is_dir() else []
 
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `UNC-Wisconsin` folder): `roast(root, keys=...,
+#: subs=...)`; subject labels are kept as they are (`Dataset.subject_width`
+#: None)
+roast = python_api(roast_uncwisc, KEYS, folder="UNC-Wisconsin", width=None)

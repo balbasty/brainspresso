@@ -85,17 +85,14 @@ from brainspresso.datasets.indi.abide.ii.tables import (
 from brainspresso.datasets.indi.abide.tables import WIDTH, participant_label
 from brainspresso.roast import (
     RoastContext,
-    RoastReport,
     archives,
-    as_list,
-    roast_dataset,
     sidecars,
 )
 from brainspresso.roast.archives import place, spool
 from brainspresso.roast.archives import spool_host as _host  # noqa: F401
 from brainspresso.roast.helpers import archive_shards
+from brainspresso.roast.run import python_api
 from brainspresso.roast.sidecars import TemplateError, template_sidecar
-from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 from brainspresso.utils.path import sorted_paths
 
@@ -185,43 +182,6 @@ RAW_KEYS = tuple(sorted({kind.key for kind in KINDS.values()}))
 
 SCAN_FOLDER = re.compile(r"(?P<kind>[A-Za-z]+)_(?P<n>\d+)")
 SESSION_FOLDER = re.compile(r"session_(?P<n>\d+)", re.IGNORECASE)
-
-
-# ----------------------------------------------------------------------
-#   Python API
-# ----------------------------------------------------------------------
-
-def roast(root, *, keys=(), exclude_keys=(), subs=(), exclude_subs=(),
-          **options) -> RoastReport:
-    """
-    Roast `<root>` (the `ABIDE-2` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`29001` is `sub-29001`), labels with or
-        without `sub-`, ranges, files (as `--subs`)
-    keys, exclude_keys : str | list[str]
-        `--keys`, `--exclude-keys` (a name or a list)
-    **options
-        Those of the command line (`json`, `ifexists`, `layout`), `jobs`
-        and `display`
-
-    Returns
-    -------
-    RoastReport
-    """
-    select, exclude = ROAST_SPEC.effective(as_list(keys),
-                                           as_list(exclude_keys))
-    return roast_dataset(
-        roast_nitrc, root, KEYS, templates=TEMPLATES,
-        keys=select, exclude_keys=exclude,
-        subs=sorted(subject_labels(as_list(subs), WIDTH)),
-        exclude_subs=sorted(subject_labels(as_list(exclude_subs), WIDTH)),
-        **options,
-    )
 
 
 # ----------------------------------------------------------------------
@@ -939,3 +899,12 @@ def sidecar_actions(ctx: RoastContext, path: Path, scan: Scan, stem: Path,
     yield from template_sidecar(template, stem, kind.key,
                                 bold=kind.suffix == "bold", image=image_path,
                                 open_image=open_image, image_name=image_name)
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+#: Roast `<root>` (the `ABIDE-2` folder): `roast(root, keys=..., subs=...)`
+roast = python_api(roast_nitrc, KEYS, folder="ABIDE-2",
+                   width=WIDTH, example=29001, spec=ROAST_SPEC)

@@ -36,7 +36,7 @@ sessions tables are written complete to `.brainspresso/orig/` and
 trimmed to the subjects and sessions on disk.
 """
 import re
-from logging import getLogger
+from logging import WARNING, getLogger
 from pathlib import Path
 from typing import Iterator
 
@@ -49,9 +49,9 @@ from brainspresso.roast import (
     RoastContext,
     archives,
     copy_templates,
-    roast_dataset,
 )
-from brainspresso.roast.helpers import archive_shards, attempt
+from brainspresso.roast.helpers import archive_shards, attempt, missing_input
+from brainspresso.roast.run import doc_entry, python_api
 from brainspresso.roast.sidecars import copy_sidecar, template_config
 from brainspresso.roast.tables import (
     TableError,
@@ -60,7 +60,6 @@ from brainspresso.roast.tables import (
     read_xlsx,
     table_action,
 )
-from brainspresso.sources.base import subject_labels
 from brainspresso.utils.archive import TarArchive
 
 lg = getLogger(__name__)
@@ -86,46 +85,6 @@ KEYS = KeyAliases(
 AFFINE_RAW = make_affine(
     [256, 256, 128], [1.0, 1.0, 1.25], orient="ASL", center="x/2"
 )
-
-
-def roast(root, *, subs=(), exclude_subs=(), parts=None, **options):
-    """
-    Roast `<root>` (the `OASIS-2` folder).
-
-    Parameters
-    ----------
-    root : path
-        Dataset folder
-    subs, exclude_subs : list[int | str]
-        Subjects: numbers (`1` is `sub-0001`), labels with or without
-        `sub-`, ranges, files (as `--subs`)
-    parts : list[int]
-        Only these parts, 1 or 2 (default: all; a part named here that
-        is not in `sourcedata/` is an error, other missing parts are
-        skipped)
-    **options
-        Those of the command line (`keys`, `exclude_keys`, `sessions`,
-        `json`, `ifexists`, `layout`), `jobs` and `display`
-
-    Returns
-    -------
-    RoastReport
-        See `roast.run_roast`
-
-    Raises
-    ------
-    UsageError
-        If a part is not 1 or 2
-    """
-    if parts:
-        check_parts(parts)
-    return roast_dataset(
-        roast_oasis2, root, KEYS, templates=TEMPLATES,
-        subs=sorted(subject_labels(subs, WIDTH)),
-        exclude_subs=sorted(subject_labels(exclude_subs, WIDTH)),
-        options={"parts": sorted(set(parts))} if parts else None,
-        **options,
-    )
 
 
 def check_parts(parts) -> None:
@@ -193,11 +152,9 @@ def roast_oasis2(ctx: RoastContext) -> Iterator:
             continue
         path = part_path(ctx, part)
         if not path.exists():
-            message = f"{path.name} not found"
-            if named is not None:
-                yield Fail(message, name=path.name, tag="parts")
-            else:
-                lg.warning(f"{message} (skipped)")
+            yield from missing_input(
+                f"{path.name} not found", name=path.name, tag="parts",
+                required=named is not None, level=WARNING, logger=lg)
             continue
         found[path] = part
     config = template_config(ctx.resource, [SIDECAR])
@@ -491,3 +448,46 @@ def read_demographics(path_xlsx: Path) -> tuple[list, dict[str, list]]:
             [f"ses-{ses}", *map(clean, values[1])]
             for ses, (_, values) in sorted(rows.items())]
     return participants, sessions
+
+
+# ----------------------------------------------------------------------
+#   Python API
+# ----------------------------------------------------------------------
+
+def part_options(keys, parts=None) -> dict | None:
+    """
+    Return the options of the roaster (`RoastContext.options`).
+
+    Parameters
+    ----------
+    keys : list[str]
+        `--keys` as given (unused)
+    parts : list[int] | None
+        `--parts`
+
+    Returns
+    -------
+    dict | None
+        `{"parts": [...]}` when parts are given
+
+    Raises
+    ------
+    UsageError
+        If a part is not 1 or 2
+    """
+    if not parts:
+        return None
+    check_parts(parts)
+    return {"parts": sorted(set(parts))}
+
+
+#: Roast `<root>` (the `OASIS-2` folder): `roast(root, keys=..., subs=...,
+#: parts=...)`
+roast = python_api(
+    roast_oasis2, KEYS, folder="OASIS-2", width=WIDTH,
+    options=part_options, options_doc=doc_entry(
+        "parts : list[int]",
+        "Only these parts, 1 or 2 (default: all; a part named here that is "
+        "not in `sourcedata/` is an error, other missing parts are "
+        "skipped). A part that is not 1 or 2 raises `UsageError`"),
+)

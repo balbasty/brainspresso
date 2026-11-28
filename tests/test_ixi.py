@@ -708,3 +708,21 @@ def test_missing_dti_named_by_trace(tmp_path):
     assert [e[1] for e in report.errors] == ["IXI-DTI"]
     report = roaster.roast(root, display=False)
     assert not report.errors
+
+
+@pytest.mark.parametrize("subs", [
+    ["sub-012"], ["012"], [12], "12", "10:13", "file"])
+def test_python_subs_labels_ranges_files(tmp_path, subs):
+    """`roast(subs=)` takes what `--subs` takes: numbers, labels with or
+    without `sub-`, ranges, files (`roast.run.python_api`)"""
+    root = tmp_path / "IXI"
+    write_tarballs(root / "sourcedata")
+    if subs == "file":
+        subs = tmp_path / "subs.txt"
+        subs.write_text("012\n")
+        subs = [str(subs)]
+    roaster.roast(root, keys={"T1w"}, subs=subs, json="no", display=False)
+    assert outputs(root)[1] == {"sub-012/anat/sub-012_T1w.nii.gz"}
+    roaster.roast(root, keys={"T1w"}, exclude_subs="10:13", json="no",
+                  display=False)
+    assert "sub-002/anat/sub-002_T1w.nii.gz" in outputs(root)[1]
